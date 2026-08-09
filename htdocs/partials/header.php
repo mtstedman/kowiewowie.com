@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 ?>
-<header class="site-header">
+<header class="site-header" aria-label="Site header">
     <a class="wordmark" href="/" aria-label="wowiekowie.com home">
         <span class="wordmark-mark" aria-hidden="true">w</span>
-        <span>wowiekowie.com</span>
+        <span class="wordmark-text">wowiekowie.com</span>
     </a>
     <nav class="site-nav" aria-label="Primary navigation">
         <a href="/recipes/">Recipes</a>
