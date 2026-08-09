@@ -2,60 +2,6 @@
 
 declare(strict_types=1);
 
-function escape_html(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-}
-
-/**
- * @return array<int, array<string, mixed>>
- */
-function load_games(): array
-{
-    $dataPath = dirname(__DIR__) . '/data/games.json';
-    $contents = file_get_contents($dataPath);
-
-    if ($contents === false) {
-        return [];
-    }
-
-    try {
-        $games = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
-    } catch (JsonException) {
-        return [];
-    }
-
-    return is_array($games) ? $games : [];
-}
-
-/**
- * @param array<int, array<string, mixed>> $games
- * @return array<string, mixed>|null
- */
-function find_game_by_slug(array $games, string $slug): ?array
-{
-    foreach ($games as $game) {
-        if (($game['slug'] ?? null) === $slug) {
-            return $game;
-        }
-    }
-
-    return null;
-}
-
-$slug = $_GET['slug'] ?? '';
-$slug = is_string($slug) ? trim($slug) : '';
-$games = load_games();
-$game = $slug === '' ? null : find_game_by_slug($games, $slug);
-$isNotFound = $game === null;
-
-if ($isNotFound) {
-    http_response_code(404);
-}
-
-$name = is_string($game['name'] ?? null) ? $game['name'] : 'Board game';
-$description = is_string($game['shortDescription'] ?? null) ? $game['shortDescription'] : '';
-$notes = is_array($game['strategyNotes'] ?? null) ? $game['strategyNotes'] : [];
 $year = gmdate('Y');
 ?>
 <!doctype html>
@@ -63,59 +9,170 @@ $year = gmdate('Y');
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Strategy notes for <?= escape_html($name) ?> on wowiekowie.com.">
-    <title><?= $isNotFound ? 'Game not found' : escape_html($name) . ' strategy notes' ?> - wowiekowie.com</title>
+    <meta name="description" content="Strategy notes for a board game on wowiekowie.com.">
+    <title>Board game strategy notes - wowiekowie.com</title>
     <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
     <div class="page-shell">
         <?php include dirname(__DIR__) . '/partials/header.php'; ?>
 
-        <main>
-            <?php if ($isNotFound): ?>
-                <section class="hero hero-compact">
-                    <p class="eyebrow">Game not found</p>
-                    <h1>Those strategy notes are not on the shelf.</h1>
-                    <p class="lede">Choose a board game from the games list to see its notes.</p>
-                    <a class="button" href="/games/">Back to games <span aria-hidden="true">-&gt;</span></a>
-                </section>
-            <?php else: ?>
-                <section class="hero hero-compact">
-                    <p class="eyebrow">Strategy notes</p>
-                    <h1><?= escape_html($name) ?></h1>
-                    <?php if ($description !== ''): ?>
-                        <p class="lede"><?= escape_html($description) ?></p>
-                    <?php endif; ?>
-                </section>
-
-                <section class="foundation" aria-labelledby="strategy-title">
-                    <div class="section-heading">
-                        <p class="eyebrow">Per-game notes</p>
-                        <h2 id="strategy-title">How to approach <?= escape_html($name) ?></h2>
-                    </div>
-
-                    <?php if ($notes === []): ?>
-                        <p class="lede">No strategy notes have been added for this game yet.</p>
-                    <?php else: ?>
-                        <div class="feature-grid">
-                            <?php foreach ($notes as $index => $note): ?>
-                                <?php if (!is_string($note) || $note === '') {
-                                    continue;
-                                } ?>
-                                <article>
-                                    <span class="feature-number"><?= str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) ?></span>
-                                    <p><?= escape_html($note) ?></p>
-                                </article>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <p><a class="text-link" href="/games/">Back to all games <span aria-hidden="true">-&gt;</span></a></p>
-                </section>
-            <?php endif; ?>
+        <main id="game-content" aria-live="polite">
+            <section class="hero hero-compact">
+                <p class="eyebrow">Strategy notes</p>
+                <h1>Loading game...</h1>
+                <p class="lede">Fetching the latest strategy notes.</p>
+            </section>
         </main>
 
         <?php include dirname(__DIR__) . '/partials/footer.php'; ?>
     </div>
+
+    <script>
+        (() => {
+            const content = document.getElementById('game-content');
+            const slug = new URLSearchParams(window.location.search).get('slug')?.trim() ?? '';
+
+            const appendTextElement = (parent, tagName, className, text) => {
+                const element = document.createElement(tagName);
+
+                if (className !== '') {
+                    element.className = className;
+                }
+
+                element.textContent = text;
+                parent.append(element);
+
+                return element;
+            };
+
+            const appendArrowLink = (parent, className, href, text) => {
+                const link = document.createElement('a');
+                link.className = className;
+                link.href = href;
+                link.append(`${text} `);
+
+                const arrow = document.createElement('span');
+                arrow.setAttribute('aria-hidden', 'true');
+                arrow.textContent = '->';
+                link.append(arrow);
+
+                parent.append(link);
+
+                return link;
+            };
+
+            const renderNotFound = () => {
+                content.replaceChildren();
+
+                const section = document.createElement('section');
+                section.className = 'hero hero-compact';
+
+                appendTextElement(section, 'p', 'eyebrow', 'Game not found');
+                appendTextElement(section, 'h1', '', 'Those strategy notes are not on the shelf.');
+                appendTextElement(section, 'p', 'lede', 'Choose a board game from the games list to see its notes.');
+                appendArrowLink(section, 'button', '/games/', 'Back to games');
+
+                content.append(section);
+            };
+
+            const renderError = () => {
+                content.replaceChildren();
+
+                const section = document.createElement('section');
+                section.className = 'hero hero-compact';
+
+                appendTextElement(section, 'p', 'eyebrow', 'Loading error');
+                appendTextElement(section, 'h1', '', 'Those strategy notes could not be loaded.');
+                appendTextElement(section, 'p', 'lede', 'Try the games list again in a moment.');
+                appendArrowLink(section, 'button', '/games/', 'Back to games');
+
+                content.append(section);
+            };
+
+            const renderGame = (game) => {
+                const name = typeof game.name === 'string' ? game.name : 'Board game';
+                const description = typeof game.shortDescription === 'string' ? game.shortDescription : '';
+                const notes = Array.isArray(game.strategyNotes) ? game.strategyNotes : [];
+
+                document.title = `${name} strategy notes - wowiekowie.com`;
+
+                content.replaceChildren();
+
+                const hero = document.createElement('section');
+                hero.className = 'hero hero-compact';
+
+                appendTextElement(hero, 'p', 'eyebrow', 'Strategy notes');
+                appendTextElement(hero, 'h1', '', name);
+
+                if (description !== '') {
+                    appendTextElement(hero, 'p', 'lede', description);
+                }
+
+                content.append(hero);
+
+                const section = document.createElement('section');
+                section.className = 'foundation';
+                section.setAttribute('aria-labelledby', 'strategy-title');
+
+                const heading = document.createElement('div');
+                heading.className = 'section-heading';
+                appendTextElement(heading, 'p', 'eyebrow', 'Per-game notes');
+
+                const title = appendTextElement(heading, 'h2', '', `How to approach ${name}`);
+                title.id = 'strategy-title';
+                section.append(heading);
+
+                const validNotes = notes.filter((note) => typeof note === 'string' && note !== '');
+
+                if (validNotes.length === 0) {
+                    appendTextElement(section, 'p', 'lede', 'No strategy notes have been added for this game yet.');
+                } else {
+                    const grid = document.createElement('div');
+                    grid.className = 'feature-grid';
+
+                    validNotes.forEach((note, index) => {
+                        const article = document.createElement('article');
+                        appendTextElement(article, 'span', 'feature-number', String(index + 1).padStart(2, '0'));
+                        appendTextElement(article, 'p', '', note);
+                        grid.append(article);
+                    });
+
+                    section.append(grid);
+                }
+
+                const backParagraph = document.createElement('p');
+                appendArrowLink(backParagraph, 'text-link', '/games/', 'Back to all games');
+                section.append(backParagraph);
+
+                content.append(section);
+            };
+
+            if (slug === '') {
+                renderNotFound();
+                return;
+            }
+
+            fetch(`/api/games/${encodeURIComponent(slug)}`)
+                .then((response) => {
+                    if (response.status === 404) {
+                        renderNotFound();
+                        return null;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error('Unable to load game.');
+                    }
+
+                    return response.json();
+                })
+                .then((game) => {
+                    if (game !== null) {
+                        renderGame(game && typeof game === 'object' && 'game' in game ? game.game : game);
+                    }
+                })
+                .catch(renderError);
+        })();
+    </script>
 </body>
 </html>
