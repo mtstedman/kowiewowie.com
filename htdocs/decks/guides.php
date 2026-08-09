@@ -2,12 +2,37 @@
 
 declare(strict_types=1);
 
+function e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+
+function loadJsonFile(string $path): array
+{
+    $json = file_get_contents($path);
+
+    if ($json === false) {
+        return [];
+    }
+
+    $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+
+    return is_array($data) ? $data : [];
+}
+
+$guides = loadJsonFile(__DIR__ . '/../data/deck-guides.json');
+$decksBySlug = [];
+
+foreach (loadJsonFile(__DIR__ . '/../data/decks.json') as $deck) {
+    if (is_array($deck) && is_string($deck['slug'] ?? null)) {
+        $decksBySlug[$deck['slug']] = $deck;
+    }
+}
+
 $year = gmdate('Y');
 $pageTitle = 'Deck Guides - wowiekowie.com';
 $metaDescription = 'Magic: The Gathering deck walkthrough guides.';
 ?>
-<!doctype html>
-<html lang="en">
 <?php include __DIR__ . '/../partials/head.php'; ?>
 <body>
     <div class="page-shell">
@@ -30,96 +55,39 @@ $metaDescription = 'Magic: The Gathering deck walkthrough guides.';
                     <h2 id="guide-list-title">How to play</h2>
                 </div>
 
-                <div id="guide-list" aria-live="polite">
-                    <p>Loading deck guides...</p>
-                </div>
+                <?php if ($guides === []): ?>
+                    <p>No deck guides are available yet.</p>
+                <?php else: ?>
+                    <div class="feature-grid">
+                        <?php foreach ($guides as $guide): ?>
+                            <?php
+                            if (!is_array($guide)) {
+                                continue;
+                            }
+
+                            $slug = is_string($guide['slug'] ?? null) ? $guide['slug'] : '';
+                            $title = is_string($guide['title'] ?? null) ? $guide['title'] : 'Untitled guide';
+                            $summary = is_string($guide['summary'] ?? null) ? $guide['summary'] : '';
+                            $published = is_string($guide['published'] ?? null) ? $guide['published'] : '';
+                            $deckSlug = is_string($guide['deck_slug'] ?? null) ? $guide['deck_slug'] : '';
+                            $deck = $decksBySlug[$deckSlug] ?? null;
+                            $deckName = is_array($deck) && is_string($deck['name'] ?? null) ? $deck['name'] : 'Unknown deck';
+                            ?>
+                            <article>
+                                <?php if ($published !== ''): ?>
+                                    <span class="feature-number"><?= e($published) ?></span>
+                                <?php endif; ?>
+                                <h3><a href="/decks/guide.php?slug=<?= e(rawurlencode($slug)) ?>"><?= e($title) ?></a></h3>
+                                <p><?= e($summary) ?></p>
+                                <p>Linked deck: <a href="/decks/deck.php?slug=<?= e(rawurlencode($deckSlug)) ?>"><?= e($deckName) ?></a></p>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </section>
         </main>
 
         <?php include __DIR__ . '/../partials/footer.php'; ?>
     </div>
-
-    <script>
-        const guideList = document.querySelector('#guide-list');
-
-        function escapeHtml(value) {
-            return String(value).replace(/[&<>'"]/g, (character) => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                "'": '&#039;',
-                '"': '&quot;'
-            }[character]));
-        }
-
-        async function fetchJson(url) {
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error(`Request failed: ${response.status}`);
-            }
-
-            return response.json();
-        }
-
-        function deckMapBySlug(decks) {
-            return decks.reduce((mappedDecks, deck) => {
-                if (deck && typeof deck.slug === 'string') {
-                    mappedDecks.set(deck.slug, deck);
-                }
-
-                return mappedDecks;
-            }, new Map());
-        }
-
-        function renderGuides(guides, decks) {
-            if (!Array.isArray(guides) || guides.length === 0) {
-                guideList.innerHTML = '<p>No deck guides are available yet.</p>';
-                return;
-            }
-
-            const decksBySlug = deckMapBySlug(Array.isArray(decks) ? decks : []);
-            const articles = guides
-                .filter((guide) => guide && typeof guide === 'object')
-                .map((guide) => {
-                    const slug = typeof guide.slug === 'string' ? guide.slug : '';
-                    const title = typeof guide.title === 'string' ? guide.title : 'Untitled guide';
-                    const summary = typeof guide.summary === 'string' ? guide.summary : '';
-                    const published = typeof guide.published === 'string' ? guide.published : '';
-                    const deckSlug = typeof guide.deck_slug === 'string' ? guide.deck_slug : '';
-                    const deck = decksBySlug.get(deckSlug);
-                    const deckName = deck && typeof deck.name === 'string' ? deck.name : 'Unknown deck';
-
-                    return `
-                        <article>
-                            ${published !== '' ? `<span class="feature-number">${escapeHtml(published)}</span>` : ''}
-                            <h3><a href="/decks/guide.php?slug=${encodeURIComponent(slug)}">${escapeHtml(title)}</a></h3>
-                            <p>${escapeHtml(summary)}</p>
-                            <p>Linked deck: <a href="/decks/deck.php?slug=${encodeURIComponent(deckSlug)}">${escapeHtml(deckName)}</a></p>
-                        </article>
-                    `;
-                })
-                .join('');
-
-            guideList.innerHTML = articles === ''
-                ? '<p>No deck guides are available yet.</p>'
-                : `<div class="feature-grid">${articles}</div>`;
-        }
-
-        async function loadGuides() {
-            try {
-                const [guides, decks] = await Promise.all([
-                    fetchJson('/api/guides'),
-                    fetchJson('/api/decks')
-                ]);
-
-                renderGuides(guides, decks);
-            } catch (error) {
-                guideList.innerHTML = '<p>Deck guides could not be loaded. Please try again later.</p>';
-            }
-        }
-
-        loadGuides();
-    </script>
 </body>
 </html>
