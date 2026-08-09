@@ -1,0 +1,10 @@
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Editor and OS metadata
+.DS_Store
+.idea/
+.vscode/
+
