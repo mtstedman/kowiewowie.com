@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "playing-izzet-spellslingers",
+    "title": "How to Play Izzet Spellslingers",
+    "deck_slug": "izzet-spellslingers",
+    "summary": "Sequence cantrips, protect Veyran, and pick the right turn to convert spell volume into lethal pressure.",
+    "published": "2026-08-09",
+    "sections": [
+      {
+        "heading": "Opening Plan",
+        "body": "Keep hands with two or three lands, at least one cheap draw spell, and either a mana rock or an early payoff. The deck rewards patience, so spend the first turns sculpting a hand instead of exposing Veyran too early."
+      },
+      {
+        "heading": "Midgame Priorities",
+        "body": "Develop one payoff at a time and leave mana open when possible. Storm-Kiln Artist and Archmage Emeritus are the best setup pieces because they turn every cantrip into mana or cards for the next spell."
+      },
+      {
+        "heading": "Closing the Game",
+        "body": "Wait until you can chain several spells in one turn, preferably with Veyran doubling magecraft triggers. Past in Flames, Jeska's Will, and Thousand-Year Storm let the deck pivot from value to a decisive finish."
+      }
+    ]
+  },
+  {
+    "slug": "piloting-golgari-graveyard-value",
+    "title": "Piloting Golgari Graveyard Value",
+    "deck_slug": "golgari-graveyard-value",
+    "summary": "Trade creatures early, build experience counters, and use the graveyard as a second hand until the table runs out of answers.",
+    "published": "2026-08-09",
+    "sections": [
+      {
+        "heading": "Opening Plan",
+        "body": "Prioritize ramp, a sacrifice outlet, and a creature that replaces itself. Sakura-Tribe Elder and Spore Frog are ideal because they are useful early and become repeatable tools once Meren is active."
+      },
+      {
+        "heading": "Midgame Priorities",
+        "body": "Use removal creatures and edict effects to keep opposing boards manageable. Experience counters matter more than raw speed, so sequence sacrifices in a way that guarantees Meren has a strong target every end step."
+      },
+      {
+        "heading": "Closing the Game",
+        "body": "Once Grave Pact effects or Blood Artist payoffs stick, every sacrifice becomes a problem for the table. Living Death and Gray Merchant of Asphodel provide the biggest swing turns after the graveyard is stocked."
+      }
+    ]
+  }
+]

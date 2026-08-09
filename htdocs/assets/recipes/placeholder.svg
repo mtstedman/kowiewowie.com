@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
+  <title id="title">Recipe placeholder</title>
+  <desc id="desc">A simple plate illustration used for sample recipe images.</desc>
+  <rect width="640" height="360" fill="#f5f1e8"/>
+  <circle cx="320" cy="180" r="112" fill="#ffffff" stroke="#263238" stroke-width="8"/>
+  <circle cx="320" cy="180" r="70" fill="#f2c94c" opacity="0.35"/>
+  <path d="M246 178c42-52 103-52 148 0" fill="none" stroke="#2f855a" stroke-width="14" stroke-linecap="round"/>
+  <path d="M264 213c40 28 77 28 112 0" fill="none" stroke="#d1495b" stroke-width="16" stroke-linecap="round"/>
+  <text x="320" y="314" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" fill="#263238">Recipe</text>
+</svg>

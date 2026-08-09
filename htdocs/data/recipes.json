@@ -1,0 +1,45 @@
+[
+  {
+    "slug": "weeknight-tomato-pasta",
+    "title": "Weeknight Tomato Pasta",
+    "summary": "A simple pantry pasta with garlic, tomatoes, and a little heat.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "12 ounces spaghetti or linguine",
+      "2 tablespoons olive oil",
+      "4 cloves garlic, thinly sliced",
+      "1/2 teaspoon red pepper flakes",
+      "1 can crushed tomatoes, 28 ounces",
+      "1 teaspoon kosher salt",
+      "1/4 cup grated parmesan",
+      "Fresh basil leaves"
+    ],
+    "instructions": [
+      "Bring a large pot of salted water to a boil and cook the pasta until al dente.",
+      "Warm the olive oil in a skillet, then cook the garlic and red pepper flakes for 1 minute.",
+      "Add the crushed tomatoes and salt, then simmer for 12 minutes.",
+      "Toss the drained pasta with the sauce, parmesan, and basil before serving."
+    ]
+  },
+  {
+    "slug": "citrus-breakfast-bowl",
+    "title": "Citrus Breakfast Bowl",
+    "summary": "Greek yogurt layered with citrus, oats, honey, and toasted seeds.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "1 cup Greek yogurt",
+      "1 orange, peeled and sliced",
+      "1/2 grapefruit, peeled and sliced",
+      "1/3 cup rolled oats",
+      "1 tablespoon pumpkin seeds",
+      "1 tablespoon honey",
+      "Pinch of flaky salt"
+    ],
+    "instructions": [
+      "Spoon the Greek yogurt into a shallow bowl.",
+      "Arrange the orange and grapefruit slices over the yogurt.",
+      "Sprinkle the oats and pumpkin seeds across the top.",
+      "Finish with honey and a small pinch of flaky salt."
+    ]
+  }
+]

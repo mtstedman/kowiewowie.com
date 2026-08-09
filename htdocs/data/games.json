@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "wingspan",
+    "name": "Wingspan",
+    "shortDescription": "A calm engine-building game about attracting birds, chaining habitats, and timing food, eggs, and cards.",
+    "strategyNotes": [
+      "Start with birds that give reliable food or card access so later turns are less dependent on the feeder and tray.",
+      "Build one strong habitat early, then use bonus cards and end-round goals to decide whether to branch out.",
+      "Eggs are flexible points and action fuel, so avoid leaving egg production until the final round unless another engine is already scoring well."
+    ]
+  },
+  {
+    "slug": "terraforming-mars",
+    "name": "Terraforming Mars",
+    "shortDescription": "A card-driven strategy game about developing an economy while racing to make Mars habitable.",
+    "strategyNotes": [
+      "Prioritize production in the first generations, especially money and cards that compound over several rounds.",
+      "Track milestone and award timing; claiming one before an opponent often matters more than squeezing out a perfect value turn.",
+      "Shift from engine growth to terraforming and city scoring once the game clock starts accelerating."
+    ]
+  },
+  {
+    "slug": "azul",
+    "name": "Azul",
+    "shortDescription": "A tactile tile-drafting game about pattern building, tempo, and denying opponents clean placements.",
+    "strategyNotes": [
+      "Watch the factory offer before committing to long rows, because one forced color can turn into avoidable floor penalties.",
+      "Complete center columns and color sets when they align naturally, but do not chase bonuses at the cost of repeated waste.",
+      "Late in each round, count what opponents cannot legally place and use that pressure to leave them awkward drafts."
+    ]
+  }
+]
