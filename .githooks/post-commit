@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+if ! "$REPO_ROOT/deploy/deploy.sh"; then
+    printf '\nCommit succeeded, but the automatic production deployment failed.\n' >&2
+    printf 'Retry with: %s/deploy/deploy.sh\n' "$REPO_ROOT" >&2
+    exit 1
+fi
