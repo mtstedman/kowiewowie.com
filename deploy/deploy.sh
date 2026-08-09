@@ -39,7 +39,8 @@ sudo -n rsync --archive --delete --delay-updates \
     "$release_dir/api/" "$WEB_ROOT/api/"
 
 curl --noproxy '*' --fail --silent --show-error \
-    -H 'Host: wowiekowie.com' http://127.0.0.1/ >/dev/null
+    --resolve wowiekowie.com:443:127.0.0.1 \
+    https://wowiekowie.com/ >/dev/null
 
 curl --noproxy '*' --fail --silent --show-error \
     --resolve api.wowiekowie.com:443:127.0.0.1 \
