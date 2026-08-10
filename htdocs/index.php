@@ -85,6 +85,20 @@ require __DIR__ . '/partials/head.php';
                         </article>
                     </div>
                 </section>
+
+                <section class="bio-section" aria-labelledby="about-title">
+                    <div class="section-heading">
+                        <p class="eyebrow">About the proprietor</p>
+                        <h2 id="about-title">Built by a person who thinks curiosity should have better table manners.</h2>
+                    </div>
+                    <p class="lede">
+                        This place exists because it is more fun to leave the workshop light on than to pretend every idea needs a board meeting.
+                        Some things arrive neatly labeled. Others show up wearing roller skates and asking difficult questions.
+                    </p>
+                    <p class="aside">
+                        The general practice is simple: make things with care, keep the weird parts polished, and leave enough room for surprise to sit down with a sandwich.
+                    </p>
+                </section>
             <?php endif; ?>
         </main>
 
