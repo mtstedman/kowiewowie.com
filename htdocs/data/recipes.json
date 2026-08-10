@@ -41,5 +41,26 @@
       "Sprinkle the oats and pumpkin seeds across the top.",
       "Finish with honey and a small pinch of flaky salt."
     ]
+  },
+  {
+    "slug": "can-of-ass-whoopin",
+    "title": "A Can of Ass Whoopin",
+    "summary": "A tongue-in-cheek pantry special with big talk, bold flavor, and just enough heat to let everybody know supper means business.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "1 dented can of confidence",
+      "2 tablespoons swagger",
+      "1 heaping spoonful of Southern sarcasm",
+      "1 pinch of red pepper flakes for dramatic effect",
+      "1 cast-iron skillet full of consequences",
+      "Fresh cracked black pepper and common sense"
+    ],
+    "instructions": [
+      "Pop the can of confidence and let it hiss like somebody just said they can do it better.",
+      "Warm the swagger in a cast-iron skillet, then stir in the sarcasm until the kitchen starts talking back.",
+      "Add the red pepper flakes and consequences, then cook everything down until the smell alone sets the record straight.",
+      "Finish with black pepper and common sense, then serve hot with a reminder that this recipe is strictly for laughs."
+    ],
+    "status": "published"
   }
 ]
