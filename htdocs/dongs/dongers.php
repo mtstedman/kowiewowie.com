@@ -1,0 +1,36 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    ['name' => 'Classic Smirk', 'text' => '( ͡° ͜ʖ ͡°)', 'category' => 'Classic Faces'],
+    ['name' => 'Stone Face', 'text' => 'ಠ_ಠ', 'category' => 'Classic Faces'],
+    ['name' => 'Side Eye', 'text' => '(¬_¬)', 'category' => 'Classic Faces'],
+    ['name' => 'Big Reveal', 'text' => '( •_•)>⌐■-■', 'category' => 'Classic Faces'],
+    ['name' => 'Cool Finish', 'text' => '(⌐■_■)', 'category' => 'Classic Faces'],
+    ['name' => 'Tiny Shock', 'text' => '(☉_☉)', 'category' => 'Classic Faces'],
+    ['name' => 'Full Shrug', 'text' => '¯\_(ツ)_/¯', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Table Respecter', 'text' => '┬─┬ノ( º _ ºノ)', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Table Flipper', 'text' => '(╯°□°）╯︵ ┻━┻', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Rage Flipper', 'text' => '(ノಠ益ಠ)ノ彡┻━┻', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Jazz Hands Chaos', 'text' => 'ヽ༼ຈل͜ຈ༽ﾉ', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Magic Problem', 'text' => '(∩^o^)⊃━☆ﾟ.*･｡ﾟ', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Flex Appeal', 'text' => 'ᕦ(ò_óˇ)ᕤ', 'category' => 'Victory Laps'],
+    ['name' => 'Speed Walk', 'text' => 'ᕕ( ᐛ )ᕗ', 'category' => 'Victory Laps'],
+    ['name' => 'Happy Launch', 'text' => '╰(°▽°)╯', 'category' => 'Victory Laps'],
+    ['name' => 'Sparkle Toss', 'text' => '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧', 'category' => 'Victory Laps'],
+    ['name' => 'Double Finger Guns', 'text' => '(☞ﾟヮﾟ)☞', 'category' => 'Victory Laps'],
+    ['name' => 'Party Burst', 'text' => '(ﾉ≧∀≦)ﾉ', 'category' => 'Victory Laps'],
+    ['name' => 'Bear Hello', 'text' => 'ʕ•ᴥ•ʔ', 'category' => 'Soft and Sweet'],
+    ['name' => 'Incoming Hug', 'text' => '(づ｡◕‿‿◕｡)づ', 'category' => 'Soft and Sweet'],
+    ['name' => 'Kiss Delivery', 'text' => '(づ￣ ³￣)づ', 'category' => 'Soft and Sweet'],
+    ['name' => 'Puppy Smile', 'text' => '(ᵔᴥᵔ)', 'category' => 'Soft and Sweet'],
+    ['name' => 'Cheerful Wave', 'text' => 'ヽ(•‿•)ノ', 'category' => 'Soft and Sweet'],
+    ['name' => 'Gentle Stardust', 'text' => '(੭ˊᵕˋ)੭* ੈ✩‧₊˚', 'category' => 'Soft and Sweet'],
+    ['name' => 'Battle Ready', 'text' => 'ლ(ಠ益ಠლ)', 'category' => 'Goblin Energy'],
+    ['name' => 'Squared Up', 'text' => '(ง •̀_•́)ง', 'category' => 'Goblin Energy'],
+    ['name' => 'Stubborn Flex', 'text' => 'ᕙ(⇀‸↼‶)ᕗ', 'category' => 'Goblin Energy'],
+    ['name' => 'Finger Guns Deluxe', 'text' => '(☞ ͡° ͜ʖ ͡°)☞', 'category' => 'Goblin Energy'],
+    ['name' => 'Scheming Face', 'text' => '( ͠° ͟ʖ ͡°)', 'category' => 'Goblin Energy'],
+    ['name' => 'Blink and Wonder', 'text' => '(⊙_☉)', 'category' => 'Goblin Energy'],
+];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 $pageTitle = $pageTitle ?? 'wowiekowie.com';
 $metaDescription = $metaDescription ?? 'A personal site for recipes, decks, games, music, and experiments.';
+$pageStyles = $pageStyles ?? [];
 $stylesheetPath = __DIR__ . '/../assets/styles.css';
 $stylesheetVersion = is_file($stylesheetPath) ? (string) filemtime($stylesheetPath) : '1';
 ?>
@@ -15,4 +16,15 @@ $stylesheetVersion = is_file($stylesheetPath) ? (string) filemtime($stylesheetPa
     <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
     <meta name="description" content="<?= htmlspecialchars($metaDescription, ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="/assets/styles.css?v=<?= rawurlencode($stylesheetVersion) ?>">
+<?php
+foreach ($pageStyles as $pageStyleHref) {
+    $pageStylePath = dirname(__DIR__) . $pageStyleHref;
+    $pageStyleVersion = is_file($pageStylePath) ? (string) filemtime($pageStylePath) : '1';
+    echo '    <link rel="stylesheet" href="'
+        . htmlspecialchars($pageStyleHref, ENT_QUOTES, 'UTF-8')
+        . '?v='
+        . rawurlencode($pageStyleVersion)
+        . '">' . PHP_EOL;
+}
+?>
 </head>

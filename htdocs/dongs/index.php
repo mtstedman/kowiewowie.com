@@ -5,6 +5,18 @@ declare(strict_types=1);
 $year = gmdate('Y');
 $pageTitle = 'Big Dongs - wowiekowie.com';
 $metaDescription = 'A static holding page for the future Big Dongs wing of wowiekowie.com.';
+$pageStyles = ['/assets/css/dongs-index.css'];
+$dongers = require __DIR__ . '/dongers.php';
+$dongersByCategory = [];
+
+foreach ($dongers as $entry) {
+    $dongersByCategory[$entry['category']][] = $entry;
+}
+
+function e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
 <body>
@@ -27,9 +39,49 @@ $metaDescription = 'A static holding page for the future Big Dongs wing of wowie
                 <p class="lede">Expect a proper collection later. For now, this is a static promise that the tab exists and the bit has room to grow.</p>
                 <p>Until then, please imagine something enormous, ridiculous, and lovingly shelved for public viewing.</p>
             </section>
+
+            <section class="foundation dongs-library" aria-labelledby="donger-library-title" data-donger-library>
+                <div class="section-heading">
+                    <p class="eyebrow">Shelf-ready nonsense</p>
+                    <h2 id="donger-library-title">Browsable donger library</h2>
+                </div>
+
+                <p class="lede">Tap any kaomoji to copy it. The collection stays typographic, portable, and ready for whatever extremely serious business awaits.</p>
+                <p class="dongs-copy-status" id="dongs-copy-status" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p>
+
+                <div class="donger-groups">
+                    <?php $categoryIndex = 0; ?>
+                    <?php foreach ($dongersByCategory as $category => $entries): ?>
+                        <?php $categoryIndex++; ?>
+                        <?php $categoryId = 'donger-category-' . $categoryIndex; ?>
+                        <section class="donger-category" aria-labelledby="<?= e($categoryId) ?>">
+                            <div class="section-heading donger-category-heading">
+                                <p class="eyebrow">Category <?= e((string) $categoryIndex) ?></p>
+                                <h3 id="<?= e($categoryId) ?>"><?= e($category) ?></h3>
+                            </div>
+
+                            <div class="donger-grid">
+                                <?php foreach ($entries as $entry): ?>
+                                    <button
+                                        type="button"
+                                        class="donger-button"
+                                        data-donger="<?= e($entry['text']) ?>"
+                                        data-donger-name="<?= e($entry['name']) ?>"
+                                    >
+                                        <span class="donger-button__text"><?= e($entry['text']) ?></span>
+                                        <span class="donger-button__name"><?= e($entry['name']) ?></span>
+                                    </button>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+                    <?php endforeach; ?>
+                </div>
+            </section>
         </main>
 
         <?php include dirname(__DIR__) . '/partials/footer.php'; ?>
     </div>
+
+    <script src="/assets/js/dongs-index.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/dongs-index.js') ?>"></script>
 </body>
 </html>
