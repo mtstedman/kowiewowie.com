@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Big Dongs - wowiekowie.com';
-$metaDescription = 'A static holding page for the future Big Dongs wing of wowiekowie.com.';
+$metaDescription = 'Browse the Big Dongs library of copy-ready kaomoji on wowiekowie.com.';
 $pageStyles = ['/assets/css/dongs-index.css'];
 $dongers = require __DIR__ . '/dongers.php';
 $dongersByCategory = [];
@@ -26,25 +26,11 @@ function e(string $value): string
         <main>
             <section class="hero hero-compact">
                 <p class="eyebrow">Big Dongs</p>
-                <h1>The grand hall is open, even if the exhibits are not.</h1>
-                <p class="lede">This corner of the site has the sign, the velvet rope, and absolutely zero structured content behind it yet.</p>
+                <h1>The grand hall is open and fully stocked.</h1>
+                <p class="lede">The velvet rope is gone. Browse the library, copy a kaomoji, and carry on with whatever extremely serious business needs a properly enormous face.</p>
             </section>
 
-            <section class="foundation" aria-labelledby="dongs-title">
-                <div class="section-heading">
-                    <p class="eyebrow">Placeholder energy</p>
-                    <h2 id="dongs-title">Big Dongs</h2>
-                </div>
-
-                <p class="lede">Expect a proper collection later. For now, this is a static promise that the tab exists and the bit has room to grow.</p>
-                <p>Until then, please imagine something enormous, ridiculous, and lovingly shelved for public viewing.</p>
-            </section>
-
-            <section class="foundation dongs-library" aria-labelledby="donger-library-title" data-donger-library>
-                <div class="section-heading">
-                    <p class="eyebrow">Shelf-ready nonsense</p>
-                    <h2 id="donger-library-title">Browsable donger library</h2>
-                </div>
+            <section class="foundation dongs-library" aria-label="Donger library" data-donger-library>
 
                 <p class="lede">Tap any kaomoji to copy it. The collection stays typographic, portable, and ready for whatever extremely serious business awaits.</p>
 
@@ -74,7 +60,7 @@ function e(string $value): string
                         <section class="donger-category" aria-labelledby="<?= e($categoryId) ?>">
                             <div class="section-heading donger-category-heading">
                                 <p class="eyebrow">Category <?= e((string) $categoryIndex) ?></p>
-                                <h3 id="<?= e($categoryId) ?>"><?= e($category) ?></h3>
+                                <h2 id="<?= e($categoryId) ?>"><?= e($category) ?></h2>
                             </div>
 
                             <div class="donger-grid">
