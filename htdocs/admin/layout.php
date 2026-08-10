@@ -230,26 +230,72 @@ function admin_render_page(string $title, callable $content, ?array $user = null
                     return;
                 }
 
-                const updatePanelHighlight = (panel, event) => {
-                    const rect = panel.getBoundingClientRect();
-                    if (rect.width <= 0 || rect.height <= 0) {
-                        return;
-                    }
-
-                    const x = ((event.clientX - rect.left) / rect.width) * 100;
-                    const y = ((event.clientY - rect.top) / rect.height) * 100;
-                    panel.style.setProperty('--mx', `${x}%`);
-                    panel.style.setProperty('--my', `${y}%`);
-                };
+                const clampPercentage = (value) => Math.min(100, Math.max(0, value));
+                const easingFactor = 0.18;
+                const settleThreshold = 0.12;
+                const restingPosition = 50;
 
                 for (const panel of panels) {
-                    panel.addEventListener('pointermove', (event) => {
-                        updatePanelHighlight(panel, event);
-                    });
+                    const state = {
+                        currentX: restingPosition,
+                        currentY: restingPosition,
+                        targetX: restingPosition,
+                        targetY: restingPosition,
+                        frameId: null,
+                    };
 
+                    const applyHighlightPosition = () => {
+                        panel.style.setProperty('--mx', `${state.currentX}%`);
+                        panel.style.setProperty('--my', `${state.currentY}%`);
+                    };
+
+                    const animateHighlight = () => {
+                        state.frameId = null;
+                        state.currentX += (state.targetX - state.currentX) * easingFactor;
+                        state.currentY += (state.targetY - state.currentY) * easingFactor;
+
+                        const deltaX = Math.abs(state.targetX - state.currentX);
+                        const deltaY = Math.abs(state.targetY - state.currentY);
+
+                        if (deltaX <= settleThreshold && deltaY <= settleThreshold) {
+                            state.currentX = state.targetX;
+                            state.currentY = state.targetY;
+                            applyHighlightPosition();
+                            return;
+                        }
+
+                        applyHighlightPosition();
+                        state.frameId = window.requestAnimationFrame(animateHighlight);
+                    };
+
+                    const ensureAnimation = () => {
+                        if (state.frameId !== null) {
+                            return;
+                        }
+
+                        state.frameId = window.requestAnimationFrame(animateHighlight);
+                    };
+
+                    const setHighlightTarget = (x, y) => {
+                        state.targetX = clampPercentage(x);
+                        state.targetY = clampPercentage(y);
+                        ensureAnimation();
+                    };
+
+                    const updatePanelHighlight = (event) => {
+                        const rect = panel.getBoundingClientRect();
+                        if (rect.width <= 0 || rect.height <= 0) {
+                            return;
+                        }
+
+                        const x = ((event.clientX - rect.left) / rect.width) * 100;
+                        const y = ((event.clientY - rect.top) / rect.height) * 100;
+                        setHighlightTarget(x, y);
+                    };
+
+                    panel.addEventListener('pointermove', updatePanelHighlight);
                     panel.addEventListener('pointerleave', () => {
-                        panel.style.setProperty('--mx', '50%');
-                        panel.style.setProperty('--my', '50%');
+                        setHighlightTarget(restingPosition, restingPosition);
                     });
                 }
             })();
