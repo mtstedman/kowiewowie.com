@@ -115,6 +115,10 @@ curl --noproxy '*' --fail --silent --show-error \
     https://wowiekowie.com/ >/dev/null
 
 curl --noproxy '*' --fail --silent --show-error \
+    --resolve wowiekowie.com:443:127.0.0.1 \
+    https://wowiekowie.com/api/games >/dev/null
+
+curl --noproxy '*' --fail --silent --show-error \
     --resolve api.wowiekowie.com:443:127.0.0.1 \
     https://api.wowiekowie.com/health >/dev/null
 
