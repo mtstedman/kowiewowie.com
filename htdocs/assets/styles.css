@@ -22,7 +22,7 @@
     --step-1: clamp(1.2rem, 1.08rem + 0.58vw, 1.5rem);
     --step-2: clamp(1.55rem, 1.28rem + 1.34vw, 2.25rem);
     --step-3: clamp(2.15rem, 1.66rem + 2.42vw, 3.4rem);
-    --step-4: clamp(3.1rem, 2.06rem + 5.14vw, 5.75rem);
+    --step-4: clamp(2.85rem, 2.12rem + 3.62vw, 5.1rem);
     --space-xs: 0.5rem;
     --space-sm: 0.85rem;
     --space-md: 1.25rem;
@@ -114,11 +114,11 @@ a:focus-visible {
 .section-heading {
     display: grid;
     gap: var(--space-sm);
-    max-width: 780px;
+    max-width: min(100%, 780px);
     margin: 0 0 var(--space-xl);
     padding-left: var(--space-md);
     border-left: 4px solid var(--accent-strong);
-    box-shadow: -12px 0 28px rgba(255, 43, 214, 0.18);
+    box-shadow: inset 12px 0 28px rgba(255, 43, 214, 0.18);
 }
 
 .section-heading .eyebrow,
@@ -290,7 +290,7 @@ footer {
     max-width: 980px;
     padding-left: var(--space-lg);
     border-left: 1px solid var(--line-strong);
-    box-shadow: -18px 0 38px rgba(0, 245, 255, 0.14);
+    box-shadow: inset 18px 0 38px rgba(0, 245, 255, 0.14);
 }
 
 .eyebrow {
@@ -308,6 +308,21 @@ h2,
 h3,
 p {
     text-wrap: pretty;
+}
+
+.hero > *,
+.bio-section > *,
+.feature-grid > *,
+.counter-9-11 {
+    min-width: 0;
+}
+
+.hero :is(.eyebrow, h1, .lede, .aside),
+.hero-actions :is(.button, .text-link),
+.bio-section :is(.eyebrow, h2, h3, p),
+.counter-9-11 :is(h2, p) {
+    overflow-wrap: anywhere;
+    hyphens: auto;
 }
 
 h1 {
@@ -342,6 +357,7 @@ h3 {
 
 .aside {
     display: inline-block;
+    max-width: 100%;
     margin: 28px 0 0;
     padding: 14px 16px;
     border: 1px solid var(--accent-strong);
@@ -365,6 +381,12 @@ h3 {
     flex-wrap: wrap;
     gap: 18px 28px;
     margin-top: 42px;
+    max-width: 100%;
+}
+
+.hero-actions > * {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .button {
@@ -380,6 +402,7 @@ h3 {
     letter-spacing: 0.08em;
     text-decoration: none;
     text-transform: uppercase;
+    white-space: normal;
     box-shadow: 0 0 24px var(--glow), inset 0 -3px 0 rgba(255, 43, 214, 0.55);
     transition: background var(--motion-fast), color var(--motion-fast), transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast);
 }
@@ -426,7 +449,7 @@ h3 {
 
 .feature-grid {
     display: grid;
-    grid-template-columns: 1.25fr 1fr 1fr;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
     gap: 18px;
     align-items: stretch;
 }
