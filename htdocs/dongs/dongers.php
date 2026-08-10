@@ -70,5 +70,10 @@ return [
     ['name' => 'Sneaky Plot', 'text' => '(¬‿¬)', 'category' => 'Goblin Energy'],
     ['name' => 'Chaos Smile', 'text' => '¯\\(°_o)/¯', 'category' => 'Goblin Energy'],
 
-    ['name' => 'Furby Bean Stare', 'text' => 'q(◕ 3 ◕)p', 'category' => 'Beans'],
+    ['name' => 'Furby Bean Stare', 'text' => '^(◕ 3 ◕)^', 'category' => 'Beans'],
+    ['name' => 'Bean Blink', 'text' => '^(⌒ 3 ⌒)^', 'category' => 'Beans'],
+    ['name' => 'Bean Floof', 'text' => '<(o 3 o)>', 'category' => 'Beans'],
+    ['name' => 'Midnight Bean', 'text' => '^(• 3 •)^', 'category' => 'Beans'],
+    ['name' => 'Snack Bean Squeak', 'text' => '<(◔ 3 ◔)>', 'category' => 'Beans'],
+    ['name' => 'Bean Side Glance', 'text' => '^(¬ 3 ¬)^', 'category' => 'Beans'],
 ];
