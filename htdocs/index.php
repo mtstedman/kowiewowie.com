@@ -62,6 +62,8 @@ require __DIR__ . '/partials/head.php';
                     </div>
                 </section>
 
+                <?php require __DIR__ . '/partials/counter-9-11.php'; ?>
+
                 <section class="bio-section" aria-labelledby="bio-title">
                     <div class="section-heading">
                         <p class="eyebrow">Pick a drawer</p>
@@ -106,6 +108,7 @@ require __DIR__ . '/partials/head.php';
     </div>
     <?php if (!$isNotFound): ?>
         <script src="/assets/js/home.js" defer></script>
+        <script src="/assets/js/counter-9-11.js" defer></script>
     <?php endif; ?>
 </body>
 </html>
