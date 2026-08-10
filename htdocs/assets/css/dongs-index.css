@@ -2,6 +2,88 @@
   gap: 1.75rem;
 }
 
+.dongs-library [data-donger-search-form] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1.5rem;
+  background: linear-gradient(135deg, rgba(245, 251, 255, 0.14), rgba(8, 14, 27, 0.74));
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(245, 251, 255, 0.12);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+
+.dongs-library [data-donger-search-form] label {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dongs-library [data-donger-search-input] {
+  width: 100%;
+  min-width: 0;
+  min-height: 4rem;
+  padding: 0.95rem 1.35rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(8, 14, 27, 0.44);
+  color: var(--ink);
+  font: inherit;
+  font-size: clamp(1.05rem, 1rem + 0.4vw, 1.3rem);
+  line-height: 1.3;
+  box-shadow: inset 0 1px 0 rgba(245, 251, 255, 0.1);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dongs-library [data-donger-search-input]::placeholder {
+  color: var(--ink-soft);
+}
+
+.dongs-library [data-donger-search-input]:focus-visible {
+  border-color: var(--accent);
+  background: rgba(8, 14, 27, 0.58);
+  box-shadow: var(--shadow-sm), 0 0 0 4px rgba(0, 245, 255, 0.14);
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+}
+
+.dongs-library [data-donger-search-clear] {
+  min-height: 4rem;
+  padding: 0.95rem 1.35rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(8, 14, 27, 0.34);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(245, 251, 255, 0.08);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast), color var(--motion-fast);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.dongs-library [data-donger-search-clear]:hover {
+  border-color: var(--accent);
+  background: rgba(0, 245, 255, 0.12);
+}
+
+.dongs-library [data-donger-search-clear]:focus-visible {
+  border-color: var(--accent);
+  background: rgba(0, 245, 255, 0.16);
+  box-shadow: var(--shadow-sm), 0 0 0 4px rgba(0, 245, 255, 0.14);
+}
+
 .dongs-copy-status {
   min-height: 1.5rem;
   margin: 0;
@@ -100,6 +182,22 @@
 }
 
 @media (max-width: 640px) {
+  .dongs-library [data-donger-search-form] {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0.85rem;
+    border-radius: 1.25rem;
+  }
+
+  .dongs-library [data-donger-search-input],
+  .dongs-library [data-donger-search-clear] {
+    min-height: 3.5rem;
+    font-size: 1rem;
+  }
+
+  .dongs-library [data-donger-search-clear] {
+    width: 100%;
+  }
+
   .donger-category {
     padding: 1rem;
   }
