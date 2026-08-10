@@ -109,6 +109,76 @@ function admin_render_page(string $title, callable $content, ?array $user = null
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
         <link rel="stylesheet" href="/admin/style.css">
+        <style>
+            .admin-panel {
+                --mx: 50%;
+                --my: 50%;
+                --admin-glass-tint: rgba(12, 18, 34, 0.68);
+                --admin-glass-tint-strong: rgba(10, 14, 28, 0.82);
+                --admin-glass-border: rgba(255, 255, 255, 0.18);
+                --admin-glass-shimmer: rgba(255, 255, 255, 0.34);
+                position: relative;
+                isolation: isolate;
+                overflow: hidden;
+                border: 1px solid var(--admin-glass-border);
+                background:
+                    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
+                    linear-gradient(180deg, var(--admin-glass-tint-strong), var(--admin-glass-tint));
+                -webkit-backdrop-filter: blur(22px) saturate(180%);
+                backdrop-filter: blur(22px) saturate(180%);
+                box-shadow:
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                    0 18px 42px rgba(2, 4, 12, 0.28);
+            }
+
+            .admin-panel::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                z-index: -1;
+                border-radius: inherit;
+                pointer-events: none;
+                opacity: 0;
+                background: radial-gradient(
+                    circle at var(--mx) var(--my),
+                    var(--admin-glass-shimmer) 0,
+                    rgba(255, 255, 255, 0.12) 30%,
+                    transparent 60%
+                );
+                transition: opacity 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+            }
+
+            .admin-panel:hover::before,
+            .admin-panel:focus-within::before {
+                opacity: 0.55;
+            }
+
+            .admin-panel {
+                color: rgba(244, 248, 255, 0.92);
+            }
+
+            .admin-panel h1,
+            .admin-panel h2,
+            .admin-panel h3,
+            .admin-panel h4,
+            .admin-panel h5,
+            .admin-panel h6 {
+                color: rgba(255, 255, 255, 0.98);
+            }
+
+            .admin-panel p,
+            .admin-panel label,
+            .admin-panel li,
+            .admin-panel dt,
+            .admin-panel dd,
+            .admin-panel small {
+                color: rgba(230, 238, 255, 0.84);
+            }
+
+            .admin-panel .admin-eyebrow {
+                color: rgba(192, 222, 255, 0.82);
+            }
+        </style>
     </head>
     <body>
         <div class="admin-shell">
@@ -134,6 +204,38 @@ function admin_render_page(string $title, callable $content, ?array $user = null
                 <?php $content(); ?>
             </main>
         </div>
+        <script>
+            (() => {
+                const panels = document.querySelectorAll('.admin-panel');
+
+                if (panels.length === 0) {
+                    return;
+                }
+
+                const updatePanelHighlight = (panel, event) => {
+                    const rect = panel.getBoundingClientRect();
+                    if (rect.width <= 0 || rect.height <= 0) {
+                        return;
+                    }
+
+                    const x = ((event.clientX - rect.left) / rect.width) * 100;
+                    const y = ((event.clientY - rect.top) / rect.height) * 100;
+                    panel.style.setProperty('--mx', `${x}%`);
+                    panel.style.setProperty('--my', `${y}%`);
+                };
+
+                for (const panel of panels) {
+                    panel.addEventListener('pointermove', (event) => {
+                        updatePanelHighlight(panel, event);
+                    });
+
+                    panel.addEventListener('pointerleave', () => {
+                        panel.style.setProperty('--mx', '50%');
+                        panel.style.setProperty('--my', '50%');
+                    });
+                }
+            })();
+        </script>
     </body>
     </html>
     <?php

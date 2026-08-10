@@ -1,5 +1,46 @@
 .dongs-library {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   gap: 1.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.75rem;
+  background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.dongs-library::before,
+.donger-category::before,
+.donger-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  clip-path: inset(0 round inherit);
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at var(--glass-x, 50%) var(--glass-y, 50%), var(--glass-shimmer) 0, transparent var(--glass-shimmer-size));
+  transition: opacity var(--motion-medium);
+}
+
+.dongs-library > *,
+.donger-category > *,
+.donger-button > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dongs-library:hover::before,
+.dongs-library:focus-within::before,
+.donger-category:hover::before,
+.donger-category:focus-within::before,
+.donger-button:hover::before,
+.donger-button:focus-visible::before {
+  opacity: var(--glass-shimmer-opacity);
 }
 
 .dongs-library [data-donger-search-form] {
@@ -9,12 +50,12 @@
   gap: 0.85rem;
   width: 100%;
   padding: 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: 1.5rem;
-  background: linear-gradient(135deg, rgba(245, 251, 255, 0.14), rgba(8, 14, 27, 0.74));
-  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(245, 251, 255, 0.12);
-  -webkit-backdrop-filter: blur(22px);
-  backdrop-filter: blur(22px);
+  background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .dongs-library [data-donger-search-form] label {
@@ -31,14 +72,13 @@
   min-width: 0;
   min-height: 4rem;
   padding: 0.95rem 1.35rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
-  background: rgba(8, 14, 27, 0.44);
+  background: var(--glass-tint);
   color: var(--ink);
   font: inherit;
   font-size: clamp(1.05rem, 1rem + 0.4vw, 1.3rem);
   line-height: 1.3;
-  box-shadow: inset 0 1px 0 rgba(245, 251, 255, 0.1);
   transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
   -webkit-appearance: none;
   appearance: none;
@@ -50,7 +90,7 @@
 
 .dongs-library [data-donger-search-input]:focus-visible {
   border-color: var(--accent);
-  background: rgba(8, 14, 27, 0.58);
+  background: var(--glass-tint-strong);
   box-shadow: var(--shadow-sm), 0 0 0 4px rgba(0, 245, 255, 0.14);
   outline: 2px solid transparent;
   outline-offset: 3px;
@@ -59,18 +99,17 @@
 .dongs-library [data-donger-search-clear] {
   min-height: 4rem;
   padding: 0.95rem 1.35rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
-  background: rgba(8, 14, 27, 0.34);
+  background: var(--glass-tint);
   color: var(--ink);
   font: inherit;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(245, 251, 255, 0.08);
   transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast), color var(--motion-fast);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .dongs-library [data-donger-search-clear]:hover {
@@ -103,13 +142,19 @@
 }
 
 .donger-category {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   display: grid;
   gap: 1rem;
   padding: 1.25rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: 1rem;
-  background: linear-gradient(180deg, rgba(8, 14, 27, 0.92), rgba(11, 16, 32, 0.96));
+  background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .donger-category-heading {
@@ -133,6 +178,9 @@
 }
 
 .donger-button {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   display: grid;
   flex: 0 1 auto;
   min-width: min(100%, 12rem);
@@ -140,21 +188,25 @@
   gap: 0.75rem;
   width: auto;
   padding: 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: 0.9rem;
-  background: var(--panel-solid);
+  background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
   color: var(--ink);
   text-align: center;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .donger-button:hover,
 .donger-button:focus-visible {
   transform: translateY(-2px);
   border-color: var(--line-strong);
-  background: rgba(13, 20, 39, 0.98);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(180deg, var(--glass-tint), var(--glass-tint-strong));
+  box-shadow: var(--shadow-md);
 }
 
 .donger-button:focus-visible {
