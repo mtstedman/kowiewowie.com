@@ -4,9 +4,15 @@ set -Eeuo pipefail
 
 readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
 
-if ! "$REPO_ROOT/deploy/deploy.sh"; then
+current_branch="$(git -C "$REPO_ROOT" branch --show-current)"
+if [[ "${WOWIE_SKIP_AUTO_DEPLOY:-0}" == "1" ]]; then
+    printf 'Automatic production deployment skipped by WOWIE_SKIP_AUTO_DEPLOY.\n'
+elif [[ "$current_branch" != "main" ]]; then
+    printf 'Automatic production deployment skipped for non-main branch %s.\n' \
+        "${current_branch:-detached HEAD}"
+elif ! "$REPO_ROOT/deploy/deploy.sh" --allow-unpushed; then
     printf '\nCommit succeeded, but the automatic production deployment failed.\n' >&2
-    printf 'Retry with: %s/deploy/deploy.sh\n' "$REPO_ROOT" >&2
+    printf 'Retry after pushing main with: %s/deploy/deploy.sh\n' "$REPO_ROOT" >&2
     exit 1
 fi
 

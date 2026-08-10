@@ -154,12 +154,16 @@ are used only to fetch the identity and are not stored.
 TLS is issued and renewed with Certbot after the domain's DNS records point to
 the production server.
 
-## Automatic deployment
+## Production deployment
 
 This checkout uses the versioned `.githooks/post-commit` hook. Every successful
-local commit deploys the exact committed web/API/shared/database trees. The
-deployment lints PHP, applies pending database migrations before switching API
-code, and then performs both health checks. Run it manually with:
+local commit on `main` deploys the exact committed web/API/shared/database
+trees. Commits on work-item branches are never deployed. Set
+`WOWIE_SKIP_AUTO_DEPLOY=1` when a main commit must be pushed before deployment.
+
+The deployment script lints PHP, requires a clean `main` checkout matching
+`origin/main`, applies pending database migrations before switching API code,
+and then performs both health checks. Run it manually after pushing with:
 
 ```bash
 ./deploy/deploy.sh

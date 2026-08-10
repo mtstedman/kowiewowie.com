@@ -2,11 +2,66 @@
 
 set -Eeuo pipefail
 
-readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
+usage() {
+    cat <<'EOF'
+Usage: ./deploy/deploy.sh [--allow-unpushed]
+
+Deploy the exact commit checked out on main. By default, deployment is allowed
+only when the worktree is clean and HEAD matches origin/main. The versioned
+post-commit hook uses --allow-unpushed after making the same branch/cleanliness
+checks; manual deployments should use the default pushed-revision guard.
+EOF
+}
+
+allow_unpushed=false
+while (($# > 0)); do
+    case "$1" in
+        --allow-unpushed)
+            allow_unpushed=true
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            printf 'Unknown argument: %s\n' "$1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel)"
+readonly TARGET_BRANCH="main"
+readonly REMOTE="origin"
+readonly CURRENT_BRANCH="$(git -C "$REPO_ROOT" branch --show-current)"
 readonly REVISION="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 readonly WEB_ROOT="/var/www/wowiekowie.com"
 readonly API_ENV_FILE="/etc/wowiekowie.com/api.env"
 readonly LOCK_FILE="/tmp/wowiekowie.com-deploy.lock"
+
+if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
+    printf 'Refusing to deploy branch %s; production deployments must come from %s.\n' \
+        "${CURRENT_BRANCH:-detached HEAD}" "$TARGET_BRANCH" >&2
+    exit 1
+fi
+
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain --untracked-files=normal)" ]]; then
+    printf 'Refusing to deploy a dirty worktree. Commit or remove all changes first.\n' >&2
+    exit 1
+fi
+
+if [[ "$allow_unpushed" == false ]]; then
+    git -C "$REPO_ROOT" fetch --quiet "$REMOTE" "$TARGET_BRANCH"
+    readonly REMOTE_REVISION="$(git -C "$REPO_ROOT" rev-parse "refs/remotes/$REMOTE/$TARGET_BRANCH")"
+    if [[ "$REVISION" != "$REMOTE_REVISION" ]]; then
+        printf 'Refusing to deploy %s: it does not match %s/%s at %s. Push main first.\n' \
+            "${REVISION:0:12}" "$REMOTE" "$TARGET_BRANCH" "${REMOTE_REVISION:0:12}" >&2
+        exit 1
+    fi
+fi
 
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
