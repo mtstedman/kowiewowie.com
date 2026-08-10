@@ -40,6 +40,8 @@
     --glass-tint: rgba(12, 18, 34, 0.6);
     --glass-tint-strong: rgba(10, 14, 28, 0.8);
     --glass-border: rgba(255, 255, 255, 0.18);
+    --glass-border-highlight: rgba(255, 255, 255, 0.58);
+    --glass-border-shadow: rgba(120, 164, 255, 0.16);
     --glass-blur: 22px;
     --glass-saturate: 180%;
     --glass-shimmer: rgba(255, 255, 255, 0.34);
@@ -140,10 +142,40 @@ a:focus-visible {
 .videos-error-state {
     position: relative;
     isolation: isolate;
-    border: 1px solid var(--glass-border);
+    border: 1px solid transparent;
     background-color: var(--glass-tint);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+
+.site-header::after,
+.foundation::after,
+.aside::after,
+.counter-9-11::after,
+.feature-grid article::after,
+.bio-section::after,
+.footer-note::after,
+.videos-surface::after,
+.videos-card::after,
+.videos-description-card::after,
+.videos-related::after,
+.videos-related-item::after,
+.videos-player::after,
+.videos-error-state::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    padding: 1px;
+    border-radius: inherit;
+    clip-path: inherit;
+    pointer-events: none;
+    background: linear-gradient(135deg, var(--glass-border-highlight) 0%, rgba(255, 255, 255, 0.3) 18%, rgba(255, 255, 255, 0.12) 40%, var(--glass-border-shadow) 72%, rgba(255, 255, 255, 0.34) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
 }
 
 .site-header::before,
@@ -613,6 +645,23 @@ footer {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+.site-header,
+.foundation,
+.aside,
+.counter-9-11,
+.feature-grid article,
+.bio-section,
+.footer-note,
+.videos-surface,
+.videos-card,
+.videos-description-card,
+.videos-related,
+.videos-related-item,
+.videos-player,
+.videos-error-state {
+    background-clip: padding-box;
+}
+
 @supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
     .site-header,
     .foundation,
@@ -630,6 +679,8 @@ footer {
     .videos-error-state {
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
+        border-color: rgba(255, 255, 255, 0.24);
+        background-clip: border-box;
         background:
             linear-gradient(180deg, rgba(10, 14, 28, 0.96), rgba(8, 12, 22, 0.92));
     }

@@ -115,20 +115,38 @@ function admin_render_page(string $title, callable $content, ?array $user = null
                 --my: 50%;
                 --admin-glass-tint: rgba(12, 18, 34, 0.68);
                 --admin-glass-tint-strong: rgba(10, 14, 28, 0.82);
-                --admin-glass-border: rgba(255, 255, 255, 0.18);
+                --admin-glass-border-hi: rgba(255, 255, 255, 0.28);
+                --admin-glass-border-mid: rgba(194, 214, 255, 0.16);
+                --admin-glass-border-low: rgba(18, 24, 42, 0.56);
+                --admin-glass-border-bottom: rgba(132, 164, 236, 0.24);
                 --admin-glass-shimmer: rgba(255, 255, 255, 0.34);
                 position: relative;
                 isolation: isolate;
                 overflow: hidden;
-                border: 1px solid var(--admin-glass-border);
+                border: 1px solid transparent;
                 background:
-                    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
-                    linear-gradient(180deg, var(--admin-glass-tint-strong), var(--admin-glass-tint));
+                    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%) padding-box,
+                    linear-gradient(180deg, var(--admin-glass-tint-strong), var(--admin-glass-tint)) padding-box,
+                    linear-gradient(
+                        145deg,
+                        var(--admin-glass-border-hi) 0%,
+                        var(--admin-glass-border-mid) 42%,
+                        var(--admin-glass-border-low) 68%,
+                        var(--admin-glass-border-bottom) 100%
+                    ) border-box;
                 -webkit-backdrop-filter: blur(22px) saturate(180%);
                 backdrop-filter: blur(22px) saturate(180%);
                 box-shadow:
                     inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                    inset 0 -1px 0 rgba(6, 10, 20, 0.24),
                     0 18px 42px rgba(2, 4, 12, 0.28);
+            }
+
+            .admin-panel.admin-denied {
+                --admin-glass-border-hi: rgba(255, 234, 231, 0.44);
+                --admin-glass-border-mid: rgba(241, 184, 179, 0.28);
+                --admin-glass-border-low: rgba(90, 24, 20, 0.54);
+                --admin-glass-border-bottom: rgba(241, 184, 179, 0.34);
             }
 
             .admin-panel::before {
