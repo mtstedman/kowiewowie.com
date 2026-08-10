@@ -70,6 +70,7 @@ function e(string $value): string
                                         class="donger-button"
                                         data-donger="<?= e($entry['text']) ?>"
                                         data-donger-name="<?= e($entry['name']) ?>"
+                                        data-donger-category="<?= e($entry['category']) ?>"
                                     >
                                         <span class="donger-button__text"><?= e($entry['text']) ?></span>
                                         <span class="donger-button__name"><?= e($entry['name']) ?></span>

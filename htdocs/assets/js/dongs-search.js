@@ -27,6 +27,7 @@
     buttons.forEach((button) => {
       const searchableText = normalize([
         button.getAttribute('data-donger-name') || '',
+        button.getAttribute('data-donger-category') || '',
         button.getAttribute('data-donger') || '',
       ].join(' '));
       const isMatch = query === '' || searchableText.includes(query);

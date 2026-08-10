@@ -69,4 +69,6 @@ return [
     ['name' => 'Mischief Gremlin', 'text' => 'ψ(｀∇´)ψ', 'category' => 'Goblin Energy'],
     ['name' => 'Sneaky Plot', 'text' => '(¬‿¬)', 'category' => 'Goblin Energy'],
     ['name' => 'Chaos Smile', 'text' => '¯\\(°_o)/¯', 'category' => 'Goblin Energy'],
+
+    ['name' => 'Furby Bean Stare', 'text' => 'q(◕ 3 ◕)p', 'category' => 'Beans'],
 ];
