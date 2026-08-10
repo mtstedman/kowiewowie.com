@@ -2,33 +2,6 @@
 
 declare(strict_types=1);
 
-function escape_html(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-}
-
-/**
- * @return array<int, array<string, mixed>>
- */
-function load_games(): array
-{
-    $dataPath = dirname(__DIR__) . '/data/games.json';
-    $contents = file_get_contents($dataPath);
-
-    if ($contents === false) {
-        return [];
-    }
-
-    try {
-        $games = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
-    } catch (JsonException) {
-        return [];
-    }
-
-    return is_array($games) ? $games : [];
-}
-
-$games = load_games();
 $year = gmdate('Y');
 ?>
 <!doctype html>
@@ -57,33 +30,95 @@ $year = gmdate('Y');
                     <h2 id="games-title">Board games</h2>
                 </div>
 
-                <?php if ($games === []): ?>
-                    <p class="lede">No games are available yet.</p>
-                <?php else: ?>
-                    <div class="feature-grid">
-                        <?php foreach ($games as $game): ?>
-                            <?php
-                            $slug = is_string($game['slug'] ?? null) ? $game['slug'] : '';
-                            $name = is_string($game['name'] ?? null) ? $game['name'] : 'Untitled game';
-                            $description = is_string($game['shortDescription'] ?? null) ? $game['shortDescription'] : '';
-                            ?>
-                            <article>
-                                <span class="feature-number">Game</span>
-                                <h3><?= escape_html($name) ?></h3>
-                                <?php if ($description !== ''): ?>
-                                    <p><?= escape_html($description) ?></p>
-                                <?php endif; ?>
-                                <?php if ($slug !== ''): ?>
-                                    <a class="text-link" href="/games/game.php?slug=<?= rawurlencode($slug) ?>">Strategy notes <span aria-hidden="true">-&gt;</span></a>
-                                <?php endif; ?>
-                            </article>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
+                <div id="games-list" aria-live="polite">
+                    <p class="lede">Loading games...</p>
+                </div>
             </section>
         </main>
 
         <?php include dirname(__DIR__) . '/partials/footer.php'; ?>
     </div>
+
+    <script>
+        (() => {
+            const container = document.getElementById('games-list');
+
+            const renderMessage = (message) => {
+                container.replaceChildren();
+                const paragraph = document.createElement('p');
+                paragraph.className = 'lede';
+                paragraph.textContent = message;
+                container.append(paragraph);
+            };
+
+            const renderGames = (games) => {
+                container.replaceChildren();
+
+                if (!Array.isArray(games) || games.length === 0) {
+                    renderMessage('No games are available yet.');
+                    return;
+                }
+
+                const grid = document.createElement('div');
+                grid.className = 'feature-grid';
+
+                games.forEach((game) => {
+                    const slug = typeof game.slug === 'string' ? game.slug : '';
+                    const name = typeof game.name === 'string' ? game.name : 'Untitled game';
+                    const description = typeof game.shortDescription === 'string' ? game.shortDescription : '';
+
+                    const article = document.createElement('article');
+
+                    const label = document.createElement('span');
+                    label.className = 'feature-number';
+                    label.textContent = 'Game';
+                    article.append(label);
+
+                    const heading = document.createElement('h3');
+                    heading.textContent = name;
+                    article.append(heading);
+
+                    if (description !== '') {
+                        const paragraph = document.createElement('p');
+                        paragraph.textContent = description;
+                        article.append(paragraph);
+                    }
+
+                    if (slug !== '') {
+                        const link = document.createElement('a');
+                        link.className = 'text-link';
+                        link.href = `/games/game.php?slug=${encodeURIComponent(slug)}`;
+                        link.append('Strategy notes ');
+
+                        const arrow = document.createElement('span');
+                        arrow.setAttribute('aria-hidden', 'true');
+                        arrow.textContent = '->';
+                        link.append(arrow);
+
+                        article.append(link);
+                    }
+
+                    grid.append(article);
+                });
+
+                container.append(grid);
+            };
+
+            fetch('/api/games')
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error('Unable to load games.');
+                    }
+
+                    return response.json();
+                })
+                .then((data) => {
+                    renderGames(Array.isArray(data) ? data : data.games);
+                })
+                .catch(() => {
+                    renderMessage('Games could not be loaded right now.');
+                });
+        })();
+    </script>
 </body>
 </html>

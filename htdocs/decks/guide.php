@@ -2,47 +2,7 @@
 
 declare(strict_types=1);
 
-function e(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-}
-
-function loadJsonFile(string $path): array
-{
-    $json = file_get_contents($path);
-
-    if ($json === false) {
-        return [];
-    }
-
-    $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-
-    return is_array($data) ? $data : [];
-}
-
-$slug = is_string($_GET['slug'] ?? null) ? $_GET['slug'] : '';
-$guide = null;
-$decksBySlug = [];
-
-foreach (loadJsonFile(__DIR__ . '/../data/decks.json') as $deck) {
-    if (is_array($deck) && is_string($deck['slug'] ?? null)) {
-        $decksBySlug[$deck['slug']] = $deck;
-    }
-}
-
-foreach (loadJsonFile(__DIR__ . '/../data/deck-guides.json') as $candidate) {
-    if (is_array($candidate) && ($candidate['slug'] ?? null) === $slug) {
-        $guide = $candidate;
-        break;
-    }
-}
-
-if ($guide === null) {
-    http_response_code(404);
-}
-
 $year = gmdate('Y');
-$title = is_array($guide) && is_string($guide['title'] ?? null) ? $guide['title'] : 'Guide not found';
 ?>
 <!doctype html>
 <html lang="en">
@@ -50,38 +10,111 @@ $title = is_array($guide) && is_string($guide['title'] ?? null) ? $guide['title'
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Magic: The Gathering deck walkthrough.">
-    <title><?= e($title) ?> - Deck Guides - wowiekowie.com</title>
+    <title>Deck Guides - wowiekowie.com</title>
     <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
     <div class="page-shell">
         <?php include __DIR__ . '/../partials/header.php'; ?>
 
-        <main>
-            <?php if ($guide === null): ?>
+        <main id="guide-detail" aria-live="polite">
+            <section class="hero hero-compact">
+                <p class="eyebrow">Deck guides</p>
+                <h1>Loading guide...</h1>
+                <p class="lede">Loading walkthrough details.</p>
+                <a class="button" href="/decks/guides.php">Back to guides</a>
+            </section>
+        </main>
+
+        <?php include __DIR__ . '/../partials/footer.php'; ?>
+    </div>
+
+    <script>
+        const guideDetail = document.querySelector('#guide-detail');
+        const params = new URLSearchParams(window.location.search);
+        const slug = params.get('slug') || '';
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>'"]/g, (character) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#039;',
+                '"': '&quot;'
+            }[character]));
+        }
+
+        async function fetchJson(url) {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                const error = new Error(`Request failed: ${response.status}`);
+                error.status = response.status;
+                throw error;
+            }
+
+            return response.json();
+        }
+
+        function deckMapBySlug(decks) {
+            return decks.reduce((mappedDecks, deck) => {
+                if (deck && typeof deck.slug === 'string') {
+                    mappedDecks.set(deck.slug, deck);
+                }
+
+                return mappedDecks;
+            }, new Map());
+        }
+
+        function renderNotFound() {
+            document.title = 'Guide not found - Deck Guides - wowiekowie.com';
+            guideDetail.innerHTML = `
                 <section class="hero hero-compact">
                     <p class="eyebrow">Deck guides</p>
                     <h1>Guide not found</h1>
                     <p class="lede">No walkthrough matches the requested slug.</p>
                     <a class="button" href="/decks/guides.php">Back to guides</a>
                 </section>
-            <?php else: ?>
-                <?php
-                $summary = is_string($guide['summary'] ?? null) ? $guide['summary'] : '';
-                $published = is_string($guide['published'] ?? null) ? $guide['published'] : '';
-                $deckSlug = is_string($guide['deck_slug'] ?? null) ? $guide['deck_slug'] : '';
-                $deck = $decksBySlug[$deckSlug] ?? null;
-                $deckName = is_array($deck) && is_string($deck['name'] ?? null) ? $deck['name'] : 'Unknown deck';
-                $sections = is_array($guide['sections'] ?? null) ? $guide['sections'] : [];
-                ?>
+            `;
+        }
+
+        function renderGuide(guide, decks) {
+            if (!guide || typeof guide !== 'object') {
+                renderNotFound();
+                return;
+            }
+
+            const title = typeof guide.title === 'string' ? guide.title : 'Guide not found';
+            const summary = typeof guide.summary === 'string' ? guide.summary : '';
+            const published = typeof guide.published === 'string' ? guide.published : '';
+            const deckSlug = typeof guide.deck_slug === 'string' ? guide.deck_slug : '';
+            const decksBySlug = deckMapBySlug(Array.isArray(decks) ? decks : []);
+            const deck = decksBySlug.get(deckSlug);
+            const deckName = deck && typeof deck.name === 'string' ? deck.name : 'Unknown deck';
+            const sections = Array.isArray(guide.sections) ? guide.sections : [];
+            const sectionArticles = sections
+                .filter((section) => section && typeof section === 'object')
+                .map((section) => {
+                    const heading = typeof section.heading === 'string' ? section.heading : 'Guide section';
+                    const body = typeof section.body === 'string' ? section.body : '';
+
+                    return `
+                        <article>
+                            <h3>${escapeHtml(heading)}</h3>
+                            <p>${escapeHtml(body)}</p>
+                        </article>
+                    `;
+                })
+                .join('');
+
+            document.title = `${title} - Deck Guides - wowiekowie.com`;
+            guideDetail.innerHTML = `
                 <section class="hero hero-compact">
-                    <p class="eyebrow"><?= e($published) ?> - linked deck: <?= e($deckName) ?></p>
-                    <h1><?= e($title) ?></h1>
-                    <?php if ($summary !== ''): ?>
-                        <p class="lede"><?= e($summary) ?></p>
-                    <?php endif; ?>
+                    <p class="eyebrow">${escapeHtml(published)} - linked deck: ${escapeHtml(deckName)}</p>
+                    <h1>${escapeHtml(title)}</h1>
+                    ${summary !== '' ? `<p class="lede">${escapeHtml(summary)}</p>` : ''}
                     <div class="hero-actions">
-                        <a class="button" href="/decks/deck.php?slug=<?= e(rawurlencode($deckSlug)) ?>">View decklist</a>
+                        <a class="button" href="/decks/deck.php?slug=${encodeURIComponent(deckSlug)}">View decklist</a>
                         <a class="text-link" href="/decks/guides.php">Back to guides</a>
                     </div>
                 </section>
@@ -92,31 +125,44 @@ $title = is_array($guide) && is_string($guide['title'] ?? null) ? $guide['title'
                         <h2 id="walkthrough-title">How to play</h2>
                     </div>
 
-                    <?php if ($sections === []): ?>
-                        <p>This guide does not have walkthrough sections yet.</p>
-                    <?php else: ?>
-                        <div class="feature-grid">
-                            <?php foreach ($sections as $section): ?>
-                                <?php
-                                if (!is_array($section)) {
-                                    continue;
-                                }
-
-                                $heading = is_string($section['heading'] ?? null) ? $section['heading'] : 'Guide section';
-                                $body = is_string($section['body'] ?? null) ? $section['body'] : '';
-                                ?>
-                                <article>
-                                    <h3><?= e($heading) ?></h3>
-                                    <p><?= e($body) ?></p>
-                                </article>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
+                    ${sectionArticles === ''
+                        ? '<p>This guide does not have walkthrough sections yet.</p>'
+                        : `<div class="feature-grid">${sectionArticles}</div>`}
                 </section>
-            <?php endif; ?>
-        </main>
+            `;
+        }
 
-        <?php include __DIR__ . '/../partials/footer.php'; ?>
-    </div>
+        async function loadGuide() {
+            if (slug === '') {
+                renderNotFound();
+                return;
+            }
+
+            try {
+                const [guide, decks] = await Promise.all([
+                    fetchJson(`/api/guides/${encodeURIComponent(slug)}`),
+                    fetchJson('/api/decks')
+                ]);
+
+                renderGuide(guide, decks);
+            } catch (error) {
+                if (error.status === 404) {
+                    renderNotFound();
+                    return;
+                }
+
+                guideDetail.innerHTML = `
+                    <section class="hero hero-compact">
+                        <p class="eyebrow">Deck guides</p>
+                        <h1>Guide unavailable</h1>
+                        <p class="lede">This walkthrough could not be loaded. Please try again later.</p>
+                        <a class="button" href="/decks/guides.php">Back to guides</a>
+                    </section>
+                `;
+            }
+        }
+
+        loadGuide();
+    </script>
 </body>
 </html>

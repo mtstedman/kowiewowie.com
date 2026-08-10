@@ -2,26 +2,6 @@
 
 declare(strict_types=1);
 
-function e(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-}
-
-function loadDecks(): array
-{
-    $path = __DIR__ . '/../data/decks.json';
-    $json = file_get_contents($path);
-
-    if ($json === false) {
-        return [];
-    }
-
-    $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-
-    return is_array($data) ? $data : [];
-}
-
-$decks = loadDecks();
 $year = gmdate('Y');
 ?>
 <!doctype html>
@@ -54,34 +34,74 @@ $year = gmdate('Y');
                     <h2 id="deck-list-title">Saved decks</h2>
                 </div>
 
-                <?php if ($decks === []): ?>
-                    <p>No decks are available yet.</p>
-                <?php else: ?>
-                    <div class="feature-grid">
-                        <?php foreach ($decks as $deck): ?>
-                            <?php
-                            $slug = is_string($deck['slug'] ?? null) ? $deck['slug'] : '';
-                            $name = is_string($deck['name'] ?? null) ? $deck['name'] : 'Untitled deck';
-                            $format = is_string($deck['format'] ?? null) ? $deck['format'] : 'Unknown format';
-                            $colors = is_array($deck['colors'] ?? null) ? implode(' / ', $deck['colors']) : 'Colorless';
-                            $cardCount = is_int($deck['card_count'] ?? null) ? (string) $deck['card_count'] : '0';
-                            $summary = is_string($deck['summary'] ?? null) ? $deck['summary'] : '';
-                            ?>
-                            <article>
-                                <span class="feature-number"><?= e($cardCount) ?> cards</span>
-                                <h3><a href="/decks/deck.php?slug=<?= e(rawurlencode($slug)) ?>"><?= e($name) ?></a></h3>
-                                <p><?= e($format) ?> - <?= e($colors) ?></p>
-                                <?php if ($summary !== ''): ?>
-                                    <p><?= e($summary) ?></p>
-                                <?php endif; ?>
-                            </article>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
+                <div id="deck-list" aria-live="polite">
+                    <p>Loading decks...</p>
+                </div>
             </section>
         </main>
 
         <?php include __DIR__ . '/../partials/footer.php'; ?>
     </div>
+
+    <script>
+        const deckList = document.getElementById('deck-list');
+
+        const escapeHtml = (value) => String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const normalizeDecks = (payload) => Array.isArray(payload) ? payload : [];
+
+        const renderDecks = (decks) => {
+            if (decks.length === 0) {
+                deckList.innerHTML = '<p>No decks are available yet.</p>';
+                return;
+            }
+
+            deckList.innerHTML = `
+                <div class="feature-grid">
+                    ${decks.map((deck) => {
+                        const slug = typeof deck.slug === 'string' ? deck.slug : '';
+                        const name = typeof deck.name === 'string' ? deck.name : 'Untitled deck';
+                        const format = typeof deck.format === 'string' ? deck.format : 'Unknown format';
+                        const colors = Array.isArray(deck.colors) && deck.colors.length > 0 ? deck.colors.join(' / ') : 'Colorless';
+                        const cardCount = Number.isInteger(deck.card_count) ? String(deck.card_count) : '0';
+                        const summary = typeof deck.summary === 'string' ? deck.summary : '';
+
+                        return `
+                            <article>
+                                <span class="feature-number">${escapeHtml(cardCount)} cards</span>
+                                <h3><a href="/decks/deck.php?slug=${encodeURIComponent(slug)}">${escapeHtml(name)}</a></h3>
+                                <p>${escapeHtml(format)} - ${escapeHtml(colors)}</p>
+                                ${summary !== '' ? `<p>${escapeHtml(summary)}</p>` : ''}
+                            </article>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        };
+
+        const renderError = (message) => {
+            deckList.innerHTML = `<p>${escapeHtml(message)}</p>`;
+        };
+
+        fetch('/api/decks')
+            .then((response) => {
+                if (response.status === 404) {
+                    throw new Error('No decks are available yet.');
+                }
+
+                if (!response.ok) {
+                    throw new Error('Unable to load decks. Please try again later.');
+                }
+
+                return response.json();
+            })
+            .then((payload) => renderDecks(normalizeDecks(payload)))
+            .catch((error) => renderError(error.message));
+    </script>
 </body>
 </html>
