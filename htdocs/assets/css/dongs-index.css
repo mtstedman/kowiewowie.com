@@ -62,7 +62,7 @@
   border-radius: 0.9rem;
   background: var(--panel-solid);
   color: var(--ink);
-  text-align: left;
+  text-align: center;
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
