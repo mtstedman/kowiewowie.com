@@ -47,9 +47,26 @@ function e(string $value): string
                 </div>
 
                 <p class="lede">Tap any kaomoji to copy it. The collection stays typographic, portable, and ready for whatever extremely serious business awaits.</p>
+
+                <form role="search" aria-label="Search dongers" data-donger-search-form>
+                    <label for="donger-search-input">Search the library</label>
+                    <input
+                        id="donger-search-input"
+                        name="donger-search"
+                        type="search"
+                        placeholder="Search by name or kaomoji"
+                        autocomplete="off"
+                        aria-controls="donger-groups"
+                        data-donger-search-input
+                    >
+                    <button type="button" data-donger-search-clear>Clear</button>
+                </form>
+
+                <p role="status" aria-live="polite" aria-atomic="true" data-donger-search-status></p>
+                <p hidden data-donger-search-empty>No dongers matched that search yet. Try a name or part of the kaomoji.</p>
                 <p class="dongs-copy-status" id="dongs-copy-status" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p>
 
-                <div class="donger-groups">
+                <div class="donger-groups" id="donger-groups">
                     <?php $categoryIndex = 0; ?>
                     <?php foreach ($dongersByCategory as $category => $entries): ?>
                         <?php $categoryIndex++; ?>
@@ -83,5 +100,6 @@ function e(string $value): string
     </div>
 
     <script src="/assets/js/dongs-index.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/dongs-index.js') ?>"></script>
+    <script src="/assets/js/dongs-search.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/dongs-search.js') ?>"></script>
 </body>
 </html>
