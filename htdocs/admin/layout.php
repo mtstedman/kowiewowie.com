@@ -98,6 +98,7 @@ function admin_render_page(string $title, callable $content, ?array $user = null
         ['href' => '/admin/guides.php', 'label' => 'Guides'],
         ['href' => '/admin/games.php', 'label' => 'Games'],
         ['href' => '/admin/music.php', 'label' => 'Music'],
+        ['href' => '/admin/videos.php', 'label' => 'Videos'],
     ];
     $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/admin/', PHP_URL_PATH) ?: '/admin/';
     ?>

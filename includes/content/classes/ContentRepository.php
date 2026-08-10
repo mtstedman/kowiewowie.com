@@ -10,7 +10,7 @@ use Wowie\Api\ApiException;
 
 final class ContentRepository
 {
-    private const RESOURCES = ['recipes', 'decks', 'guides', 'games', 'music'];
+    private const RESOURCES = ['recipes', 'decks', 'guides', 'games', 'music', 'videos'];
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -29,6 +29,7 @@ final class ContentRepository
             'guides' => $this->listGuides(null, $limit, $offset, $includeUnpublished),
             'games' => $this->listGames(null, $limit, $offset, $includeUnpublished),
             'music' => $this->listMusic(null, $limit, $offset, $includeUnpublished),
+            'videos' => $this->listVideos(null, $limit, $offset, $includeUnpublished),
         };
     }
 
@@ -42,6 +43,7 @@ final class ContentRepository
             'guides' => $this->listGuides($slug, 1, 0, $includeUnpublished),
             'games' => $this->listGames($slug, 1, 0, $includeUnpublished),
             'music' => $this->listMusic($slug, 1, 0, $includeUnpublished),
+            'videos' => $this->listVideos($slug, 1, 0, $includeUnpublished),
         };
         if ($items === []) {
             throw new ApiException(404, 'not_found', 'The requested API resource does not exist.');
@@ -65,6 +67,7 @@ final class ContentRepository
                 'guides' => $this->saveGuide($input, $actorId),
                 'games' => $this->saveGame($input, $actorId),
                 'music' => $this->saveMusic($input, $actorId),
+                'videos' => $this->saveVideo($input, $actorId),
             };
             $this->pdo->commit();
         } catch (Throwable $error) {
@@ -256,6 +259,33 @@ final class ContentRepository
             'artist' => $row['artist'],
             'spotify_url' => $row['spotify_url'],
             'notes' => $row['notes'],
+            'status' => $row['status'],
+            'published_at' => $row['published_at'],
+            'updated_at' => $row['updated_at'],
+        ], $rows);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function listVideos(?string $slug, int $limit, int $offset, bool $includeUnpublished): array
+    {
+        $rows = $this->contentRows(
+            'SELECT slug, title, description, youtube_id, channel_title, thumbnail_url, duration_seconds, view_count, tags, status, published_at, updated_at FROM videos',
+            $slug,
+            $limit,
+            $offset,
+            $includeUnpublished,
+        );
+
+        return array_map(fn (array $row): array => [
+            'slug' => $row['slug'],
+            'title' => $row['title'],
+            'description' => $row['description'],
+            'youtube_id' => $row['youtube_id'],
+            'channel_title' => $row['channel_title'],
+            'thumbnail_url' => $row['thumbnail_url'],
+            'duration_seconds' => $row['duration_seconds'] === null ? null : (int) $row['duration_seconds'],
+            'view_count' => (int) $row['view_count'],
+            'tags' => $this->decodeJsonList($row['tags']),
             'status' => $row['status'],
             'published_at' => $row['published_at'],
             'updated_at' => $row['updated_at'],
@@ -490,6 +520,46 @@ final class ContentRepository
             'artist' => requiredString($input, 'artist'),
             'spotify_url' => $spotifyUrl,
             'notes' => optionalString($input, 'notes', 10_000),
+            'status' => $status,
+            'actor' => $actorId,
+        ]);
+    }
+
+    /** @param array<string, mixed> $input */
+    private function saveVideo(array $input, ?string $actorId): void
+    {
+        $durationSeconds = $input['duration_seconds'] ?? null;
+        if ($durationSeconds !== null && (!is_int($durationSeconds) || $durationSeconds < 0)) {
+            throw new ApiException(422, 'validation_failed', 'duration_seconds must be a non-negative integer.');
+        }
+
+        $viewCount = $input['view_count'] ?? 0;
+        if (!is_int($viewCount) || $viewCount < 0) {
+            throw new ApiException(422, 'validation_failed', 'view_count must be a non-negative integer.');
+        }
+
+        $status = contentStatus($input);
+        $statement = $this->pdo->prepare(<<<'SQL'
+            INSERT INTO videos (slug, title, description, youtube_id, channel_title, thumbnail_url, duration_seconds, view_count, tags, status, created_by, updated_by, published_at)
+            VALUES (:slug, :title, :description, :youtube_id, :channel_title, :thumbnail_url, :duration_seconds, :view_count, :tags, :status, :actor, :actor,
+                    CASE WHEN :status = 'published' THEN now() ELSE NULL END)
+            ON CONFLICT (slug) DO UPDATE SET
+                title = EXCLUDED.title, description = EXCLUDED.description, youtube_id = EXCLUDED.youtube_id,
+                channel_title = EXCLUDED.channel_title, thumbnail_url = EXCLUDED.thumbnail_url,
+                duration_seconds = EXCLUDED.duration_seconds, view_count = EXCLUDED.view_count,
+                tags = EXCLUDED.tags, status = EXCLUDED.status, updated_by = EXCLUDED.updated_by,
+                published_at = CASE WHEN EXCLUDED.status = 'published' THEN COALESCE(videos.published_at, now()) ELSE videos.published_at END
+        SQL);
+        $statement->execute([
+            'slug' => requiredSlug($input),
+            'title' => requiredString($input, 'title'),
+            'description' => optionalString($input, 'description', 10_000),
+            'youtube_id' => youtubeVideoId($input, 'youtube_id'),
+            'channel_title' => requiredString($input, 'channel_title'),
+            'thumbnail_url' => optionalString($input, 'thumbnail_url', 2_000),
+            'duration_seconds' => $durationSeconds,
+            'view_count' => $viewCount,
+            'tags' => json_encode(array_key_exists('tags', $input) ? stringList($input, 'tags') : [], JSON_THROW_ON_ERROR),
             'status' => $status,
             'actor' => $actorId,
         ]);

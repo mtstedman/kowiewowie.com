@@ -177,10 +177,10 @@ final class Application
         if (preg_match('#^/v1/magic/(decks|guides)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
             return [$matches[1], $matches[2] ?? null, true];
         }
-        if (preg_match('#^/v1/(recipes|decks|guides|games|music)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
+        if (preg_match('#^/v1/(recipes|decks|guides|games|music|videos)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
             return [$matches[1], $matches[2] ?? null, true];
         }
-        if (preg_match('#^/(recipes|decks|guides|games|music)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
+        if (preg_match('#^/(recipes|decks|guides|games|music|videos)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
             return [$matches[1], $matches[2] ?? null, false];
         }
 

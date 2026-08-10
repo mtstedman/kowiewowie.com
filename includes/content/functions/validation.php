@@ -67,6 +67,40 @@ function contentStatus(array $input, string $default = 'draft'): string
     return $status;
 }
 
+function youtubeVideoId(array $input, string $field): string
+{
+    $value = requiredString($input, $field, 2_000);
+    if (preg_match('/^[A-Za-z0-9_-]{11}$/', $value)) {
+        return $value;
+    }
+
+    $parts = parse_url($value);
+    $host = strtolower($parts['host'] ?? '');
+    $path = trim((string) ($parts['path'] ?? ''), '/');
+
+    if (in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com'], true)) {
+        if ($path === 'watch') {
+            parse_str((string) ($parts['query'] ?? ''), $query);
+            $candidate = is_string($query['v'] ?? null) ? $query['v'] : '';
+            if (preg_match('/^[A-Za-z0-9_-]{11}$/', $candidate)) {
+                return $candidate;
+            }
+        }
+        if (str_starts_with($path, 'embed/')) {
+            $candidate = substr($path, strlen('embed/'));
+            if (preg_match('/^[A-Za-z0-9_-]{11}$/', $candidate)) {
+                return $candidate;
+            }
+        }
+    }
+
+    if (in_array($host, ['youtu.be', 'www.youtu.be'], true) && preg_match('/^[A-Za-z0-9_-]{11}$/', $path)) {
+        return $path;
+    }
+
+    throw new ApiException(422, 'validation_failed', "{$field} must be a valid YouTube video ID or URL.");
+}
+
 /** @return list<array<string, mixed>> */
 function objectList(array $input, string $field): array
 {
