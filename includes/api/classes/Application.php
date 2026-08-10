@@ -10,6 +10,7 @@ use Wowie\Api\Auth\AuthService;
 use Wowie\Api\Auth\JwtService;
 use Wowie\Api\Auth\OAuthService;
 use Wowie\Api\Content\ContentRepository;
+use Wowie\Api\Content\ScryfallClient;
 use Wowie\Api\Http\Request;
 use Wowie\Api\Http\Response;
 
@@ -18,6 +19,7 @@ final class Application
     private readonly AuthService $auth;
     private readonly OAuthService $oauth;
     private readonly ContentRepository $content;
+    private readonly ScryfallClient $scryfall;
 
     public function __construct(
         private readonly Config $config,
@@ -26,6 +28,7 @@ final class Application
         $this->auth = new AuthService($pdo, new JwtService($config), $config);
         $this->oauth = new OAuthService($pdo, $this->auth, $config);
         $this->content = new ContentRepository($pdo);
+        $this->scryfall = new ScryfallClient();
     }
 
     public function handle(Request $request): Response
@@ -91,6 +94,17 @@ final class Application
                 'database' => 'ok',
                 'time' => gmdate(DATE_ATOM),
             ]);
+        }
+
+        if ($request->method === 'GET' && $request->path === '/v1/magic/cards/search') {
+            $query = trim((string) ($request->query['q'] ?? ''));
+            if ($query === '') {
+                throw new ApiException(422, 'validation_error', 'q is required.', [
+                    'q' => 'Provide a card search query.',
+                ]);
+            }
+
+            return Response::json($this->scryfall->search($query));
         }
 
         if ($request->method === 'POST' && $request->path === '/v1/auth/register') {

@@ -148,7 +148,7 @@ final class ContentRepository
         );
         foreach ($rows as &$row) {
             $cards = $this->pdo->prepare(<<<'SQL'
-                SELECT section, quantity, card_name
+                SELECT section, quantity, card_name, card_id, image_url
                 FROM magic_deck_cards
                 WHERE deck_id = :deck_id
                 ORDER BY section_position, card_position
@@ -159,6 +159,8 @@ final class ContentRepository
                 $decklist[(string) $card['section']][] = [
                     'quantity' => (int) $card['quantity'],
                     'name' => (string) $card['card_name'],
+                    'card_id' => $card['card_id'] !== null ? (string) $card['card_id'] : null,
+                    'image_url' => $card['image_url'] !== null ? (string) $card['image_url'] : null,
                 ];
             }
             $row = [
@@ -371,7 +373,14 @@ final class ContentRepository
                 if ($quantity === false || $quantity < 1 || $quantity > 999 || $name === '' || mb_strlen($name) > 255) {
                     throw new ApiException(422, 'validation_failed', 'Every card needs a valid quantity and name.');
                 }
-                $cards[] = [$section, (int) $position, (int) $quantity, $name];
+                $cards[] = [
+                    $section,
+                    (int) $position,
+                    (int) $quantity,
+                    $name,
+                    is_string($entry['card_id'] ?? null) ? $entry['card_id'] : null,
+                    is_string($entry['image_url'] ?? null) ? $entry['image_url'] : null,
+                ];
                 $cardCount += (int) $quantity;
             }
         }
@@ -404,11 +413,11 @@ final class ContentRepository
         $deckId = (string) $statement->fetchColumn();
         $this->pdo->prepare('DELETE FROM magic_deck_cards WHERE deck_id = :deck_id')->execute(['deck_id' => $deckId]);
         $insertCard = $this->pdo->prepare(<<<'SQL'
-            INSERT INTO magic_deck_cards (deck_id, section, section_position, card_position, quantity, card_name)
-            VALUES (:deck_id, :section, :section_position, :card_position, :quantity, :card_name)
+            INSERT INTO magic_deck_cards (deck_id, section, section_position, card_position, quantity, card_name, card_id, image_url)
+            VALUES (:deck_id, :section, :section_position, :card_position, :quantity, :card_name, :card_id, :image_url)
         SQL);
         $sectionPositions = [];
-        foreach ($cards as [$section, $position, $quantity, $name]) {
+        foreach ($cards as [$section, $position, $quantity, $name, $cardId, $imageUrl]) {
             $sectionPositions[$section] ??= count($sectionPositions);
             $insertCard->execute([
                 'deck_id' => $deckId,
@@ -417,6 +426,8 @@ final class ContentRepository
                 'card_position' => $position,
                 'quantity' => $quantity,
                 'card_name' => $name,
+                'card_id' => $cardId,
+                'image_url' => $imageUrl,
             ]);
         }
     }

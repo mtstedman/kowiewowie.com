@@ -185,8 +185,15 @@ admin_render_page(
 
                 <fieldset>
                     <legend>Decklist</legend>
-                    <div data-deck-sections data-next-section="<?= admin_decks_section_count($formDeck['decklist'] ?? []) ?>">
-                        <?php admin_decks_render_sections($formDeck['decklist'] ?? []); ?>
+                    <div data-deck-editor>
+                        <label>
+                            <span>Search cards</span>
+                            <input type="search" data-card-search-input placeholder="Search Scryfall cards" autocomplete="off" spellcheck="false">
+                        </label>
+                        <div data-card-search-results aria-live="polite"></div>
+                        <div data-deck-sections data-next-section="<?= admin_decks_section_count($formDeck['decklist'] ?? []) ?>">
+                            <?php admin_decks_render_sections($formDeck['decklist'] ?? []); ?>
+                        </div>
                     </div>
                     <button type="button" data-add-section>Add section</button>
                 </fieldset>
@@ -216,7 +223,12 @@ function admin_decks_blank_deck(): array
         'status' => 'draft',
         'summary' => '',
         'strategy' => '',
-        'decklist' => ['Mainboard' => [['quantity' => 1, 'name' => '']]],
+        'decklist' => ['Mainboard' => [[
+            'quantity' => 1,
+            'name' => '',
+            'card_id' => null,
+            'image_url' => null,
+        ]]],
     ];
 }
 
@@ -251,7 +263,7 @@ function admin_decks_post_string(string $key, string $default = ''): string
     return is_scalar($value) ? trim((string) $value) : $default;
 }
 
-/** @return array<string, list<array{quantity: int, name: string}>> */
+/** @return array<string, list<array{quantity: int, name: string, card_id: ?string, image_url: ?string}>> */
 function admin_decks_post_decklist(): array
 {
     $decklist = [];
@@ -276,12 +288,16 @@ function admin_decks_post_decklist(): array
 
                 $quantityText = trim(is_scalar($cardRow['quantity'] ?? null) ? (string) $cardRow['quantity'] : '');
                 $cardName = trim(is_string($cardRow['name'] ?? null) ? $cardRow['name'] : '');
+                $cardId = trim(is_string($cardRow['card_id'] ?? null) ? $cardRow['card_id'] : '');
+                $imageUrl = trim(is_string($cardRow['image_url'] ?? null) ? $cardRow['image_url'] : '');
                 if ($quantityText === '' && $cardName === '') {
                     continue;
                 }
                 $cards[] = [
                     'quantity' => (int) $quantityText,
                     'name' => $cardName,
+                    'card_id' => $cardId !== '' ? $cardId : null,
+                    'image_url' => $imageUrl !== '' ? $imageUrl : null,
                 ];
             }
         }
@@ -339,13 +355,23 @@ function admin_decks_section_count(mixed $decklist): int
 function admin_decks_render_sections(mixed $decklist): void
 {
     if (!is_array($decklist) || $decklist === []) {
-        $decklist = ['Mainboard' => [['quantity' => 1, 'name' => '']]];
+        $decklist = ['Mainboard' => [[
+            'quantity' => 1,
+            'name' => '',
+            'card_id' => null,
+            'image_url' => null,
+        ]]];
     }
 
     $sectionIndex = 0;
     foreach ($decklist as $sectionName => $cards) {
         if (!is_array($cards) || $cards === []) {
-            $cards = [['quantity' => 1, 'name' => '']];
+            $cards = [[
+                'quantity' => 1,
+                'name' => '',
+                'card_id' => null,
+                'image_url' => null,
+            ]];
         }
         ?>
         <div class="admin-deck-section" data-section data-section-index="<?= $sectionIndex ?>" data-next-card="<?= count($cards) ?>">
@@ -358,14 +384,23 @@ function admin_decks_render_sections(mixed $decklist): void
                     <?php
                     $quantity = '1';
                     $name = '';
+                    $cardId = '';
+                    $imageUrl = '';
                     if (is_array($card)) {
                         $quantity = admin_decks_string($card['quantity'] ?? '1');
                         $name = admin_decks_string($card['name'] ?? '');
+                        $cardId = admin_decks_string($card['card_id'] ?? '');
+                        $imageUrl = admin_decks_string($card['image_url'] ?? '');
                     } elseif (is_scalar($card)) {
                         $name = (string) $card;
                     }
                     ?>
                     <div class="admin-form-row" data-card-row>
+                        <div data-card-image>
+                            <?php if ($imageUrl !== ''): ?>
+                                <img src="<?= admin_decks_h($imageUrl) ?>" alt="<?= admin_decks_h($name) ?> card art" loading="lazy">
+                            <?php endif; ?>
+                        </div>
                         <label>
                             <span>Quantity</span>
                             <input name="deck_sections[<?= $sectionIndex ?>][cards][<?= $cardIndex ?>][quantity]" value="<?= admin_decks_h($quantity) ?>" inputmode="numeric" required>
@@ -374,6 +409,8 @@ function admin_decks_render_sections(mixed $decklist): void
                             <span>Card</span>
                             <input name="deck_sections[<?= $sectionIndex ?>][cards][<?= $cardIndex ?>][name]" value="<?= admin_decks_h($name) ?>" required maxlength="255">
                         </label>
+                        <input type="hidden" name="deck_sections[<?= $sectionIndex ?>][cards][<?= $cardIndex ?>][card_id]" value="<?= admin_decks_h($cardId) ?>">
+                        <input type="hidden" name="deck_sections[<?= $sectionIndex ?>][cards][<?= $cardIndex ?>][image_url]" value="<?= admin_decks_h($imageUrl) ?>">
                         <button type="button" data-remove-card>Remove</button>
                     </div>
                 <?php endforeach; ?>
