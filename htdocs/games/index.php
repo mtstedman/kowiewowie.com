@@ -3,16 +3,10 @@
 declare(strict_types=1);
 
 $year = gmdate('Y');
+$pageTitle = 'Board games - wowiekowie.com';
+$metaDescription = 'Board games and per-game strategy notes from wowiekowie.com.';
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Board games and per-game strategy notes from wowiekowie.com.">
-    <title>Board games - wowiekowie.com</title>
-    <link rel="stylesheet" href="/assets/styles.css">
-</head>
+<?php include dirname(__DIR__) . '/partials/head.php'; ?>
 <body>
     <div class="page-shell">
         <?php include dirname(__DIR__) . '/partials/header.php'; ?>

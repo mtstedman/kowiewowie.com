@@ -3,16 +3,10 @@
 declare(strict_types=1);
 
 $year = gmdate('Y');
+$pageTitle = 'Recipe - wowiekowie.com';
+$metaDescription = 'Recipe detail from wowiekowie.com.';
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Recipe detail from wowiekowie.com.">
-    <title>Recipe - wowiekowie.com</title>
-    <link rel="stylesheet" href="/assets/styles.css">
-</head>
+<?php require __DIR__ . '/../partials/head.php'; ?>
 <body>
     <div class="page-shell">
         <?php require __DIR__ . '/../partials/header.php'; ?>

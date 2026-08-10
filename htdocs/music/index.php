@@ -1,16 +1,12 @@
 <?php
 
 declare(strict_types=1);
+
+$year = gmdate('Y');
+$pageTitle = 'Music - wowiekowie.com';
+$metaDescription = 'A simple list of songs liked by wowiekowie.com.';
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="A simple list of songs liked by wowiekowie.com.">
-    <title>Music - wowiekowie.com</title>
-    <link rel="stylesheet" href="/assets/styles.css">
-</head>
+<?php include __DIR__ . '/../partials/head.php'; ?>
 <body>
     <div class="page-shell">
         <?php include __DIR__ . '/../partials/header.php'; ?>
