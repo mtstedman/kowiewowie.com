@@ -259,23 +259,10 @@ footer {
 .hero {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.34fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     gap: var(--space-xl);
     padding: 118px 0 132px;
-}
-
-.hero::after {
-    content: "";
-    align-self: stretch;
-    min-height: 360px;
-    border: 1px solid var(--line-strong);
-    background:
-        linear-gradient(90deg, transparent 49%, rgba(0, 245, 255, 0.5) 50%, transparent 51%),
-        linear-gradient(rgba(255, 43, 214, 0.16) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 18px;
-    box-shadow: var(--shadow-sm), inset 0 0 42px rgba(0, 245, 255, 0.08);
-    clip-path: polygon(18% 0, 100% 0, 100% 82%, 82% 100%, 0 100%, 0 18%);
 }
 
 .hero-compact {
@@ -568,9 +555,6 @@ footer {
         grid-template-columns: 1fr;
     }
 
-    .hero::after {
-        min-height: 180px;
-    }
 
     .bio-section h2 {
         position: static;
