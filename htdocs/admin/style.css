@@ -1,0 +1,181 @@
+:root {
+    color-scheme: light;
+    --admin-bg: #f5f7fb;
+    --admin-surface: #ffffff;
+    --admin-text: #172033;
+    --admin-muted: #667085;
+    --admin-border: #d8deea;
+    --admin-accent: #1f6feb;
+    --admin-accent-soft: #e8f0ff;
+    --admin-danger: #b42318;
+    --admin-shadow: 0 16px 40px rgba(23, 32, 51, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    background: var(--admin-bg);
+    color: var(--admin-text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+}
+
+a {
+    color: inherit;
+}
+
+.admin-shell {
+    min-height: 100vh;
+}
+
+.admin-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.9rem clamp(1rem, 3vw, 2rem);
+    border-bottom: 1px solid var(--admin-border);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(12px);
+}
+
+.admin-brand {
+    font-weight: 800;
+    text-decoration: none;
+    letter-spacing: 0;
+}
+
+.admin-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: center;
+}
+
+.admin-nav-link {
+    min-height: 2.25rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 7px;
+    color: var(--admin-muted);
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.admin-nav-link:hover,
+.admin-nav-link:focus,
+.admin-nav-link.is-active {
+    background: var(--admin-accent-soft);
+    color: var(--admin-accent);
+    outline: none;
+}
+
+.admin-account {
+    color: var(--admin-muted);
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+.admin-main {
+    width: min(1120px, calc(100% - 2rem));
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 3rem) 0;
+}
+
+.admin-hero {
+    margin-bottom: 1.5rem;
+}
+
+.admin-eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--admin-accent);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-hero h1,
+.admin-panel h1 {
+    margin: 0;
+    font-size: clamp(2rem, 6vw, 3.25rem);
+    line-height: 1.08;
+}
+
+.admin-section-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+}
+
+.admin-card,
+.admin-panel {
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--admin-surface);
+    box-shadow: var(--admin-shadow);
+}
+
+.admin-card {
+    display: grid;
+    gap: 0.35rem;
+    min-height: 9rem;
+    padding: 1rem;
+    text-decoration: none;
+}
+
+.admin-card:hover,
+.admin-card:focus {
+    border-color: var(--admin-accent);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.admin-card span {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.admin-card small,
+.admin-panel p {
+    color: var(--admin-muted);
+    font-size: 0.95rem;
+}
+
+.admin-panel {
+    max-width: 42rem;
+    padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.admin-denied {
+    border-color: #f1b8b3;
+}
+
+.admin-denied .admin-eyebrow {
+    color: var(--admin-danger);
+}
+
+@media (max-width: 760px) {
+    .admin-header {
+        position: static;
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .admin-nav {
+        justify-content: start;
+        overflow-x: auto;
+        padding-bottom: 0.2rem;
+    }
+
+    .admin-account {
+        text-align: left;
+    }
+}
