@@ -2,65 +2,420 @@
   {
     "slug": "weeknight-tomato-pasta",
     "title": "Weeknight Tomato Pasta",
-    "summary": "A simple pantry pasta with garlic, tomatoes, and a little heat.",
+    "summary": "A fast but polished pantry pasta built on gently toasted garlic, reduced crushed tomatoes, and a glossy finish of parmesan and basil.",
     "image": "/assets/recipes/placeholder.svg",
     "ingredients": [
-      "12 ounces spaghetti or linguine",
-      "2 tablespoons olive oil",
-      "4 cloves garlic, thinly sliced",
+      "12 ounces spaghetti",
+      "3 tablespoons extra-virgin olive oil",
+      "4 garlic cloves, thinly sliced",
       "1/2 teaspoon red pepper flakes",
       "1 can crushed tomatoes, 28 ounces",
       "1 teaspoon kosher salt",
-      "1/4 cup grated parmesan",
-      "Fresh basil leaves"
+      "2 tablespoons unsalted butter",
+      "1/4 cup finely grated parmesan",
+      "1/3 cup torn basil leaves"
     ],
     "instructions": [
-      "Bring a large pot of salted water to a boil and cook the pasta until al dente.",
-      "Warm the olive oil in a skillet, then cook the garlic and red pepper flakes for 1 minute.",
-      "Add the crushed tomatoes and salt, then simmer for 12 minutes.",
-      "Toss the drained pasta with the sauce, parmesan, and basil before serving."
+      "Bring a large pot of heavily salted water to a boil and cook the spaghetti until just shy of al dente; reserve 1 cup of pasta water before draining.",
+      "Warm the olive oil in a wide skillet over medium heat, then toast the garlic and red pepper flakes until fragrant and pale gold, about 1 minute.",
+      "Add the crushed tomatoes and kosher salt, bring the sauce to a lively simmer, and reduce for 12 to 15 minutes until slightly thickened and concentrated.",
+      "Add the pasta to the skillet with the butter and a splash of pasta water, then toss vigorously until the sauce turns glossy and clings to each strand.",
+      "Fold in the parmesan and basil off the heat, adjust the seasoning, and serve immediately."
     ]
   },
   {
     "slug": "citrus-breakfast-bowl",
     "title": "Citrus Breakfast Bowl",
-    "summary": "Greek yogurt layered with citrus, oats, honey, and toasted seeds.",
+    "summary": "Greek yogurt layered with segmented citrus, toasted oats, honey, and seeds for a bright breakfast with contrasting texture and acidity.",
     "image": "/assets/recipes/placeholder.svg",
     "ingredients": [
-      "1 cup Greek yogurt",
-      "1 orange, peeled and sliced",
-      "1/2 grapefruit, peeled and sliced",
+      "1 cup whole-milk Greek yogurt",
+      "1 orange, segmented",
+      "1/2 pink grapefruit, segmented",
       "1/3 cup rolled oats",
       "1 tablespoon pumpkin seeds",
-      "1 tablespoon honey",
-      "Pinch of flaky salt"
+      "1 tablespoon sliced almonds",
+      "1 tablespoon wildflower honey",
+      "1 teaspoon extra-virgin olive oil",
+      "1 pinch flaky sea salt"
     ],
     "instructions": [
-      "Spoon the Greek yogurt into a shallow bowl.",
-      "Arrange the orange and grapefruit slices over the yogurt.",
-      "Sprinkle the oats and pumpkin seeds across the top.",
-      "Finish with honey and a small pinch of flaky salt."
+      "Toast the oats and pumpkin seeds in a dry skillet over medium heat for 3 to 4 minutes until nutty, then transfer them to a plate to cool.",
+      "Spread the Greek yogurt into a shallow bowl, using the back of a spoon to create ridges that will catch the toppings.",
+      "Arrange the orange and grapefruit segments over the yogurt, letting a little of their juice fall into the bowl for natural sweetness.",
+      "Scatter the toasted oats, pumpkin seeds, and sliced almonds across the top for crunch and contrast.",
+      "Finish with honey, olive oil, and flaky salt just before serving."
     ]
   },
   {
-    "slug": "can-of-ass-whoopin",
-    "title": "A Can of Ass Whoopin",
-    "summary": "A tongue-in-cheek pantry special with big talk, bold flavor, and just enough heat to let everybody know supper means business.",
+    "slug": "miso-black-cod",
+    "title": "Miso Glazed Black Cod",
+    "summary": "Silky black cod is marinated in sweet white miso, sake, and mirin, then broiled until lacquered and lightly caramelized.",
     "image": "/assets/recipes/placeholder.svg",
     "ingredients": [
-      "1 dented can of confidence",
-      "2 tablespoons swagger",
-      "1 heaping spoonful of Southern sarcasm",
-      "1 pinch of red pepper flakes for dramatic effect",
-      "1 cast-iron skillet full of consequences",
-      "Fresh cracked black pepper and common sense"
+      "4 black cod fillets, 6 ounces each",
+      "1/3 cup white miso",
+      "3 tablespoons mirin",
+      "3 tablespoons sake",
+      "2 tablespoons granulated sugar",
+      "1 tablespoon soy sauce",
+      "2 scallions, thinly sliced",
+      "1 teaspoon toasted sesame seeds"
     ],
     "instructions": [
-      "Pop the can of confidence and let it hiss like somebody just said they can do it better.",
-      "Warm the swagger in a cast-iron skillet, then stir in the sarcasm until the kitchen starts talking back.",
-      "Add the red pepper flakes and consequences, then cook everything down until the smell alone sets the record straight.",
-      "Finish with black pepper and common sense, then serve hot with a reminder that this recipe is strictly for laughs."
+      "Whisk the white miso, mirin, sake, sugar, and soy sauce in a saucepan over low heat until smooth, then cool the marinade completely.",
+      "Pat the cod dry, coat each fillet with the marinade, and refrigerate for at least 6 hours or overnight for full penetration.",
+      "Heat the broiler and arrange the fillets on a foil-lined tray, scraping away excess marinade so the glaze caramelizes instead of burning.",
+      "Broil the fish 6 to 8 minutes, rotating the tray as needed, until the surface is mahogany in spots and the flesh flakes with gentle pressure.",
+      "Rest for 2 minutes, then finish with scallions and toasted sesame seeds before serving."
+    ]
+  },
+  {
+    "slug": "wild-mushroom-risotto",
+    "title": "Wild Mushroom Risotto",
+    "summary": "Arborio rice slowly cooked with shallots, white wine, and mixed mushrooms for a deeply savory risotto finished with butter and parmesan.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "6 cups chicken stock",
+      "2 tablespoons olive oil",
+      "1 pound mixed wild mushrooms, sliced",
+      "2 shallots, finely minced",
+      "1 1/2 cups Arborio rice",
+      "1/2 cup dry white wine",
+      "3 tablespoons unsalted butter",
+      "1/2 cup grated parmesan",
+      "2 teaspoons fresh thyme leaves",
+      "1 teaspoon kosher salt"
     ],
-    "status": "published"
+    "instructions": [
+      "Bring the chicken stock to a bare simmer in a saucepan and keep it warm so the rice cooks evenly.",
+      "Saute the mushrooms in olive oil over medium-high heat until their moisture evaporates and the edges brown, then season with half the salt and set aside one-third for garnish.",
+      "Lower the heat to medium, sweat the shallots in the same pan, add the Arborio rice, and stir for 2 minutes until the grains look translucent around the edges.",
+      "Deglaze with the white wine and cook until nearly dry, then add the hot stock one ladle at a time, stirring frequently and waiting until each addition is mostly absorbed before adding the next.",
+      "When the rice is creamy and al dente, fold in the cooked mushrooms, butter, parmesan, thyme, and remaining salt, then serve immediately with the reserved mushrooms on top."
+    ]
+  },
+  {
+    "slug": "duck-confit-salad",
+    "title": "Duck Confit Salad with Frisee and Cherries",
+    "summary": "Crisp duck confit legs are paired with bitter greens, macerated cherries, and a sharp red wine vinaigrette for a rich composed salad.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "2 duck confit legs",
+      "1 head frisee, torn into bite-size pieces",
+      "1 cup sweet cherries, pitted and halved",
+      "1 small shallot, thinly sliced",
+      "2 tablespoons red wine vinegar",
+      "1 teaspoon Dijon mustard",
+      "1/4 cup walnut oil",
+      "1/4 cup toasted walnuts",
+      "1 ounce shaved pecorino",
+      "1/2 teaspoon kosher salt"
+    ],
+    "instructions": [
+      "Warm the duck confit legs skin-side down in a skillet over medium heat until the fat renders and the skin becomes crisp, then pull the meat into large pieces.",
+      "Toss the cherries with half the shallot and 1 tablespoon of the vinegar, then let them stand for 10 minutes to lightly macerate.",
+      "Whisk the remaining shallot, remaining vinegar, Dijon mustard, walnut oil, and kosher salt into a sharp vinaigrette.",
+      "Dress the frisee lightly and arrange it on a platter, then scatter the cherries, walnuts, and shaved pecorino over the greens.",
+      "Nestle the warm duck over the salad and spoon any resting juices across the top before serving."
+    ]
+  },
+  {
+    "slug": "saffron-mussels",
+    "title": "Saffron Mussels with Fennel and White Wine",
+    "summary": "Fresh mussels steam open in a fragrant broth of fennel, shallot, white wine, saffron, and cream.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "2 pounds mussels, cleaned and debearded",
+      "2 tablespoons olive oil",
+      "1 small fennel bulb, thinly sliced",
+      "1 shallot, finely chopped",
+      "2 garlic cloves, minced",
+      "3/4 cup dry white wine",
+      "1/4 teaspoon saffron threads",
+      "1/3 cup heavy cream",
+      "2 tablespoons chopped parsley",
+      "1 teaspoon kosher salt"
+    ],
+    "instructions": [
+      "Heat the olive oil in a Dutch oven over medium heat and sweat the fennel and shallot for 5 minutes until softened but not browned.",
+      "Add the garlic and saffron, stir for 30 seconds, then pour in the white wine and simmer for 2 minutes to cook off the raw alcohol.",
+      "Add the mussels, cover the pot, and steam for 4 to 6 minutes, shaking once or twice, until the shells open.",
+      "Discard any mussels that remain closed, then stir the cream and parsley into the broth and adjust with kosher salt.",
+      "Serve the mussels immediately in warm bowls with the saffron broth spooned over the top."
+    ]
+  },
+  {
+    "slug": "charred-octopus-romesco",
+    "title": "Charred Octopus with Romesco",
+    "summary": "Tender braised octopus is quickly charred and served over smoky romesco with lemon and herbs.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "2 pounds octopus, cleaned",
+      "1 yellow onion, quartered",
+      "1 bay leaf",
+      "1 teaspoon black peppercorns",
+      "1 red bell pepper, roasted and peeled",
+      "1/2 cup toasted almonds",
+      "1/4 cup olive oil",
+      "1 tablespoon sherry vinegar",
+      "1 teaspoon smoked paprika",
+      "1 lemon, cut into wedges"
+    ],
+    "instructions": [
+      "Simmer the octopus with the onion, bay leaf, and peppercorns in lightly salted water for 60 to 75 minutes until a knife slips easily into the thickest part.",
+      "Drain the octopus and let it cool slightly, then separate the tentacles and pat them very dry so they char instead of steam.",
+      "Blend the roasted pepper, toasted almonds, olive oil, sherry vinegar, and smoked paprika into a textured romesco, seasoning it to taste.",
+      "Sear the octopus in a very hot skillet or on a grill for 2 to 3 minutes per side until the edges blister and darken.",
+      "Spread the romesco on a platter, arrange the octopus over it, and finish with lemon wedges for squeezing at the table."
+    ]
+  },
+  {
+    "slug": "coq-au-vin-blanc",
+    "title": "Coq au Vin Blanc",
+    "summary": "Chicken thighs braised with white wine, bacon, mushrooms, and creme fraiche for a lighter variation on the French classic.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "8 bone-in chicken thighs",
+      "4 ounces thick-cut bacon, diced",
+      "1 tablespoon olive oil",
+      "8 ounces cremini mushrooms, halved",
+      "2 leeks, white and light green parts sliced",
+      "2 garlic cloves, minced",
+      "1 1/2 cups dry white wine",
+      "1 cup chicken stock",
+      "2 tablespoons creme fraiche",
+      "1 tablespoon chopped tarragon"
+    ],
+    "instructions": [
+      "Season the chicken thighs with salt and pepper, then brown them skin-side down in a Dutch oven until the fat renders and the skin is deep golden; transfer to a plate.",
+      "Cook the bacon in the same pot until crisp, then saute the mushrooms and leeks in the rendered fat until lightly caramelized.",
+      "Add the garlic, pour in the white wine, and reduce by half while scraping up the browned fond from the bottom of the pot.",
+      "Return the chicken to the pot with the stock, cover, and braise gently for 30 to 35 minutes until the meat is tender.",
+      "Stir in the creme fraiche and tarragon off the heat, then spoon the sauce over the chicken to serve."
+    ]
+  },
+  {
+    "slug": "lamb-ragu-pappardelle",
+    "title": "Lamb Ragu with Pappardelle",
+    "summary": "Slow-simmered ground lamb, red wine, and tomatoes create a rich ragu that coats broad ribbons of pasta beautifully.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "12 ounces pappardelle",
+      "2 tablespoons olive oil",
+      "1 pound ground lamb",
+      "1 small carrot, finely diced",
+      "1 celery stalk, finely diced",
+      "1 small onion, finely diced",
+      "3 garlic cloves, minced",
+      "1 tablespoon tomato paste",
+      "3/4 cup dry red wine",
+      "1 can crushed tomatoes, 14 ounces",
+      "1 teaspoon rosemary, finely chopped"
+    ],
+    "instructions": [
+      "Heat the olive oil in a heavy pot over medium-high heat and brown the ground lamb thoroughly, breaking it into small pieces until deeply caramelized.",
+      "Add the carrot, celery, onion, and garlic, then cook for 6 to 8 minutes until the vegetables soften and begin to sweeten.",
+      "Stir in the tomato paste and rosemary, cook until the paste darkens slightly, then deglaze with the red wine and reduce by half.",
+      "Add the crushed tomatoes, lower the heat, and simmer the ragu uncovered for 35 to 40 minutes until thick and savory.",
+      "Boil the pappardelle until al dente, toss it with the ragu and a splash of pasta water, and serve while glossy and well coated."
+    ]
+  },
+  {
+    "slug": "roasted-beet-burrata-salad",
+    "title": "Roasted Beet and Burrata Salad",
+    "summary": "Sweet roasted beets, creamy burrata, pistachios, and a sherry vinaigrette make a composed salad with balance and texture.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "4 medium red beets",
+      "2 tablespoons olive oil",
+      "1 tablespoon sherry vinegar",
+      "1 teaspoon honey",
+      "1 teaspoon Dijon mustard",
+      "3 ounces baby arugula",
+      "8 ounces burrata",
+      "2 tablespoons toasted pistachios, chopped",
+      "1 tablespoon chopped chives",
+      "1/2 teaspoon kosher salt"
+    ],
+    "instructions": [
+      "Wrap the beets in foil with a drizzle of olive oil and roast at 400 degrees Fahrenheit for 50 to 60 minutes until tender when pierced.",
+      "Cool the beets just enough to handle, rub off the skins with paper towels, and cut them into wedges.",
+      "Whisk the sherry vinegar, honey, Dijon mustard, remaining olive oil, and kosher salt into a balanced vinaigrette.",
+      "Dress the arugula lightly and spread it across a serving plate, then arrange the warm beet wedges over the greens.",
+      "Tear the burrata over the beets and finish with pistachios, chives, and a final spoonful of vinaigrette."
+    ]
+  },
+  {
+    "slug": "herb-crusted-rack-of-lamb",
+    "title": "Herb Crusted Rack of Lamb",
+    "summary": "A roasted rack of lamb is seared, coated with mustard and herbs, and cooked until blushing pink at the center.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "2 racks of lamb, frenched",
+      "1 tablespoon kosher salt",
+      "2 teaspoons black pepper",
+      "2 tablespoons olive oil",
+      "2 tablespoons Dijon mustard",
+      "1 cup fresh breadcrumbs",
+      "2 tablespoons chopped parsley",
+      "1 tablespoon chopped rosemary",
+      "1 tablespoon chopped thyme",
+      "2 tablespoons unsalted butter"
+    ],
+    "instructions": [
+      "Season the lamb generously with kosher salt and black pepper, then let it stand at room temperature for 30 minutes before cooking.",
+      "Sear the racks fat-side down in an ovenproof skillet with olive oil until browned on all sides, then remove them briefly from the pan.",
+      "Combine the breadcrumbs, parsley, rosemary, thyme, and butter into a moist herb crust, then brush the lamb with Dijon mustard and press the crumb mixture onto the meat side.",
+      "Roast at 425 degrees Fahrenheit for 15 to 18 minutes until the internal temperature reaches 125 degrees for medium-rare.",
+      "Rest the lamb for 10 minutes before slicing into double chops so the juices redistribute."
+    ]
+  },
+  {
+    "slug": "coconut-lemongrass-halibut",
+    "title": "Coconut Lemongrass Halibut",
+    "summary": "Halibut gently poached in coconut milk with lemongrass, ginger, and lime for a fragrant Southeast Asian-inspired main course.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "4 halibut fillets, 6 ounces each",
+      "1 tablespoon neutral oil",
+      "2 lemongrass stalks, bruised",
+      "1 tablespoon grated ginger",
+      "2 garlic cloves, sliced",
+      "1 can coconut milk, 13.5 ounces",
+      "1 cup fish stock",
+      "1 tablespoon fish sauce",
+      "1 lime, zested and juiced",
+      "1/4 cup cilantro leaves"
+    ],
+    "instructions": [
+      "Warm the neutral oil in a saute pan over medium heat and gently cook the lemongrass, ginger, and garlic until fragrant but not colored.",
+      "Add the coconut milk, fish stock, and fish sauce, then bring the liquid to a low simmer so the aromatics infuse the broth.",
+      "Season the halibut lightly, nestle the fillets into the pan, and poach them gently for 8 to 10 minutes until the fish is just opaque.",
+      "Lift the halibut to warm plates and reduce the poaching liquid briefly if needed so it lightly coats the back of a spoon.",
+      "Finish the broth with lime zest, lime juice, and cilantro, then spoon it around the fish to serve."
+    ]
+  },
+  {
+    "slug": "brown-butter-sage-gnocchi",
+    "title": "Brown Butter Sage Gnocchi",
+    "summary": "Potato gnocchi are seared until tender and crisp, then glazed in nutty brown butter with sage and lemon.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "1 pound potato gnocchi",
+      "6 tablespoons unsalted butter",
+      "12 sage leaves",
+      "1 small shallot, minced",
+      "1/4 cup toasted hazelnuts, chopped",
+      "1 lemon, zested",
+      "1/3 cup grated parmesan",
+      "1 tablespoon chopped parsley",
+      "1/2 teaspoon kosher salt"
+    ],
+    "instructions": [
+      "Boil the gnocchi in well-salted water until they float, then transfer them to a towel-lined tray to dry briefly.",
+      "Melt the butter in a large skillet and cook it until the milk solids turn amber and smell nutty, then add the sage leaves and shallot.",
+      "Add the gnocchi to the skillet and saute them gently until the surfaces pick up crisp golden patches and the brown butter coats each piece.",
+      "Fold in the hazelnuts, lemon zest, parmesan, parsley, and kosher salt, adding a spoonful of pasta water if the glaze tightens too much.",
+      "Serve immediately while the gnocchi are still delicate inside and crisp outside."
+    ]
+  },
+  {
+    "slug": "shakshuka-verde",
+    "title": "Shakshuka Verde",
+    "summary": "Poached eggs nestled in a skillet of tomatillos, spinach, herbs, and green chiles for a bright savory brunch dish.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "1 tablespoon olive oil",
+      "1 small onion, thinly sliced",
+      "2 garlic cloves, minced",
+      "1 jalapeno, seeded and chopped",
+      "8 tomatillos, husked and chopped",
+      "4 cups baby spinach",
+      "1/2 cup chopped cilantro",
+      "1/4 cup chicken stock",
+      "4 large eggs",
+      "1/2 teaspoon kosher salt"
+    ],
+    "instructions": [
+      "Heat the olive oil in a skillet over medium heat and sweat the onion, garlic, and jalapeno until soft and aromatic.",
+      "Add the tomatillos and kosher salt, then cook for 8 to 10 minutes until they collapse and form a loose green sauce.",
+      "Stir in the spinach, cilantro, and chicken stock, allowing the greens to wilt and the sauce to loosen slightly.",
+      "Make four wells in the mixture, crack an egg into each one, cover the skillet, and cook gently until the whites set but the yolks remain soft.",
+      "Rest the pan for 1 minute off the heat before serving so the eggs finish with residual warmth."
+    ]
+  },
+  {
+    "slug": "chocolate-hazelnut-torte",
+    "title": "Chocolate Hazelnut Torte",
+    "summary": "A dense flourless chocolate torte enriched with ground hazelnuts and finished with a glossy ganache.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "8 ounces dark chocolate, chopped",
+      "10 tablespoons unsalted butter",
+      "3/4 cup granulated sugar",
+      "4 large eggs, separated",
+      "1 cup toasted hazelnuts, finely ground",
+      "1/4 teaspoon kosher salt",
+      "1/3 cup heavy cream",
+      "2 ounces dark chocolate for ganache",
+      "1 tablespoon cocoa powder"
+    ],
+    "instructions": [
+      "Melt the chopped chocolate and butter together over a double boiler, then whisk in the sugar until dissolved and the mixture turns glossy.",
+      "Whisk in the egg yolks one at a time, then fold in the ground hazelnuts and kosher salt.",
+      "Beat the egg whites to soft peaks and fold them gently into the batter in three additions to preserve as much air as possible.",
+      "Bake in a buttered 9-inch cake pan at 350 degrees Fahrenheit for 28 to 32 minutes until the center is just set, then cool completely.",
+      "Heat the cream, pour it over the remaining chocolate to make ganache, spread it over the torte, and dust lightly with cocoa powder before slicing."
+    ]
+  },
+  {
+    "slug": "pear-frangipane-tart",
+    "title": "Pear Frangipane Tart",
+    "summary": "A buttery tart shell filled with almond frangipane and baked pears for a classic French pastry finish.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "1 prepared 9-inch tart shell, blind baked",
+      "6 tablespoons unsalted butter, softened",
+      "1/2 cup granulated sugar",
+      "1 cup almond flour",
+      "2 large eggs",
+      "1 tablespoon all-purpose flour",
+      "2 ripe pears, peeled and sliced",
+      "1 teaspoon vanilla extract",
+      "2 tablespoons apricot jam"
+    ],
+    "instructions": [
+      "Cream the softened butter and sugar until pale, then beat in the almond flour, eggs, all-purpose flour, and vanilla to make the frangipane.",
+      "Spread the frangipane evenly into the blind-baked tart shell, smoothing the surface with an offset spatula.",
+      "Fan the pear slices over the filling in overlapping rows, pressing them lightly into the frangipane.",
+      "Bake at 375 degrees Fahrenheit for 35 to 40 minutes until the filling is puffed and golden and the pears are tender.",
+      "Warm the apricot jam and brush it over the tart while still hot for a professional glazed finish."
+    ]
+  },
+  {
+    "slug": "lobster-bisque",
+    "title": "Lobster Bisque",
+    "summary": "A refined shellfish soup built from roasted lobster shells, aromatic vegetables, tomato, brandy, and cream.",
+    "image": "/assets/recipes/placeholder.svg",
+    "ingredients": [
+      "2 cooked lobster shells, broken into pieces",
+      "2 tablespoons olive oil",
+      "1 small onion, diced",
+      "1 small carrot, diced",
+      "1 celery stalk, diced",
+      "2 tablespoons tomato paste",
+      "1/4 cup brandy",
+      "4 cups seafood stock",
+      "1/2 cup heavy cream",
+      "2 tablespoons unsalted butter"
+    ],
+    "instructions": [
+      "Roast the lobster shells in a 425 degree Fahrenheit oven for 12 to 15 minutes until they smell deeply sweet and briny.",
+      "Saute the onion, carrot, and celery in olive oil until lightly caramelized, then stir in the tomato paste and cook until it darkens.",
+      "Add the roasted shells, deglaze with the brandy, and reduce briefly before pouring in the seafood stock.",
+      "Simmer the bisque base for 35 minutes, then strain it firmly, pressing on the solids to extract as much flavor as possible.",
+      "Return the liquid to the pot, whisk in the cream and butter, and simmer gently until the soup is smooth and lightly thickened."
+    ]
   }
 ]
