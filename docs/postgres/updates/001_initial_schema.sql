@@ -176,4 +176,3 @@ CREATE TRIGGER magic_decks_set_updated_at BEFORE UPDATE ON magic_decks FOR EACH 
 CREATE TRIGGER magic_guides_set_updated_at BEFORE UPDATE ON magic_guides FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER games_set_updated_at BEFORE UPDATE ON games FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER music_entries_set_updated_at BEFORE UPDATE ON music_entries FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-

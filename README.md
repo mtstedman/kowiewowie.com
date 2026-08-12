@@ -15,13 +15,18 @@ includes/
   auth/classes/                 JWT, refresh-token, and OAuth services
   content/classes/              PostgreSQL content repository
   content/functions/            Stateless validation and slug helpers
-  database/classes/             PDO connection and migration runner
+  database/classes/             PDO connection and schema version minter
   http/classes/                 Request/response contracts
 database/
-  migrations/                   Ordered PostgreSQL schema migrations
-  migrate.php                   Idempotent migration command
+  migrate.php                   Compatibility entry point for the DB minter
   seed.php                      Idempotent JSON-to-PostgreSQL import
   grant-role.php                User/editor/admin role management
+docs/postgres/
+  VERSION                       Schema version pin for this release
+  migration-chain.json          Ordered, checksummed update chain
+  updates/                      Complete PostgreSQL update history
+  db-version-minter.php         Atomic schema update/version command
+  SCHEMA.md                     Versioned schema documentation
 tests/api-smoke.php             Database and API integration checks
 ```
 
@@ -52,13 +57,16 @@ CREATE DATABASE wowiekowie OWNER wowiekowie_app;
 Then apply the schema and import the current site content:
 
 ```bash
-php database/migrate.php
+php docs/postgres/db-version-minter.php
 php database/seed.php
-php database/migrate.php --status
+php docs/postgres/db-version-minter.php --status
 ```
 
-Both migration and seed commands are idempotent. Content seeding upserts by
-slug, including relational deck cards and guide sections.
+The version minter and seed commands are idempotent. The legacy
+`database/migrate.php` command remains as an alias. Content seeding upserts by
+slug, including relational deck cards and guide sections. See
+[`docs/postgres/SCHEMA.md`](docs/postgres/SCHEMA.md) for the pinned version,
+complete update chain, and procedure for adding a schema version.
 
 ## Local development
 
@@ -146,6 +154,7 @@ are used only to fetch the identity and are not stored.
 - API document root: `/var/www/wowiekowie.com/api`
 - Shared PHP code: `/var/www/wowiekowie.com/includes`
 - Migration code: `/var/www/wowiekowie.com/database`
+- Versioned PostgreSQL schema: `/var/www/wowiekowie.com/docs/postgres`
 - API environment: `/etc/wowiekowie.com/api.env` (`root:www-data`, mode `0640`)
 - Web server: Nginx
 - Runtime: PHP-FPM
@@ -157,13 +166,22 @@ the production server.
 ## Production deployment
 
 This checkout uses the versioned `.githooks/post-commit` hook. Every successful
-local commit on `main` deploys the exact committed web/API/shared/database
-trees. Commits on work-item branches are never deployed. Set
-`WOWIE_SKIP_AUTO_DEPLOY=1` when a main commit must be pushed before deployment.
+local commit on `main` deploys the exact committed web/API/shared/database and
+schema-documentation trees. Commits on work-item branches are never deployed.
+Set `WOWIE_SKIP_AUTO_DEPLOY=1` when a main commit must be pushed before
+deployment.
 
-The deployment script lints PHP, requires a clean `main` checkout matching
-`origin/main`, applies pending database migrations before switching API code,
-and then performs both health checks. Run it manually after pushing with:
+GitHub CI validates the schema pin, version marker, complete chain, and SQL
+checksums, then lints the PHP and deployment shell before a release reaches the
+deployment hook.
+
+The deployment script lints PHP, validates the checksummed schema chain,
+requires a clean `main` checkout matching `origin/main`, and compares the
+database's minted version with `docs/postgres/VERSION`. A higher release pin is
+applied in one transaction. Only after all updates and the database marker
+commit does deployment publish the application and its new version document;
+on failure neither version is bumped. It then performs the site/API health
+checks. Run it manually after pushing with:
 
 ```bash
 ./deploy/deploy.sh

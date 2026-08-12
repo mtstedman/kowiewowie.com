@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the release
+        uses: actions/checkout@v6
+
+      - name: Validate PostgreSQL version chain
+        run: php docs/postgres/db-version-minter.php --validate
+
+      - name: Lint PHP
+        shell: bash
+        run: |
+          while IFS= read -r -d '' php_file; do
+            php -l "$php_file"
+          done < <(find api database docs htdocs includes tests -type f -name '*.php' -print0)
+
+      - name: Check deployment shell syntax
+        run: bash -n deploy/deploy.sh .githooks/post-commit

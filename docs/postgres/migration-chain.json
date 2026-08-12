@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "versions": [
+    {
+      "version": 1,
+      "updates": [
+        {
+          "file": "updates/001_initial_schema.sql",
+          "sha256": "5b9433f7ce2bdd7aadfb9c91ab8c20ff6f99e9614d50afa956864053ad8893f9"
+        }
+      ]
+    },
+    {
+      "version": 2,
+      "updates": [
+        {
+          "file": "updates/002_add_magic_deck_card_scryfall_fields.sql",
+          "sha256": "6871d651ec36f613b8810d96f3e41a737c25b074f9c173ea9d756dc18dbe0304"
+        }
+      ]
+    },
+    {
+      "version": 3,
+      "updates": [
+        {
+          "file": "updates/002_videos.sql",
+          "sha256": "70a5e60c1f8ec471d0f3c4d0427f90a86273dde7a2708ec30136316f70625618"
+        }
+      ]
+    }
+  ]
+}

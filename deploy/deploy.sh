@@ -77,11 +77,13 @@ trap cleanup EXIT
 
 printf 'Deploying wowiekowie.com at %s\n' "${REVISION:0:12}"
 
-git -C "$REPO_ROOT" archive "$REVISION" htdocs api includes database | tar -x -C "$release_dir"
+git -C "$REPO_ROOT" archive "$REVISION" htdocs api includes database docs | tar -x -C "$release_dir"
 
 while IFS= read -r -d '' php_file; do
     php -l "$php_file" >/dev/null
-done < <(find "$release_dir/htdocs" "$release_dir/api" "$release_dir/includes" "$release_dir/database" -type f -name '*.php' -print0)
+done < <(find "$release_dir/htdocs" "$release_dir/api" "$release_dir/includes" "$release_dir/database" "$release_dir/docs" -type f -name '*.php' -print0)
+
+php "$release_dir/docs/postgres/db-version-minter.php" --validate
 
 if ! sudo -n test -r "$API_ENV_FILE"; then
     printf 'Missing readable API environment file: %s\n' "$API_ENV_FILE" >&2
@@ -89,8 +91,13 @@ if ! sudo -n test -r "$API_ENV_FILE"; then
 fi
 
 sudo -n install -d -o root -g www-data -m 0755 \
-    "$WEB_ROOT/htdocs" "$WEB_ROOT/api" "$WEB_ROOT/includes" "$WEB_ROOT/database"
+    "$WEB_ROOT/htdocs" "$WEB_ROOT/api" "$WEB_ROOT/includes" "$WEB_ROOT/database" "$WEB_ROOT/docs"
 
+sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
+    php "$release_dir/docs/postgres/db-version-minter.php"
+
+# Publish the code and the release's version document only after every database
+# update and the database version marker have committed successfully.
 sudo -n rsync --archive --delete --delay-updates \
     --chown=root:www-data --chmod=D755,F644 \
     "$release_dir/includes/" "$WEB_ROOT/includes/"
@@ -99,8 +106,9 @@ sudo -n rsync --archive --delete --delay-updates \
     --chown=root:www-data --chmod=D755,F644 \
     "$release_dir/database/" "$WEB_ROOT/database/"
 
-sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
-    php "$release_dir/database/migrate.php"
+sudo -n rsync --archive --delete --delay-updates \
+    --chown=root:www-data --chmod=D755,F644 \
+    "$release_dir/docs/" "$WEB_ROOT/docs/"
 
 sudo -n rsync --archive --delete --delay-updates \
     --chown=root:www-data --chmod=D755,F644 \
