@@ -72,6 +72,11 @@ $pageStyles = ['/assets/css/chess.css'];
                             <button class="chess-button" type="submit" id="chess-save-name-button">Save name</button>
                         </form>
 
+                        <label class="chess-field chess-notification-control" for="chess-move-notifications">
+                            <span>Notifications</span>
+                            <span><input id="chess-move-notifications" name="move_notifications" type="checkbox"> Alert me when it is my move</span>
+                        </label>
+                        <p class="chess-message" id="chess-notification-message" role="status" aria-live="polite"></p>
                         <p class="chess-message" id="chess-profile-message" role="status" aria-live="polite"></p>
                     </section>
 

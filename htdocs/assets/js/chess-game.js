@@ -3,6 +3,7 @@ import { getGame, getPromotionOptions, listMoves, submitMove, updateProfile } fr
 const BOARD_FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const BOARD_RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 const POLL_MS = 5000;
+const NOTIFICATION_STORAGE_KEY = 'wowie.chess.moveNotificationsEnabled';
 const PROMOTION_NAMES = Object.freeze({
     q: 'Queen',
     r: 'Rook',
@@ -50,6 +51,8 @@ const elements = {
     profileForm: document.getElementById('chess-profile-form'),
     displayName: document.getElementById('chess-display-name'),
     saveNameButton: document.getElementById('chess-save-name-button'),
+    notificationToggle: document.getElementById('chess-move-notifications'),
+    notificationMessage: document.getElementById('chess-notification-message'),
     profileMessage: document.getElementById('chess-profile-message'),
     moveList: document.getElementById('chess-move-list'),
     promotionDialog: document.getElementById('chess-promotion-dialog'),
@@ -69,6 +72,8 @@ const state = {
     isLoading: false,
     isSubmitting: false,
     isBoardFullscreen: false,
+    notificationsEnabled: false,
+    lastNotifiedPly: 0,
     savedDisplayName: '',
 };
 
@@ -91,6 +96,87 @@ const errorMessage = (error, fallback) => {
 };
 
 const normalizeUuid = (value) => String(value || '').trim().toLowerCase();
+
+const notificationsSupported = () => 'Notification' in window;
+
+const readNotificationPreference = () => {
+    try {
+        return window.localStorage.getItem(NOTIFICATION_STORAGE_KEY) === 'true';
+    } catch {
+        return false;
+    }
+};
+
+const writeNotificationPreference = (isEnabled) => {
+    try {
+        window.localStorage.setItem(NOTIFICATION_STORAGE_KEY, isEnabled ? 'true' : 'false');
+    } catch {
+        // Storage can be unavailable in private modes; keep the in-memory choice for this page.
+    }
+};
+
+const setNotificationsEnabled = (isEnabled, { persist = true, message = '', tone = '' } = {}) => {
+    state.notificationsEnabled = isEnabled;
+    elements.notificationToggle.checked = isEnabled;
+    if (persist) {
+        writeNotificationPreference(isEnabled);
+    }
+    setMessage(elements.notificationMessage, message, tone);
+};
+
+const disableNotifications = (message) => {
+    setNotificationsEnabled(false, { message, tone: 'error' });
+};
+
+const restoreNotificationPreference = () => {
+    if (!readNotificationPreference()) {
+        setNotificationsEnabled(false, { persist: false });
+        return;
+    }
+
+    setNotificationsEnabled(true, { persist: false });
+    if (!notificationsSupported()) {
+        disableNotifications('Browser notifications are not supported on this device.');
+        return;
+    }
+
+    if (Notification.permission !== 'granted') {
+        disableNotifications('Move notifications need browser permission. Turn them on again to allow alerts.');
+    }
+};
+
+const handleNotificationToggle = async () => {
+    if (!elements.notificationToggle.checked) {
+        setNotificationsEnabled(false, { message: 'Move notifications disabled.', tone: 'neutral' });
+        return;
+    }
+
+    if (!notificationsSupported()) {
+        disableNotifications('Browser notifications are not supported on this device.');
+        return;
+    }
+
+    if (Notification.permission === 'denied') {
+        disableNotifications('Browser notification permission is blocked.');
+        return;
+    }
+
+    if (Notification.permission !== 'granted') {
+        setMessage(elements.notificationMessage, 'Allow notifications in your browser to enable move alerts.', 'neutral');
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                disableNotifications('Browser notification permission was not granted.');
+                return;
+            }
+        } catch {
+            disableNotifications('Browser notification permission could not be requested.');
+            return;
+        }
+    }
+
+    setNotificationsEnabled(true, { message: 'Move notifications enabled.', tone: 'success' });
+};
 
 const readGameId = () => {
     const params = new URLSearchParams(window.location.search);
@@ -331,6 +417,43 @@ const normalizeMoves = (payload) => {
     return [];
 };
 
+const currentPly = (game) => {
+    const ply = Number(game?.current_ply);
+    return Number.isInteger(ply) && ply >= 0 ? ply : null;
+};
+
+const moveForPly = (ply) => state.moves.find((move) => Number(move?.ply) === ply) || null;
+
+const notifyOpponentMove = (ply) => {
+    if (!state.notificationsEnabled || state.lastNotifiedPly === ply || !notificationsSupported() || Notification.permission !== 'granted') {
+        return;
+    }
+
+    const move = moveForPly(ply);
+    const player = move?.player?.display_name || titleCase(move?.player?.color);
+    const notation = move?.san || move?.uci || 'Move played';
+    state.lastNotifiedPly = ply;
+
+    try {
+        new Notification(`${player} moved`, {
+            body: `${notation}. Your move.`,
+        });
+    } catch {
+        disableNotifications('Move notifications could not be shown by this browser.');
+    }
+};
+
+const maybeNotifyOpponentMove = (previousPly, previousControlsTurn) => {
+    const newPly = currentPly(state.game);
+    if (previousPly === null || newPly === null || newPly <= previousPly) {
+        return;
+    }
+
+    if (!previousControlsTurn && viewerControlsTurn()) {
+        notifyOpponentMove(newPly);
+    }
+};
+
 const refresh = async ({ quiet = false } = {}) => {
     if (state.isLoading || state.isSubmitting || state.gameId === '') {
         return;
@@ -341,6 +464,9 @@ const refresh = async ({ quiet = false } = {}) => {
         setMessage(elements.boardMessage, 'Loading game...', 'neutral');
     }
 
+    const previousPly = currentPly(state.game);
+    const previousControlsTurn = viewerControlsTurn();
+
     try {
         const [game, movesPayload] = await Promise.all([
             getGame(state.gameId),
@@ -349,6 +475,7 @@ const refresh = async ({ quiet = false } = {}) => {
         state.game = game;
         state.moves = normalizeMoves(movesPayload);
         state.selectedSquare = '';
+        maybeNotifyOpponentMove(previousPly, previousControlsTurn);
         clearError();
         renderGame();
         if (!quiet) {
@@ -556,7 +683,7 @@ const handleProfileSave = async (event) => {
 
 const startPolling = () => {
     window.clearInterval(state.pollTimer);
-    if (document.hidden || state.gameId === '') {
+    if (state.gameId === '') {
         return;
     }
 
@@ -569,17 +696,20 @@ const stopPolling = () => {
 };
 
 const handleVisibilityChange = () => {
-    if (document.hidden) {
+    if (state.gameId === '') {
         stopPolling();
         return;
     }
 
-    refresh({ quiet: true });
+    if (!document.hidden) {
+        refresh({ quiet: true });
+    }
     startPolling();
 };
 
 const init = () => {
     setBoardFullscreen(false);
+    restoreNotificationPreference();
     state.gameId = readGameId();
     if (state.gameId === '') {
         renderError('Open a chess game with a valid game id.');
@@ -590,6 +720,7 @@ const init = () => {
     elements.fullscreenToggle.addEventListener('click', handleFullscreenToggle);
     elements.fullscreenExit.addEventListener('click', () => setBoardFullscreen(false));
     elements.profileForm.addEventListener('submit', handleProfileSave);
+    elements.notificationToggle.addEventListener('change', handleNotificationToggle);
     elements.promotionOptions.addEventListener('click', handlePromotionClick);
     elements.promotionCancel.addEventListener('click', () => closePromotionDialog(null));
     document.addEventListener('keydown', handlePromotionKeydown);
