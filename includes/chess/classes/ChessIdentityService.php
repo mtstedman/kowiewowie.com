@@ -84,6 +84,31 @@ final class ChessIdentityService
     }
 
     /** @return array<string, mixed> */
+    public function updateDisplayName(string $profileId, string $displayName): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            UPDATE chess_guest_profiles
+            SET display_name = :display_name,
+                last_seen_at = now(),
+                expires_at = now() + interval '90 days',
+                updated_at = now()
+            WHERE id = :id
+            RETURNING id, cookie_token_hash, display_name, last_seen_at, expires_at, created_at, updated_at
+        SQL);
+        $statement->execute([
+            'id' => $profileId,
+            'display_name' => $displayName,
+        ]);
+        $profile = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if (!is_array($profile)) {
+            throw new \RuntimeException('The updated chess guest profile is unavailable.');
+        }
+
+        return $profile;
+    }
+
+    /** @return array<string, mixed> */
     private function createProfile(string $tokenHash): array
     {
         $statement = $this->pdo->prepare(<<<'SQL'

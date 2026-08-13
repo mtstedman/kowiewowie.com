@@ -222,6 +222,31 @@ final class Application
             throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess games.');
         }
 
+        if ($request->path === '/v1/chess/profile') {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'PATCH') {
+                $body = $request->json();
+                $displayName = $body['display_name'] ?? null;
+                if (!is_string($displayName)) {
+                    throw new ApiException(422, 'validation_error', 'display_name must contain between 1 and 40 characters.', [
+                        'display_name' => 'Provide a display_name string between 1 and 40 characters.',
+                    ]);
+                }
+                $displayName = trim($displayName);
+                if ($displayName === '' || mb_strlen($displayName) > 40) {
+                    throw new ApiException(422, 'validation_error', 'display_name must contain between 1 and 40 characters.', [
+                        'display_name' => 'Provide a display_name string between 1 and 40 characters.',
+                    ]);
+                }
+
+                $identity['guest_profile'] = $this->chessGuests->updateDisplayName((string) $identity['guest_profile']['id'], $displayName);
+                return $this->withChessIdentity(Response::json([
+                    'data' => $identity['guest_profile'],
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for the chess profile.');
+        }
+
         if ($request->method === 'POST' && $request->path === '/v1/chess/links/claim') {
             $identity = $this->resolveChessIdentity($request);
             $body = $request->json();
@@ -350,7 +375,7 @@ final class Application
 
         return [
             'Access-Control-Allow-Origin' => $origin,
-            'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Methods' => 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
             'Access-Control-Allow-Headers' => 'Authorization, Content-Type, X-Request-ID',
             'Access-Control-Allow-Credentials' => 'true',
             'Access-Control-Max-Age' => '600',
