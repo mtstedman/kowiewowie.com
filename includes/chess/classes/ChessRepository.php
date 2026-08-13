@@ -349,6 +349,9 @@ final class ChessRepository
             SQL);
             $statement->execute(['token_hash' => $tokenHash]);
             $link = $statement->fetch(PDO::FETCH_ASSOC);
+            if ($link === false) {
+                throw new ApiException(404, 'link_not_found', 'That chess invitation link is not valid.');
+            }
             if ($link['revoked_at'] !== null) {
                 throw new ApiException(409, 'link_revoked', 'That chess invitation link has been revoked.');
             }
