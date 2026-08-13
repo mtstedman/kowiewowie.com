@@ -1,4 +1,4 @@
-import { getGame, getPromotionOptions, listMoves, submitMove, updateProfile } from './chess-api.js';
+import { cancelTakeback, getGame, getPromotionOptions, listMoves, requestTakeback, resignGame, submitMove, updateProfile } from './chess-api.js';
 
 const BOARD_FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const BOARD_RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -40,6 +40,8 @@ const elements = {
     turnStatus: document.getElementById('chess-turn-status'),
     ruleStatus: document.getElementById('chess-rule-status'),
     controlStatus: document.getElementById('chess-control-status'),
+    takebackButton: document.getElementById('chess-takeback-button'),
+    resignButton: document.getElementById('chess-resign-button'),
     fullscreenToggle: document.getElementById('chess-fullscreen-toggle'),
     fullscreenExit: document.getElementById('chess-fullscreen-exit'),
     board: document.getElementById('chess-board'),
@@ -239,6 +241,44 @@ const viewerSeatColor = () => {
 
 const viewerControlsTurn = () => state.game?.viewer?.controls_current_turn === true;
 
+const gameAllowsPlayerActions = () => ['waiting', 'active'].includes(String(state.game?.status || '')) && viewerSeatColor() !== '';
+
+const takebackCandidate = () => state.game?.pending_takeback
+    || state.game?.takeback_offer
+    || state.game?.takeback
+    || state.game?.pendingTakeback
+    || null;
+
+const normalizeTakebackColor = (value) => normalizeSideToMove(value) || '';
+
+const pendingTakeback = () => {
+    const candidate = takebackCandidate();
+    if (!candidate) {
+        return null;
+    }
+
+    if (typeof candidate === 'string') {
+        const requestedBy = normalizeTakebackColor(candidate);
+        return requestedBy ? { requestedBy } : null;
+    }
+
+    if (typeof candidate !== 'object') {
+        return null;
+    }
+
+    const requestedBy = normalizeTakebackColor(
+        candidate.requested_by_color
+            || candidate.requesting_color
+            || candidate.requested_by
+            || candidate.requestedBy
+            || candidate.color
+            || candidate.seat_color
+            || candidate.player_color,
+    );
+
+    return requestedBy ? { requestedBy } : null;
+};
+
 const canSelectSquare = (square) => {
     if (!viewerControlsTurn()) {
         return false;
@@ -294,6 +334,22 @@ const clearError = () => {
     elements.root.dataset.state = 'ready';
 };
 
+const renderActionControls = () => {
+    const seatColor = viewerSeatColor();
+    const canAct = gameAllowsPlayerActions();
+    const offer = pendingTakeback();
+    const takebackAction = offer ? (offer.requestedBy === seatColor ? 'cancel' : 'accept') : 'request';
+
+    elements.resignButton.hidden = !canAct;
+    elements.resignButton.disabled = state.isSubmitting;
+    elements.takebackButton.hidden = !canAct;
+    elements.takebackButton.disabled = state.isSubmitting;
+    elements.takebackButton.dataset.action = takebackAction;
+    elements.takebackButton.textContent = takebackAction === 'cancel'
+        ? 'Cancel takeback'
+        : (takebackAction === 'accept' ? 'Accept takeback' : 'Takeback');
+};
+
 const renderBoard = () => {
     const targets = state.selectedSquare ? new Set(legalMovesFrom(state.selectedSquare).map((move) => move.to)) : new Set();
     elements.board.replaceChildren();
@@ -343,18 +399,31 @@ const renderStatus = () => {
     const check = rules.in_check === true ? ' in check' : '';
     const moveText = sideToMove ? `${titleCase(sideToMove)} to move${check}` : 'Turn unavailable';
     const statusText = `${titleCase(rules.status || state.game?.status)}${result}`;
+    const seatColor = viewerSeatColor();
+    const offer = pendingTakeback();
 
     elements.summary.textContent = `${moveText}. ${statusText}.`;
     elements.turnStatus.textContent = moveText;
     elements.ruleStatus.textContent = rules.draw_reason ? `${statusText}: ${titleCase(rules.draw_reason)}` : statusText;
 
-    if (viewerControlsTurn()) {
+    if (offer) {
+        const requester = titleCase(offer.requestedBy);
+        if (offer.requestedBy === seatColor) {
+            elements.controlStatus.textContent = `Takeback requested by ${requester}`;
+            setMessage(elements.boardMessage, 'Takeback requested. Awaiting opponent response.', 'neutral');
+        } else {
+            elements.controlStatus.textContent = `${requester} requested a takeback`;
+            setMessage(elements.boardMessage, `${requester} requested a takeback.`, 'neutral');
+        }
+    } else if (viewerControlsTurn()) {
         elements.controlStatus.textContent = 'Your move';
-    } else if (viewerSeatColor()) {
-        elements.controlStatus.textContent = `Playing ${titleCase(viewerSeatColor())}`;
+    } else if (seatColor) {
+        elements.controlStatus.textContent = `Playing ${titleCase(seatColor)}`;
     } else {
         elements.controlStatus.textContent = 'Spectating';
     }
+
+    renderActionControls();
 };
 
 const renderPlayers = () => {
@@ -577,6 +646,74 @@ const submitSelectedMove = async (move) => {
         await refresh({ quiet: true });
     } finally {
         state.isSubmitting = false;
+        renderActionControls();
+    }
+};
+
+const refreshAfterGameAction = async (game, successMessage) => {
+    if (game && typeof game === 'object') {
+        state.game = game;
+        state.moves = normalizeMoves(await listMoves(state.gameId));
+        state.selectedSquare = '';
+        clearError();
+        renderGame();
+        setMessage(elements.boardMessage, successMessage, 'success');
+        return;
+    }
+
+    state.isSubmitting = false;
+    await refresh({ quiet: true });
+    setMessage(elements.boardMessage, successMessage, 'success');
+};
+
+const handleResign = async () => {
+    const color = viewerSeatColor();
+    if (!gameAllowsPlayerActions() || state.isSubmitting || color === '') {
+        return;
+    }
+
+    if (!window.confirm('Resign this chess game?')) {
+        return;
+    }
+
+    state.isSubmitting = true;
+    renderActionControls();
+    setMessage(elements.boardMessage, 'Resigning game...', 'neutral');
+
+    try {
+        await refreshAfterGameAction(await resignGame(state.gameId, { color }), 'Game resigned.');
+    } catch (error) {
+        setMessage(elements.boardMessage, errorMessage(error, 'The game could not be resigned.'), 'error');
+        state.isSubmitting = false;
+        await refresh({ quiet: true });
+    } finally {
+        state.isSubmitting = false;
+        renderActionControls();
+    }
+};
+
+const handleTakeback = async () => {
+    if (!gameAllowsPlayerActions() || state.isSubmitting) {
+        return;
+    }
+
+    const action = ['accept', 'cancel'].includes(elements.takebackButton.dataset.action) ? elements.takebackButton.dataset.action : 'request';
+    state.isSubmitting = true;
+    renderActionControls();
+    setMessage(elements.boardMessage, action === 'cancel' ? 'Canceling takeback...' : `${titleCase(action)}ing takeback...`, 'neutral');
+
+    try {
+        const game = action === 'cancel'
+            ? await cancelTakeback(state.gameId)
+            : await requestTakeback(state.gameId);
+        await refreshAfterGameAction(game, action === 'cancel' ? 'Takeback canceled.' : `Takeback ${action === 'accept' ? 'accepted' : 'submitted'}.`);
+    } catch (error) {
+        setMessage(elements.boardMessage, errorMessage(error, 'The takeback request could not be submitted.'), 'error');
+        state.isSubmitting = false;
+        await refresh({ quiet: true });
+    } finally {
+        state.isSubmitting = false;
+        renderActionControls();
     }
 };
 
@@ -717,6 +854,8 @@ const init = () => {
     }
 
     elements.board.addEventListener('click', handleBoardClick);
+    elements.resignButton.addEventListener('click', handleResign);
+    elements.takebackButton.addEventListener('click', handleTakeback);
     elements.fullscreenToggle.addEventListener('click', handleFullscreenToggle);
     elements.fullscreenExit.addEventListener('click', () => setBoardFullscreen(false));
     elements.profileForm.addEventListener('submit', handleProfileSave);

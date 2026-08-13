@@ -271,6 +271,31 @@ final class Application
             throw new ApiException(405, 'method_not_allowed', 'That method is not supported for this chess game.');
         }
 
+        if (preg_match('#^/v1/chess/games/([A-Fa-f0-9-]{36})/resign$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->chess->resign($matches[1], $request->json(), $identity),
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess resignations.');
+        }
+
+        if (preg_match('#^/v1/chess/games/([A-Fa-f0-9-]{36})/takeback$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->chess->requestTakeback($matches[1], $identity),
+                ]), $identity);
+            }
+            if ($request->method === 'DELETE') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->chess->cancelTakeback($matches[1], $identity),
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess takebacks.');
+        }
+
         if (preg_match('#^/v1/chess/games/([A-Fa-f0-9-]{36})/moves/promotions$#', $request->path, $matches)) {
             $identity = $this->resolveChessIdentity($request);
             if ($request->method === 'GET') {

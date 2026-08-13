@@ -1,9 +1,9 @@
-<!-- schema-version: 4 -->
+<!-- schema-version: 5 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 4**. `migration-chain.json` is the ordered,
+current release pin is **version 5**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -21,11 +21,12 @@ per-file execution ledger.
 | 2 | `002_add_magic_deck_card_scryfall_fields.sql` | Scryfall card ID and image fields |
 | 3 | `002_videos.sql` | Videos and their public index/update trigger |
 | 4 | `004_chess_games.sql` | Shared chess games, guest identities, links, positions, and move history |
+| 5 | `005_chess_takeback_offers.sql` | Pending takeback-offer player and timestamp columns on chess games |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 4 inventory
+## Current version 5 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -34,7 +35,8 @@ their full basenames are already stored in production's migration ledger.
   `magic_guide_sections`
 - Chess: `chess_guest_profiles`, `chess_games`, `chess_game_players`,
   `chess_game_links`, `chess_game_positions`, `chess_game_moves`, and the
-  `chess_game_current_positions` view
+  `chess_game_current_positions` view; `chess_games.pending_takeback_by_player_id`
+  and `chess_games.pending_takeback_requested_at` persist pending takeback offers
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -71,6 +73,13 @@ hex SHA-256 digest, and reveal the raw token only when the link is created.
 The cookie identity establishes who is using a link. Move authorization must
 match that identity to the claimed `chess_game_players` seat; possession of the
 public game ID alone is insufficient.
+
+`chess_games` stores lifecycle state in `status`, `result`, `termination`, and
+`finished_at`, current position state in `current_ply`, and paired nullable
+takeback-offer state in `pending_takeback_by_player_id` and
+`pending_takeback_requested_at`. The pending requester is constrained through
+`(id, pending_takeback_by_player_id)` so the requester must be a
+`chess_game_players` seat in the same game.
 
 ### Positions and history
 

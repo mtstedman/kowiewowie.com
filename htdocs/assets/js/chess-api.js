@@ -114,6 +114,19 @@ export const submitMove = (gameId, payload) => requestChess(`/games/${encodeURIC
     body: payload,
 });
 
+export const resignGame = (gameId, payload) => requestChess(`/games/${encodeURIComponent(gameId)}/resign`, {
+    method: 'POST',
+    body: payload,
+});
+
+export const requestTakeback = (gameId) => requestChess(`/games/${encodeURIComponent(gameId)}/takeback`, {
+    method: 'POST',
+});
+
+export const cancelTakeback = (gameId) => requestChess(`/games/${encodeURIComponent(gameId)}/takeback`, {
+    method: 'DELETE',
+});
+
 export const getPromotionOptions = (gameId, { from, to } = {}) => requestChess(
     `/games/${encodeURIComponent(gameId)}/moves/promotions${buildQuery({ from, to })}`,
 );
@@ -132,6 +145,9 @@ export default Object.freeze({
     claimLink,
     listMoves,
     submitMove,
+    resignGame,
+    requestTakeback,
+    cancelTakeback,
     getPromotionOptions,
     updateProfile,
 });

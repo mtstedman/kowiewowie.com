@@ -36,6 +36,15 @@
           "sha256": "82698c615289611236c14b7cb44c655191d51b6de51488f0b2597f9e537d95fd"
         }
       ]
+    },
+    {
+      "version": 5,
+      "updates": [
+        {
+          "file": "updates/005_chess_takeback_offers.sql",
+          "sha256": "a09ec2e358aabb7ac505d55948b0b1e444cb5e9e64470427d2f9397a205d23ca"
+        }
+      ]
     }
   ]
 }

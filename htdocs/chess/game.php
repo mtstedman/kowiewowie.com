@@ -27,6 +27,8 @@ $pageStyles = ['/assets/css/chess.css'];
                             <span class="chess-status-pill" id="chess-turn-status">Loading</span>
                             <span class="chess-status-pill" id="chess-rule-status">Waiting for game</span>
                             <span class="chess-status-pill" id="chess-control-status">Spectating</span>
+                            <button class="chess-button chess-button-small" type="button" id="chess-takeback-button" hidden>Takeback</button>
+                            <button class="chess-button chess-button-small" type="button" id="chess-resign-button" hidden>Resign</button>
                         </div>
 
                         <button class="chess-button chess-button-small chess-fullscreen-toggle" type="button" id="chess-fullscreen-toggle" aria-controls="chess-board" aria-expanded="false">Fullscreen board</button>

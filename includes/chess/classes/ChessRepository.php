@@ -325,6 +325,150 @@ final class ChessRepository
      * @param array<string, mixed> $identity
      * @return array<string, mixed>
      */
+    public function resign(string $publicId, array $input, array $identity): array
+    {
+        $color = null;
+        if (array_key_exists('color', $input) && $input['color'] !== null && trim((string) $input['color']) !== '') {
+            $color = $this->normalizeColor($input['color'], 'color');
+        }
+
+        $this->pdo->beginTransaction();
+        try {
+            $game = $this->loadGameByPublicId($publicId, true);
+            if (!in_array($game['status'], ['waiting', 'active'], true)) {
+                throw new ApiException(409, 'game_finished', 'This game can no longer be resigned.');
+            }
+
+            $players = $this->loadPlayersForGame((string) $game['id'], true);
+            $seat = $color !== null ? $this->seatByColor($players, $color) : $this->ownedSeat($players, $identity);
+            if ($seat === null) {
+                throw new ApiException(403, 'seat_required', 'Only a seated player can resign this chess game.');
+            }
+
+            $this->assertCanActAsSeat($game, $players, $seat, $identity);
+            $result = (string) $seat['color'] === 'black' ? '1-0' : '0-1';
+
+            $statement = $this->pdo->prepare(<<<'SQL'
+                UPDATE chess_games
+                SET status = 'completed',
+                    result = :result,
+                    termination = 'resignation',
+                    finished_at = COALESCE(finished_at, now()),
+                    pending_takeback_by_player_id = NULL,
+                    pending_takeback_requested_at = NULL,
+                    last_activity_at = now(),
+                    updated_at = now()
+                WHERE id = :id
+            SQL);
+            $statement->execute([
+                'result' => $result,
+                'id' => $game['id'],
+            ]);
+
+            $this->pdo->commit();
+        } catch (Throwable $error) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        return $this->findGame($publicId, $identity);
+    }
+
+    /**
+     * @param array<string, mixed> $identity
+     * @return array<string, mixed>
+     */
+    public function requestTakeback(string $publicId, array $identity): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $game = $this->loadGameByPublicId($publicId, true);
+            $this->assertTakebackAvailable($game);
+
+            $players = $this->loadPlayersForGame((string) $game['id'], true);
+            $seat = $this->ownedSeat($players, $identity);
+            if ($seat === null) {
+                throw new ApiException(403, 'seat_required', 'Only a seated player can request a takeback.');
+            }
+
+            $pendingBy = $game['pending_takeback_by_player_id'] !== null ? (string) $game['pending_takeback_by_player_id'] : null;
+            if ($this->modeFromStoredGame($game, $players) === 'local') {
+                $this->rollbackLatestMove($game);
+            } elseif ($pendingBy === null) {
+                $statement = $this->pdo->prepare(<<<'SQL'
+                    UPDATE chess_games
+                    SET pending_takeback_by_player_id = :player_id,
+                        pending_takeback_requested_at = now(),
+                        last_activity_at = now(),
+                        updated_at = now()
+                    WHERE id = :id
+                SQL);
+                $statement->execute([
+                    'player_id' => $seat['id'],
+                    'id' => $game['id'],
+                ]);
+            } elseif ($pendingBy === (string) $seat['id']) {
+                throw new ApiException(409, 'takeback_already_requested', 'That player has already requested a takeback.');
+            } else {
+                $this->rollbackLatestMove($game);
+            }
+
+            $this->pdo->commit();
+        } catch (Throwable $error) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        return $this->findGame($publicId, $identity);
+    }
+
+    /**
+     * @param array<string, mixed> $identity
+     * @return array<string, mixed>
+     */
+    public function cancelTakeback(string $publicId, array $identity): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $game = $this->loadGameByPublicId($publicId, true);
+            $this->assertTakebackAvailable($game);
+
+            $players = $this->loadPlayersForGame((string) $game['id'], true);
+            if (!$this->identityOwnsAnySeat($players, $identity)) {
+                throw new ApiException(403, 'seat_required', 'Only a seated player can cancel or decline a takeback.');
+            }
+
+            if ($game['pending_takeback_by_player_id'] !== null) {
+                $statement = $this->pdo->prepare(<<<'SQL'
+                    UPDATE chess_games
+                    SET pending_takeback_by_player_id = NULL,
+                        pending_takeback_requested_at = NULL,
+                        updated_at = now()
+                    WHERE id = :id
+                SQL);
+                $statement->execute(['id' => $game['id']]);
+            }
+
+            $this->pdo->commit();
+        } catch (Throwable $error) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        return $this->findGame($publicId, $identity);
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @param array<string, mixed> $identity
+     * @return array<string, mixed>
+     */
     public function createLink(string $publicId, array $input, array $identity): array
     {
         $linkInput = $this->normalizeLinkInput($input);
@@ -516,6 +660,8 @@ final class ChessRepository
                 g.last_activity_at,
                 g.created_at,
                 g.updated_at,
+                g.pending_takeback_by_player_id,
+                g.pending_takeback_requested_at,
                 p.fen AS current_fen,
                 p.side_to_move
             FROM chess_games g
@@ -574,6 +720,8 @@ final class ChessRepository
                 g.last_activity_at,
                 g.created_at,
                 g.updated_at,
+                g.pending_takeback_by_player_id,
+                g.pending_takeback_requested_at,
                 p.fen AS current_fen,
                 p.side_to_move
             FROM chess_games g
@@ -660,6 +808,8 @@ final class ChessRepository
         $viewerSeat = $this->ownedSeat($players, $identity);
         $currentSeat = $this->currentTurnSeat($players, (string) $game['side_to_move']);
         $canControlTurn = $currentSeat !== null && $this->canActAsSeat($game, $players, $currentSeat, $identity);
+        $pendingTakebackBy = $game['pending_takeback_by_player_id'] !== null ? (string) $game['pending_takeback_by_player_id'] : null;
+        $pendingTakebackRequester = $pendingTakebackBy !== null ? $this->playerById($players, $pendingTakebackBy) : null;
         $payload = [
             'id' => (string) $game['public_id'],
             'variant' => (string) $game['variant'],
@@ -668,6 +818,14 @@ final class ChessRepository
             'current_ply' => (int) $game['current_ply'],
             'result' => (string) $game['result'],
             'termination' => $game['termination'] !== null ? (string) $game['termination'] : null,
+            'takeback' => [
+                'pending' => $pendingTakebackBy !== null,
+                'requested_by_player_id' => $pendingTakebackBy,
+                'requested_by_color' => $pendingTakebackRequester !== null ? (string) $pendingTakebackRequester['color'] : null,
+                'requested_at' => $game['pending_takeback_requested_at'] !== null ? (string) $game['pending_takeback_requested_at'] : null,
+                'viewer_requested' => $viewerSeat !== null && $pendingTakebackBy === (string) $viewerSeat['id'],
+                'viewer_can_accept' => $viewerSeat !== null && $pendingTakebackBy !== null && $pendingTakebackBy !== (string) $viewerSeat['id'],
+            ],
             'started_at' => $game['started_at'] !== null ? (string) $game['started_at'] : null,
             'finished_at' => $game['finished_at'] !== null ? (string) $game['finished_at'] : null,
             'last_activity_at' => (string) $game['last_activity_at'],
@@ -813,6 +971,85 @@ final class ChessRepository
         }
 
         return null;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $players
+     * @return array<string, mixed>|null
+     */
+    private function playerById(array $players, string $playerId): ?array
+    {
+        foreach ($players as $player) {
+            if ((string) $player['id'] === $playerId) {
+                return $player;
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $game */
+    private function assertTakebackAvailable(array $game): void
+    {
+        if (!in_array($game['status'], ['waiting', 'active'], true)) {
+            throw new ApiException(409, 'game_finished', 'This game can no longer process takebacks.');
+        }
+        if ((int) $game['current_ply'] <= 0) {
+            throw new ApiException(409, 'takeback_unavailable', 'There is no move to take back in this game.');
+        }
+    }
+
+    /** @param array<string, mixed> $game */
+    private function rollbackLatestMove(array $game): void
+    {
+        $currentPly = (int) $game['current_ply'];
+        $previousPly = $currentPly - 1;
+        $status = $previousPly === 0 ? 'waiting' : 'active';
+
+        $gameStatement = $this->pdo->prepare(<<<'SQL'
+            UPDATE chess_games
+            SET current_ply = :previous_ply,
+                status = :status,
+                result = CASE WHEN status IN ('completed', 'abandoned') THEN '*' ELSE result END,
+                termination = CASE WHEN status IN ('completed', 'abandoned') THEN NULL ELSE termination END,
+                finished_at = CASE WHEN status IN ('completed', 'abandoned') THEN NULL ELSE finished_at END,
+                pending_takeback_by_player_id = NULL,
+                pending_takeback_requested_at = NULL,
+                last_activity_at = now(),
+                updated_at = now()
+            WHERE id = :id
+        SQL);
+        $gameStatement->execute([
+            'previous_ply' => $previousPly,
+            'status' => $status,
+            'id' => $game['id'],
+        ]);
+
+        $moveStatement = $this->pdo->prepare(<<<'SQL'
+            DELETE FROM chess_game_moves
+            WHERE game_id = :game_id
+              AND ply = :ply
+        SQL);
+        $moveStatement->execute([
+            'game_id' => $game['id'],
+            'ply' => $currentPly,
+        ]);
+        if ($moveStatement->rowCount() !== 1) {
+            throw new \RuntimeException('The current chess move could not be removed.');
+        }
+
+        $positionStatement = $this->pdo->prepare(<<<'SQL'
+            DELETE FROM chess_game_positions
+            WHERE game_id = :game_id
+              AND ply = :ply
+        SQL);
+        $positionStatement->execute([
+            'game_id' => $game['id'],
+            'ply' => $currentPly,
+        ]);
+        if ($positionStatement->rowCount() !== 1) {
+            throw new \RuntimeException('The current chess position could not be removed.');
+        }
     }
 
     /**
