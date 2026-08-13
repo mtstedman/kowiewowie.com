@@ -479,6 +479,13 @@ const handleBoardClick = (event) => {
         return;
     }
 
+    if (square === state.selectedSquare) {
+        state.selectedSquare = '';
+        setMessage(elements.boardMessage, '', 'neutral');
+        renderBoard();
+        return;
+    }
+
     selectTarget(state.selectedSquare, square);
 };
 
