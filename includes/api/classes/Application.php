@@ -9,6 +9,9 @@ use Throwable;
 use Wowie\Api\Auth\AuthService;
 use Wowie\Api\Auth\JwtService;
 use Wowie\Api\Auth\OAuthService;
+use Wowie\Api\Chess\ChessEngine;
+use Wowie\Api\Chess\ChessIdentityService;
+use Wowie\Api\Chess\ChessRepository;
 use Wowie\Api\Content\ContentRepository;
 use Wowie\Api\Content\ScryfallClient;
 use Wowie\Api\Http\Request;
@@ -20,6 +23,8 @@ final class Application
     private readonly OAuthService $oauth;
     private readonly ContentRepository $content;
     private readonly ScryfallClient $scryfall;
+    private readonly ChessRepository $chess;
+    private readonly ChessIdentityService $chessGuests;
 
     public function __construct(
         private readonly Config $config,
@@ -29,6 +34,8 @@ final class Application
         $this->oauth = new OAuthService($pdo, $this->auth, $config);
         $this->content = new ContentRepository($pdo);
         $this->scryfall = new ScryfallClient();
+        $this->chess = new ChessRepository($pdo, new ChessEngine());
+        $this->chessGuests = new ChessIdentityService($pdo);
     }
 
     public function handle(Request $request): Response
@@ -142,6 +149,11 @@ final class Application
             ));
         }
 
+        $chessResponse = $this->dispatchChess($request);
+        if ($chessResponse !== null) {
+            return $chessResponse;
+        }
+
         $contentRoute = $this->contentRoute($request->path);
         if ($contentRoute !== null) {
             [$resource, $slug, $isV1] = $contentRoute;
@@ -183,6 +195,113 @@ final class Application
         }
 
         throw new ApiException(404, 'not_found', 'The requested API endpoint does not exist.');
+    }
+
+    private function dispatchChess(Request $request): ?Response
+    {
+        if ($request->path === '/v1/chess/games') {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'GET') {
+                $limit = isset($request->query['limit']) ? (int) $request->query['limit'] : 100;
+                $offset = isset($request->query['offset']) ? (int) $request->query['offset'] : 0;
+                $games = $this->chess->listGamesForIdentity($identity, $limit, $offset);
+                return $this->withChessIdentity(Response::json([
+                    'data' => $games,
+                    'meta' => [
+                        'limit' => max(1, min(100, $limit)),
+                        'offset' => max(0, $offset),
+                        'count' => count($games),
+                    ],
+                ]), $identity);
+            }
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->chess->createGame($request->json(), $identity),
+                ], 201), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess games.');
+        }
+
+        if ($request->method === 'POST' && $request->path === '/v1/chess/links/claim') {
+            $identity = $this->resolveChessIdentity($request);
+            $body = $request->json();
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->chess->claimLink((string) ($body['token'] ?? ''), $identity),
+            ]), $identity);
+        }
+        if ($request->method === 'POST' && preg_match('#^/v1/chess/links/([A-Za-z0-9_-]+)/claim$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->chess->claimLink($matches[1], $identity),
+            ]), $identity);
+        }
+
+        if (preg_match('#^/v1/chess/games/([A-Fa-f0-9-]{36})$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'GET') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->chess->findGame($matches[1], $identity),
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for this chess game.');
+        }
+
+        if (preg_match('#^/v1/chess/games/([A-Fa-f0-9-]{36})/moves$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'GET') {
+                $moves = $this->chess->moveHistory($matches[1]);
+                return $this->withChessIdentity(Response::json([
+                    'data' => $moves,
+                    'meta' => ['count' => count($moves)],
+                ]), $identity);
+            }
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->chess->submitMove($matches[1], $request->json(), $identity),
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess move history.');
+        }
+
+        if (preg_match('#^/v1/chess/games/([A-Fa-f0-9-]{36})/links$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->chess->createLink($matches[1], $request->json(), $identity),
+                ], 201), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess invitation links.');
+        }
+
+        return null;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function optionalAuthenticatedUser(Request $request): ?array
+    {
+        if ($request->header('authorization') === null) {
+            return null;
+        }
+
+        return $this->auth->authenticatedUser($request->bearerToken());
+    }
+
+    /** @return array<string, mixed> */
+    private function resolveChessIdentity(Request $request): array
+    {
+        return $this->chessGuests->resolve($this->optionalAuthenticatedUser($request));
+    }
+
+    /**
+     * @param array<string, mixed> $identity
+     */
+    private function withChessIdentity(Response $response, array $identity): Response
+    {
+        $headers = $identity['response_headers'] ?? [];
+
+        return is_array($headers) && $headers !== []
+            ? $response->withHeaders($headers)
+            : $response;
     }
 
     /** @return array{string, ?string, bool}|null */
