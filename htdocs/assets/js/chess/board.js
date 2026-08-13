@@ -84,6 +84,7 @@ function clearCastlingForRookSquare(castling, row, col) {
 export class Board {
     constructor(stateOrFen = STARTING_FEN) {
         this.state = typeof stateOrFen === 'string' ? parseFen(stateOrFen) : cloneState(stateOrFen);
+        this.validateKings(this.state.board);
     }
 
     static fromFen(fen) {
@@ -138,6 +139,11 @@ export class Board {
         const from = normalizeSquare(fromSquare);
         const piece = this.state.board[from.row][from.col];
         if (piece === null) {
+            return false;
+        }
+
+        const destination = this.state.board[move.row][move.col];
+        if (destination?.type === PIECE_TYPES.KING) {
             return false;
         }
 
@@ -210,7 +216,7 @@ export class Board {
     isKingInCheck(color, board = this.state.board) {
         const king = this.findKing(color, board);
         if (!king) {
-            return true;
+            throw new Error(`Invalid board state: missing ${color} king.`);
         }
 
         return this.isSquareAttacked(king, oppositeColor(color), board);
@@ -260,6 +266,30 @@ export class Board {
         }
 
         return null;
+    }
+
+    validateKings(board = this.state.board) {
+        for (const color of [COLORS.WHITE, COLORS.BLACK]) {
+            const kingCount = this.countKings(color, board);
+            if (kingCount !== 1) {
+                throw new Error(`Invalid board state: expected exactly one ${color} king, found ${kingCount}.`);
+            }
+        }
+    }
+
+    countKings(color, board = this.state.board) {
+        let count = 0;
+
+        for (let row = 0; row < 8; row += 1) {
+            for (let col = 0; col < 8; col += 1) {
+                const piece = board[row][col];
+                if (piece !== null && piece.color === color && piece.type === PIECE_TYPES.KING) {
+                    count += 1;
+                }
+            }
+        }
+
+        return count;
     }
 
     canCastleThrough(color, side) {
