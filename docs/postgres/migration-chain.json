@@ -27,6 +27,15 @@
           "sha256": "70a5e60c1f8ec471d0f3c4d0427f90a86273dde7a2708ec30136316f70625618"
         }
       ]
+    },
+    {
+      "version": 4,
+      "updates": [
+        {
+          "file": "updates/004_chess_games.sql",
+          "sha256": "82698c615289611236c14b7cb44c655191d51b6de51488f0b2597f9e537d95fd"
+        }
+      ]
     }
   ]
 }

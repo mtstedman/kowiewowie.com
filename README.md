@@ -34,6 +34,11 @@ PostgreSQL owns users, OAuth identities, rotating refresh tokens, recipes,
 Magic decks/cards/guides, board games, and music entries. Existing unversioned
 read endpoints remain available while new clients should use `/v1/...`.
 
+The versioned schema also includes storage prepared for shared chess games:
+cookie-backed guest names, player seats, hashed invitation links, FEN position
+snapshots, and ordered SAN/UCI move histories. No chess API routes are exposed
+yet.
+
 ## Database configuration
 
 The API reads configuration in this order:
