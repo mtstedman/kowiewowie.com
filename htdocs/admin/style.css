@@ -86,17 +86,24 @@ a {
 .admin-main {
     width: min(1120px, calc(100% - 2rem));
     margin: 0 auto;
-    padding: clamp(1.5rem, 4vw, 3rem) 0;
+    padding: clamp(1rem, 3vw, 2rem) 0;
 }
 
 .admin-hero {
-    margin-bottom: 1.5rem;
+    display: grid;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+    padding: clamp(1rem, 2.5vw, 1.5rem);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--admin-surface);
+    box-shadow: var(--admin-shadow);
 }
 
 .admin-eyebrow {
-    margin: 0 0 0.35rem;
+    margin: 0;
     color: var(--admin-accent);
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -105,7 +112,7 @@ a {
 .admin-hero h1,
 .admin-panel h1 {
     margin: 0;
-    font-size: clamp(2rem, 6vw, 3.25rem);
+    font-size: clamp(1.65rem, 3vw, 2.35rem);
     line-height: 1.08;
 }
 
@@ -157,8 +164,8 @@ a {
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    max-width: 42rem;
-    padding: clamp(1.25rem, 4vw, 2rem);
+    max-width: 100%;
+    padding: clamp(1rem, 2.5vw, 1.5rem);
     border: 1px solid transparent;
     border-radius: 8px;
     color: rgba(244, 248, 255, 0.92);
@@ -452,4 +459,13 @@ button[data-remove-section]:focus {
     .admin-form-row {
         grid-template-columns: 1fr;
     }
+}
+
+[data-card-image] img {
+    display: block;
+    width: 72px;
+    height: 100px;
+    max-width: 72px;
+    max-height: 100px;
+    object-fit: contain;
 }
