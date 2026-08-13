@@ -503,7 +503,7 @@ final class ChessRepository
         }
 
         $statement = $this->pdo->prepare(sprintf(<<<'SQL'
-            SELECT DISTINCT
+            SELECT
                 g.id,
                 g.public_id,
                 g.variant,
@@ -519,12 +519,15 @@ final class ChessRepository
                 p.fen AS current_fen,
                 p.side_to_move
             FROM chess_games g
-            JOIN chess_game_players gp
-              ON gp.game_id = g.id
             JOIN chess_game_positions p
               ON p.game_id = g.id
              AND p.ply = g.current_ply
-            WHERE %s
+            WHERE EXISTS (
+                SELECT 1
+                FROM chess_game_players gp
+                WHERE gp.game_id = g.id
+                  AND (%s)
+            )
             ORDER BY
                 CASE WHEN g.status IN ('waiting', 'active') THEN 0 ELSE 1 END,
                 g.last_activity_at DESC,
