@@ -11,6 +11,14 @@ use Wowie\Api\ApiException;
 final class ContentRepository
 {
     private const RESOURCES = ['recipes', 'decks', 'guides', 'games', 'music', 'videos'];
+    private const TABLES = [
+        'recipes' => 'recipes',
+        'decks' => 'magic_decks',
+        'guides' => 'magic_guides',
+        'games' => 'games',
+        'music' => 'music_entries',
+        'videos' => 'videos',
+    ];
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -82,15 +90,8 @@ final class ContentRepository
 
     public function delete(string $resource, string $slug): void
     {
-        $tables = [
-            'recipes' => 'recipes',
-            'decks' => 'magic_decks',
-            'guides' => 'magic_guides',
-            'games' => 'games',
-            'music' => 'music_entries',
-        ];
         $this->assertResource($resource);
-        $statement = $this->pdo->prepare("DELETE FROM {$tables[$resource]} WHERE slug = :slug");
+        $statement = $this->pdo->prepare("DELETE FROM " . self::TABLES[$resource] . " WHERE slug = :slug");
         $statement->execute(['slug' => $slug]);
         if ($statement->rowCount() === 0) {
             throw new ApiException(404, 'not_found', 'The requested API resource does not exist.');
@@ -99,14 +100,7 @@ final class ContentRepository
 
     private function exists(string $resource, string $slug): bool
     {
-        $tables = [
-            'recipes' => 'recipes',
-            'decks' => 'magic_decks',
-            'guides' => 'magic_guides',
-            'games' => 'games',
-            'music' => 'music_entries',
-        ];
-        $statement = $this->pdo->prepare("SELECT 1 FROM {$tables[$resource]} WHERE slug = :slug");
+        $statement = $this->pdo->prepare("SELECT 1 FROM " . self::TABLES[$resource] . " WHERE slug = :slug");
         $statement->execute(['slug' => $slug]);
 
         return $statement->fetchColumn() !== false;

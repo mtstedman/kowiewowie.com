@@ -92,7 +92,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $_SESSION['admin_games_message'] = ($result['created'] ? 'Created' : 'Updated') . ' game "' . $result['item']['name'] . '".';
             header('Location: /admin/games.php', true, 303);
             exit;
-        } catch (ApiException $error) {
+        } catch (Throwable $error) {
             $errors[] = $error->getMessage();
             $editing = $isEdit;
             $editSlug = $isEdit ? $input['slug'] : '';
@@ -106,8 +106,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $_SESSION['admin_games_message'] = 'Deleted game "' . $slug . '".';
             header('Location: /admin/games.php', true, 303);
             exit;
-        } catch (ApiException $error) {
-            $errors[] = $error->status === 404 ? 'That game no longer exists.' : $error->getMessage();
+        } catch (Throwable $error) {
+            $errors[] = $error instanceof ApiException && $error->status === 404 ? 'That game no longer exists.' : $error->getMessage();
         }
     } else {
         $errors[] = 'Unknown form action.';
@@ -123,8 +123,8 @@ if ($formGame === null && $editSlug !== '') {
     try {
         $formGame = $repository->find('games', $editSlug, true);
         $editing = true;
-    } catch (ApiException $error) {
-        $errors[] = $error->status === 404 ? 'That game could not be found for editing.' : $error->getMessage();
+    } catch (Throwable $error) {
+        $errors[] = $error instanceof ApiException && $error->status === 404 ? 'That game could not be found for editing.' : $error->getMessage();
         $editSlug = '';
     }
 }

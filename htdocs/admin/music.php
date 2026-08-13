@@ -251,5 +251,5 @@ admin_render_page(
         </section>
         <?php
     },
-    'music',
+    $user,
 );

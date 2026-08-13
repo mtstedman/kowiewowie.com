@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Wowie\Api\ApiException;
-
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/layout.php';
 
@@ -96,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $repository->delete('guides', $slug);
             $notice = 'Guide deleted.';
-        } catch (ApiException $exception) {
+        } catch (Throwable $exception) {
             $error = $exception->getMessage();
         }
     } elseif ($action === 'save') {
@@ -116,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'published' => '',
                 'sections' => [['heading' => '', 'body' => '']],
             ];
-        } catch (ApiException $exception) {
+        } catch (Throwable $exception) {
             $error = $exception->getMessage();
         }
     }
@@ -126,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['edit'])) {
     $editing = is_scalar($_GET['edit']) ? (string) $_GET['edit'] : '';
     try {
         $formGuide = $repository->find('guides', $editing, true);
-    } catch (ApiException $exception) {
+    } catch (Throwable $exception) {
         $editing = null;
         $error = $exception->getMessage();
     }
@@ -134,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_GET['edit'])) {
 
 try {
     $guides = $repository->list('guides', 100, 0, true);
-} catch (ApiException $exception) {
+} catch (Throwable $exception) {
     $guides = [];
     $error ??= $exception->getMessage();
 }

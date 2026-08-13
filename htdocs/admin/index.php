@@ -16,6 +16,7 @@ admin_render_page(
             ['href' => '/admin/guides.php', 'label' => 'Guides', 'description' => 'Manage Magic guides and supporting content.'],
             ['href' => '/admin/games.php', 'label' => 'Games', 'description' => 'Manage game pages and launch details.'],
             ['href' => '/admin/music.php', 'label' => 'Music', 'description' => 'Manage music entries and links.'],
+            ['href' => '/admin/videos.php', 'label' => 'Videos', 'description' => 'Manage video entries and publication details.'],
         ];
         ?>
         <section class="admin-hero" aria-labelledby="admin-title">
