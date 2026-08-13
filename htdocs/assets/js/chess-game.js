@@ -101,6 +101,16 @@ const isWhitePiece = (piece) => piece.toUpperCase() === piece;
 
 const pieceColor = (piece) => (isWhitePiece(piece) ? 'white' : 'black');
 
+const normalizeSideToMove = (sideToMove) => {
+    if (sideToMove === 'w') {
+        return 'white';
+    }
+    if (sideToMove === 'b') {
+        return 'black';
+    }
+    return sideToMove === 'white' || sideToMove === 'black' ? sideToMove : '';
+};
+
 const pieceName = (piece) => `${pieceColor(piece)} ${PIECE_NAMES[piece.toLowerCase()] || 'piece'}`;
 
 const parseFen = (fen) => {
@@ -145,7 +155,7 @@ const canSelectSquare = (square) => {
         return false;
     }
 
-    const sideToMove = state.game?.position?.side_to_move;
+    const sideToMove = normalizeSideToMove(state.game?.position?.side_to_move);
     const piece = state.board.get(square);
     return Boolean(piece && pieceColor(piece) === sideToMove && legalMovesFrom(square).length > 0);
 };
@@ -238,7 +248,7 @@ const renderBoard = () => {
 };
 
 const renderStatus = () => {
-    const sideToMove = state.game?.position?.side_to_move || '';
+    const sideToMove = normalizeSideToMove(state.game?.position?.side_to_move);
     const rules = state.game?.rules_state || {};
     const result = rules.result && rules.result !== '*' ? ` (${rules.result})` : '';
     const check = rules.in_check === true ? ' in check' : '';
