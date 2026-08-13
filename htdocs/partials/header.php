@@ -11,6 +11,7 @@ declare(strict_types=1);
         <a href="/recipes/">Recipes</a>
         <a href="/decks/">Decks</a>
         <a href="/games/">Games</a>
+        <a href="/chess/">Chess</a>
         <a href="/music/">Music</a>
         <a href="/videos/">Videos</a>
         <a href="/dongs/">Big Dongs</a>
