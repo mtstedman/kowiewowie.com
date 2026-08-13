@@ -54,7 +54,7 @@ final class Pawn extends Piece
 
             $to = Board::coordsToSquare($targetFile, $targetRank);
             $occupant = $board->pieceAt($to);
-            if ($this->isOpponent($occupant)) {
+            if ($this->isCapturable($occupant)) {
                 $moves = array_merge($moves, $this->createPawnMoves($from, $to, $targetRank === $promotionRank, ['isCapture' => true]));
                 continue;
             }

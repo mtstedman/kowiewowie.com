@@ -129,6 +129,10 @@ final class ChessEngine
 
         foreach ($board->pieces($movingColor) as $from => $piece) {
             foreach ($piece->generatePseudoLegalMoves($board, $from) as $candidate) {
+                if ($board->pieceAt($candidate['to']) instanceof King) {
+                    continue;
+                }
+
                 $afterBoard = $this->applyMove($board, $candidate);
                 if ($afterBoard->isInCheck($movingColor)) {
                     continue;
@@ -148,6 +152,10 @@ final class ChessEngine
         $movingColor = $board->sideToMove();
         foreach ($board->pieces($movingColor) as $from => $piece) {
             foreach ($piece->generatePseudoLegalMoves($board, $from) as $candidate) {
+                if ($board->pieceAt($candidate['to']) instanceof King) {
+                    continue;
+                }
+
                 $afterBoard = $this->applyMove($board, $candidate);
                 if (!$afterBoard->isInCheck($movingColor)) {
                     return true;

@@ -143,7 +143,7 @@ final class Board
             throw new \InvalidArgumentException('FEN fullmove number must be a positive integer.');
         }
 
-        return new self(
+        $board = new self(
             $squares,
             $sideToMove,
             $castlingRights,
@@ -151,6 +151,12 @@ final class Board
             (int) $halfmove,
             (int) $fullmove,
         );
+
+        if ($board->isInCheck(self::otherColor($sideToMove))) {
+            throw new \InvalidArgumentException('FEN is illegal: the side that just moved is left in check.');
+        }
+
+        return $board;
     }
 
     public function copy(): self

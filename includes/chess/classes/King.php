@@ -40,7 +40,7 @@ final class King extends Piece
                 continue;
             }
 
-            if ($this->isOpponent($occupant)) {
+            if ($this->isCapturable($occupant)) {
                 $moves[] = $this->createMove($from, $to, ['isCapture' => true]);
             }
         }

@@ -35,6 +35,11 @@ abstract class Piece
         return $piece !== null && $piece->color() !== $this->color;
     }
 
+    final protected function isCapturable(?Piece $piece): bool
+    {
+        return $this->isOpponent($piece) && !$piece instanceof King;
+    }
+
     abstract public function type(): string;
 
     abstract public function fenLetter(): string;
@@ -84,7 +89,7 @@ abstract class Piece
                 if ($occupant === null) {
                     $moves[] = $this->createMove($from, $to);
                 } else {
-                    if ($this->isOpponent($occupant)) {
+                    if ($this->isCapturable($occupant)) {
                         $moves[] = $this->createMove($from, $to, ['isCapture' => true]);
                     }
                     break;
