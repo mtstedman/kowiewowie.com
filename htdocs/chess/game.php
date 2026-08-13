@@ -19,12 +19,11 @@ $pageStyles = ['/assets/css/chess.css'];
                 <p class="lede" id="chess-game-summary">Loading game state...</p>
             </section>
 
-            <p class="chess-alert" id="chess-game-error" role="alert" hidden></p>
-
             <section class="chess-board-shell" aria-label="Chess game board and controls">
                 <div class="chess-board-panel">
                     <div class="chess-board-frame">
-                        <div class="chess-status-row" aria-live="polite">
+                        <div class="chess-status-row chess-game-status-bar" aria-live="polite">
+                            <p class="chess-alert" id="chess-game-error" role="alert" hidden></p>
                             <span class="chess-status-pill" id="chess-turn-status">Loading</span>
                             <span class="chess-status-pill" id="chess-rule-status">Waiting for game</span>
                             <span class="chess-status-pill" id="chess-control-status">Spectating</span>

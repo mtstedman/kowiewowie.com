@@ -139,7 +139,11 @@ a:focus-visible {
 .videos-related,
 .videos-related-item,
 .videos-player,
-.videos-error-state {
+.videos-error-state,
+.chess-hero,
+.chess-panel,
+.chess-board-panel,
+.chess-move-panel {
     position: relative;
     isolation: isolate;
     border: 1px solid transparent;
@@ -162,7 +166,11 @@ a:focus-visible {
 .videos-related::after,
 .videos-related-item::after,
 .videos-player::after,
-.videos-error-state::after {
+.videos-error-state::after,
+.chess-hero::after,
+.chess-panel::after,
+.chess-board-panel::after,
+.chess-move-panel::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -191,7 +199,11 @@ a:focus-visible {
 .videos-related::before,
 .videos-related-item::before,
 .videos-player::before,
-.videos-error-state::before {
+.videos-error-state::before,
+.chess-hero::before,
+.chess-panel::before,
+.chess-board-panel::before,
+.chess-move-panel::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -231,7 +243,15 @@ a:focus-visible {
 .videos-player:hover::before,
 .videos-player:focus-within::before,
 .videos-error-state:hover::before,
-.videos-error-state:focus-within::before {
+.videos-error-state:focus-within::before,
+.chess-hero:hover::before,
+.chess-hero:focus-within::before,
+.chess-panel:hover::before,
+.chess-panel:focus-within::before,
+.chess-board-panel:hover::before,
+.chess-board-panel:focus-within::before,
+.chess-move-panel:hover::before,
+.chess-move-panel:focus-within::before {
     opacity: var(--glass-shimmer-opacity);
 }
 
