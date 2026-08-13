@@ -56,6 +56,72 @@
             <button type="button" data-remove-section>Remove section</button>
         </div>`;
 
+    const normalizeQuantity = (value) => {
+        const quantity = Number.parseInt(String(value), 10);
+        if (!Number.isFinite(quantity) || quantity < 1) {
+            return '1';
+        }
+        return String(Math.min(quantity, 999));
+    };
+
+    const sections = () => Array.from(sectionsRoot.querySelectorAll('[data-section]'))
+        .filter((section) => section instanceof HTMLElement);
+
+    const sectionLabel = (section, fallbackIndex) => {
+        const input = section.querySelector('input[name$="[name]"]');
+        const name = input instanceof HTMLInputElement ? input.value.trim() : '';
+        return name !== '' ? name : `Section ${fallbackIndex + 1}`;
+    };
+
+    const sectionOptions = () => sections().map((section, index) => {
+        const sectionIndex = section.dataset.sectionIndex || String(index);
+        return `<option value="${escapeHtml(sectionIndex)}">${escapeHtml(sectionLabel(section, index))}</option>`;
+    }).join('');
+
+    const refreshSearchResultSectionOptions = () => {
+        const options = sectionOptions();
+        searchResults.querySelectorAll('[data-add-section-select]').forEach((select) => {
+            if (!(select instanceof HTMLSelectElement)) {
+                return;
+            }
+            const selectedValue = select.value;
+            select.innerHTML = options;
+            if (Array.from(select.options).some((option) => option.value === selectedValue)) {
+                select.value = selectedValue;
+            }
+        });
+    };
+
+    const findSection = (sectionIndex) => sections()
+        .find((section) => (section.dataset.sectionIndex || '') === sectionIndex) || sections()[0] || null;
+
+    const cardFromResult = (result) => ({
+        name: result.dataset.cardName || '',
+        cardId: result.dataset.cardId || '',
+        imageUrl: result.dataset.imageUrl || '',
+    });
+
+    const searchResultQuantity = (result) => {
+        const input = result.querySelector('[data-add-quantity]');
+        return normalizeQuantity(input instanceof HTMLInputElement ? input.value : '1');
+    };
+
+    const printingDetail = (card) => {
+        const details = [];
+        const setCode = card.set_code ? card.set_code.toUpperCase() : '';
+        const set = [card.set_name, setCode ? `(${setCode})` : ''].filter(Boolean).join(' ');
+        if (set !== '') {
+            details.push(set);
+        }
+        if (card.collector_number) {
+            details.push(`#${card.collector_number}`);
+        }
+        if (card.mana_cost) {
+            details.push(card.mana_cost);
+        }
+        return details.join(' - ');
+    };
+
     const renderSearchResults = (cards, message = '') => {
         if (message !== '') {
             searchResults.innerHTML = `<p>${escapeHtml(message)}</p>`;
@@ -67,6 +133,7 @@
             return;
         }
 
+        const options = sectionOptions();
         searchResults.innerHTML = cards.map((card, index) => `
             <article
                 data-search-result
@@ -80,16 +147,27 @@
                 <div>
                     <strong>${escapeHtml(card.name)}</strong>
                     <p>${escapeHtml(card.type_line || '')}</p>
-                    <p>${escapeHtml(card.set_name || '')}${card.mana_cost ? ` • ${escapeHtml(card.mana_cost)}` : ''}</p>
+                    <p>${escapeHtml(printingDetail(card))}</p>
+                </div>
+                <div>
+                    <label>
+                        <span>Section</span>
+                        <select data-add-section-select>${options}</select>
+                    </label>
+                    <label>
+                        <span>Quantity</span>
+                        <input type="number" min="1" max="999" step="1" value="1" data-add-quantity>
+                    </label>
+                    <button type="button" data-add-search-result>Add to deck</button>
                 </div>
             </article>`).join('');
     };
 
-    const clearSearchResults = (message = 'Search for a card to add it by drag and drop.') => {
+    const clearSearchResults = (message = 'Search for a card to add it, or drag a result into a section.') => {
         searchResults.innerHTML = `<p>${escapeHtml(message)}</p>`;
     };
 
-    const insertCardIntoSection = (section, card) => {
+    const insertCardIntoSection = (section, card, quantity = '1') => {
         const list = section.querySelector('[data-card-list]');
         if (!(list instanceof HTMLElement)) {
             return;
@@ -97,7 +175,7 @@
 
         const sectionIndex = Number(section.dataset.sectionIndex || '0');
         const cardIndex = Number(section.dataset.nextCard || '0');
-        list.insertAdjacentHTML('beforeend', cardRow(sectionIndex, cardIndex, '1', card.name, card.cardId, card.imageUrl));
+        list.insertAdjacentHTML('beforeend', cardRow(sectionIndex, cardIndex, normalizeQuantity(quantity), card.name, card.cardId, card.imageUrl));
         section.dataset.nextCard = String(cardIndex + 1);
     };
 
@@ -133,6 +211,8 @@
                     mana_cost: typeof card?.mana_cost === 'string' ? card.mana_cost : '',
                     type_line: typeof card?.type_line === 'string' ? card.type_line : '',
                     set_name: typeof card?.set_name === 'string' ? card.set_name : '',
+                    set_code: typeof card?.set_code === 'string' ? card.set_code : '',
+                    collector_number: typeof card?.collector_number === 'string' ? card.collector_number : '',
                 })).filter((card) => card.scryfall_id !== '' && card.name !== '')
                 : [];
             renderSearchResults(cards);
@@ -153,6 +233,7 @@
         const index = Number(sectionsRoot.dataset.nextSection || '0');
         sectionsRoot.insertAdjacentHTML('beforeend', sectionBlock(index));
         sectionsRoot.dataset.nextSection = String(index + 1);
+        refreshSearchResultSectionOptions();
     });
 
     searchInput.addEventListener('input', () => {
@@ -175,9 +256,32 @@
         }, SEARCH_DEBOUNCE_MS);
     });
 
+    root.addEventListener('input', (event) => {
+        const target = event.target;
+        if (target instanceof HTMLInputElement && target.matches('[name$="[name]"]')) {
+            refreshSearchResultSectionOptions();
+        }
+    });
+
     root.addEventListener('click', (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        const addResultButton = target.closest('[data-add-search-result]');
+        if (addResultButton instanceof HTMLElement) {
+            const result = addResultButton.closest('[data-search-result]');
+            if (!(result instanceof HTMLElement)) {
+                return;
+            }
+            const sectionSelect = result.querySelector('[data-add-section-select]');
+            const sectionIndex = sectionSelect instanceof HTMLSelectElement ? sectionSelect.value : '';
+            const section = findSection(sectionIndex);
+            if (!(section instanceof HTMLElement)) {
+                return;
+            }
+            insertCardIntoSection(section, cardFromResult(result), searchResultQuantity(result));
             return;
         }
 
@@ -199,6 +303,7 @@
 
         if (target.matches('[data-remove-section]')) {
             target.closest('[data-section]')?.remove();
+            refreshSearchResultSectionOptions();
         }
     });
 
@@ -208,15 +313,18 @@
             return;
         }
 
+        if (target.closest('button, input, select, textarea')) {
+            return;
+        }
+
         const result = target.closest('[data-search-result]');
         if (!(result instanceof HTMLElement)) {
             return;
         }
 
         draggedCard = {
-            name: result.dataset.cardName || '',
-            cardId: result.dataset.cardId || '',
-            imageUrl: result.dataset.imageUrl || '',
+            ...cardFromResult(result),
+            quantity: searchResultQuantity(result),
         };
 
         if (event.dataTransfer && draggedCard.name !== '' && draggedCard.cardId !== '') {
@@ -267,7 +375,12 @@
             try {
                 const parsed = JSON.parse(payload);
                 if (parsed && typeof parsed.name === 'string' && typeof parsed.cardId === 'string' && typeof parsed.imageUrl === 'string') {
-                    droppedCard = parsed;
+                    droppedCard = {
+                        name: parsed.name,
+                        cardId: parsed.cardId,
+                        imageUrl: parsed.imageUrl,
+                        quantity: normalizeQuantity(parsed.quantity || '1'),
+                    };
                 }
             } catch (_error) {
                 droppedCard = draggedCard;
@@ -278,6 +391,6 @@
             return;
         }
 
-        insertCardIntoSection(section, droppedCard);
+        insertCardIntoSection(section, droppedCard, droppedCard.quantity || '1');
     });
 })();

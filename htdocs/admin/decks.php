@@ -205,6 +205,16 @@ admin_render_page(
             </form>
         </section>
 
+        <style>
+            [data-card-image] img {
+                display: block;
+                width: 72px;
+                height: 100px;
+                max-width: 72px;
+                max-height: 100px;
+                object-fit: contain;
+            }
+        </style>
         <script src="/assets/js/admin-decks.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/admin-decks.js') ?>"></script>
         <?php
     },

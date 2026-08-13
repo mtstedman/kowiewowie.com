@@ -77,8 +77,13 @@ const renderDeck = (deck) => {
                                 ${cards.filter((card) => card && typeof card === 'object').map((card) => {
                                     const quantity = Number.isInteger(card.quantity) ? String(card.quantity) : '1';
                                     const cardName = typeof card.name === 'string' ? card.name : 'Unknown card';
+                                    const cardId = typeof card.card_id === 'string' ? card.card_id : '';
+                                    const imageUrl = typeof card.image_url === 'string' ? card.image_url.trim() : '';
+                                    const cardArt = imageUrl !== ''
+                                        ? `<img class="deck-card-thumb" data-card-image src="${escapeHtml(imageUrl)}" alt="${escapeHtml(`${cardName} card art`)}" loading="lazy">`
+                                        : '<span class="deck-card-thumb deck-card-thumb-placeholder" data-card-image aria-hidden="true">No image</span>';
 
-                                    return `<li>${escapeHtml(quantity)} ${escapeHtml(cardName)}</li>`;
+                                    return `<li class="deck-card" data-card-id="${escapeHtml(cardId)}">${cardArt}<span>${escapeHtml(quantity)} ${escapeHtml(cardName)}</span></li>`;
                                 }).join('')}
                             </ul>
                         </article>

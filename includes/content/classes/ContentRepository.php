@@ -373,13 +373,21 @@ final class ContentRepository
                 if ($quantity === false || $quantity < 1 || $quantity > 999 || $name === '' || mb_strlen($name) > 255) {
                     throw new ApiException(422, 'validation_failed', 'Every card needs a valid quantity and name.');
                 }
+                $cardId = $entry['card_id'] ?? null;
+                if ($cardId !== null && (!is_string($cardId) || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $cardId))) {
+                    throw new ApiException(422, 'validation_failed', 'Every card_id must be a valid Scryfall card identifier.');
+                }
+                $imageUrl = $entry['image_url'] ?? null;
+                if ($imageUrl !== null && (!is_string($imageUrl) || !filter_var($imageUrl, FILTER_VALIDATE_URL) || parse_url($imageUrl, PHP_URL_SCHEME) !== 'https')) {
+                    throw new ApiException(422, 'validation_failed', 'Every image_url must be a valid HTTPS URL.');
+                }
                 $cards[] = [
                     $section,
                     (int) $position,
                     (int) $quantity,
                     $name,
-                    is_string($entry['card_id'] ?? null) ? $entry['card_id'] : null,
-                    is_string($entry['image_url'] ?? null) ? $entry['image_url'] : null,
+                    $cardId,
+                    $imageUrl,
                 ];
                 $cardCount += (int) $quantity;
             }

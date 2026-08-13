@@ -17,13 +17,17 @@ final class ScryfallClient
      *   image_url: ?string,
      *   mana_cost: ?string,
      *   type_line: ?string,
-     *   set_name: ?string
+     *   set_name: ?string,
+     *   set_code: ?string,
+     *   collector_number: ?string
      * }>
      */
     public function search(string $query): array
     {
         $result = $this->requestJson(self::SEARCH_ENDPOINT . '?' . http_build_query([
             'q' => $query,
+            'unique' => 'prints',
+            'order' => 'released',
         ], '', '&', PHP_QUERY_RFC3986));
 
         $cards = $result['data'] ?? null;
@@ -50,6 +54,8 @@ final class ScryfallClient
                 'mana_cost' => $this->stringOrNull($card['mana_cost'] ?? null) ?? $this->faceString($card, 'mana_cost'),
                 'type_line' => $this->stringOrNull($card['type_line'] ?? null) ?? $this->faceString($card, 'type_line'),
                 'set_name' => $this->stringOrNull($card['set_name'] ?? null),
+                'set_code' => $this->stringOrNull($card['set'] ?? null),
+                'collector_number' => $this->stringOrNull($card['collector_number'] ?? null),
             ];
         }
 
