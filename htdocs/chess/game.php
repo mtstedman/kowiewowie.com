@@ -29,7 +29,11 @@ $pageStyles = ['/assets/css/chess.css'];
                             <span class="chess-status-pill" id="chess-control-status">Spectating</span>
                         </div>
 
+                        <button class="chess-button chess-button-small chess-fullscreen-toggle" type="button" id="chess-fullscreen-toggle" aria-controls="chess-board" aria-expanded="false">Fullscreen board</button>
                         <div class="chess-board" id="chess-board" role="grid" aria-label="Chess board" aria-describedby="chess-board-help"></div>
+                        <div class="chess-board-actions" id="chess-board-actions" aria-label="Fullscreen board controls">
+                            <button class="chess-button chess-button-small" type="button" id="chess-fullscreen-exit">Exit fullscreen</button>
+                        </div>
                         <p class="chess-board-help" id="chess-board-help">Select one of your pieces, then select a highlighted target square.</p>
                         <p class="chess-message" id="chess-board-message" role="status" aria-live="polite"></p>
                     </div>

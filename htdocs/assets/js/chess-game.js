@@ -39,6 +39,8 @@ const elements = {
     turnStatus: document.getElementById('chess-turn-status'),
     ruleStatus: document.getElementById('chess-rule-status'),
     controlStatus: document.getElementById('chess-control-status'),
+    fullscreenToggle: document.getElementById('chess-fullscreen-toggle'),
+    fullscreenExit: document.getElementById('chess-fullscreen-exit'),
     board: document.getElementById('chess-board'),
     boardMessage: document.getElementById('chess-board-message'),
     whitePlayer: document.getElementById('chess-white-player'),
@@ -66,6 +68,7 @@ const state = {
     pollTimer: 0,
     isLoading: false,
     isSubmitting: false,
+    isBoardFullscreen: false,
     savedDisplayName: '',
 };
 
@@ -473,6 +476,16 @@ const selectTarget = async (from, to) => {
     await submitSelectedMove(move);
 };
 
+const setBoardFullscreen = (isFullscreen) => {
+    state.isBoardFullscreen = isFullscreen;
+    elements.root.dataset.boardFullscreen = isFullscreen ? 'true' : 'false';
+    elements.fullscreenToggle.setAttribute('aria-expanded', isFullscreen ? 'true' : 'false');
+};
+
+const handleFullscreenToggle = () => {
+    setBoardFullscreen(!state.isBoardFullscreen);
+};
+
 const handleBoardClick = (event) => {
     const squareElement = event.target.closest('.chess-square');
     if (!squareElement || state.isSubmitting || !viewerControlsTurn()) {
@@ -566,6 +579,7 @@ const handleVisibilityChange = () => {
 };
 
 const init = () => {
+    setBoardFullscreen(false);
     state.gameId = readGameId();
     if (state.gameId === '') {
         renderError('Open a chess game with a valid game id.');
@@ -573,6 +587,8 @@ const init = () => {
     }
 
     elements.board.addEventListener('click', handleBoardClick);
+    elements.fullscreenToggle.addEventListener('click', handleFullscreenToggle);
+    elements.fullscreenExit.addEventListener('click', () => setBoardFullscreen(false));
     elements.profileForm.addEventListener('submit', handleProfileSave);
     elements.promotionOptions.addEventListener('click', handlePromotionClick);
     elements.promotionCancel.addEventListener('click', () => closePromotionDialog(null));
