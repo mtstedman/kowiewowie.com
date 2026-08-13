@@ -145,8 +145,9 @@ const canSelectSquare = (square) => {
         return false;
     }
 
+    const sideToMove = state.game?.position?.side_to_move;
     const piece = state.board.get(square);
-    return Boolean(piece && pieceColor(piece) === viewerSeatColor() && legalMovesFrom(square).length > 0);
+    return Boolean(piece && pieceColor(piece) === sideToMove && legalMovesFrom(square).length > 0);
 };
 
 const findPlayer = (color) => {

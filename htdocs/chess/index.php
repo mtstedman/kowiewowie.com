@@ -28,6 +28,14 @@ $pageStyles = ['/assets/css/chess.css'];
                         </div>
 
                         <form class="chess-form chess-new-game-form" id="chess-new-game-form">
+                            <label class="chess-field" for="chess-game-mode">
+                                <span>Play mode</span>
+                                <select id="chess-game-mode" name="mode">
+                                    <option value="online" selected>Online challenge link</option>
+                                    <option value="local">Local same-device game</option>
+                                </select>
+                            </label>
+
                             <label class="chess-field" for="chess-creator-color">
                                 <span>Your color</span>
                                 <select id="chess-creator-color" name="creator_color">

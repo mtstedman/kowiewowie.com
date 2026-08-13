@@ -3,6 +3,7 @@ import { claimLink, createChallengeLink, createGame, listGames, updateProfile } 
 const elements = {
     gamesList: document.getElementById('chess-games-list'),
     newGameForm: document.getElementById('chess-new-game-form'),
+    gameMode: document.getElementById('chess-game-mode'),
     creatorColor: document.getElementById('chess-creator-color'),
     newGameButton: document.getElementById('chess-new-game-button'),
     createMessage: document.getElementById('chess-create-message'),
@@ -233,16 +234,24 @@ const handleNewGame = async (event) => {
     elements.linkBox.hidden = true;
 
     const creatorColor = elements.creatorColor.value === 'black' ? 'black' : 'white';
+    const gameMode = elements.gameMode.value === 'local' ? 'local' : 'online';
 
     try {
         const game = await createGame({
-            mode: 'online',
+            mode: gameMode,
             variant: 'standard',
             creator_color: creatorColor,
         });
         const gameId = typeof game?.id === 'string' ? game.id : '';
         if (gameId === '') {
             throw new Error('The new chess game did not return an id.');
+        }
+
+        if (gameMode === 'local') {
+            setDisplayName(deriveDisplayName([game]));
+            await refreshGames();
+            window.location.assign(gameHref(gameId));
+            return;
         }
 
         const viewerColor = game?.viewer?.seat_color || creatorColor;
