@@ -131,6 +131,8 @@ export const getPromotionOptions = (gameId, { from, to } = {}) => requestChess(
     `/games/${encodeURIComponent(gameId)}/moves/promotions${buildQuery({ from, to })}`,
 );
 
+export const getProfile = () => requestChess('/profile');
+
 export const updateProfile = (displayName) => requestChess('/profile', {
     method: 'PATCH',
     body: { display_name: displayName },
@@ -149,5 +151,6 @@ export default Object.freeze({
     requestTakeback,
     cancelTakeback,
     getPromotionOptions,
+    getProfile,
     updateProfile,
 });

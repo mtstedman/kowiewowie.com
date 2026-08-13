@@ -103,6 +103,19 @@ final class ChessRepository
         return $this->presentGame($game, $players, $identity, true);
     }
 
+    public function updateGuestProfileSeatDisplayName(string $guestProfileId, string $displayName): void
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            UPDATE chess_game_players
+            SET display_name = :display_name
+            WHERE guest_profile_id = :guest_profile_id
+        SQL);
+        $statement->execute([
+            'display_name' => $displayName,
+            'guest_profile_id' => $guestProfileId,
+        ]);
+    }
+
     /** @return list<array<string, mixed>> */
     public function moveHistory(string $publicId): array
     {

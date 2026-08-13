@@ -1,4 +1,4 @@
-import { claimLink, createChallengeLink, createGame, listGames, updateProfile } from './chess-api.js';
+import { claimLink, createChallengeLink, createGame, getProfile, listGames, updateProfile } from './chess-api.js';
 
 const elements = {
     gamesList: document.getElementById('chess-games-list'),
@@ -109,6 +109,16 @@ const setDisplayName = (name) => {
     elements.displayName.placeholder = visibleName;
 };
 
+const seedProfileName = async () => {
+    try {
+        const profile = await getProfile();
+        const displayName = typeof profile?.display_name === 'string' ? profile.display_name : '';
+        setDisplayName(displayName);
+    } catch (error) {
+        // Keep the games-derived name as the fallback when profile lookup is unavailable.
+    }
+};
+
 const renderEmpty = () => {
     const paragraph = document.createElement('p');
     paragraph.className = 'lede';
@@ -186,7 +196,9 @@ const refreshGames = async () => {
         const payload = await listGames();
         const games = normalizeGames(payload);
         state.games = games;
-        setDisplayName(deriveDisplayName(games));
+        if (state.displayName === '') {
+            setDisplayName(deriveDisplayName(games));
+        }
         renderGames(games);
     } catch (error) {
         const paragraph = document.createElement('p');
@@ -351,8 +363,9 @@ elements.newGameForm.addEventListener('submit', handleNewGame);
 elements.copyLinkButton.addEventListener('click', handleCopy);
 elements.profileForm.addEventListener('submit', handleProfileSave);
 
-claimJoinToken().then((isRedirecting) => {
+claimJoinToken().then(async (isRedirecting) => {
     if (!isRedirecting) {
+        await seedProfileName();
         refreshGames();
     }
 });

@@ -224,6 +224,11 @@ final class Application
 
         if ($request->path === '/v1/chess/profile') {
             $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'GET') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $identity['guest_profile'],
+                ]), $identity);
+            }
             if ($request->method === 'PATCH') {
                 $body = $request->json();
                 $displayName = $body['display_name'] ?? null;
@@ -240,6 +245,7 @@ final class Application
                 }
 
                 $identity['guest_profile'] = $this->chessGuests->updateDisplayName((string) $identity['guest_profile']['id'], $displayName);
+                $this->chess->updateGuestProfileSeatDisplayName((string) $identity['guest_profile']['id'], (string) $identity['guest_profile']['display_name']);
                 return $this->withChessIdentity(Response::json([
                     'data' => $identity['guest_profile'],
                 ]), $identity);
