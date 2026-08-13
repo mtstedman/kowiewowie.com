@@ -112,6 +112,7 @@ export class Pawn extends Piece {
         const direction = this.color === COLORS.WHITE ? -1 : 1;
         const startRow = this.color === COLORS.WHITE ? 6 : 1;
         const promotionRow = this.color === COLORS.WHITE ? 0 : 7;
+        const enPassantRow = this.color === COLORS.WHITE ? 3 : 4;
         const oneForward = from.row + direction;
 
         if (inBounds(oneForward, from.col) && board[oneForward][from.col] === null) {
@@ -140,7 +141,17 @@ export class Pawn extends Piece {
                 }));
             }
 
-            if (state.enPassantSquare && state.enPassantSquare.row === row && state.enPassantSquare.col === col) {
+            const capturedPawn = board[from.row][col];
+            if (
+                from.row === enPassantRow
+                && occupant === null
+                && state.enPassantSquare
+                && state.enPassantSquare.row === row
+                && state.enPassantSquare.col === col
+                && capturedPawn !== null
+                && capturedPawn.color !== this.color
+                && capturedPawn.type === PIECE_TYPES.PAWN
+            ) {
                 moves.push(move(row, col, { capture: true, enPassant: true }));
             }
         }

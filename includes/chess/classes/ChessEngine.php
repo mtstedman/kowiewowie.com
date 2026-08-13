@@ -290,6 +290,9 @@ final class ChessEngine
         }
 
         $capturedPiece = $board->pieceAt($capturedSquare);
+        if ($move['isEnPassant'] && (!$capturedPiece instanceof Pawn || !$piece->isOpponent($capturedPiece))) {
+            throw new \LogicException('Cannot apply an en-passant move without an opposing pawn to capture.');
+        }
         if ($capturedPiece instanceof Rook) {
             $nextBoard->clearCastlingRightForRookSquare($capturedSquare);
         }
@@ -315,6 +318,7 @@ final class ChessEngine
             $placedPiece = $this->createPromotionPiece((string) $move['promotion'], $piece->color());
         }
         $nextBoard->setPiece($move['to'], $placedPiece);
+        $nextBoard->setSideToMove(Board::otherColor($piece->color()));
 
         if ($piece instanceof Pawn) {
             [$fromFile, $fromRank] = Board::squareToCoords($move['from']);
@@ -332,8 +336,6 @@ final class ChessEngine
         if ($piece->color() === Board::BLACK) {
             $nextBoard->setFullmoveNumber($board->fullmoveNumber() + 1);
         }
-
-        $nextBoard->setSideToMove(Board::otherColor($piece->color()));
 
         return $nextBoard;
     }

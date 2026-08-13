@@ -81,6 +81,16 @@ function clearCastlingForRookSquare(castling, row, col) {
     }
 }
 
+function enPassantCapture(board, piece, to) {
+    const capturedPawnRow = piece.color === COLORS.WHITE ? to.row + 1 : to.row - 1;
+    const captured = board[capturedPawnRow]?.[to.col];
+    if (captured?.type !== PIECE_TYPES.PAWN || captured.color === piece.color) {
+        throw new Error('Cannot apply an en-passant move without an opposing pawn to capture.');
+    }
+
+    return { row: capturedPawnRow, col: to.col, piece: captured };
+}
+
 export class Board {
     constructor(stateOrFen = STARTING_FEN) {
         this.state = typeof stateOrFen === 'string' ? parseFen(stateOrFen) : cloneState(stateOrFen);
@@ -166,8 +176,8 @@ export class Board {
         board[from.row][from.col] = null;
 
         if (move.enPassant) {
-            const capturedPawnRow = piece.color === COLORS.WHITE ? move.row + 1 : move.row - 1;
-            board[capturedPawnRow][move.col] = null;
+            const captured = enPassantCapture(board, piece, move);
+            board[captured.row][captured.col] = null;
         }
 
         if (move.castle) {
@@ -195,7 +205,7 @@ export class Board {
 
         const piece = this.state.board[from.row][from.col];
         const captured = legalMove.enPassant
-            ? this.state.board[piece.color === COLORS.WHITE ? to.row + 1 : to.row - 1][to.col]
+            ? enPassantCapture(this.state.board, piece, to).piece
             : this.state.board[to.row][to.col];
 
         this.state.board = this.boardAfterMove(from, legalMove, options.promotion || PIECE_TYPES.QUEEN);

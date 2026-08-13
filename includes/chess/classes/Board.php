@@ -31,7 +31,7 @@ final class Board
     ) {
         self::assertColor($this->sideToMove);
         if ($this->enPassantTarget !== null) {
-            self::assertEnPassantSquare($this->enPassantTarget);
+            self::assertEnPassantSquare($this->enPassantTarget, $this->sideToMove);
         }
         if ($this->halfmoveClock < 0) {
             throw new \InvalidArgumentException('Halfmove clock must be zero or greater.');
@@ -132,7 +132,7 @@ final class Board
 
         $enPassantTarget = null;
         if ($enPassant !== '-') {
-            self::assertEnPassantSquare($enPassant);
+            self::assertEnPassantSquare($enPassant, $sideToMove);
             $enPassantTarget = $enPassant;
         }
 
@@ -214,6 +214,9 @@ final class Board
     public function setSideToMove(string $color): void
     {
         self::assertColor($color);
+        if ($this->enPassantTarget !== null) {
+            self::assertEnPassantSquare($this->enPassantTarget, $color);
+        }
         $this->sideToMove = $color;
     }
 
@@ -225,7 +228,7 @@ final class Board
     public function setEnPassantTarget(?string $square): void
     {
         if ($square !== null) {
-            self::assertEnPassantSquare($square);
+            self::assertEnPassantSquare($square, $this->sideToMove);
         }
         $this->enPassantTarget = $square;
     }
@@ -531,10 +534,16 @@ final class Board
         }
     }
 
-    private static function assertEnPassantSquare(string $square): void
+    private static function assertEnPassantSquare(string $square, string $sideToMove): void
     {
+        self::assertColor($sideToMove);
         if (!preg_match('/^[a-h][36]$/', $square)) {
             throw new \InvalidArgumentException('En-passant target must be on rank 3 or 6.');
+        }
+
+        $expectedRank = $sideToMove === self::WHITE ? '6' : '3';
+        if (self::rankOf($square) !== $expectedRank) {
+            throw new \InvalidArgumentException('En-passant target rank is inconsistent with the side to move.');
         }
     }
 }

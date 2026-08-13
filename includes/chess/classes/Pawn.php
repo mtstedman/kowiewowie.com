@@ -59,7 +59,16 @@ final class Pawn extends Piece
                 continue;
             }
 
-            if ($board->enPassantTarget() === $to) {
+            $enPassantRank = $this->color() === Board::WHITE ? 4 : 3;
+            $capturedSquare = Board::coordsToSquare($targetFile, $rank);
+            $capturedPiece = $board->pieceAt($capturedSquare);
+            if (
+                $rank === $enPassantRank
+                && $occupant === null
+                && $board->enPassantTarget() === $to
+                && $capturedPiece instanceof Pawn
+                && $this->isOpponent($capturedPiece)
+            ) {
                 $moves[] = $this->createMove($from, $to, [
                     'isCapture' => true,
                     'isEnPassant' => true,

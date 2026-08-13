@@ -145,8 +145,15 @@ export function parseFen(fen = STARTING_FEN) {
     }
 
     const [placement, activeColor, castling, enPassant, halfmoveClock, fullmoveNumber] = fields;
+    const parsedActiveColor = parseActiveColor(activeColor);
     if (enPassant !== '-' && !/^[a-h][36]$/.test(enPassant)) {
         throw new Error(`Invalid FEN en-passant square: ${enPassant}`);
+    }
+    if (enPassant !== '-') {
+        const expectedRank = parsedActiveColor === COLORS.WHITE ? '6' : '3';
+        if (enPassant[1] !== expectedRank) {
+            throw new Error('FEN en-passant square rank is inconsistent with the active color.');
+        }
     }
 
     const halfmove = Number(halfmoveClock);
@@ -160,7 +167,7 @@ export function parseFen(fen = STARTING_FEN) {
 
     return {
         board: parsePlacement(placement),
-        activeColor: parseActiveColor(activeColor),
+        activeColor: parsedActiveColor,
         castling: parseCastling(castling),
         enPassant,
         enPassantSquare: enPassant === '-' ? null : squareToCoords(enPassant),
