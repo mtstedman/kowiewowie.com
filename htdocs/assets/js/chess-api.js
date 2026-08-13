@@ -1,4 +1,4 @@
-const API_ROOT = '/v1/chess';
+const API_ROOT = '/api/v1/chess';
 
 export class ChessApiError extends Error {
     constructor({ status = 0, error = 'request_failed', message = 'The chess request failed.', details = null } = {}) {

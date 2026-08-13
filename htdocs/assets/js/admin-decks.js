@@ -110,7 +110,7 @@
         renderSearchResults([], 'Searching...');
 
         try {
-            const response = await fetch(`/v1/magic/cards/search?q=${encodeURIComponent(query)}`, {
+            const response = await fetch(`/api/v1/magic/cards/search?q=${encodeURIComponent(query)}`, {
                 headers: {
                     Accept: 'application/json',
                 },

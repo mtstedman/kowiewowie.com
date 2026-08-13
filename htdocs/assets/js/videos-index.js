@@ -126,6 +126,10 @@
     };
 
     const getVideosFromPayload = (payload) => {
+        if (payload && typeof payload === 'object' && Array.isArray(payload.data)) {
+            return payload.data;
+        }
+
         if (Array.isArray(payload)) {
             return payload;
         }
@@ -318,7 +322,7 @@
         renderResults();
     });
 
-    fetch('/v1/videos')
+    fetch('/api/v1/videos')
         .then((response) => {
             if (!response.ok) {
                 throw new Error('Unable to load videos.');

@@ -147,11 +147,15 @@
     };
 
     const extractVideo = (payload) => {
-        if (payload && typeof payload === 'object' && payload.video && typeof payload.video === 'object') {
-            return payload.video;
+        const base = payload && typeof payload === 'object' && payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
+            ? payload.data
+            : payload;
+
+        if (base && typeof base === 'object' && base.video && typeof base.video === 'object') {
+            return base.video;
         }
 
-        return payload && typeof payload === 'object' ? payload : null;
+        return base && typeof base === 'object' ? base : null;
     };
 
     const extractRelatedVideos = (payload) => {
@@ -159,7 +163,8 @@
             return [];
         }
 
-        const related = payload.related_videos ?? payload.relatedVideos ?? [];
+        const base = payload.data && typeof payload.data === 'object' ? payload.data : payload;
+        const related = base.related_videos ?? base.relatedVideos ?? [];
         return Array.isArray(related) ? related : [];
     };
 
@@ -372,7 +377,7 @@
         return aside;
     };
 
-    const fetchVideoDetail = () => fetch(`/v1/videos/${encodeURIComponent(slug)}`)
+    const fetchVideoDetail = () => fetch(`/api/v1/videos/${encodeURIComponent(slug)}`)
         .then((response) => {
             if (response.status === 404) {
                 return null;
@@ -385,7 +390,7 @@
             return response.json();
         });
 
-    const fetchVideoList = () => fetch('/v1/videos')
+    const fetchVideoList = () => fetch('/api/v1/videos')
         .then((response) => {
             if (!response.ok) {
                 throw new Error('Unable to load related videos.');
@@ -394,6 +399,10 @@
             return response.json();
         })
         .then((payload) => {
+            if (payload && typeof payload === 'object' && Array.isArray(payload.data)) {
+                return payload.data;
+            }
+
             if (Array.isArray(payload)) {
                 return payload;
             }
