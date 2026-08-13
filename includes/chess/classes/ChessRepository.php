@@ -151,6 +151,26 @@ final class ChessRepository
         );
     }
 
+    /** @return list<array<string, mixed>> */
+    public function promotionOptions(string $publicId, string $from, string $to): array
+    {
+        $game = $this->loadGameByPublicId($publicId);
+        $from = strtolower(trim($from));
+        $to = strtolower(trim($to));
+        $moves = $this->engine->legalMoves((string) $game['current_fen']);
+
+        if (($moves['ok'] ?? false) !== true || !is_array($moves['moves'] ?? null)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $moves['moves'],
+            static fn (array $move): bool => (string) ($move['from'] ?? '') === $from
+                && (string) ($move['to'] ?? '') === $to
+                && ($move['promotion'] ?? null) !== null,
+        ));
+    }
+
     /**
      * @param array<string, mixed> $input
      * @param array<string, mixed> $identity
@@ -163,6 +183,25 @@ final class ChessRepository
             throw new ApiException(422, 'validation_error', 'uci is required.', [
                 'uci' => 'Provide a legal move in UCI notation such as e2e4.',
             ]);
+        }
+
+        if (array_key_exists('promotion', $input) && $input['promotion'] !== null) {
+            $promotion = strtolower(trim((string) $input['promotion']));
+            if (!in_array($promotion, ['q', 'r', 'b', 'n'], true)) {
+                throw new ApiException(422, 'validation_error', 'promotion must be q, r, b, or n.', [
+                    'promotion' => 'Use q, r, b, or n.',
+                ]);
+            }
+
+            $embeddedPromotion = strlen($uci) >= 5 ? $uci[4] : null;
+            if ($embeddedPromotion !== null && $embeddedPromotion !== $promotion) {
+                throw new ApiException(422, 'validation_error', 'promotion conflicts with the UCI promotion suffix.', [
+                    'promotion' => 'Match the 5th UCI character or omit one promotion value.',
+                ]);
+            }
+            if ($embeddedPromotion === null) {
+                $uci .= $promotion;
+            }
         }
 
         $clientMoveId = $input['client_move_id'] ?? null;

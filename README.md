@@ -34,10 +34,27 @@ PostgreSQL owns users, OAuth identities, rotating refresh tokens, recipes,
 Magic decks/cards/guides, board games, and music entries. Existing unversioned
 read endpoints remain available while new clients should use `/v1/...`.
 
-The versioned schema also includes storage prepared for shared chess games:
+The versioned schema also includes storage for shared chess games:
 cookie-backed guest names, player seats, hashed invitation links, FEN position
-snapshots, and ordered SAN/UCI move histories. No chess API routes are exposed
-yet.
+snapshots, and ordered SAN/UCI move histories. Chess API routes are exposed
+under `/v1/chess/...`:
+
+```text
+GET  /v1/chess/games
+POST /v1/chess/games
+POST /v1/chess/links/claim
+POST /v1/chess/links/<token>/claim
+GET  /v1/chess/games/<uuid>
+GET  /v1/chess/games/<uuid>/moves
+POST /v1/chess/games/<uuid>/moves
+GET  /v1/chess/games/<uuid>/moves/promotions?from=<square>&to=<square>
+POST /v1/chess/games/<uuid>/links
+```
+
+`GET .../moves/promotions` returns legal promotion choices for the requested
+from/to squares. `POST .../moves` requires `uci` and may include `promotion`
+(`q`, `r`, `b`, or `n`) when the UCI value does not already include its
+promotion suffix.
 
 ## Database configuration
 
