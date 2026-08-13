@@ -101,6 +101,8 @@ function admin_render_page(string $title, callable $content, ?array $user = null
         ['href' => '/admin/videos.php', 'label' => 'Videos'],
     ];
     $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/admin/', PHP_URL_PATH) ?: '/admin/';
+    $adminStylesheetPath = __DIR__ . '/style.css';
+    $adminStylesheetVersion = is_file($adminStylesheetPath) ? (string) filemtime($adminStylesheetPath) : '1';
     ?>
     <!doctype html>
     <html lang="en">
@@ -108,7 +110,7 @@ function admin_render_page(string $title, callable $content, ?array $user = null
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
-        <link rel="stylesheet" href="/admin/style.css">
+        <link rel="stylesheet" href="/admin/style.css?v=<?= rawurlencode($adminStylesheetVersion) ?>">
     </head>
     <body>
         <div class="admin-shell">

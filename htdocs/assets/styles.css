@@ -1,20 +1,27 @@
 :root {
     color-scheme: dark;
     --ink: #f5fbff;
-    --ink-soft: #b9c8d8;
+    --ink-soft: #d4e9f7;
     --paper: #05070d;
     --paper-strong: #090d18;
-    --panel: rgba(8, 14, 27, 0.88);
-    --panel-solid: #0b1020;
+    --panel: rgba(7, 18, 32, 0.92);
+    --panel-solid: #071423;
     --accent: #00f5ff;
     --accent-strong: #ff2bd6;
     --accent-warm: #f9f871;
     --accent-cool: #7c5cff;
-    --muted: #8292aa;
-    --line: rgba(0, 245, 255, 0.24);
-    --line-strong: rgba(0, 245, 255, 0.68);
-    --glow: rgba(0, 245, 255, 0.28);
-    --glow-strong: rgba(255, 43, 214, 0.42);
+    --muted: #a6bad6;
+    --line: rgba(0, 245, 255, 0.34);
+    --line-strong: rgba(0, 245, 255, 0.72);
+    --glow: rgba(0, 245, 255, 0.34);
+    --glow-strong: rgba(255, 43, 214, 0.5);
+    --surface-fill-subtle: rgba(0, 245, 255, 0.055);
+    --surface-sheen-soft: rgba(0, 245, 255, 0.12);
+    --surface-sheen: rgba(124, 92, 255, 0.16);
+    --surface-edge: rgba(0, 245, 255, 0.28);
+    --surface-edge-strong: rgba(255, 43, 214, 0.38);
+    --surface-highlight: rgba(249, 248, 113, 0.22);
+    --surface-highlight-strong: rgba(249, 248, 113, 0.34);
     --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --serif: Georgia, "Times New Roman", serif;
     --step--1: clamp(0.82rem, 0.79rem + 0.14vw, 0.9rem);
@@ -32,21 +39,21 @@
     --site-header-min: 96px;
     --site-footer-min: 118px;
     --chrome-y-gap: var(--space-xl);
-    --shadow-sm: 0 0 0 1px rgba(0, 245, 255, 0.22), 0 0 26px var(--glow);
-    --shadow-md: 0 0 0 1px rgba(255, 43, 214, 0.24), 0 0 44px var(--glow), 0 0 90px rgba(124, 92, 255, 0.16);
+    --shadow-sm: 0 0 0 1px rgba(0, 245, 255, 0.3), 0 0 26px var(--glow);
+    --shadow-md: 0 0 0 1px rgba(255, 43, 214, 0.32), 0 0 44px var(--glow), 0 0 90px rgba(124, 92, 255, 0.2);
     --motion-fast: 160ms ease;
     --motion-medium: 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
     /* Apple-glass panel tokens shared across public surfaces. */
-    --glass-tint: rgba(12, 18, 34, 0.6);
-    --glass-tint-strong: rgba(10, 14, 28, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.18);
-    --glass-border-highlight: rgba(255, 255, 255, 0.58);
-    --glass-border-shadow: rgba(120, 164, 255, 0.16);
+    --glass-tint: rgba(5, 14, 28, 0.72);
+    --glass-tint-strong: rgba(7, 22, 38, 0.9);
+    --glass-border: var(--surface-edge);
+    --glass-border-highlight: var(--surface-highlight-strong);
+    --glass-border-shadow: rgba(124, 92, 255, 0.24);
     --glass-blur: 22px;
     --glass-saturate: 180%;
-    --glass-shimmer: rgba(255, 255, 255, 0.34);
+    --glass-shimmer: rgba(0, 245, 255, 0.2);
     --glass-shimmer-size: 72%;
-    --glass-shimmer-opacity: 0.55;
+    --glass-shimmer-opacity: 0.5;
 }
 
 * {
@@ -116,9 +123,9 @@ a:focus-visible {
     position: relative;
     padding-block: var(--space-2xl);
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
+        linear-gradient(180deg, var(--surface-sheen-soft), transparent 24%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 var(--surface-sheen-soft);
 }
 
 .foundation + .foundation {
@@ -179,7 +186,7 @@ a:focus-visible {
     border-radius: inherit;
     clip-path: inherit;
     pointer-events: none;
-    background: linear-gradient(135deg, var(--glass-border-highlight) 0%, rgba(255, 255, 255, 0.3) 18%, rgba(255, 255, 255, 0.12) 40%, var(--glass-border-shadow) 72%, rgba(255, 255, 255, 0.34) 100%);
+    background: linear-gradient(135deg, var(--glass-border-highlight) 0%, var(--surface-edge) 18%, var(--surface-sheen) 40%, var(--glass-border-shadow) 72%, var(--surface-highlight) 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -212,7 +219,7 @@ a:focus-visible {
     clip-path: inherit;
     pointer-events: none;
     opacity: 0;
-    background: radial-gradient(circle at var(--glass-x, 50%) var(--glass-y, 50%), var(--glass-shimmer) 0, rgba(255, 255, 255, 0.12) calc(var(--glass-shimmer-size) * 0.45), transparent 60%);
+    background: radial-gradient(circle at var(--glass-x, 50%) var(--glass-y, 50%), var(--glass-shimmer) 0, var(--surface-sheen) calc(var(--glass-shimmer-size) * 0.45), transparent 60%);
     transition: opacity var(--motion-medium);
 }
 
@@ -292,7 +299,7 @@ footer {
     padding: 0 var(--space-md);
     border-top: 0;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 58%),
+        linear-gradient(135deg, var(--surface-sheen), transparent 58%),
         linear-gradient(90deg, var(--glass-tint-strong), var(--glass-tint));
     box-shadow: var(--shadow-md), inset 0 -1px 0 rgba(255, 43, 214, 0.4);
 }
@@ -461,9 +468,9 @@ p {
     gap: 0.75rem;
     padding: 1rem 1.25rem;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 60%),
+        linear-gradient(135deg, var(--surface-sheen), transparent 60%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
-    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow-sm), inset 0 1px 0 var(--surface-sheen-soft);
 }
 
 h1 {
@@ -502,12 +509,12 @@ h3 {
     margin: 28px 0 0;
     padding: 14px 16px;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.14), transparent 52%),
+        linear-gradient(135deg, var(--surface-sheen), transparent 52%),
         linear-gradient(90deg, rgba(255, 43, 214, 0.18), rgba(0, 245, 255, 0.08) 65%, var(--glass-tint));
     color: var(--ink);
     font-size: 1rem;
     font-weight: 850;
-    box-shadow: var(--shadow-sm), inset 6px 0 0 rgba(249, 248, 113, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow-sm), inset 6px 0 0 rgba(249, 248, 113, 0.35), inset 0 1px 0 var(--surface-sheen-soft);
 }
 
 .aside cite {
@@ -570,7 +577,7 @@ h3 {
     gap: clamp(42px, 8vw, 112px);
     padding: 100px 0 124px;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 46%),
+        linear-gradient(135deg, var(--surface-sheen-soft), transparent 46%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
     box-shadow: inset 0 1px 0 rgba(255, 43, 214, 0.44), 0 -24px 70px rgba(0, 245, 255, 0.08);
 }
@@ -602,7 +609,7 @@ h3 {
     min-height: 260px;
     padding: var(--space-lg);
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 34%),
+        linear-gradient(135deg, var(--surface-sheen), transparent 34%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
     box-shadow: var(--shadow-sm), inset 0 0 34px rgba(0, 245, 255, 0.06);
     clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
@@ -659,10 +666,10 @@ footer {
     padding: 0.45rem 0.8rem;
     border-radius: 999px;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 56%),
+        linear-gradient(135deg, var(--surface-sheen-soft), transparent 56%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
     color: var(--muted);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 var(--surface-sheen-soft);
 }
 
 .site-header,
@@ -699,7 +706,7 @@ footer {
     .videos-error-state {
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
-        border-color: rgba(255, 255, 255, 0.24);
+        border-color: var(--surface-edge-strong);
         background-clip: border-box;
         background:
             linear-gradient(180deg, rgba(10, 14, 28, 0.96), rgba(8, 12, 22, 0.92));
@@ -894,7 +901,7 @@ footer {
     background:
         radial-gradient(circle at top right, rgba(229, 62, 62, 0.14), transparent 32%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
-    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.25), inset 0 1px 0 var(--surface-sheen-soft);
 }
 
 .videos-toolbar {
@@ -910,7 +917,7 @@ footer {
 .videos-search input {
     width: 100%;
     padding: 0.95rem 1.15rem;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--surface-sheen);
     border-radius: 999px;
     background: rgba(7, 9, 13, 0.9);
     color: #f5f7fb;
@@ -938,9 +945,9 @@ footer {
 .videos-chip {
     flex: 0 0 auto;
     padding: 0.65rem 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--surface-sheen);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-fill-subtle);
     color: #f5f7fb;
     font: inherit;
     cursor: pointer;
@@ -949,8 +956,8 @@ footer {
 
 .videos-chip:hover,
 .videos-chip:focus-visible {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.24);
+    background: var(--surface-sheen);
+    border-color: var(--surface-edge-strong);
     transform: translateY(-1px);
 }
 
@@ -980,7 +987,7 @@ footer {
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
     color: inherit;
     text-decoration: none;
-    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.22), inset 0 1px 0 var(--surface-sheen-soft);
     transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
@@ -1073,7 +1080,7 @@ footer {
 
 .videos-empty-state {
     padding: 2rem 1.25rem;
-    border: 1px dashed rgba(255, 255, 255, 0.16);
+    border: 1px dashed var(--surface-edge);
     border-radius: 1.5rem;
     background: rgba(6, 8, 12, 0.45);
 }
@@ -1082,9 +1089,9 @@ footer {
     padding: 2rem 1.25rem;
     border-radius: 1.5rem;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 56%),
+        linear-gradient(135deg, var(--surface-sheen), transparent 56%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 var(--surface-sheen-soft);
 }
 
 .videos-empty-state h3,
@@ -1119,7 +1126,7 @@ footer {
     background:
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
     aspect-ratio: 16 / 9;
-    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.32), inset 0 1px 0 var(--surface-sheen-soft);
 }
 
 .videos-player iframe {
@@ -1130,7 +1137,7 @@ footer {
 
 .videos-watch-meta,
 .videos-channel-row {
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--surface-sheen);
     border-radius: 1.4rem;
     background: rgba(14, 17, 24, 0.95);
 }
@@ -1140,7 +1147,7 @@ footer {
     border-radius: 1.4rem;
     background:
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 var(--surface-sheen-soft);
 }
 
 .videos-watch-meta,
@@ -1199,9 +1206,9 @@ footer {
 .videos-description-toggle {
     justify-self: start;
     padding: 0.6rem 0.95rem;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--surface-sheen);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--surface-fill-subtle);
     color: #f5f7fb;
     font: inherit;
     cursor: pointer;
@@ -1226,7 +1233,7 @@ footer {
     padding: 0.25rem;
     border-radius: 1.1rem;
     background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 58%),
+        linear-gradient(135deg, var(--surface-sheen), transparent 58%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
     color: inherit;
     text-decoration: none;
@@ -1286,12 +1293,12 @@ footer {
 }
 
 :root {
-    --glass-panel-bg: rgba(255, 255, 255, 0.18);
-    --glass-panel-bg-strong: rgba(255, 255, 255, 0.34);
-    --glass-panel-border: rgba(255, 255, 255, 0.38);
-    --glass-panel-shadow: rgba(15, 23, 42, 0.22);
-    --glass-panel-highlight: rgba(255, 255, 255, 0.55);
-    --glass-panel-falloff: rgba(255, 255, 255, 0);
+    --glass-panel-bg: rgba(5, 14, 28, 0.82);
+    --glass-panel-bg-strong: rgba(8, 24, 42, 0.94);
+    --glass-panel-border: var(--surface-edge-strong);
+    --glass-panel-shadow: rgba(0, 245, 255, 0.18);
+    --glass-panel-highlight: var(--surface-highlight-strong);
+    --glass-panel-falloff: rgba(0, 245, 255, 0);
 }
 
 .foundation,
@@ -1317,12 +1324,12 @@ footer {
     border: 1px solid var(--glass-panel-border);
     background:
         linear-gradient(180deg, var(--glass-panel-bg-strong), var(--glass-panel-bg)),
-        rgba(255, 255, 255, 0.08);
+        var(--surface-sheen-soft);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
     box-shadow:
         0 20px 45px -28px var(--glass-panel-shadow),
-        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        inset 0 1px 0 var(--surface-highlight);
     transition:
         border-color 180ms ease,
         box-shadow 180ms ease,
@@ -1351,8 +1358,8 @@ footer {
     z-index: 0;
     opacity: var(--glass-shimmer-alpha);
     background:
-        radial-gradient(circle at var(--glass-mx) var(--glass-my), var(--glass-panel-highlight) 0, rgba(255, 255, 255, 0.28) 16%, var(--glass-panel-falloff) 42%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 42%);
+        radial-gradient(circle at var(--glass-mx) var(--glass-my), var(--glass-panel-highlight) 0, var(--surface-highlight) 16%, var(--glass-panel-falloff) 42%),
+        linear-gradient(135deg, var(--surface-edge), rgba(0, 245, 255, 0) 42%);
     transition: opacity 140ms ease;
 }
 
@@ -1388,10 +1395,10 @@ footer {
 .videos-related-item:hover,
 .videos-player:hover,
 .videos-error-state:hover {
-    border-color: rgba(255, 255, 255, 0.52);
+    border-color: var(--surface-highlight-strong);
     box-shadow:
         0 28px 55px -30px rgba(15, 23, 42, 0.32),
-        inset 0 1px 0 rgba(255, 255, 255, 0.62);
+        inset 0 1px 0 var(--surface-highlight-strong);
 }
 
 .deck-card {
