@@ -1,9 +1,9 @@
-<!-- schema-version: 5 -->
+<!-- schema-version: 6 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 5**. `migration-chain.json` is the ordered,
+current release pin is **version 6**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -22,11 +22,12 @@ per-file execution ledger.
 | 3 | `002_videos.sql` | Videos and their public index/update trigger |
 | 4 | `004_chess_games.sql` | Shared chess games, guest identities, links, positions, and move history |
 | 5 | `005_chess_takeback_offers.sql` | Pending takeback-offer player and timestamp columns on chess games |
+| 6 | `006_chess_opening_book.sql` | ECO opening labels and a transposition-aware graph of book positions and moves |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 5 inventory
+## Current version 6 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -34,7 +35,8 @@ their full basenames are already stored in production's migration ledger.
 - Magic: `magic_decks`, `magic_deck_cards`, `magic_guides`, and
   `magic_guide_sections`
 - Chess: `chess_guest_profiles`, `chess_games`, `chess_game_players`,
-  `chess_game_links`, `chess_game_positions`, `chess_game_moves`, and the
+  `chess_game_links`, `chess_game_positions`, `chess_game_moves`,
+  `chess_openings`, `chess_opening_positions`, `chess_opening_moves`, and the
   `chess_game_current_positions` view; `chess_games.pending_takeback_by_player_id`
   and `chess_games.pending_takeback_requested_at` persist pending takeback offers
 - Migration metadata: `schema_migrations` and `database_schema_version`
@@ -108,6 +110,54 @@ matching move in the same transaction; the trigger advances the game. If the
 move ends the game, update its status, result, termination, and `finished_at`
 before committing. A failed transaction leaves neither a partial position nor
 a partial history entry.
+
+## Chess opening book
+
+The opening book separates human classification from book traversal. This is a
+directed graph of positions, not a tree of move-sequence parents, because
+different legal move orders can transpose into the same state.
+
+`chess_openings` stores the human label: its ECO code and conventional full
+name, such as `Caro-Kann Defense: Advance Variation, Tal Variation`. Its
+optional `parent_opening_id` expresses only the name taxonomy (opening family,
+variation, and subvariation); it never represents the preceding move. ECO/name
+pairs are case-insensitively unique. A stored `tsvector` with a GIN index
+supports word and prefix-query construction, while a lowercase B-tree pattern
+index supports name autocomplete. The ECO field accepts the PGN forms `XDD`
+and `XDD/DD`.
+
+`chess_opening_positions` stores each standard-chess state once as EPD: the
+first four FEN fields (piece placement, side to move, castling availability,
+and legal en-passant availability), without halfmove or fullmove counters. The
+unique EPD index is the exact transposition key. A position may point to the
+opening label that becomes active there. Named positions also retain one
+representative line in both PGN/SAN and space-separated UCI notation; that line
+is for interchange and display and is not treated as the only route to the
+position. Intermediate book positions have no opening label or representative
+line.
+
+`chess_opening_moves` stores directed edges between those positions. UCI is the
+unambiguous lookup key and SAN is retained for display. The primary key
+`(from_position_id, uci)` makes traversal deterministic, and the destination
+index supports finding converging paths and inspecting transpositions. Import
+code must use the chess engine to verify that each UCI move is legal in the
+source EPD, that its SAN is correct, and that applying it produces the stored
+destination EPD; SQL constraints validate notation shape but do not implement
+chess rules.
+
+To determine whether a game is on book, begin at the initial EPD node and replay
+its moves through `chess_opening_moves`. Advance the active opening label
+whenever the destination position has one. The first missing edge marks the
+game off book permanently for that replay; later reaching a known EPD does not
+put it back on book. Because transposing book lines converge on the same
+position row, every loaded legal route activates the same opening label.
+
+The versioned starter catalog lives in `database/data/chess-openings.tsv` and
+uses the standard `eco`, `name`, and `pgn` columns from the CC0 Lichess opening
+catalog. Run `php database/seed-chess-openings.php` after minting the schema.
+The idempotent importer derives UCI and EPD through the application chess engine
+and rejects illegal SAN, conflicting classifications, or inconsistent graph
+edges before committing any rows.
 
 ## Minting the next version
 

@@ -45,6 +45,15 @@
           "sha256": "a09ec2e358aabb7ac505d55948b0b1e444cb5e9e64470427d2f9397a205d23ca"
         }
       ]
+    },
+    {
+      "version": 6,
+      "updates": [
+        {
+          "file": "updates/006_chess_opening_book.sql",
+          "sha256": "9d36238a8c50977dccfc88eed3ca06719c4028fbe2f61122c1efcc6533edcd1f"
+        }
+      ]
     }
   ]
 }

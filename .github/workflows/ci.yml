@@ -28,7 +28,9 @@ jobs:
           done < <(find api database docs htdocs includes tests -type f -name '*.php' -print0)
 
       - name: Run chess rules regressions
-        run: php tests/chess-rules.php
+        run: |
+          php tests/chess-rules.php
+          php tests/chess-opening-book.php
 
       - name: Check deployment shell syntax
         run: bash -n deploy/deploy.sh .githooks/post-commit

@@ -20,6 +20,8 @@ includes/
 database/
   migrate.php                   Compatibility entry point for the DB minter
   seed.php                      Idempotent JSON-to-PostgreSQL import
+  seed-chess-openings.php       Validated common-opening graph import
+  data/chess-openings.tsv       Curated CC0 ECO/name/PGN starter catalog
   grant-role.php                User/editor/admin role management
 docs/postgres/
   VERSION                       Schema version pin for this release
@@ -81,6 +83,7 @@ Then apply the schema and import the current site content:
 ```bash
 php docs/postgres/db-version-minter.php
 php database/seed.php
+php database/seed-chess-openings.php
 php docs/postgres/db-version-minter.php --status
 ```
 
@@ -89,6 +92,11 @@ The version minter and seed commands are idempotent. The legacy
 slug, including relational deck cards and guide sections. See
 [`docs/postgres/SCHEMA.md`](docs/postgres/SCHEMA.md) for the pinned version,
 complete update chain, and procedure for adding a schema version.
+
+The opening seed validates every curated PGN move through the same chess engine
+used by live games, derives UCI and canonical EPD data, and merges transposing
+move orders into shared book positions. Re-running it safely upserts the same
+classifications, positions, and directed moves.
 
 ## Local development
 
