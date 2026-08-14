@@ -94,8 +94,13 @@ function admin_render_page(string $title, callable $content, ?array $user = null
     $navItems = [
         ['href' => '/admin/', 'label' => 'Dashboard'],
         ['href' => '/admin/recipes.php', 'label' => 'Recipes'],
-        ['href' => '/admin/decks.php', 'label' => 'Decks'],
-        ['href' => '/admin/guides.php', 'label' => 'Guides'],
+        [
+            'label' => 'Magic',
+            'children' => [
+                ['href' => '/admin/decks.php', 'label' => 'Decks'],
+                ['href' => '/admin/guides.php', 'label' => 'Guides'],
+            ],
+        ],
         ['href' => '/admin/games.php', 'label' => 'Games'],
         ['href' => '/admin/music.php', 'label' => 'Music'],
         ['href' => '/admin/videos.php', 'label' => 'Videos'],
@@ -119,10 +124,37 @@ function admin_render_page(string $title, callable $content, ?array $user = null
                 <?php if ($user !== null && admin_user_is_admin($user)): ?>
                     <nav class="admin-nav" aria-label="Admin sections">
                         <?php foreach ($navItems as $item): ?>
-                            <?php $isActive = $currentPath === $item['href']; ?>
-                            <a class="admin-nav-link<?= $isActive ? ' is-active' : '' ?>" href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>"<?= $isActive ? ' aria-current="page"' : '' ?>>
-                                <?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>
-                            </a>
+                            <?php $children = $item['children'] ?? null; ?>
+                            <?php if (is_array($children)): ?>
+                                <?php
+                                $isGroupActive = false;
+                                foreach ($children as $child) {
+                                    if (is_array($child) && ($child['href'] ?? '') === $currentPath) {
+                                        $isGroupActive = true;
+                                        break;
+                                    }
+                                }
+                                ?>
+                                <span class="admin-nav-group<?= $isGroupActive ? ' is-active' : '' ?>" aria-label="<?= htmlspecialchars((string) ($item['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?> admin sections">
+                                    <span class="admin-nav-label<?= $isGroupActive ? ' is-active' : '' ?>">
+                                        <?= htmlspecialchars((string) ($item['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
+                                    <span class="admin-nav-children">
+                                        <?php foreach ($children as $child): ?>
+                                            <?php if (!is_array($child)) { continue; } ?>
+                                            <?php $isActive = $currentPath === ($child['href'] ?? ''); ?>
+                                            <a class="admin-nav-link admin-nav-child<?= $isActive ? ' is-active' : '' ?>" href="<?= htmlspecialchars((string) ($child['href'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"<?= $isActive ? ' aria-current="page"' : '' ?>>
+                                                <?= htmlspecialchars((string) ($child['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </span>
+                                </span>
+                            <?php else: ?>
+                                <?php $isActive = $currentPath === ($item['href'] ?? ''); ?>
+                                <a class="admin-nav-link<?= $isActive ? ' is-active' : '' ?>" href="<?= htmlspecialchars((string) ($item['href'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"<?= $isActive ? ' aria-current="page"' : '' ?>>
+                                    <?= htmlspecialchars((string) ($item['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                </a>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </nav>
                 <?php endif; ?>

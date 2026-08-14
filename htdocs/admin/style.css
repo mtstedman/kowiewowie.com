@@ -75,7 +75,8 @@ a {
     min-width: 0;
 }
 
-.admin-nav-link {
+.admin-nav-link,
+.admin-nav-label {
     display: inline-flex;
     min-height: 2.25rem;
     align-items: center;
@@ -93,11 +94,37 @@ a {
 
 .admin-nav-link:hover,
 .admin-nav-link:focus,
-.admin-nav-link.is-active {
+.admin-nav-link.is-active,
+.admin-nav-group.is-active .admin-nav-label {
     border-color: rgba(37, 99, 235, 0.22);
     background: var(--admin-accent-soft);
     color: var(--admin-accent);
     outline: none;
+}
+
+.admin-nav-group,
+.admin-nav-children {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.admin-nav-group {
+    padding: 0.15rem;
+    border: 1px solid rgba(37, 99, 235, 0.14);
+    border-radius: 8px;
+    background: rgba(232, 240, 255, 0.48);
+}
+
+.admin-nav-label {
+    cursor: default;
+}
+
+.admin-nav-child {
+    min-height: 2rem;
+    padding: 0.38rem 0.62rem;
+    font-size: 0.86rem;
 }
 
 .admin-account {
@@ -195,6 +222,42 @@ a {
 .admin-card small {
     color: var(--admin-muted);
     font-size: 0.94rem;
+}
+
+.admin-card-group:hover,
+.admin-card-group:focus {
+    border-color: var(--admin-border);
+    transform: none;
+    box-shadow: var(--admin-shadow);
+}
+
+.admin-card-subsections {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.admin-subcard {
+    display: grid;
+    gap: 0.18rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--admin-border);
+    text-decoration: none;
+}
+
+.admin-subcard:hover,
+.admin-subcard:focus {
+    color: var(--admin-accent);
+    outline: none;
+}
+
+.admin-subcard strong {
+    font-size: 0.98rem;
+    font-weight: 900;
+}
+
+.admin-subcard small {
+    font-size: 0.86rem;
 }
 
 .admin-panel {
@@ -532,6 +595,163 @@ button[data-remove-section]:focus {
 
 [data-search-result] p {
     margin: 0.2rem 0 0;
+}
+
+.admin-qr-panel {
+    border-top-color: var(--admin-fun);
+}
+
+.admin-print-heading {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.admin-qr-label-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: 1rem;
+}
+
+.admin-qr-label {
+    display: grid;
+    gap: 0.85rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--admin-border-strong);
+    border-radius: 8px;
+    background: #ffffff;
+    break-inside: avoid;
+}
+
+.admin-qr-label-header {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.admin-qr-label-header h3,
+.admin-qr-item h4 {
+    margin: 0;
+}
+
+.admin-qr-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 0.75rem;
+}
+
+.admin-qr-item {
+    display: grid;
+    justify-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    text-align: center;
+}
+
+.admin-qr-code {
+    display: grid;
+    width: 11.25rem;
+    height: 11.25rem;
+    max-width: 100%;
+    place-items: center;
+    border: 1px solid #000000;
+    background: #ffffff;
+}
+
+.admin-qr-code canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+}
+
+.admin-qr-code.is-invalid {
+    border-color: var(--admin-danger);
+    padding: 0.75rem;
+    color: var(--admin-danger);
+    font-weight: 800;
+}
+
+.admin-qr-item p {
+    max-width: 100%;
+    color: var(--admin-text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.76rem;
+    overflow-wrap: anywhere;
+}
+
+@media print {
+    @page {
+        margin: 0.5in;
+    }
+
+    body {
+        min-width: 0;
+        background: #ffffff;
+        color: #000000;
+    }
+
+    .admin-header,
+    .admin-hero,
+    .admin-panel:not(.admin-qr-panel) {
+        display: none !important;
+    }
+
+    .admin-shell,
+    .admin-main {
+        width: 100%;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+    }
+
+    .admin-qr-panel {
+        display: block;
+        padding: 0;
+        border: 0;
+        background: #ffffff;
+        box-shadow: none;
+    }
+
+    .admin-print-heading {
+        margin-bottom: 0.2in;
+    }
+
+    .admin-qr-label-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.18in;
+    }
+
+    .admin-qr-label {
+        gap: 0.12in;
+        padding: 0.16in;
+        border: 1px solid #000000;
+        border-radius: 0;
+        color: #000000;
+        page-break-inside: avoid;
+    }
+
+    .admin-qr-pair {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.12in;
+    }
+
+    .admin-qr-code {
+        width: 1.55in;
+        height: 1.55in;
+    }
+
+    .admin-qr-label-header h3 {
+        font-size: 13pt;
+        line-height: 1.15;
+    }
+
+    .admin-qr-item h4,
+    .admin-qr-item p,
+    .admin-qr-label-header p {
+        color: #000000;
+        font-size: 8pt;
+        line-height: 1.2;
+    }
 }
 
 @media (max-width: 760px) {

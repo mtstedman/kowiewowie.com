@@ -23,6 +23,20 @@ function admin_guides_actor_id(array $user): ?string
     return is_scalar($id) && (string) $id !== '' ? (string) $id : null;
 }
 
+function admin_guides_public_url(string $path): string
+{
+    $host = is_scalar($_SERVER['HTTP_HOST'] ?? null) ? trim((string) $_SERVER['HTTP_HOST']) : '';
+    $scheme = 'https';
+    if ($host !== '' && (($_SERVER['HTTPS'] ?? '') === '' || ($_SERVER['HTTPS'] ?? '') === 'off')) {
+        $scheme = 'http';
+    }
+    if ($host === '') {
+        $host = 'wowiekowie.com';
+    }
+
+    return $scheme . '://' . $host . '/' . ltrim($path, '/');
+}
+
 /** @return array{slug: string, title: string, deck_slug: string, summary: string, status: string, published: ?string, sections: list<array{heading: string, body: string}>} */
 function admin_guides_input_from_post(): array
 {
@@ -137,9 +151,12 @@ try {
     $error ??= $exception->getMessage();
 }
 
+$qrScriptPath = dirname(__DIR__) . '/assets/js/admin-guide-qrcodes.js';
+$qrScriptVersion = is_file($qrScriptPath) ? (string) filemtime($qrScriptPath) : '1';
+
 admin_render_page(
     'Guides',
-    static function () use ($guides, $editing, $formGuide, $error, $notice): void {
+    static function () use ($guides, $editing, $formGuide, $error, $notice, $qrScriptVersion): void {
         $sections = admin_guides_sections($formGuide);
         ?>
         <section class="admin-hero" aria-labelledby="guides-title">
@@ -282,6 +299,56 @@ admin_render_page(
                 </div>
             <?php endif; ?>
         </section>
+
+        <?php if ($guides !== []): ?>
+            <section class="admin-panel admin-qr-panel" aria-labelledby="guide-qr-title">
+                <div class="admin-print-heading">
+                    <p class="admin-eyebrow">Print labels</p>
+                    <h2 id="guide-qr-title">Deck box QR labels</h2>
+                    <p>Print one guide label for the deck box, plus the decklist label when the guide has a linked deck slug.</p>
+                </div>
+                <div class="admin-qr-label-grid">
+                    <?php foreach ($guides as $guide): ?>
+                        <?php
+                        $guideSlug = is_scalar($guide['slug'] ?? null) ? (string) $guide['slug'] : '';
+                        if ($guideSlug === '') {
+                            continue;
+                        }
+                        $deckSlug = is_scalar($guide['deck_slug'] ?? null) ? (string) $guide['deck_slug'] : '';
+                        $guideTitle = is_scalar($guide['title'] ?? null) && (string) $guide['title'] !== '' ? (string) $guide['title'] : $guideSlug;
+                        $guideUrl = admin_guides_public_url('/decks/guide.php?slug=' . rawurlencode($guideSlug));
+                        $deckUrl = $deckSlug !== '' ? admin_guides_public_url('/decks/deck.php?slug=' . rawurlencode($deckSlug)) : null;
+                        ?>
+                        <article class="admin-qr-label" aria-label="<?= admin_guides_h($guideTitle) ?> QR labels">
+                            <header class="admin-qr-label-header">
+                                <h3><?= admin_guides_h($guideTitle) ?></h3>
+                                <p>Deck box scan labels</p>
+                            </header>
+                            <div class="admin-qr-pair">
+                                <div class="admin-qr-item">
+                                    <h4>Guide</h4>
+                                    <div class="admin-qr-code" data-qr-code data-qr-target="<?= admin_guides_h($guideUrl) ?>" data-qr-title="<?= admin_guides_h($guideTitle) ?> guide QR">
+                                        <span class="admin-qr-fallback">QR unavailable</span>
+                                    </div>
+                                    <p><?= admin_guides_h($guideUrl) ?></p>
+                                </div>
+                                <?php if ($deckUrl !== null): ?>
+                                    <div class="admin-qr-item">
+                                        <h4>Decklist</h4>
+                                        <div class="admin-qr-code" data-qr-code data-qr-target="<?= admin_guides_h($deckUrl) ?>" data-qr-title="<?= admin_guides_h($guideTitle) ?> decklist QR">
+                                            <span class="admin-qr-fallback">QR unavailable</span>
+                                        </div>
+                                        <p><?= admin_guides_h($deckUrl) ?></p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <script src="/assets/js/admin-guide-qrcodes.js?v=<?= rawurlencode($qrScriptVersion) ?>" defer></script>
         <?php
     },
     $user,
