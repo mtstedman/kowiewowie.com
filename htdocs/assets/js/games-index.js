@@ -1,6 +1,10 @@
 (() => {
     const container = document.getElementById('games-list');
 
+    if (!(container instanceof HTMLElement)) {
+        return;
+    }
+
     const renderMessage = (message) => {
         container.replaceChildren();
         const paragraph = document.createElement('p');
@@ -21,9 +25,10 @@
         grid.className = 'feature-grid';
 
         games.forEach((game) => {
-            const slug = typeof game.slug === 'string' ? game.slug : '';
-            const name = typeof game.name === 'string' ? game.name : 'Untitled game';
-            const description = typeof game.shortDescription === 'string' ? game.shortDescription : '';
+            const safeGame = game && typeof game === 'object' ? game : {};
+            const slug = typeof safeGame.slug === 'string' ? safeGame.slug : '';
+            const name = typeof safeGame.name === 'string' ? safeGame.name : 'Untitled game';
+            const description = typeof safeGame.shortDescription === 'string' ? safeGame.shortDescription : '';
 
             const article = document.createElement('article');
 
@@ -71,7 +76,8 @@
             return response.json();
         })
         .then((data) => {
-            renderGames(Array.isArray(data) ? data : data.games);
+            const games = data && typeof data === 'object' ? data.games : [];
+            renderGames(Array.isArray(data) ? data : games);
         })
         .catch(() => {
             renderMessage('Games could not be loaded right now.');

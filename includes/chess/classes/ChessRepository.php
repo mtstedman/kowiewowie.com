@@ -1569,7 +1569,7 @@ final class ChessRepository
             'expires_at' => $link['expires_at'] !== null ? (string) $link['expires_at'] : null,
             'created_at' => (string) $link['created_at'],
             'token' => $rawToken,
-            'url' => '/chess/?token=' . rawurlencode($rawToken),
+            'url' => '/chess/?join=' . rawurlencode($rawToken),
             'game_public_id' => $publicId,
         ];
     }

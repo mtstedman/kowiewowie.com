@@ -75,16 +75,25 @@ final class Board
         foreach ($ranks as $rankOffset => $rankDefinition) {
             $file = 0;
             $rank = 7 - $rankOffset;
+            $previousWasDigit = false;
             $characters = str_split($rankDefinition);
             foreach ($characters as $character) {
-                if (ctype_digit($character)) {
+                if (preg_match('/^[1-8]$/', $character)) {
+                    if ($previousWasDigit) {
+                        throw new \InvalidArgumentException('FEN placement must not contain consecutive empty-square counts.');
+                    }
                     $file += (int) $character;
+                    if ($file > 8) {
+                        throw new \InvalidArgumentException('FEN placement extends beyond the board.');
+                    }
+                    $previousWasDigit = true;
                     continue;
                 }
 
                 if (!self::isInsideBoard($file, $rank)) {
                     throw new \InvalidArgumentException('FEN placement extends beyond the board.');
                 }
+                $previousWasDigit = false;
 
                 $piece = self::createPieceFromFenSymbol($character);
                 if ($piece instanceof Pawn && ($rank === 0 || $rank === 7)) {

@@ -2,6 +2,10 @@
     const content = document.getElementById('game-content');
     const slug = new URLSearchParams(window.location.search).get('slug')?.trim() ?? '';
 
+    if (!(content instanceof HTMLElement)) {
+        return;
+    }
+
     const appendTextElement = (parent, tagName, className, text) => {
         const element = document.createElement(tagName);
 
@@ -60,9 +64,10 @@
     };
 
     const renderGame = (game) => {
-        const name = typeof game.name === 'string' ? game.name : 'Board game';
-        const description = typeof game.shortDescription === 'string' ? game.shortDescription : '';
-        const notes = Array.isArray(game.strategyNotes) ? game.strategyNotes : [];
+        const safeGame = game && typeof game === 'object' ? game : {};
+        const name = typeof safeGame.name === 'string' ? safeGame.name : 'Board game';
+        const description = typeof safeGame.shortDescription === 'string' ? safeGame.shortDescription : '';
+        const notes = Array.isArray(safeGame.strategyNotes) ? safeGame.strategyNotes : [];
 
         document.title = `${name} strategy notes - wowiekowie.com`;
 
