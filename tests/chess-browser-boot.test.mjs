@@ -501,9 +501,11 @@ const buildGameDom = (document) => {
     });
 
     const board = document.getElementById('chess-board');
+    const moveListGetCountBeforeMove = calls.filter((call) => call.resource === `/api/v1/chess/games/${gameId}/moves` && (call.options.method || 'GET') === 'GET').length;
     board.dispatchEvent(clickEvent(document.querySelector('[data-square="e2"]')));
     board.dispatchEvent(clickEvent(document.querySelector('[data-square="e4"]')));
 
     await flushUntil(() => calls.some((call) => call.resource === `/api/v1/chess/games/${gameId}/moves` && call.options.method === 'POST'));
+    await flushUntil(() => calls.filter((call) => call.resource === `/api/v1/chess/games/${gameId}/moves` && (call.options.method || 'GET') === 'GET').length > moveListGetCountBeforeMove);
     assert.ok(calls.filter((call) => call.resource === `/api/v1/chess/games/${gameId}/moves` && (call.options.method || 'GET') === 'GET').length >= 2, 'move submit refreshes move list through chess API');
 }
