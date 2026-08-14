@@ -25,7 +25,11 @@ final class ChessRepository
     {
         $mode = $this->normalizeMode($input['mode'] ?? 'online');
         $variant = $this->normalizeVariant($input['variant'] ?? 'standard');
-        $creatorColor = $this->normalizeColor($input['creator_color'] ?? 'white', 'creator_color');
+        $creatorColorInput = $input['creator_color'] ?? 'white';
+        if (strtolower(trim((string) $creatorColorInput)) === 'random') {
+            $creatorColorInput = random_int(0, 1) === 0 ? 'white' : 'black';
+        }
+        $creatorColor = $this->normalizeColor($creatorColorInput, 'creator_color');
         $links = $this->normalizeInitialLinks($input['links'] ?? []);
         $actor = $this->seatActor($identity);
         $opponentColor = $creatorColor === 'white' ? 'black' : 'white';

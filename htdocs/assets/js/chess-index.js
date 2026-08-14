@@ -245,7 +245,10 @@ const handleNewGame = async (event) => {
     elements.newGameButton.disabled = true;
     elements.linkBox.hidden = true;
 
-    const creatorColor = elements.creatorColor.value === 'black' ? 'black' : 'white';
+    const selectedCreatorColor = elements.creatorColor.value;
+    const creatorColor = selectedCreatorColor === 'random'
+        ? 'random'
+        : selectedCreatorColor === 'black' ? 'black' : 'white';
     const gameMode = elements.gameMode.value === 'local' ? 'local' : 'online';
 
     try {
@@ -266,7 +269,10 @@ const handleNewGame = async (event) => {
             return;
         }
 
-        const viewerColor = game?.viewer?.seat_color || creatorColor;
+        const viewerSeatColor = game?.viewer?.seat_color;
+        const viewerColor = viewerSeatColor === 'black'
+            ? 'black'
+            : viewerSeatColor === 'white' ? 'white' : creatorColor === 'black' ? 'black' : 'white';
         const linkPayload = await createChallengeLink(gameId, {
             type: 'play',
             seat_color: oppositeColor(viewerColor),

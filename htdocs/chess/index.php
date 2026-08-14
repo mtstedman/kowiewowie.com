@@ -39,8 +39,9 @@ $pageStyles = ['/assets/css/chess.css'];
                             <label class="chess-field" for="chess-creator-color">
                                 <span>Your color</span>
                                 <select id="chess-creator-color" name="creator_color">
-                                    <option value="white">White</option>
+                                    <option value="white" selected>White</option>
                                     <option value="black">Black</option>
+                                    <option value="random">Random</option>
                                 </select>
                             </label>
 
