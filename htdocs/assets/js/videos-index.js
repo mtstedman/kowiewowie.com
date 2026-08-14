@@ -278,6 +278,58 @@
         });
     };
 
+    const formatVideoCount = (count) => `${numberFormatter.format(count)} video${count === 1 ? '' : 's'}`;
+
+    const getResultsSummary = (count) => {
+        const countLabel = formatVideoCount(count);
+        const hasQuery = activeQuery !== '';
+        const hasTopic = selectedTopic !== 'All';
+
+        if (hasQuery && hasTopic) {
+            return {
+                eyebrow: `${countLabel} found`,
+                description: `Showing results for "${activeQuery}" in ${selectedTopic}.`
+            };
+        }
+
+        if (hasQuery) {
+            return {
+                eyebrow: `${countLabel} found`,
+                description: `Showing results for "${activeQuery}" across titles, channels, descriptions, and tags.`
+            };
+        }
+
+        if (hasTopic) {
+            return {
+                eyebrow: `${countLabel} in ${selectedTopic}`,
+                description: `Showing every published video tagged with ${selectedTopic}.`
+            };
+        }
+
+        return {
+            eyebrow: `${countLabel} available`,
+            description: 'Showing the latest published uploads.'
+        };
+    };
+
+    const createResultsSummary = (count) => {
+        const summary = getResultsSummary(count);
+        const section = document.createElement('section');
+        section.className = 'videos-results-summary';
+
+        const eyebrow = document.createElement('p');
+        eyebrow.className = 'videos-results-summary-eyebrow';
+        eyebrow.textContent = summary.eyebrow;
+        section.append(eyebrow);
+
+        const description = document.createElement('p');
+        description.className = 'videos-results-summary-text';
+        description.textContent = summary.description;
+        section.append(description);
+
+        return section;
+    };
+
     const renderResults = () => {
         if (allVideos.length === 0) {
             renderState(
@@ -299,6 +351,7 @@
         }
 
         results.replaceChildren();
+        results.append(createResultsSummary(filteredVideos.length));
 
         const grid = document.createElement('div');
         grid.className = 'videos-grid';
