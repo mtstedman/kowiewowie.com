@@ -34,7 +34,7 @@
 .chess-hero h1 {
     max-width: 13ch;
     margin: 0;
-    font-size: clamp(1.65rem, 2.35rem, 2.65rem);
+    font-size: clamp(1.65rem, 1.45rem + 1vw, 2.35rem);
     line-height: 1;
     letter-spacing: 0;
 }

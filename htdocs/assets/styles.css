@@ -28,8 +28,8 @@
     --step-0: clamp(1rem, 0.95rem + 0.24vw, 1.13rem);
     --step-1: clamp(1.2rem, 1.08rem + 0.58vw, 1.5rem);
     --step-2: clamp(1.55rem, 1.28rem + 1.34vw, 2.25rem);
-    --step-3: clamp(2.15rem, 1.66rem + 2.42vw, 3.4rem);
-    --step-4: clamp(2.85rem, 2.12rem + 3.62vw, 5.1rem);
+    --step-3: clamp(1.55rem, 1.28rem + 1.34vw, 2.25rem);
+    --step-4: clamp(2.1rem, 1.75rem + 1.72vw, 3rem);
     --space-xs: 0.5rem;
     --space-sm: 0.85rem;
     --space-md: 1.25rem;
@@ -575,7 +575,7 @@ h3 {
     display: grid;
     grid-template-columns: minmax(220px, 0.55fr) minmax(0, 2.45fr);
     gap: clamp(42px, 8vw, 112px);
-    padding: 100px 0 124px;
+    padding: 64px 0 80px;
     background:
         linear-gradient(135deg, var(--surface-sheen-soft), transparent 46%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
@@ -802,6 +802,10 @@ footer {
         padding: 76px 0 88px;
     }
 
+    .hero.hero-compact {
+        padding-block: clamp(1.25rem, 4vw, 2.5rem);
+    }
+
     .bio-hero {
         padding-left: var(--space-md);
     }
@@ -812,11 +816,11 @@ footer {
 
     .bio-section {
         gap: 42px;
-        padding: 70px 0 86px;
+        padding: 48px 0 60px;
     }
 
     .bio-section h2 {
-        font-size: 2.35rem;
+        font-size: var(--step-3);
     }
 
     .hero-actions {
