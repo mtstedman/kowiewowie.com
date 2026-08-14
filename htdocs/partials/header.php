@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 ?>
+<a class="skip-link" href="#main-content">Skip to main content</a>
 <header class="site-header" aria-label="Site header">
     <a class="wordmark" href="/" aria-label="wowiekowie.com home">
         <span class="wordmark-mark" aria-hidden="true">w</span>
@@ -18,3 +19,4 @@ declare(strict_types=1);
     </nav>
     <span class="status"><span class="status-dot" aria-hidden="true"></span>online</span>
 </header>
+<span id="main-content" class="skip-target" tabindex="-1"></span>
