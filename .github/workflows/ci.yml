@@ -40,6 +40,7 @@ jobs:
           node tests/chess-browser-boot.test.mjs
           node tests/chess-csp-static.test.mjs
           node tests/videos-index-accessibility.test.mjs
+          node tests/music-index-accessibility.test.mjs
           node tests/dongs-copy-feedback.test.mjs
 
       - name: Run public UX accessibility regressions

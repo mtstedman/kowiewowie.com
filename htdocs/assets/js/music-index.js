@@ -33,6 +33,7 @@
             link.href = spotifyUrl;
             link.rel = 'noopener noreferrer';
             link.target = '_blank';
+            link.setAttribute('aria-label', 'Listen on Spotify, opens in a new tab');
             link.append('Listen on Spotify ');
 
             icon.setAttribute('aria-hidden', 'true');
