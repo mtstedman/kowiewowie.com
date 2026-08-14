@@ -26,7 +26,7 @@
                     const safeDeck = deck && typeof deck === 'object' ? deck : {};
                     const slug = typeof safeDeck.slug === 'string' ? safeDeck.slug : '';
                     const name = typeof safeDeck.name === 'string' ? safeDeck.name : 'Untitled deck';
-                    const format = typeof safeDeck.format === 'string' ? safeDeck.format : 'Unknown format';
+                    const format = typeof safeDeck.format === 'string' && safeDeck.format.trim() !== '' ? safeDeck.format.trim() : 'Game type not set';
                     const colors = Array.isArray(safeDeck.colors) && safeDeck.colors.length > 0 ? safeDeck.colors.join(' / ') : 'Colorless';
                     const cardCount = Number.isInteger(safeDeck.card_count) ? String(safeDeck.card_count) : '0';
                     const summary = typeof safeDeck.summary === 'string' ? safeDeck.summary : '';
@@ -35,7 +35,7 @@
                         <article>
                             <span class="feature-number">${escapeHtml(cardCount)} cards</span>
                             <h3><a href="/decks/deck.php?slug=${encodeURIComponent(slug)}">${escapeHtml(name)}</a></h3>
-                            <p>${escapeHtml(format)} deck - ${escapeHtml(colors)}</p>
+                            <p>Game type: ${escapeHtml(format)} - ${escapeHtml(colors)}</p>
                             ${summary !== '' ? `<p>${escapeHtml(summary)}</p>` : ''}
                         </article>
                     `;

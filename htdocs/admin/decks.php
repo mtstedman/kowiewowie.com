@@ -157,7 +157,8 @@ admin_render_page(
                 </label>
 
                 <label>
-                    <span>Format</span>
+                    <span>Game type</span>
+                    <small>Examples: Modern, Commander, or Standard.</small>
                     <input name="format" value="<?= admin_decks_h($formDeck['format'] ?? '') ?>" required maxlength="120">
                 </label>
 

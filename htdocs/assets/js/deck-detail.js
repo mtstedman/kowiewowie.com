@@ -38,7 +38,7 @@
 
     const renderDeck = (deck) => {
         const name = typeof deck.name === 'string' ? deck.name : 'Untitled deck';
-        const format = typeof deck.format === 'string' ? deck.format : 'Unknown format';
+        const format = typeof deck.format === 'string' && deck.format.trim() !== '' ? deck.format.trim() : 'Game type not set';
         const colors = Array.isArray(deck.colors) && deck.colors.length > 0 ? deck.colors.join(' / ') : 'Colorless';
         const commander = typeof deck.commander === 'string' ? deck.commander : '';
         const cardCount = Number.isInteger(deck.card_count) ? String(deck.card_count) : '0';
@@ -50,7 +50,7 @@
         document.title = `${name} - Decks - wowiekowie.com`;
         detailRoot.innerHTML = `
             <section class="hero hero-compact">
-                <p class="eyebrow">${escapeHtml(format)} - ${escapeHtml(colors)} - ${escapeHtml(cardCount)} cards</p>
+                <p class="eyebrow">Game type: ${escapeHtml(format)} - ${escapeHtml(colors)} - ${escapeHtml(cardCount)} cards</p>
                 <h1>${escapeHtml(name)}</h1>
                 ${summary !== '' ? `<p class="lede">${escapeHtml(summary)}</p>` : ''}
                 <div class="hero-actions">
