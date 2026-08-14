@@ -40,6 +40,7 @@ const elements = {
     turnStatus: document.getElementById('chess-turn-status'),
     ruleStatus: document.getElementById('chess-rule-status'),
     controlStatus: document.getElementById('chess-control-status'),
+    openingStatus: document.getElementById('chess-opening-status'),
     takebackButton: document.getElementById('chess-takeback-button'),
     resignButton: document.getElementById('chess-resign-button'),
     fullscreenToggle: document.getElementById('chess-fullscreen-toggle'),
@@ -87,6 +88,58 @@ const titleCase = (value) => {
 const setMessage = (element, message = '', tone = '') => {
     element.textContent = message;
     element.dataset.tone = tone;
+};
+
+const ensureOpeningStatusElement = () => {
+    if (elements.openingStatus instanceof HTMLElement) {
+        return elements.openingStatus;
+    }
+
+    const statusRow = elements.turnStatus?.parentElement;
+    if (!(statusRow instanceof HTMLElement)) {
+        return null;
+    }
+
+    const openingStatus = document.createElement('span');
+    openingStatus.className = 'chess-status-pill';
+    openingStatus.id = 'chess-opening-status';
+    openingStatus.hidden = true;
+    statusRow.insertBefore(openingStatus, elements.takebackButton || null);
+    elements.openingStatus = openingStatus;
+    return openingStatus;
+};
+
+const formatOpening = (opening) => {
+    if (!opening || typeof opening !== 'object') {
+        return 'Off book';
+    }
+
+    const ecoCode = typeof opening.eco_code === 'string' ? opening.eco_code.trim() : '';
+    const name = typeof opening.name === 'string' ? opening.name.trim() : '';
+    if (ecoCode !== '' && name !== '') {
+        return `[${ecoCode}] ${name}`;
+    }
+    if (ecoCode !== '') {
+        return `[${ecoCode}]`;
+    }
+    if (name !== '') {
+        return name;
+    }
+
+    return 'Off book';
+};
+
+const renderOpeningStatus = () => {
+    const openingStatus = ensureOpeningStatusElement();
+    if (!(openingStatus instanceof HTMLElement)) {
+        return;
+    }
+
+    const message = formatOpening(state.game?.opening);
+    const onBook = message !== 'Off book';
+    openingStatus.hidden = false;
+    openingStatus.setAttribute('aria-label', `Opening: ${message}`);
+    setMessage(openingStatus, message, onBook ? 'success' : 'neutral');
 };
 
 const errorMessage = (error, fallback) => {
@@ -469,6 +522,7 @@ const renderGame = () => {
 
     state.board = parseFen(state.game?.position?.fen || '');
     renderStatus();
+    renderOpeningStatus();
     renderPlayers();
     renderMoves();
     renderBoard();

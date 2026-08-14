@@ -805,6 +805,21 @@ final class ChessRepository
         return $playersByGame;
     }
 
+    /** @return list<string> */
+    private function loadMoveUciForGame(string $gameId): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT uci
+            FROM chess_game_moves
+            WHERE game_id = :game_id
+            ORDER BY ply ASC
+        SQL);
+        $statement->execute(['game_id' => $gameId]);
+        $moves = $statement->fetchAll(PDO::FETCH_COLUMN);
+
+        return array_map(static fn (mixed $uci): string => (string) $uci, is_array($moves) ? $moves : []);
+    }
+
     /**
      * @param array<string, mixed> $game
      * @param list<array<string, mixed>> $players
@@ -823,6 +838,7 @@ final class ChessRepository
         $canControlTurn = $currentSeat !== null && $this->canActAsSeat($game, $players, $currentSeat, $identity);
         $pendingTakebackBy = $game['pending_takeback_by_player_id'] !== null ? (string) $game['pending_takeback_by_player_id'] : null;
         $pendingTakebackRequester = $pendingTakebackBy !== null ? $this->playerById($players, $pendingTakebackBy) : null;
+        $opening = (new ChessOpeningBookQuery($this->pdo))->query($this->loadMoveUciForGame((string) $game['id']));
         $payload = [
             'id' => (string) $game['public_id'],
             'variant' => (string) $game['variant'],
@@ -831,6 +847,7 @@ final class ChessRepository
             'current_ply' => (int) $game['current_ply'],
             'result' => (string) $game['result'],
             'termination' => $game['termination'] !== null ? (string) $game['termination'] : null,
+            'opening' => $opening,
             'takeback' => [
                 'pending' => $pendingTakebackBy !== null,
                 'requested_by_player_id' => $pendingTakebackBy,
