@@ -35,7 +35,10 @@ jobs:
           php tests/chess-repository-query-count.php
 
       - name: Run chess browser regressions
-        run: node tests/chess-game-opening-status.test.mjs
+        run: |
+          node tests/chess-game-opening-status.test.mjs
+          node tests/chess-browser-boot.test.mjs
+          node tests/chess-csp-static.test.mjs
 
       - name: Check deployment shell syntax
         run: bash -n deploy/deploy.sh .githooks/post-commit

@@ -3,6 +3,7 @@ import { claimLink, createChallengeLink, createGame, getProfile, listGames, upda
 const initializationFailureMessage = 'Chess could not finish loading. The create-game controls were not initialized.';
 let elements;
 let initializationError = null;
+let initializationGuardInstalled = false;
 let initialized = false;
 
 const requireElement = (id) => {
@@ -75,8 +76,9 @@ const findNewGameForm = () => {
 
 const installNewGameInitializationGuard = () => {
     const newGameForm = findNewGameForm();
-    if (newGameForm) {
+    if (newGameForm && !initializationGuardInstalled) {
         newGameForm.addEventListener('submit', guardNewGameBeforeInitialization);
+        initializationGuardInstalled = true;
     }
 };
 
@@ -444,9 +446,23 @@ const initializeChessIndex = () => {
     }).catch(handleInitializationFailure);
 };
 
+const boot = () => {
+    try {
+        installNewGameInitializationGuard();
+        initializeChessIndex();
+    } catch (error) {
+        handleInitializationFailure(error);
+    }
+};
+
 try {
     installNewGameInitializationGuard();
-    initializeChessIndex();
 } catch (error) {
     handleInitializationFailure(error);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+} else {
+    boot();
 }

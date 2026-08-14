@@ -34,35 +34,40 @@ const PIECE_ASSETS = Object.freeze({
 });
 
 const chessDocument = typeof document === 'undefined' ? null : document;
+let elements = {};
 
-const elements = {
-    root: chessDocument?.querySelector('[data-chess-game]') || null,
-    summary: chessDocument?.getElementById('chess-game-summary') || null,
-    error: chessDocument?.getElementById('chess-game-error') || null,
-    turnStatus: chessDocument?.getElementById('chess-turn-status') || null,
-    ruleStatus: chessDocument?.getElementById('chess-rule-status') || null,
-    controlStatus: chessDocument?.getElementById('chess-control-status') || null,
-    openingStatus: chessDocument?.getElementById('chess-opening-status') || null,
-    takebackButton: chessDocument?.getElementById('chess-takeback-button') || null,
-    resignButton: chessDocument?.getElementById('chess-resign-button') || null,
-    fullscreenToggle: chessDocument?.getElementById('chess-fullscreen-toggle') || null,
-    fullscreenExit: chessDocument?.getElementById('chess-fullscreen-exit') || null,
-    board: chessDocument?.getElementById('chess-board') || null,
-    boardMessage: chessDocument?.getElementById('chess-board-message') || null,
-    whitePlayer: chessDocument?.getElementById('chess-white-player') || null,
-    blackPlayer: chessDocument?.getElementById('chess-black-player') || null,
-    viewerPlayer: chessDocument?.getElementById('chess-viewer-player') || null,
-    currentName: chessDocument?.getElementById('chess-current-name') || null,
-    profileForm: chessDocument?.getElementById('chess-profile-form') || null,
-    displayName: chessDocument?.getElementById('chess-display-name') || null,
-    saveNameButton: chessDocument?.getElementById('chess-save-name-button') || null,
-    notificationToggle: chessDocument?.getElementById('chess-move-notifications') || null,
-    notificationMessage: chessDocument?.getElementById('chess-notification-message') || null,
-    profileMessage: chessDocument?.getElementById('chess-profile-message') || null,
-    moveList: chessDocument?.getElementById('chess-move-list') || null,
-    promotionDialog: chessDocument?.getElementById('chess-promotion-dialog') || null,
-    promotionOptions: chessDocument?.getElementById('chess-promotion-options') || null,
-    promotionCancel: chessDocument?.getElementById('chess-promotion-cancel') || null,
+const resolveElements = () => {
+    const currentDocument = typeof document === 'undefined' ? null : document;
+
+    return {
+        root: currentDocument?.querySelector('[data-chess-game]') || null,
+        summary: currentDocument?.getElementById('chess-game-summary') || null,
+        error: currentDocument?.getElementById('chess-game-error') || null,
+        turnStatus: currentDocument?.getElementById('chess-turn-status') || null,
+        ruleStatus: currentDocument?.getElementById('chess-rule-status') || null,
+        controlStatus: currentDocument?.getElementById('chess-control-status') || null,
+        openingStatus: currentDocument?.getElementById('chess-opening-status') || null,
+        takebackButton: currentDocument?.getElementById('chess-takeback-button') || null,
+        resignButton: currentDocument?.getElementById('chess-resign-button') || null,
+        fullscreenToggle: currentDocument?.getElementById('chess-fullscreen-toggle') || null,
+        fullscreenExit: currentDocument?.getElementById('chess-fullscreen-exit') || null,
+        board: currentDocument?.getElementById('chess-board') || null,
+        boardMessage: currentDocument?.getElementById('chess-board-message') || null,
+        whitePlayer: currentDocument?.getElementById('chess-white-player') || null,
+        blackPlayer: currentDocument?.getElementById('chess-black-player') || null,
+        viewerPlayer: currentDocument?.getElementById('chess-viewer-player') || null,
+        currentName: currentDocument?.getElementById('chess-current-name') || null,
+        profileForm: currentDocument?.getElementById('chess-profile-form') || null,
+        displayName: currentDocument?.getElementById('chess-display-name') || null,
+        saveNameButton: currentDocument?.getElementById('chess-save-name-button') || null,
+        notificationToggle: currentDocument?.getElementById('chess-move-notifications') || null,
+        notificationMessage: currentDocument?.getElementById('chess-notification-message') || null,
+        profileMessage: currentDocument?.getElementById('chess-profile-message') || null,
+        moveList: currentDocument?.getElementById('chess-move-list') || null,
+        promotionDialog: currentDocument?.getElementById('chess-promotion-dialog') || null,
+        promotionOptions: currentDocument?.getElementById('chess-promotion-options') || null,
+        promotionCancel: currentDocument?.getElementById('chess-promotion-cancel') || null,
+    };
 };
 
 const state = {
@@ -920,6 +925,8 @@ const seedProfileName = async () => {
 };
 
 const init = () => {
+    elements = resolveElements();
+
     setBoardFullscreen(false);
     restoreNotificationPreference();
     state.gameId = readGameId();
@@ -946,6 +953,27 @@ const init = () => {
     startPolling();
 };
 
+const handleInitializationFailure = (error) => {
+    elements = resolveElements();
+    console.error('Chess game initialization failed.', error);
+
+    if (elements.error && elements.root && elements.boardMessage) {
+        renderError('Chess could not finish loading. The board controls were not initialized.');
+    }
+};
+
+const boot = () => {
+    try {
+        init();
+    } catch (error) {
+        handleInitializationFailure(error);
+    }
+};
+
 if (chessDocument !== null) {
-    init();
+    if (chessDocument.readyState === 'loading') {
+        chessDocument.addEventListener('DOMContentLoaded', boot, { once: true });
+    } else {
+        boot();
+    }
 }
