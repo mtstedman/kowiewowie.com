@@ -17,8 +17,8 @@
     const renderNotFound = (message) => {
         detailRoot.innerHTML = `
             <section class="hero hero-compact">
-                <p class="eyebrow">Deck manager</p>
-                <h1>Deck not found</h1>
+                <p class="eyebrow">Decklist</p>
+                <h1>That deck box is missing</h1>
                 <p class="lede">${escapeHtml(message)}</p>
                 <a class="button" href="/decks/">Back to decks</a>
             </section>
@@ -28,8 +28,8 @@
     const renderError = (message) => {
         detailRoot.innerHTML = `
             <section class="hero hero-compact">
-                <p class="eyebrow">Deck manager</p>
-                <h1>Unable to load deck</h1>
+                <p class="eyebrow">Decklist</p>
+                <h1>The deck box stuck shut</h1>
                 <p class="lede">${escapeHtml(message)}</p>
                 <a class="button" href="/decks/">Back to decks</a>
             </section>
@@ -73,7 +73,7 @@
                     <p class="eyebrow">Decklist</p>
                     <h2 id="decklist-title">Cards</h2>
                 </div>
-                ${sections.length === 0 ? '<p>This deck does not have cards listed yet.</p>' : `
+                ${sections.length === 0 ? '<p>This deck box is still waiting for its card list.</p>' : `
                     <div class="feature-grid">
                         ${sections.map(([section, cards]) => `
                             <article>
@@ -100,12 +100,12 @@
     };
 
     if (slug === '') {
-        renderNotFound('No deck matches the requested slug.');
+        renderNotFound('No deck matches that link.');
     } else {
         fetch(`/api/decks/${encodeURIComponent(slug)}`)
             .then((response) => {
                 if (response.status === 404) {
-                    throw new Error('No deck matches the requested slug.');
+                    throw new Error('No deck matches that link.');
                 }
 
                 if (!response.ok) {
@@ -116,7 +116,7 @@
             })
             .then((deck) => renderDeck(deck && typeof deck === 'object' ? deck : {}))
             .catch((error) => {
-                if (error.message === 'No deck matches the requested slug.') {
+                if (error.message === 'No deck matches that link.') {
                     renderNotFound(error.message);
                     return;
                 }

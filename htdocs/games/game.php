@@ -14,8 +14,8 @@ $metaDescription = 'Strategy notes for a board game on wowiekowie.com.';
         <main id="game-content" aria-live="polite">
             <section class="hero hero-compact">
                 <p class="eyebrow">Strategy notes</p>
-                <h1>Loading game...</h1>
-                <p class="lede">Fetching the latest strategy notes.</p>
+                <h1>Finding the game box.</h1>
+                <p class="lede">Fetching the latest table-side notes.</p>
             </section>
         </main>
 

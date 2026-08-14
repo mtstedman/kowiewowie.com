@@ -28,7 +28,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             try {
                 $result = $repository->save('decks', $formDeck, admin_decks_actor_id($user));
                 $formDeck = is_array($result['item'] ?? null) ? $result['item'] : $formDeck;
-                $messages[] = $mode === 'edit' ? 'Deck updated.' : 'Deck created.';
+                $messages[] = $mode === 'edit' ? 'Deck list polished.' : 'Deck added to the binder.';
                 if ($mode === 'add') {
                     $formDeck = admin_decks_blank_deck();
                 }
@@ -43,7 +43,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     throw new RuntimeException('Choose a deck to delete.');
                 }
                 $repository->delete('decks', $slug);
-                $messages[] = 'Deck deleted.';
+                $messages[] = 'Deck removed from the binder.';
             } catch (Throwable $error) {
                 $errors[] = $error->getMessage();
             }
@@ -78,9 +78,11 @@ admin_render_page(
     'Decks',
     static function () use ($decks, $errors, $messages, $mode, $formDeck): void {
         ?>
-        <section class="admin-panel" aria-labelledby="decks-title">
-            <p class="admin-eyebrow">Content</p>
-            <h1 id="decks-title">Decks</h1>
+        <section class="admin-hero" aria-labelledby="decks-title">
+            <p class="admin-eyebrow">Deck forge</p>
+            <h1 id="decks-title">Decks with tidy piles.</h1>
+            <p>Manage metadata, strategy notes, sections, and card rows before anything hits the public table.</p>
+        </section>
 
             <?php foreach ($messages as $message): ?>
                 <div class="admin-alert admin-alert-success" role="status"><?= admin_decks_h($message) ?></div>
@@ -90,6 +92,9 @@ admin_render_page(
                 <div class="admin-alert admin-alert-error" role="alert"><?= admin_decks_h($error) ?></div>
             <?php endforeach; ?>
 
+        <section class="admin-panel" aria-labelledby="deck-list-title">
+            <h2 id="deck-list-title">Deck binder</h2>
+            <p>Review status and slugs before jumping into edits.</p>
             <div class="admin-table-wrap">
                 <table class="admin-table">
                     <thead>
@@ -103,7 +108,7 @@ admin_render_page(
                     <tbody>
                         <?php if ($decks === []): ?>
                             <tr>
-                                <td colspan="4">No decks have been created yet.</td>
+                                <td colspan="4">No decks yet. Start a list below and give the cards somewhere to sit.</td>
                             </tr>
                         <?php endif; ?>
                         <?php foreach ($decks as $deck): ?>
@@ -113,12 +118,12 @@ admin_render_page(
                                 <td><?= admin_decks_h($deck['status'] ?? '') ?></td>
                                 <td><?= admin_decks_h($slug) ?></td>
                                 <td>
-                                    <a href="/admin/decks.php?action=edit&amp;slug=<?= rawurlencode($slug) ?>">Edit</a>
+                                    <a class="admin-button admin-button-secondary" href="/admin/decks.php?action=edit&amp;slug=<?= rawurlencode($slug) ?>">Edit deck</a>
                                     <form method="post" class="admin-inline-form" onsubmit="return confirm('Delete this deck?');">
                                         <?= admin_csrf_field() ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="slug" value="<?= admin_decks_h($slug) ?>">
-                                        <button type="submit">Delete</button>
+                                        <button type="submit">Delete deck</button>
                                     </form>
                                 </td>
                             </tr>
@@ -129,8 +134,9 @@ admin_render_page(
         </section>
 
         <section class="admin-panel" aria-labelledby="deck-form-title">
-            <p class="admin-eyebrow"><?= $mode === 'edit' ? 'Edit' : 'Add' ?></p>
+            <p class="admin-eyebrow"><?= $mode === 'edit' ? 'Tune up' : 'New build' ?></p>
             <h2 id="deck-form-title"><?= $mode === 'edit' ? 'Edit deck' : 'Add deck' ?></h2>
+            <p>Name the strategy, keep sections tidy, and use search when you want card art to travel with the row.</p>
 
             <form method="post" class="admin-form">
                 <?= admin_csrf_field() ?>
@@ -141,6 +147,7 @@ admin_render_page(
 
                 <label>
                     <span>Slug</span>
+                    <small>Stable URL handle; edit mode locks it to protect existing links.</small>
                     <input name="slug" value="<?= admin_decks_h($formDeck['slug'] ?? '') ?>" required maxlength="160"<?= $mode === 'edit' ? ' readonly' : '' ?>>
                 </label>
 
@@ -156,6 +163,7 @@ admin_render_page(
 
                 <label>
                     <span>Colors</span>
+                    <small>Comma or slash separated, like W/U or blue, black.</small>
                     <input name="colors" value="<?= admin_decks_h(admin_decks_colors_text($formDeck['colors'] ?? [])) ?>" maxlength="255">
                 </label>
 
@@ -188,7 +196,8 @@ admin_render_page(
                     <div data-deck-editor>
                         <label>
                             <span>Search cards</span>
-                            <input type="search" data-card-search-input placeholder="Search Scryfall cards" autocomplete="off" spellcheck="false">
+                            <small>Search Scryfall, choose a section, then add or drag the card into place.</small>
+                            <input type="search" data-card-search-input placeholder="Search cards by name" autocomplete="off" spellcheck="false">
                         </label>
                         <div data-card-search-results aria-live="polite"></div>
                         <div data-deck-sections data-next-section="<?= admin_decks_section_count($formDeck['decklist'] ?? []) ?>">
@@ -198,10 +207,12 @@ admin_render_page(
                     <button type="button" data-add-section>Add section</button>
                 </fieldset>
 
-                <button type="submit"><?= $mode === 'edit' ? 'Update deck' : 'Create deck' ?></button>
-                <?php if ($mode === 'edit'): ?>
-                    <a href="/admin/decks.php">Cancel edit</a>
-                <?php endif; ?>
+                <div class="admin-action-row">
+                    <button type="submit"><?= $mode === 'edit' ? 'Update deck' : 'Create deck' ?></button>
+                    <?php if ($mode === 'edit'): ?>
+                        <a class="admin-button admin-button-secondary" href="/admin/decks.php">Cancel editing</a>
+                    <?php endif; ?>
+                </div>
             </form>
         </section>
 

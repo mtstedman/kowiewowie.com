@@ -23,7 +23,7 @@
 
         if (recipes.length === 0) {
             const empty = document.createElement('p');
-            empty.textContent = 'No recipes are available yet.';
+            empty.textContent = 'The recipe drawer is empty for now.';
             recipeList.append(empty);
             return;
         }
@@ -69,7 +69,7 @@
         } catch (error) {
             recipeList.innerHTML = '';
             const message = document.createElement('p');
-            message.textContent = 'Recipes could not be loaded right now.';
+            message.textContent = 'The recipe drawer jammed. Try again in a moment.';
             recipeList.append(message);
         }
     }

@@ -187,7 +187,7 @@ const seedProfileName = async () => {
 const renderEmpty = () => {
     const paragraph = document.createElement('p');
     paragraph.className = 'lede';
-    paragraph.textContent = 'No chess games are tied to this browser yet.';
+    paragraph.textContent = 'No boards are tied to this browser yet.';
     elements.gamesList.replaceChildren(paragraph);
 };
 
@@ -254,7 +254,7 @@ const refreshGames = async () => {
     elements.gamesList.replaceChildren();
     const loading = document.createElement('p');
     loading.className = 'lede';
-    loading.textContent = 'Loading chess games...';
+    loading.textContent = 'Looking for your boards...';
     elements.gamesList.append(loading);
 
     try {
@@ -268,7 +268,7 @@ const refreshGames = async () => {
     } catch (error) {
         const paragraph = document.createElement('p');
         paragraph.className = 'lede';
-        paragraph.textContent = errorMessage(error, 'Chess games could not be loaded right now.');
+        paragraph.textContent = errorMessage(error, 'The board shelf would not load. Try again in a moment.');
         elements.gamesList.replaceChildren(paragraph);
     }
 };
@@ -314,7 +314,7 @@ const showChallengeLink = (url, gameId) => {
 
 const handleNewGame = async (event) => {
     event.preventDefault();
-    setMessage(elements.createMessage, 'Creating game...', 'neutral');
+    setMessage(elements.createMessage, 'Setting up the board...', 'neutral');
     elements.newGameButton.disabled = true;
     resetChallengeLink();
 
@@ -359,7 +359,7 @@ const handleNewGame = async (event) => {
 
         showChallengeLink(linkUrlFromToken(token), gameId);
         setDisplayName(deriveDisplayName([game]));
-        setMessage(elements.createMessage, 'Challenge link ready.', 'success');
+        setMessage(elements.createMessage, 'Challenge link is ready.', 'success');
         await refreshGames();
     } catch (error) {
         setMessage(elements.createMessage, errorMessage(error, 'The game could not be created.'), 'error');
@@ -380,10 +380,10 @@ const handleCopy = async () => {
         } else if (!copyWithFallback(value)) {
             throw new Error('Copy failed.');
         }
-        setMessage(elements.createMessage, 'Link copied.', 'success');
+        setMessage(elements.createMessage, 'Link copied to the clipboard.', 'success');
     } catch (error) {
         if (copyWithFallback(value)) {
-            setMessage(elements.createMessage, 'Link copied.', 'success');
+            setMessage(elements.createMessage, 'Link copied to the clipboard.', 'success');
             return;
         }
         setMessage(elements.createMessage, 'Copy failed. Select the link and copy it manually.', 'error');
@@ -400,16 +400,16 @@ const handleProfileSave = async (event) => {
     }
 
     elements.saveNameButton.disabled = true;
-    setMessage(elements.profileMessage, 'Saving name...', 'neutral');
+    setMessage(elements.profileMessage, 'Saving your badge...', 'neutral');
 
     try {
         const profile = await updateProfile(displayName);
         const savedName = typeof profile?.display_name === 'string' ? profile.display_name : displayName;
         setDisplayName(savedName);
         elements.displayName.value = '';
-        setMessage(elements.profileMessage, 'Name saved.', 'success');
+        setMessage(elements.profileMessage, 'Badge name saved.', 'success');
     } catch (error) {
-        setMessage(elements.profileMessage, errorMessage(error, 'The display name could not be saved.'), 'error');
+        setMessage(elements.profileMessage, errorMessage(error, 'The badge name could not be saved.'), 'error');
     } finally {
         elements.saveNameButton.disabled = false;
     }

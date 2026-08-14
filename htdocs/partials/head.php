@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 $pageTitle = $pageTitle ?? 'wowiekowie.com';
-$metaDescription = $metaDescription ?? 'A personal site for recipes, decks, games, music, and experiments.';
+$metaDescription = $metaDescription ?? 'A playful personal site for recipes, decks, games, music, videos, and odd little experiments.';
 $pageStyles = $pageStyles ?? [];
 $stylesheetPath = __DIR__ . '/../assets/styles.css';
 $stylesheetVersion = is_file($stylesheetPath) ? (string) filemtime($stylesheetPath) : '1';

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Chess - wowiekowie.com';
-$metaDescription = 'Start and join guest chess games on wowiekowie.com.';
+$metaDescription = 'Create guest chess games, copy challenge links, and continue browser-tied boards on wowiekowie.com.';
 $pageStyles = ['/assets/css/chess.css'];
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
@@ -14,9 +14,9 @@ $pageStyles = ['/assets/css/chess.css'];
 
         <main class="chess-page" data-chess-lobby>
             <section class="chess-hero" aria-labelledby="chess-title">
-                <p class="eyebrow">Chess</p>
-                <h1 id="chess-title">Guest games and challenge links.</h1>
-                <p class="lede">Create a game, copy an invite, or continue one already tied to this browser.</p>
+                <p class="eyebrow">Chess lobby</p>
+                <h1 id="chess-title">Challenge links without the velvet rope.</h1>
+                <p class="lede">Create a game, copy an invite, or reopen a board already tied to this browser.</p>
             </section>
 
             <section class="chess-layout" aria-label="Chess lobby">
@@ -24,12 +24,12 @@ $pageStyles = ['/assets/css/chess.css'];
                     <section class="chess-panel" aria-labelledby="chess-new-game-title">
                         <div class="chess-section-heading">
                             <p class="eyebrow">New game</p>
-                            <h2 id="chess-new-game-title">Create a challenge</h2>
+                            <h2 id="chess-new-game-title">Start a board</h2>
                         </div>
 
                         <form class="chess-form chess-new-game-form" id="chess-new-game-form">
                             <label class="chess-field" for="chess-game-mode">
-                                <span>Play mode</span>
+                                <span>Mode</span>
                                 <select id="chess-game-mode" name="mode">
                                     <option value="online" selected>Online challenge link</option>
                                     <option value="local">Local same-device game</option>
@@ -64,19 +64,19 @@ $pageStyles = ['/assets/css/chess.css'];
 
                     <section class="chess-panel" aria-labelledby="chess-games-title">
                         <div class="chess-section-heading">
-                            <p class="eyebrow">Your board</p>
-                            <h2 id="chess-games-title">Games</h2>
+                            <p class="eyebrow">Your boards</p>
+                            <h2 id="chess-games-title">Browser-tied games</h2>
                         </div>
 
                         <div class="chess-games-list" id="chess-games-list" aria-live="polite">
-                            <p class="lede">Loading chess games...</p>
+                            <p class="lede">Looking for your boards...</p>
                         </div>
                     </section>
                 </div>
 
                 <aside class="chess-panel chess-identity-panel" aria-labelledby="chess-profile-title">
                     <div class="chess-section-heading">
-                        <p class="eyebrow">Guest identity</p>
+                        <p class="eyebrow">Guest badge</p>
                         <h2 id="chess-profile-title">Display name</h2>
                     </div>
 

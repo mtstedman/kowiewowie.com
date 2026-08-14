@@ -13,9 +13,9 @@ $metaDescription = 'Watch a public video on wowiekowie.com.';
 
         <main id="video-page" aria-live="polite">
             <section class="hero hero-compact videos-watch-shell">
-                <p class="eyebrow">Videos</p>
-                <h1>Loading video...</h1>
-                <p class="lede">Fetching the watch page and related uploads.</p>
+                <p class="eyebrow">Watch page</p>
+                <h1>Spinning up the video shelf.</h1>
+                <p class="lede">Fetching the player, notes, and nearby uploads.</p>
             </section>
         </main>
 

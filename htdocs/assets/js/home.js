@@ -7,11 +7,12 @@
     }
 
     const messages = [
-        'Current mood: politely tap-dancing through the source code.',
+        'Current mood: sorting ideas by crunch level.',
         'Status: one tiny idea wearing a party hat.',
         'Desk forecast: scattered snacks with a chance of excellent tabs.',
         'Now serving: pocket-sized nonsense, locally sourced.',
-        'Alert: the recipe drawer just winked.'
+        'Alert: the recipe drawer just winked.',
+        'Video shelf report: one upload practicing jazz hands.'
     ];
 
     let messageIndex = 0;

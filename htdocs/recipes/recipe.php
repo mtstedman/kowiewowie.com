@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Recipe - wowiekowie.com';
-$metaDescription = 'Recipe detail from wowiekowie.com.';
+$metaDescription = 'A recipe note from the wowiekowie.com kitchen drawer.';
 ?>
 <?php require __DIR__ . '/../partials/head.php'; ?>
 <body>
@@ -13,9 +13,9 @@ $metaDescription = 'Recipe detail from wowiekowie.com.';
 
         <main id="recipe-detail" aria-live="polite">
             <section class="hero hero-compact">
-                <p class="eyebrow">Recipe</p>
-                <h1>Loading recipe...</h1>
-                <p class="lede">Fetching the recipe notes.</p>
+                <p class="eyebrow">Recipe drawer</p>
+                <h1>Warming the recipe page.</h1>
+                <p class="lede">Fetching the notes, crumbs, and useful little measurements.</p>
             </section>
         </main>
 

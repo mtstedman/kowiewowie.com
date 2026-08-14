@@ -42,8 +42,8 @@
         section.className = 'hero hero-compact';
 
         appendTextElement(section, 'p', 'eyebrow', 'Game not found');
-        appendTextElement(section, 'h1', '', 'Those strategy notes are not on the shelf.');
-        appendTextElement(section, 'p', 'lede', 'Choose a board game from the games list to see its notes.');
+        appendTextElement(section, 'h1', '', 'That game box is not on the shelf.');
+        appendTextElement(section, 'p', 'lede', 'Choose another board game to see its table notes.');
         appendArrowLink(section, 'button', '/games/', 'Back to games');
 
         content.append(section);
@@ -56,8 +56,8 @@
         section.className = 'hero hero-compact';
 
         appendTextElement(section, 'p', 'eyebrow', 'Loading error');
-        appendTextElement(section, 'h1', '', 'Those strategy notes could not be loaded.');
-        appendTextElement(section, 'p', 'lede', 'Try the games list again in a moment.');
+        appendTextElement(section, 'h1', '', 'The table notes would not load.');
+        appendTextElement(section, 'p', 'lede', 'Try the games shelf again in a moment.');
         appendArrowLink(section, 'button', '/games/', 'Back to games');
 
         content.append(section);
@@ -91,7 +91,7 @@
 
         const heading = document.createElement('div');
         heading.className = 'section-heading';
-        appendTextElement(heading, 'p', 'eyebrow', 'Per-game notes');
+        appendTextElement(heading, 'p', 'eyebrow', 'Table notes');
 
         const title = appendTextElement(heading, 'h2', '', `How to approach ${name}`);
         title.id = 'strategy-title';
@@ -100,7 +100,7 @@
         const validNotes = notes.filter((note) => typeof note === 'string' && note !== '');
 
         if (validNotes.length === 0) {
-            appendTextElement(section, 'p', 'lede', 'No strategy notes have been added for this game yet.');
+            appendTextElement(section, 'p', 'lede', 'No table notes have been tucked into this box yet.');
         } else {
             const grid = document.createElement('div');
             grid.className = 'feature-grid';

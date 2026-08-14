@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Chess game - wowiekowie.com';
-$metaDescription = 'Play a guest chess game on wowiekowie.com.';
+$metaDescription = 'Play a guest chess game with browser-tied seats on wowiekowie.com.';
 $pageStyles = ['/assets/css/chess.css'];
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
@@ -14,9 +14,9 @@ $pageStyles = ['/assets/css/chess.css'];
 
         <main class="chess-page chess-game-page" data-chess-game>
             <section class="chess-hero chess-game-hero" aria-labelledby="chess-game-title">
-                <p class="eyebrow">Chess</p>
-                <h1 id="chess-game-title">Game board.</h1>
-                <p class="lede" id="chess-game-summary">Loading game state...</p>
+                <p class="eyebrow">Chess board</p>
+                <h1 id="chess-game-title">The board is thinking.</h1>
+                <p class="lede" id="chess-game-summary">Loading the position, seats, and tiny clocks in our heads...</p>
             </section>
 
             <section class="chess-board-shell" aria-label="Chess game board and controls">
@@ -25,7 +25,7 @@ $pageStyles = ['/assets/css/chess.css'];
                         <div class="chess-status-row chess-game-status-bar" aria-live="polite">
                             <p class="chess-alert" id="chess-game-error" role="alert" hidden></p>
                             <span class="chess-status-pill" id="chess-turn-status">Loading</span>
-                            <span class="chess-status-pill" id="chess-rule-status">Waiting for game</span>
+                            <span class="chess-status-pill" id="chess-rule-status">Waiting</span>
                             <span class="chess-status-pill" id="chess-control-status">Spectating</span>
                             <button class="chess-button chess-button-small" type="button" id="chess-takeback-button" hidden>Takeback</button>
                             <button class="chess-button chess-button-small" type="button" id="chess-resign-button" hidden>Resign</button>
@@ -36,7 +36,7 @@ $pageStyles = ['/assets/css/chess.css'];
                         <div class="chess-board-actions" id="chess-board-actions" aria-label="Fullscreen board controls">
                             <button class="chess-button chess-button-small" type="button" id="chess-fullscreen-exit">Exit fullscreen</button>
                         </div>
-                        <p class="chess-board-help" id="chess-board-help">Select one of your pieces, then select a highlighted target square.</p>
+                        <p class="chess-board-help" id="chess-board-help">Pick one of your pieces, then choose a highlighted square.</p>
                         <p class="chess-message" id="chess-board-message" role="status" aria-live="polite"></p>
                     </div>
                 </div>
@@ -60,7 +60,7 @@ $pageStyles = ['/assets/css/chess.css'];
 
                     <section class="chess-game-detail-section" aria-labelledby="chess-profile-title">
                         <div class="chess-section-heading">
-                            <p class="eyebrow">Guest identity</p>
+                            <p class="eyebrow">Guest badge</p>
                             <h2 id="chess-profile-title">Display name</h2>
                         </div>
 

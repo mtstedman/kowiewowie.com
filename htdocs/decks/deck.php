@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Decks - wowiekowie.com';
-$metaDescription = 'Magic: The Gathering deck detail.';
+$metaDescription = 'A Magic: The Gathering decklist and game plan from wowiekowie.com.';
 ?>
 <?php include __DIR__ . '/../partials/head.php'; ?>
 <body>
@@ -13,9 +13,9 @@ $metaDescription = 'Magic: The Gathering deck detail.';
 
         <main id="deck-detail" aria-live="polite">
             <section class="hero hero-compact">
-                <p class="eyebrow">Deck manager</p>
-                <h1>Loading deck...</h1>
-                <p class="lede">Loading deck details...</p>
+                <p class="eyebrow">Decklist</p>
+                <h1>Unsleeving the deck.</h1>
+                <p class="lede">Fetching colors, counts, and the game plan.</p>
                 <a class="button" href="/decks/">Back to decks</a>
             </section>
         </main>

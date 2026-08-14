@@ -76,11 +76,11 @@ $formMusic = admin_music_blank();
 
 $result = $_GET['result'] ?? null;
 if ($result === 'created') {
-    $notice = 'Music entry created.';
+    $notice = 'Track note added to the listening shelf.';
 } elseif ($result === 'updated') {
-    $notice = 'Music entry updated.';
+    $notice = 'Music entry tuned up.';
 } elseif ($result === 'deleted') {
-    $notice = 'Music entry deleted.';
+    $notice = 'Music entry removed from rotation.';
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -142,8 +142,9 @@ admin_render_page(
         $currentStatus = is_scalar($formMusic['status'] ?? null) ? (string) $formMusic['status'] : 'draft';
         ?>
         <section class="admin-hero" aria-labelledby="music-title">
-            <p class="admin-eyebrow">Content management</p>
-            <h1 id="music-title">Music</h1>
+            <p class="admin-eyebrow">Listening shelf</p>
+            <h1 id="music-title">Music with the volume labeled.</h1>
+            <p>Curate titles, artists, Spotify links, notes, and status for public listening stops.</p>
         </section>
 
         <?php if ($notice !== null): ?>
@@ -164,11 +165,13 @@ admin_render_page(
         <?php endif; ?>
 
         <section class="admin-panel" aria-labelledby="music-list-title">
-            <h2 id="music-list-title">Existing music</h2>
+            <h2 id="music-list-title">Listening queue</h2>
+            <p>Check artist, status, and slug before editing a track note.</p>
             <?php if ($musicEntries === []): ?>
-                <p>No music entries have been created yet.</p>
+                <p>No music yet. Add the first track note below.</p>
             <?php else: ?>
-                <table>
+                <div class="admin-table-wrap">
+                <table class="admin-table">
                     <thead>
                     <tr>
                         <th scope="col">Title</th>
@@ -187,30 +190,33 @@ admin_render_page(
                             <td><?= admin_music_h($entry['status'] ?? '') ?></td>
                             <td><code><?= admin_music_h($slug) ?></code></td>
                             <td>
-                                <a class="admin-button" href="/admin/music.php?<?= http_build_query(['edit' => $slug]) ?>">Edit</a>
+                                <a class="admin-button admin-button-secondary" href="/admin/music.php?<?= http_build_query(['edit' => $slug]) ?>">Edit music</a>
                                 <form method="post" class="admin-inline-form">
                                     <?= admin_csrf_field() ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="slug" value="<?= admin_music_h($slug) ?>">
-                                    <button type="submit">Delete</button>
+                                    <button type="submit">Delete music</button>
                                 </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </section>
 
         <section class="admin-panel" aria-labelledby="music-form-title">
             <h2 id="music-form-title"><?= admin_music_h($formTitle) ?></h2>
+            <p>Use notes for why the track belongs here; keep the URL as the canonical Spotify link.</p>
             <form method="post" class="admin-form">
                 <?= admin_csrf_field() ?>
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="original_slug" value="<?= admin_music_h($editingSlug ?? '') ?>">
 
                 <label>
-                    Slug
+                    <span>Slug</span>
+                    <small>Stable URL handle; locked while editing to preserve links.</small>
                     <input name="slug" value="<?= admin_music_h($formMusic['slug'] ?? '') ?>"<?= $editingSlug === null ? ' required' : ' readonly' ?>>
                 </label>
 
@@ -225,7 +231,8 @@ admin_render_page(
                 </label>
 
                 <label>
-                    Spotify URL
+                    <span>Spotify URL</span>
+                    <small>Paste the full track, album, or playlist URL visitors should open.</small>
                     <input name="spotify_url" type="url" value="<?= admin_music_h($formMusic['spotify_url'] ?? '') ?>" required>
                 </label>
 
@@ -243,10 +250,12 @@ admin_render_page(
                     </select>
                 </label>
 
-                <button type="submit"><?= admin_music_h($submitLabel) ?></button>
-                <?php if ($editingSlug !== null): ?>
-                    <a class="admin-button" href="/admin/music.php">Cancel</a>
-                <?php endif; ?>
+                <div class="admin-action-row">
+                    <button type="submit"><?= admin_music_h($submitLabel) ?></button>
+                    <?php if ($editingSlug !== null): ?>
+                        <a class="admin-button admin-button-secondary" href="/admin/music.php">Cancel editing</a>
+                    <?php endif; ?>
+                </div>
             </form>
         </section>
         <?php

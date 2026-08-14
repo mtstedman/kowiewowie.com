@@ -29,7 +29,7 @@ $year = gmdate('Y');
 $pageTitle = ($isNotFound ? 'Page not found - ' : '') . 'wowiekowie.com';
 $metaDescription = $isNotFound
     ? 'A small detour on wowiekowie.com.'
-    : 'A playful personal site for recipes, decks, games, music, and experiments.';
+    : 'A playful personal site for recipes, decks, games, music, videos, kaomoji, and experiments.';
 require __DIR__ . '/partials/head.php';
 ?>
 <body>
@@ -47,18 +47,20 @@ require __DIR__ . '/partials/head.php';
             <?php else: ?>
                 <section class="hero bio-hero" aria-labelledby="home-title">
                     <p class="eyebrow">Welcome to the countertop laboratory</p>
-                    <h1 id="home-title">wowiekowie.com is where the buttons get snacks.</h1>
+                    <h1 id="home-title">wowiekowie.com keeps the buttons fed.</h1>
                     <p class="lede">
-                        A small, oddball home for recipes, games, music, decks, experiments,
-                        and whatever else falls out of the idea cabinet before breakfast.
+                        Recipes, games, decks, music, videos, dongs, and tiny experiments,
+                        all stacked like snacks in a very opinionated drawer.
                     </p>
-                    <p class="aside" data-silly-output>Current mood: politely tap-dancing through the source code.</p>
+                    <p class="aside" data-silly-output>Current mood: sorting ideas by crunch level.</p>
                     <div class="hero-actions" aria-label="Site sections and nonsense controls">
-                        <a class="button" href="/recipes/">Raid the recipe drawer <span aria-hidden="true">-&gt;</span></a>
-                        <button class="button" type="button" data-silly-button>Shuffle nonsense</button>
+                        <a class="button" href="/recipes/">Open the recipe drawer <span aria-hidden="true">-&gt;</span></a>
+                        <button class="button" type="button" data-silly-button>Shuffle the tiny chaos</button>
                         <a class="text-link" href="/decks/">Decks</a>
                         <a class="text-link" href="/games/">Games</a>
                         <a class="text-link" href="/music/">Music</a>
+                        <a class="text-link" href="/videos/">Videos</a>
+                        <a class="text-link" href="/dongs/">Dongs</a>
                     </div>
                 </section>
 
@@ -67,7 +69,7 @@ require __DIR__ . '/partials/head.php';
                 <section class="bio-section" aria-labelledby="bio-title">
                     <div class="section-heading">
                         <p class="eyebrow">Pick a drawer</p>
-                        <h2 id="bio-title">A tidy-ish shelf for very serious unserious things.</h2>
+                        <h2 id="bio-title">A tidy-ish shelf for serious unserious things.</h2>
                     </div>
                     <div class="feature-grid">
                         <article>
@@ -82,8 +84,8 @@ require __DIR__ . '/partials/head.php';
                         </article>
                         <article>
                             <span class="feature-number">03</span>
-                            <h3>Games and music</h3>
-                            <p>Little playable bits, sound experiments, and side quests from the rest of the desk.</p>
+                            <h3>Games, music, videos</h3>
+                            <p>Playable bits, sound bookmarks, watch pages, and side quests from the rest of the desk.</p>
                         </article>
                     </div>
                 </section>

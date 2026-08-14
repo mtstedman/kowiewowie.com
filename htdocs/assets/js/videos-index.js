@@ -298,27 +298,27 @@
         if (hasQuery && hasTopic) {
             return {
                 eyebrow: `${countLabel} found`,
-                description: `Showing results for "${activeQuery}" in ${selectedTopic}.`
+                description: `Filtered to "${activeQuery}" inside ${selectedTopic}.`
             };
         }
 
         if (hasQuery) {
             return {
                 eyebrow: `${countLabel} found`,
-                description: `Showing results for "${activeQuery}" across titles, channels, descriptions, and tags.`
+                description: `Searching titles, channels, descriptions, and tags for "${activeQuery}".`
             };
         }
 
         if (hasTopic) {
             return {
                 eyebrow: `${countLabel} in ${selectedTopic}`,
-                description: `Showing every published video tagged with ${selectedTopic}.`
+                description: `Every published video wearing the ${selectedTopic} tag.`
             };
         }
 
         return {
             eyebrow: `${countLabel} available`,
-            description: 'Showing the latest published uploads.'
+            description: 'Latest published uploads from the watch drawer.'
         };
     };
 
@@ -343,7 +343,7 @@
         if (allVideos.length === 0) {
             renderState(
                 'No videos yet',
-                'Published uploads will appear here once they are available.',
+                'Fresh uploads will land here when the watch drawer gets stocked.',
                 'videos-empty-state'
             );
             return;
@@ -354,7 +354,7 @@
         if (filteredVideos.length === 0) {
             renderState(
                 'No matching videos',
-                'Try a different search term or switch back to another filter chip.',
+                'Try a shorter search or tap a different filter chip.',
                 'videos-empty-state',
                 `${summary.eyebrow}. ${summary.description}`
             );
@@ -387,7 +387,7 @@
         renderResults();
     });
 
-    setStatus('Loading videos...');
+    setStatus('Tuning the video shelf...');
 
     fetch('/api/v1/videos')
         .then((response) => {
@@ -405,7 +405,7 @@
         .catch(() => {
             renderState(
                 'Videos unavailable',
-                'The videos library could not be loaded right now. Please try again later.',
+                'The watch drawer would not open. Try again in a moment.',
                 'videos-error-state'
             );
         });

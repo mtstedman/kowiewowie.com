@@ -17,7 +17,7 @@
         container.replaceChildren();
 
         if (!Array.isArray(games) || games.length === 0) {
-            renderMessage('No games are available yet.');
+            renderMessage('The game shelf is waiting for its first box.');
             return;
         }
 
@@ -34,7 +34,7 @@
 
             const label = document.createElement('span');
             label.className = 'feature-number';
-            label.textContent = 'Game';
+            label.textContent = 'Board game';
             article.append(label);
 
             const heading = document.createElement('h3');
@@ -51,7 +51,7 @@
                 const link = document.createElement('a');
                 link.className = 'text-link';
                 link.href = `/games/game.php?slug=${encodeURIComponent(slug)}`;
-                link.append('Strategy notes ');
+                link.append('Read table notes ');
 
                 const arrow = document.createElement('span');
                 arrow.setAttribute('aria-hidden', 'true');
@@ -80,6 +80,6 @@
             renderGames(Array.isArray(data) ? data : games);
         })
         .catch(() => {
-            renderMessage('Games could not be loaded right now.');
+            renderMessage('The game shelf would not load. Try again in a moment.');
         });
 })();

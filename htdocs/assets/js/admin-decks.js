@@ -42,7 +42,7 @@
                 <input name="deck_sections[${sectionIndex}][cards][${cardIndex}][name]" value="${escapeHtml(name)}" required maxlength="255">
             </label>
             ${hiddenCardFields(sectionIndex, cardIndex, cardId, imageUrl)}
-            <button type="button" data-remove-card>Remove</button>
+            <button type="button" data-remove-card>Remove card</button>
         </div>`;
 
     const sectionBlock = (sectionIndex) => `
@@ -52,7 +52,7 @@
                 <input name="deck_sections[${sectionIndex}][name]" required maxlength="120">
             </label>
             <div data-card-list>${cardRow(sectionIndex, 0, '1', '', '', '')}</div>
-            <button type="button" data-add-card>Add card</button>
+            <button type="button" data-add-card>Add blank card row</button>
             <button type="button" data-remove-section>Remove section</button>
         </div>`;
 
@@ -129,7 +129,7 @@
         }
 
         if (cards.length === 0) {
-            searchResults.innerHTML = '<p>No cards found.</p>';
+            searchResults.innerHTML = '<p>No cards found. Try a shorter name or another printing.</p>';
             return;
         }
 
@@ -158,12 +158,12 @@
                         <span>Quantity</span>
                         <input type="number" min="1" max="999" step="1" value="1" data-add-quantity>
                     </label>
-                    <button type="button" data-add-search-result>Add to deck</button>
+                    <button type="button" data-add-search-result>Add card to deck</button>
                 </div>
             </article>`).join('');
     };
 
-    const clearSearchResults = (message = 'Search for a card to add it, or drag a result into a section.') => {
+    const clearSearchResults = (message = 'Search for a card, then add it to a section or drag it into the list.') => {
         searchResults.innerHTML = `<p>${escapeHtml(message)}</p>`;
     };
 

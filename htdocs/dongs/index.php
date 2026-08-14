@@ -26,21 +26,21 @@ function e(string $value): string
         <main>
             <section class="hero hero-compact">
                 <p class="eyebrow">Big Dongs</p>
-                <h1>The grand hall is open and fully stocked.</h1>
-                <p class="lede">The velvet rope is gone. Browse the library, copy a kaomoji, and carry on with whatever extremely serious business needs a properly enormous face.</p>
+                <h1>The kaomoji drawer is wide open.</h1>
+                <p class="lede">Browse the library, copy a face, and carry on with whatever extremely serious business needs typographic eyebrows.</p>
             </section>
 
             <section class="foundation dongs-library" aria-label="Donger library" data-donger-library>
 
-                <p class="lede">Tap any kaomoji to copy it. The collection stays typographic, portable, and ready for whatever extremely serious business awaits.</p>
+                <p class="lede">Tap any kaomoji to copy it. Portable faces, zero velvet rope.</p>
 
                 <form role="search" aria-label="Search dongers" data-donger-search-form>
-                    <label for="donger-search-input">Search the library</label>
+                    <label for="donger-search-input">Search the face drawer</label>
                     <input
                         id="donger-search-input"
                         name="donger-search"
                         type="search"
-                        placeholder="Search by name or kaomoji"
+                        placeholder="Search names or faces"
                         autocomplete="off"
                         aria-controls="donger-groups"
                         data-donger-search-input
@@ -49,7 +49,7 @@ function e(string $value): string
                 </form>
 
                 <p role="status" aria-live="polite" aria-atomic="true" data-donger-search-status></p>
-                <p hidden data-donger-search-empty>No dongers matched that search yet. Try a name or part of the kaomoji.</p>
+                <p hidden data-donger-search-empty>No faces matched that search. Try a name, category, or tiny eyebrow fragment.</p>
                 <p class="dongs-copy-status" id="dongs-copy-status" role="status" aria-live="polite" aria-atomic="true" data-copy-status></p>
 
                 <div class="donger-groups" id="donger-groups">

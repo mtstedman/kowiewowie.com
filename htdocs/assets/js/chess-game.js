@@ -507,7 +507,7 @@ const renderMoves = () => {
     if (state.moves.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'lede';
-        empty.textContent = 'No moves yet.';
+        empty.textContent = 'No moves yet. The board is holding its breath.';
         elements.moveList.append(empty);
         return;
     }
@@ -598,7 +598,7 @@ const refresh = async ({ quiet = false } = {}) => {
 
     state.isLoading = true;
     if (!quiet) {
-        setMessage(elements.boardMessage, 'Loading game...', 'neutral');
+        setMessage(elements.boardMessage, 'Loading the board...', 'neutral');
     }
 
     const previousPly = currentPly(state.game);
@@ -616,7 +616,7 @@ const refresh = async ({ quiet = false } = {}) => {
         clearError();
         renderGame();
         if (!quiet) {
-            setMessage(elements.boardMessage, viewerControlsTurn() ? 'Your move.' : 'Board updated.', 'success');
+            setMessage(elements.boardMessage, viewerControlsTurn() ? 'Your move.' : 'Board refreshed.', 'success');
         }
     } catch (error) {
         const notFound = error?.status === 404;
@@ -691,7 +691,7 @@ const promotionMovesFor = async (from, to, fallbackMoves) => {
 
 const submitSelectedMove = async (move) => {
     state.isSubmitting = true;
-    setMessage(elements.boardMessage, 'Submitting move...', 'neutral');
+    setMessage(elements.boardMessage, 'Sending the move...', 'neutral');
 
     try {
         const payload = {
@@ -707,7 +707,7 @@ const submitSelectedMove = async (move) => {
         state.selectedSquare = '';
         clearError();
         renderGame();
-        setMessage(elements.boardMessage, 'Move accepted.', 'success');
+        setMessage(elements.boardMessage, 'Move landed.', 'success');
     } catch (error) {
         setMessage(elements.boardMessage, errorMessage(error, 'That move could not be submitted.'), 'error');
         state.isSubmitting = false;
@@ -746,7 +746,7 @@ const handleResign = async () => {
 
     state.isSubmitting = true;
     renderActionControls();
-    setMessage(elements.boardMessage, 'Resigning game...', 'neutral');
+    setMessage(elements.boardMessage, 'Resigning the game...', 'neutral');
 
     try {
         await refreshAfterGameAction(await resignGame(state.gameId, { color }), 'Game resigned.');

@@ -161,11 +161,11 @@ $formVideo = admin_videos_blank();
 
 $result = $_GET['result'] ?? null;
 if ($result === 'created') {
-    $notice = 'Video created.';
+    $notice = 'Video queued for the screening room.';
 } elseif ($result === 'updated') {
-    $notice = 'Video updated.';
+    $notice = 'Video details tuned up.';
 } elseif ($result === 'deleted') {
-    $notice = 'Video deleted.';
+    $notice = 'Video removed from the reel.';
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -227,8 +227,9 @@ admin_render_page(
         $currentStatus = is_scalar($formVideo['status'] ?? null) ? (string) $formVideo['status'] : 'draft';
         ?>
         <section class="admin-hero" aria-labelledby="videos-title">
-            <p class="admin-eyebrow">Content management</p>
-            <h1 id="videos-title">Videos</h1>
+            <p class="admin-eyebrow">Screening room</p>
+            <h1 id="videos-title">Videos with tidy metadata.</h1>
+            <p>Prepare YouTube IDs, thumbnails, tags, counts, and publish timing before the reel goes public.</p>
         </section>
 
         <?php if ($notice !== null): ?>
@@ -249,11 +250,13 @@ admin_render_page(
         <?php endif; ?>
 
         <section class="admin-panel" aria-labelledby="videos-list-title">
-            <h2 id="videos-list-title">Existing videos</h2>
+            <h2 id="videos-list-title">Video reel</h2>
+            <p>Check channel, publish date, slug, and status before editing a video entry.</p>
             <?php if ($videoEntries === []): ?>
-                <p>No videos have been created yet.</p>
+                <p>No videos yet. Add the first screening note below.</p>
             <?php else: ?>
-                <table>
+                <div class="admin-table-wrap">
+                <table class="admin-table">
                     <thead>
                     <tr>
                         <th scope="col">Title</th>
@@ -274,30 +277,33 @@ admin_render_page(
                             <td><?= admin_videos_h($entry['published_at'] ?? '') ?></td>
                             <td><code><?= admin_videos_h($slug) ?></code></td>
                             <td>
-                                <a class="admin-button" href="/admin/videos.php?<?= http_build_query(['edit' => $slug]) ?>">Edit</a>
+                                <a class="admin-button admin-button-secondary" href="/admin/videos.php?<?= http_build_query(['edit' => $slug]) ?>">Edit video</a>
                                 <form method="post" class="admin-inline-form">
                                     <?= admin_csrf_field() ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="slug" value="<?= admin_videos_h($slug) ?>">
-                                    <button type="submit">Delete</button>
+                                    <button type="submit">Delete video</button>
                                 </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </section>
 
         <section class="admin-panel" aria-labelledby="videos-form-title">
             <h2 id="videos-form-title"><?= admin_videos_h($formTitle) ?></h2>
+            <p>Use the canonical YouTube value, keep tags comma-separated, and leave optional numbers blank when unknown.</p>
             <form method="post" class="admin-form">
                 <?= admin_csrf_field() ?>
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="original_slug" value="<?= admin_videos_h($editingSlug ?? '') ?>">
 
                 <label>
-                    Slug
+                    <span>Slug</span>
+                    <small>Stable URL handle; locked while editing to preserve links.</small>
                     <input name="slug" value="<?= admin_videos_h($formVideo['slug'] ?? '') ?>"<?= $editingSlug === null ? ' required' : ' readonly' ?>>
                 </label>
 
@@ -312,7 +318,8 @@ admin_render_page(
                 </label>
 
                 <label>
-                    YouTube ID or URL
+                    <span>YouTube ID or URL</span>
+                    <small>Paste either the video ID or a full YouTube URL.</small>
                     <input name="youtube_id" value="<?= admin_videos_h($formVideo['youtube_id'] ?? '') ?>" required>
                 </label>
 
@@ -327,17 +334,20 @@ admin_render_page(
                 </label>
 
                 <label>
-                    Duration seconds
+                    <span>Duration seconds</span>
+                    <small>Whole seconds only; leave blank if the runtime is unknown.</small>
                     <input name="duration_seconds" type="number" min="0" step="1" value="<?= admin_videos_h($formVideo['duration_seconds'] ?? '') ?>">
                 </label>
 
                 <label>
-                    View count
+                    <span>View count</span>
+                    <small>Whole number, no commas. Blank saves as zero.</small>
                     <input name="view_count" type="number" min="0" step="1" value="<?= admin_videos_h($formVideo['view_count'] ?? '0') ?>">
                 </label>
 
                 <label>
-                    Tags
+                    <span>Tags</span>
+                    <small>Separate tags with commas or line breaks.</small>
                     <textarea name="tags" rows="3"><?= admin_videos_h($formVideo['tags'] ?? '') ?></textarea>
                 </label>
 
@@ -355,10 +365,12 @@ admin_render_page(
                     <input name="published_at" value="<?= admin_videos_h($formVideo['published_at'] ?? '') ?>" readonly>
                 </label>
 
-                <button type="submit"><?= admin_videos_h($submitLabel) ?></button>
-                <?php if ($editingSlug !== null): ?>
-                    <a class="admin-button" href="/admin/videos.php">Cancel</a>
-                <?php endif; ?>
+                <div class="admin-action-row">
+                    <button type="submit"><?= admin_videos_h($submitLabel) ?></button>
+                    <?php if ($editingSlug !== null): ?>
+                        <a class="admin-button admin-button-secondary" href="/admin/videos.php">Cancel editing</a>
+                    <?php endif; ?>
+                </div>
             </form>
         </section>
         <?php

@@ -69,13 +69,13 @@
       const copied = await copyText(text);
 
       if (!copied) {
-        announce(`Could not copy ${name}. Select it and copy it manually.`);
+        announce(`Could not copy ${name}. Select the face and copy it manually.`);
         return;
       }
 
-      announce(`Copied ${name}.`);
+      announce(`Copied ${name}. Go deploy the face.`);
     } catch {
-      announce(`Could not copy ${name}. Select it and copy it manually.`);
+      announce(`Could not copy ${name}. Select the face and copy it manually.`);
     }
   });
 })();

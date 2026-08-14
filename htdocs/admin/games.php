@@ -89,7 +89,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $repository->find('games', $input['slug'], true);
             }
             $result = $repository->save('games', $input, admin_games_actor_id($user));
-            $_SESSION['admin_games_message'] = ($result['created'] ? 'Created' : 'Updated') . ' game "' . $result['item']['name'] . '".';
+            $_SESSION['admin_games_message'] = ($result['created'] ? 'Added' : 'Updated') . ' game "' . $result['item']['name'] . '".';
             header('Location: /admin/games.php', true, 303);
             exit;
         } catch (Throwable $error) {
@@ -103,7 +103,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         try {
             $repository->delete('games', $slug);
-            $_SESSION['admin_games_message'] = 'Deleted game "' . $slug . '".';
+            $_SESSION['admin_games_message'] = 'Removed game "' . $slug . '" from the arcade shelf.';
             header('Location: /admin/games.php', true, 303);
             exit;
         } catch (Throwable $error) {
@@ -144,8 +144,9 @@ admin_render_page(
         $formTitle = $editing ? 'Edit game' : 'Add game';
         ?>
         <section class="admin-hero" aria-labelledby="games-title">
-            <p class="admin-eyebrow">Content management</p>
-            <h1 id="games-title">Games</h1>
+            <p class="admin-eyebrow">Arcade shelf</p>
+            <h1 id="games-title">Games ready for button-mashing.</h1>
+            <p>Keep names, summaries, notes, and status tidy so each public game page launches cleanly.</p>
         </section>
 
         <?php foreach ($messages as $message): ?>
@@ -167,6 +168,7 @@ admin_render_page(
 
         <section class="admin-panel" aria-labelledby="game-form-title">
             <h2 id="game-form-title"><?= admin_games_h($formTitle) ?></h2>
+            <p>Describe the game quickly, then use notes for strategy, quirks, or launch context.</p>
             <form method="post" action="/admin/games.php<?= $editing ? '?edit=' . rawurlencode($editSlug) : '' ?>">
                 <?= admin_csrf_field() ?>
                 <input type="hidden" name="action" value="save">
@@ -175,50 +177,55 @@ admin_render_page(
                     <input type="hidden" name="original_slug" value="<?= admin_games_h($editSlug) ?>">
                 <?php endif; ?>
 
-                <p>
-                    <label for="game-slug">Slug</label><br>
+                <label class="admin-field" for="game-slug">
+                    <span>Slug</span>
+                    <small>Lowercase words and hyphens; this stays locked while editing.</small>
                     <input id="game-slug" name="slug" type="text" value="<?= admin_games_h($editing ? $editSlug : ($formGame['slug'] ?? '')) ?>" required maxlength="160" pattern="[a-z0-9]+(-[a-z0-9]+)*"<?= $editing ? ' readonly' : '' ?>>
-                </p>
+                </label>
 
-                <p>
-                    <label for="game-name">Name</label><br>
+                <label class="admin-field" for="game-name">
+                    <span>Name</span>
                     <input id="game-name" name="name" type="text" value="<?= admin_games_h($formGame['name'] ?? '') ?>" required maxlength="255">
-                </p>
+                </label>
 
-                <p>
-                    <label for="game-description">Short description</label><br>
+                <label class="admin-field" for="game-description">
+                    <span>Short description</span>
+                    <small>The quick pitch shown before players press start.</small>
                     <textarea id="game-description" name="shortDescription" rows="4" required maxlength="2000"><?= admin_games_h($formGame['shortDescription'] ?? '') ?></textarea>
-                </p>
+                </label>
 
-                <p>
-                    <label for="game-notes">Strategy notes</label><br>
+                <label class="admin-field" for="game-notes">
+                    <span>Strategy notes</span>
+                    <small>One note per line for tips, quirks, or launch context.</small>
                     <textarea id="game-notes" name="strategyNotes" rows="5"><?= admin_games_h(admin_games_notes_text($formGame)) ?></textarea>
-                </p>
+                </label>
 
-                <p>
-                    <label for="game-status">Status</label><br>
+                <label class="admin-field" for="game-status">
+                    <span>Status</span>
                     <select id="game-status" name="status" required>
                         <?php foreach (['draft', 'published', 'archived'] as $status): ?>
                             <option value="<?= $status ?>"<?= ($formGame['status'] ?? 'draft') === $status ? ' selected' : '' ?>><?= ucfirst($status) ?></option>
                         <?php endforeach; ?>
                     </select>
-                </p>
+                </label>
 
-                <p>
+                <div class="admin-action-row">
                     <button type="submit"><?= $editing ? 'Update game' : 'Create game' ?></button>
                     <?php if ($editing): ?>
-                        <a href="/admin/games.php">Cancel</a>
+                        <a class="admin-button admin-button-secondary" href="/admin/games.php">Cancel editing</a>
                     <?php endif; ?>
-                </p>
+                </div>
             </form>
         </section>
 
         <section class="admin-panel" aria-labelledby="games-list-title">
-            <h2 id="games-list-title">Existing games</h2>
+            <h2 id="games-list-title">Game cabinet</h2>
+            <p>Review slugs and status before opening a game for edits.</p>
             <?php if ($games === []): ?>
-                <p>No games have been created yet.</p>
+                <p>No games yet. Add the first playable thing above.</p>
             <?php else: ?>
-                <table>
+                <div class="admin-table-wrap">
+                <table class="admin-table">
                     <thead>
                         <tr>
                             <th scope="col">Title</th>
@@ -236,18 +243,19 @@ admin_render_page(
                                 <td><?= admin_games_h($game['status'] ?? '') ?></td>
                                 <td><?= admin_games_h($game['updated_at'] ?? '') ?></td>
                                 <td>
-                                    <a href="/admin/games.php?edit=<?= rawurlencode((string) ($game['slug'] ?? '')) ?>">Edit</a>
-                                    <form method="post" action="/admin/games.php" style="display:inline">
+                                    <a class="admin-button admin-button-secondary" href="/admin/games.php?edit=<?= rawurlencode((string) ($game['slug'] ?? '')) ?>">Edit game</a>
+                                    <form method="post" action="/admin/games.php" class="admin-inline-form">
                                         <?= admin_csrf_field() ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="slug" value="<?= admin_games_h($game['slug'] ?? '') ?>">
-                                        <button type="submit">Delete</button>
+                                        <button type="submit">Delete game</button>
                                     </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </section>
         <?php

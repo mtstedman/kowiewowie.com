@@ -13,19 +13,19 @@ $metaDescription = 'Board games and per-game strategy notes from wowiekowie.com.
 
         <main>
             <section class="hero hero-compact">
-                <p class="eyebrow">Board games</p>
-                <h1>Tabletop notes for the next game night.</h1>
-                <p class="lede">A small library of games with strategy notes kept separate for each title.</p>
+                <p class="eyebrow">Board game shelf</p>
+                <h1>Tabletop notes for the next "wait, how do we win?"</h1>
+                <p class="lede">A small library of games with strategy notes kept tidy for each box on the shelf.</p>
             </section>
 
             <section class="foundation" aria-labelledby="games-title">
                 <div class="section-heading">
                     <p class="eyebrow">Games shelf</p>
-                    <h2 id="games-title">Board games</h2>
+                    <h2 id="games-title">Pick a box, find the angle.</h2>
                 </div>
 
                 <div id="games-list" aria-live="polite">
-                    <p class="lede">Loading games...</p>
+                    <p class="lede">Checking the game shelf...</p>
                 </div>
             </section>
         </main>

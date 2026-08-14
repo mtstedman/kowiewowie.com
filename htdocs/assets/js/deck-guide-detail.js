@@ -44,8 +44,8 @@
         guideDetail.innerHTML = `
             <section class="hero hero-compact">
                 <p class="eyebrow">Deck guides</p>
-                <h1>Guide not found</h1>
-                <p class="lede">No walkthrough matches the requested slug.</p>
+                <h1>That play guide is missing</h1>
+                <p class="lede">No walkthrough matches that link.</p>
                 <a class="button" href="/decks/guides.php">Back to guides</a>
             </section>
         `;
@@ -83,7 +83,7 @@
         document.title = `${title} - Deck Guides - wowiekowie.com`;
         guideDetail.innerHTML = `
             <section class="hero hero-compact">
-                <p class="eyebrow">${escapeHtml(published)} - linked deck: ${escapeHtml(deckName)}</p>
+                <p class="eyebrow">${escapeHtml(published)} - deck box: ${escapeHtml(deckName)}</p>
                 <h1>${escapeHtml(title)}</h1>
                 ${summary !== '' ? `<p class="lede">${escapeHtml(summary)}</p>` : ''}
                 <div class="hero-actions">
@@ -99,7 +99,7 @@
                 </div>
 
                 ${sectionArticles === ''
-                    ? '<p>This guide does not have walkthrough sections yet.</p>'
+                    ? '<p>This play guide is still waiting for its table notes.</p>'
                     : `<div class="feature-grid">${sectionArticles}</div>`}
             </section>
         `;
@@ -127,8 +127,8 @@
             guideDetail.innerHTML = `
                 <section class="hero hero-compact">
                     <p class="eyebrow">Deck guides</p>
-                    <h1>Guide unavailable</h1>
-                    <p class="lede">This walkthrough could not be loaded. Please try again later.</p>
+                    <h1>The play guide would not open</h1>
+                    <p class="lede">Try the guide shelf again in a moment.</p>
                     <a class="button" href="/decks/guides.php">Back to guides</a>
                 </section>
             `;

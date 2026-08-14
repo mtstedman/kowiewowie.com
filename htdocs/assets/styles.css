@@ -26,16 +26,16 @@
     --serif: Georgia, "Times New Roman", serif;
     --step--1: clamp(0.82rem, 0.79rem + 0.14vw, 0.9rem);
     --step-0: clamp(1rem, 0.95rem + 0.24vw, 1.13rem);
-    --step-1: clamp(1.2rem, 1.08rem + 0.58vw, 1.5rem);
-    --step-2: clamp(1.55rem, 1.28rem + 1.34vw, 2.25rem);
-    --step-3: clamp(1.55rem, 1.28rem + 1.34vw, 2.25rem);
-    --step-4: clamp(2.1rem, 1.75rem + 1.72vw, 3rem);
+    --step-1: clamp(1.12rem, 1.04rem + 0.4vw, 1.35rem);
+    --step-2: clamp(1.4rem, 1.22rem + 0.9vw, 1.9rem);
+    --step-3: clamp(1.55rem, 1.3rem + 1.15vw, 2.2rem);
+    --step-4: clamp(2rem, 1.58rem + 2vw, 3.15rem);
     --space-xs: 0.5rem;
     --space-sm: 0.85rem;
-    --space-md: 1.25rem;
-    --space-lg: 2rem;
-    --space-xl: 3.5rem;
-    --space-2xl: 5.5rem;
+    --space-md: 1.2rem;
+    --space-lg: 1.8rem;
+    --space-xl: 3rem;
+    --space-2xl: 4.75rem;
     --site-header-min: 96px;
     --site-footer-min: 118px;
     --chrome-y-gap: var(--space-xl);
@@ -164,6 +164,23 @@ a:focus-visible {
 .foundation {
     width: min(1180px, calc(100% - 40px));
     margin: 0 auto;
+}
+
+.page-shell {
+    display: grid;
+    gap: var(--chrome-y-gap);
+}
+
+main {
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+}
+
+img,
+svg,
+video,
+iframe {
+    max-width: 100%;
 }
 
 .foundation {
@@ -344,6 +361,7 @@ footer {
     z-index: 10;
     min-height: var(--site-header-min);
     padding: 0 var(--space-md);
+    flex-wrap: wrap;
     border-top: 0;
     background:
         linear-gradient(135deg, var(--surface-sheen), transparent 58%),
@@ -405,7 +423,9 @@ footer {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    flex: 1 1 auto;
+    flex: 1 1 34rem;
+    flex-wrap: wrap;
+    min-width: min(100%, 20rem);
 }
 
 .site-nav a {
@@ -413,13 +433,16 @@ footer {
     align-items: center;
     min-width: 44px;
     min-height: 44px;
-    padding: 8px 12px;
+    justify-content: center;
+    padding: 8px 11px;
     border: 1px solid rgba(0, 245, 255, 0.16);
     background: rgba(0, 245, 255, 0.035);
     color: var(--ink-soft);
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 850;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    text-align: center;
     text-decoration: none;
     text-transform: uppercase;
 }
@@ -479,17 +502,18 @@ footer {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-items: center;
-    gap: var(--space-lg);
-    padding: clamp(3rem, 9vw, 6rem) 0 clamp(2.5rem, 8vw, 5rem);
+    gap: clamp(1rem, 3vw, var(--space-lg));
+    padding: clamp(2.75rem, 7vw, 5.25rem) 0 clamp(2.25rem, 6vw, 4.5rem);
 }
 
 .hero-compact {
     min-height: 0;
-    padding-block: clamp(1.25rem, 4vw, 2.5rem);
+    padding-block: clamp(1.25rem, 3vw, 2.25rem);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
+    gap: 0.75rem;
 }
 
 .bio-hero {
@@ -547,33 +571,33 @@ h1 {
     font-size: var(--step-4);
     font-weight: 950;
     letter-spacing: 0;
-    line-height: 0.92;
+    line-height: 1;
     text-transform: uppercase;
     text-shadow: 0 0 30px rgba(0, 245, 255, 0.2), 0 0 52px rgba(255, 43, 214, 0.16);
 }
 
 h2 {
     font-size: var(--step-3);
-    line-height: 1;
+    line-height: 1.08;
 }
 
 h3 {
     font-size: var(--step-1);
-    line-height: 1.12;
+    line-height: 1.18;
 }
 
 .lede {
     max-width: 720px;
-    margin: 34px 0 0;
+    margin: 0;
     color: var(--ink-soft);
     font-size: var(--step-1);
-    line-height: 1.6;
+    line-height: 1.55;
 }
 
 .aside {
     display: inline-block;
     max-width: 100%;
-    margin: 28px 0 0;
+    margin: 0;
     padding: 14px 16px;
     background:
         linear-gradient(135deg, var(--surface-sheen), transparent 52%),
@@ -594,8 +618,8 @@ h3 {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 18px 28px;
-    margin-top: 42px;
+    gap: 14px 18px;
+    margin-top: 0.35rem;
     max-width: 100%;
 }
 
@@ -607,8 +631,8 @@ h3 {
 .button {
     display: inline-flex;
     align-items: center;
-    gap: 14px;
-    padding: 15px 20px;
+    gap: 10px;
+    padding: 13px 17px;
     border: 2px solid var(--accent);
     background: linear-gradient(135deg, rgba(0, 245, 255, 0.18), rgba(255, 43, 214, 0.16));
     color: var(--ink);
@@ -666,15 +690,15 @@ h3 {
 
 .feature-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
-    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: clamp(0.9rem, 2vw, 1.25rem);
     align-items: stretch;
 }
 
 .feature-grid article {
     position: relative;
-    min-height: 260px;
-    padding: var(--space-lg);
+    min-height: 0;
+    padding: clamp(1rem, 2.5vw, var(--space-lg));
     background:
         linear-gradient(135deg, var(--surface-sheen), transparent 34%),
         linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
@@ -701,11 +725,11 @@ h3 {
 }
 
 .feature-grid h3 {
-    margin: 54px 0 12px;
+    margin: clamp(1.4rem, 4vw, 2.5rem) 0 0.7rem;
     color: var(--ink);
     font-size: 1rem;
     font-weight: 950;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -713,12 +737,21 @@ h3 {
     margin: 0;
     color: var(--ink-soft);
     font-size: 0.92rem;
-    line-height: 1.6;
+    line-height: 1.55;
+}
+
+.feature-grid a,
+.foundation li,
+.foundation p,
+.videos-results-summary,
+.videos-empty-state,
+.videos-error-state {
+    overflow-wrap: anywhere;
 }
 
 footer {
     min-height: var(--site-footer-min);
-    margin-top: var(--chrome-y-gap);
+    margin-top: 0;
     padding: var(--space-lg) var(--space-md);
     border-top: 2px solid var(--accent-strong);
     color: var(--ink-soft);
@@ -862,11 +895,11 @@ footer {
     }
 
     .foundation {
-        padding-block: 72px;
+        padding-block: 48px;
     }
 
     .hero {
-        padding: 76px 0 88px;
+        padding: 56px 0 64px;
     }
 
     .hero.hero-compact {

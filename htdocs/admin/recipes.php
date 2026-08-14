@@ -100,11 +100,11 @@ $formRecipe = admin_recipe_blank();
 
 $result = $_GET['result'] ?? null;
 if ($result === 'created') {
-    $notice = 'Recipe created.';
+    $notice = 'Recipe tucked into the cookbook.';
 } elseif ($result === 'updated') {
-    $notice = 'Recipe updated.';
+    $notice = 'Recipe refreshed and ready for another taste.';
 } elseif ($result === 'deleted') {
-    $notice = 'Recipe deleted.';
+    $notice = 'Recipe removed from the shelf.';
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -162,8 +162,9 @@ admin_render_page(
         $submitLabel = $editingSlug === null ? 'Create recipe' : 'Update recipe';
         ?>
         <section class="admin-hero" aria-labelledby="recipes-title">
-            <p class="admin-eyebrow">Content management</p>
-            <h1 id="recipes-title">Recipes</h1>
+            <p class="admin-eyebrow">Recipe drawer</p>
+            <h1 id="recipes-title">Recipes that behave on repeat.</h1>
+            <p>Manage slugs, summaries, ingredients, steps, images, and publication status without making the pantry blink.</p>
         </section>
 
         <?php if ($notice !== null): ?>
@@ -184,11 +185,13 @@ admin_render_page(
         <?php endif; ?>
 
         <section class="admin-panel" aria-labelledby="recipe-list-title">
-            <h2 id="recipe-list-title">Existing recipes</h2>
+            <h2 id="recipe-list-title">Recipe shelf</h2>
+            <p>Scan what is live, drafted, or archived before stirring in edits.</p>
             <?php if ($recipes === []): ?>
-                <p>No recipes have been created yet.</p>
+                <p>No recipes yet. Add the first keeper below.</p>
             <?php else: ?>
-                <table>
+                <div class="admin-table-wrap">
+                <table class="admin-table">
                     <thead>
                     <tr>
                         <th scope="col">Title</th>
@@ -205,23 +208,25 @@ admin_render_page(
                             <td><?= admin_recipe_text($recipe['status'] ?? '') ?></td>
                             <td><?= admin_recipe_text($slug) ?></td>
                             <td>
-                                <a href="/admin/recipes.php?<?= http_build_query(['edit' => $slug]) ?>">Edit</a>
-                                <form method="post" action="/admin/recipes.php" style="display:inline">
+                                <a class="admin-button admin-button-secondary" href="/admin/recipes.php?<?= http_build_query(['edit' => $slug]) ?>">Edit recipe</a>
+                                <form method="post" action="/admin/recipes.php" class="admin-inline-form">
                                     <?= admin_csrf_field() ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="slug" value="<?= admin_recipe_text($slug) ?>">
-                                    <button type="submit">Delete</button>
+                                    <button type="submit">Delete recipe</button>
                                 </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </section>
 
         <section class="admin-panel" aria-labelledby="recipe-form-title">
             <h2 id="recipe-form-title"><?= admin_recipe_text($formTitle) ?></h2>
+            <p>Keep the public page concise: a friendly summary, one ingredient per line, and steps in order.</p>
             <form method="post" action="/admin/recipes.php">
                 <?= admin_csrf_field() ?>
                 <input type="hidden" name="action" value="save">
@@ -230,7 +235,8 @@ admin_render_page(
                 <?php endif; ?>
 
                 <label>
-                    Slug
+                    <span>Slug</span>
+                    <small>Lowercase words and hyphens only; this becomes the recipe URL.</small>
                     <input
                         type="text"
                         name="slug"
@@ -258,12 +264,14 @@ admin_render_page(
                 </label>
 
                 <label>
-                    Ingredients
+                    <span>Ingredients</span>
+                    <small>One item per line so the public recipe stays easy to scan.</small>
                     <textarea name="ingredients" rows="8" required><?= admin_recipe_text(admin_recipe_lines($formRecipe['ingredients'] ?? [])) ?></textarea>
                 </label>
 
                 <label>
-                    Instructions
+                    <span>Instructions</span>
+                    <small>One step per line; keep each move crisp enough to cook from.</small>
                     <textarea name="instructions" rows="8" required><?= admin_recipe_text(admin_recipe_lines($formRecipe['instructions'] ?? [])) ?></textarea>
                 </label>
 
@@ -278,10 +286,12 @@ admin_render_page(
                     </select>
                 </label>
 
-                <button type="submit"><?= admin_recipe_text($submitLabel) ?></button>
-                <?php if ($editingSlug !== null): ?>
-                    <a href="/admin/recipes.php">Cancel</a>
-                <?php endif; ?>
+                <div class="admin-action-row">
+                    <button type="submit"><?= admin_recipe_text($submitLabel) ?></button>
+                    <?php if ($editingSlug !== null): ?>
+                        <a class="admin-button admin-button-secondary" href="/admin/recipes.php">Cancel editing</a>
+                    <?php endif; ?>
+                </div>
             </form>
         </section>
         <?php

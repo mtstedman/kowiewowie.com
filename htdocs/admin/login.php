@@ -82,7 +82,8 @@ admin_render_page(
         ?>
         <section class="admin-panel" aria-labelledby="login-title">
             <p class="admin-eyebrow">Admin access</p>
-            <h1 id="login-title">Sign in</h1>
+            <h1 id="login-title">Step into the control room</h1>
+            <p>Sign in to tune recipes, decks, games, music, videos, and the other shelf-dwellers.</p>
             <?php if ($error !== null): ?>
                 <p class="admin-login-error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
             <?php endif; ?>
@@ -97,7 +98,7 @@ admin_render_page(
                     <span>Password</span>
                     <input type="password" name="password" autocomplete="current-password" required>
                 </label>
-                <button class="admin-button" type="submit">Sign in</button>
+                <button class="admin-button" type="submit">Unlock admin</button>
             </form>
         </section>
         <?php

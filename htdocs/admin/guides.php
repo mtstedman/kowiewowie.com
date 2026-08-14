@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $slug = is_scalar($_POST['slug'] ?? null) ? (string) $_POST['slug'] : '';
         try {
             $repository->delete('guides', $slug);
-            $notice = 'Guide deleted.';
+            $notice = 'Guide sent back to the archives.';
         } catch (Throwable $exception) {
             $error = $exception->getMessage();
         }
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $editing = $existingSlug !== '' ? $existingSlug : null;
         try {
             $result = $repository->save('guides', $formGuide, admin_guides_actor_id($user));
-            $notice = $result['created'] ? 'Guide created.' : 'Guide updated.';
+            $notice = $result['created'] ? 'Guide added to the map.' : 'Guide notes sharpened.';
             $editing = null;
             $formGuide = [
                 'slug' => '',
@@ -143,8 +143,9 @@ admin_render_page(
         $sections = admin_guides_sections($formGuide);
         ?>
         <section class="admin-hero" aria-labelledby="guides-title">
-            <p class="admin-eyebrow">Content management</p>
-            <h1 id="guides-title">Guides</h1>
+            <p class="admin-eyebrow">Guide library</p>
+            <h1 id="guides-title">Guides with a clean trail.</h1>
+            <p>Pair decks with concise summaries, ordered sections, and publish dates that make sense.</p>
         </section>
 
         <?php if ($notice !== null): ?>
@@ -161,81 +162,93 @@ admin_render_page(
 
         <section class="admin-panel" aria-labelledby="guide-form-title">
             <h2 id="guide-form-title"><?= $editing !== null ? 'Edit guide' : 'Add guide' ?></h2>
+            <p>Keep each section focused; headings are the trail markers and body copy is the route.</p>
             <form method="post" action="/admin/guides.php">
                 <?= admin_csrf_field() ?>
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="existing_slug" value="<?= $editing !== null ? admin_guides_h($editing) : '' ?>">
 
-                <p>
-                    <label for="slug">Slug</label><br>
+                <label class="admin-field" for="slug">
+                    <span>Slug</span>
+                    <small>Lowercase words and hyphens; this stays locked while editing.</small>
                     <input id="slug" name="slug" type="text" value="<?= admin_guides_h($formGuide['slug'] ?? '') ?>" <?= $editing !== null ? 'readonly' : '' ?> required>
-                </p>
-                <p>
-                    <label for="title">Title</label><br>
+                </label>
+
+                <label class="admin-field" for="title">
+                    <span>Title</span>
                     <input id="title" name="title" type="text" value="<?= admin_guides_h($formGuide['title'] ?? '') ?>" required>
-                </p>
-                <p>
-                    <label for="deck_slug">Deck slug</label><br>
+                </label>
+
+                <label class="admin-field" for="deck_slug">
+                    <span>Deck slug</span>
+                    <small>Connect this guide to the deck it teaches.</small>
                     <input id="deck_slug" name="deck_slug" type="text" value="<?= admin_guides_h($formGuide['deck_slug'] ?? '') ?>" required>
-                </p>
-                <p>
-                    <label for="summary">Summary</label><br>
+                </label>
+
+                <label class="admin-field" for="summary">
+                    <span>Summary</span>
+                    <small>Set the quick trailhead copy shown before the sections.</small>
                     <textarea id="summary" name="summary" rows="4" required><?= admin_guides_h($formGuide['summary'] ?? '') ?></textarea>
-                </p>
-                <p>
-                    <label for="status">Status</label><br>
+                </label>
+
+                <label class="admin-field" for="status">
+                    <span>Status</span>
                     <select id="status" name="status">
                         <?php foreach (['draft', 'published', 'archived'] as $status): ?>
                             <option value="<?= admin_guides_h($status) ?>" <?= ($formGuide['status'] ?? 'draft') === $status ? 'selected' : '' ?>><?= admin_guides_h(ucfirst($status)) ?></option>
                         <?php endforeach; ?>
                     </select>
-                </p>
-                <p>
-                    <label for="published">Published date</label><br>
+                </label>
+
+                <label class="admin-field" for="published">
+                    <span>Published date</span>
+                    <small>Optional date for when this guide should appear fresh.</small>
                     <input id="published" name="published" type="date" value="<?= admin_guides_h($formGuide['published'] ?? '') ?>">
-                </p>
+                </label>
 
                 <h3>Sections</h3>
                 <?php foreach ($sections as $index => $section): ?>
                     <fieldset>
                         <legend>Section <?= (int) $index + 1 ?></legend>
-                        <p>
-                            <label for="section_heading_<?= (int) $index ?>">Heading</label><br>
+                        <label class="admin-field" for="section_heading_<?= (int) $index ?>">
+                            <span>Heading</span>
                             <input id="section_heading_<?= (int) $index ?>" name="section_heading[]" type="text" value="<?= admin_guides_h(is_array($section) ? ($section['heading'] ?? '') : '') ?>" required>
-                        </p>
-                        <p>
-                            <label for="section_body_<?= (int) $index ?>">Body</label><br>
+                        </label>
+                        <label class="admin-field" for="section_body_<?= (int) $index ?>">
+                            <span>Body</span>
                             <textarea id="section_body_<?= (int) $index ?>" name="section_body[]" rows="6" required><?= admin_guides_h(is_array($section) ? ($section['body'] ?? '') : '') ?></textarea>
-                        </p>
+                        </label>
                     </fieldset>
                 <?php endforeach; ?>
                 <fieldset>
                     <legend>New section</legend>
-                    <p>
-                        <label for="section_heading_new">Heading</label><br>
+                    <label class="admin-field" for="section_heading_new">
+                        <span>Heading</span>
                         <input id="section_heading_new" name="section_heading[]" type="text" value="">
-                    </p>
-                    <p>
-                        <label for="section_body_new">Body</label><br>
+                    </label>
+                    <label class="admin-field" for="section_body_new">
+                        <span>Body</span>
                         <textarea id="section_body_new" name="section_body[]" rows="6"></textarea>
-                    </p>
+                    </label>
                 </fieldset>
 
-                <p>
+                <div class="admin-action-row">
                     <button type="submit"><?= $editing !== null ? 'Update guide' : 'Create guide' ?></button>
                     <?php if ($editing !== null): ?>
-                        <a href="/admin/guides.php">Cancel</a>
+                        <a class="admin-button admin-button-secondary" href="/admin/guides.php">Cancel editing</a>
                     <?php endif; ?>
-                </p>
+                </div>
             </form>
         </section>
 
         <section class="admin-panel" aria-labelledby="guide-list-title">
-            <h2 id="guide-list-title">Existing guides</h2>
+            <h2 id="guide-list-title">Guide shelf</h2>
+            <p>Check publish state, slug, and last update before opening a guide for edits.</p>
             <?php if ($guides === []): ?>
-                <p>No guides found.</p>
+                <p>No guides yet. Draft the first trail marker above.</p>
             <?php else: ?>
-                <table>
+                <div class="admin-table-wrap">
+                <table class="admin-table">
                     <thead>
                     <tr>
                         <th scope="col">Title</th>
@@ -254,18 +267,19 @@ admin_render_page(
                             <td><?= admin_guides_h($slug) ?></td>
                             <td><?= admin_guides_h($guide['updated_at'] ?? '') ?></td>
                             <td>
-                                <a href="/admin/guides.php?edit=<?= rawurlencode($slug) ?>">Edit</a>
-                                <form method="post" action="/admin/guides.php" onsubmit="return confirm('Delete this guide?');">
+                                <a class="admin-button admin-button-secondary" href="/admin/guides.php?edit=<?= rawurlencode($slug) ?>">Edit guide</a>
+                                <form method="post" action="/admin/guides.php" class="admin-inline-form" onsubmit="return confirm('Delete this guide?');">
                                     <?= admin_csrf_field() ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="slug" value="<?= admin_guides_h($slug) ?>">
-                                    <button type="submit">Delete</button>
+                                    <button type="submit">Delete guide</button>
                                 </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </section>
         <?php

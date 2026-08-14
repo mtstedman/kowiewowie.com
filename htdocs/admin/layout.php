@@ -74,7 +74,7 @@ function admin_require_admin(array $user): void
             <section class="admin-panel admin-denied" aria-labelledby="denied-title">
                 <p class="admin-eyebrow">403</p>
                 <h1 id="denied-title">Permission denied</h1>
-                <p><?= htmlspecialchars(admin_display_name($user), ENT_QUOTES, 'UTF-8') ?> does not have administrator access.</p>
+                <p><?= htmlspecialchars(admin_display_name($user), ENT_QUOTES, 'UTF-8') ?> can peek at the hallway, but this control room needs an administrator role.</p>
             </section>
             <?php
         },
@@ -115,7 +115,7 @@ function admin_render_page(string $title, callable $content, ?array $user = null
     <body>
         <div class="admin-shell">
             <header class="admin-header">
-                <a class="admin-brand" href="/admin/">wowiekowie admin</a>
+                <a class="admin-brand" href="/admin/">wowiekowie control room</a>
                 <?php if ($user !== null && admin_user_is_admin($user)): ?>
                     <nav class="admin-nav" aria-label="Admin sections">
                         <?php foreach ($navItems as $item): ?>
@@ -128,7 +128,7 @@ function admin_render_page(string $title, callable $content, ?array $user = null
                 <?php endif; ?>
                 <?php if ($user !== null): ?>
                     <div class="admin-account">
-                        <span><?= htmlspecialchars(admin_display_name($user), ENT_QUOTES, 'UTF-8') ?></span>
+                        <span>Signed in as <?= htmlspecialchars(admin_display_name($user), ENT_QUOTES, 'UTF-8') ?></span>
                     </div>
                 <?php endif; ?>
             </header>

@@ -13,9 +13,9 @@ $metaDescription = 'Magic: The Gathering deck walkthrough.';
 
         <main id="guide-detail" aria-live="polite">
             <section class="hero hero-compact">
-                <p class="eyebrow">Deck guides</p>
-                <h1>Loading guide...</h1>
-                <p class="lede">Loading walkthrough details.</p>
+                <p class="eyebrow">Deck guide</p>
+                <h1>Opening the playbook.</h1>
+                <p class="lede">Fetching the walkthrough and its table-side notes.</p>
                 <a class="button" href="/decks/guides.php">Back to guides</a>
             </section>
         </main>

@@ -50,7 +50,7 @@
 
         if (songs.length === 0) {
             const emptyMessage = document.createElement('p');
-            emptyMessage.textContent = 'No songs have been added yet.';
+            emptyMessage.textContent = 'The tiny queue is empty for now.';
             musicList.append(emptyMessage);
             return;
         }
@@ -63,7 +63,7 @@
 
     const renderError = () => {
         const message = document.createElement('p');
-        message.textContent = 'Unable to load songs right now.';
+        message.textContent = 'The tiny queue would not load. Try again in a moment.';
         musicList.replaceChildren(message);
     };
 

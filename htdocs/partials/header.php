@@ -9,7 +9,7 @@ $publicNavItems = [
     'chess' => ['href' => '/chess/', 'label' => 'Chess'],
     'music' => ['href' => '/music/', 'label' => 'Music'],
     'videos' => ['href' => '/videos/', 'label' => 'Videos'],
-    'dongs' => ['href' => '/dongs/', 'label' => 'Big Dongs'],
+    'dongs' => ['href' => '/dongs/', 'label' => 'Dongs'],
 ];
 
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
@@ -34,6 +34,6 @@ if (is_string($requestPath) && $requestPath !== '' && $requestPath !== '/') {
             <a href="<?= htmlspecialchars($navItem['href'], ENT_QUOTES, 'UTF-8') ?>"<?= $currentPublicSection === $sectionKey ? ' aria-current="page"' : '' ?>><?= htmlspecialchars($navItem['label'], ENT_QUOTES, 'UTF-8') ?></a>
         <?php endforeach; ?>
     </nav>
-    <span class="status"><span class="status-dot" aria-hidden="true"></span>online</span>
+    <span class="status"><span class="status-dot" aria-hidden="true"></span>site awake</span>
 </header>
 <span id="main-content" class="skip-target" tabindex="-1"></span>

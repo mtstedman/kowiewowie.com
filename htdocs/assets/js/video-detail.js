@@ -175,8 +175,8 @@
         section.className = 'hero hero-compact';
 
         appendTextElement(section, 'p', 'eyebrow', 'Video not found');
-        appendTextElement(section, 'h1', '', 'That watch page is not available.');
-        appendTextElement(section, 'p', 'lede', 'Choose a public video from the videos tab to keep watching.');
+        appendTextElement(section, 'h1', '', 'That watch page wandered off.');
+        appendTextElement(section, 'p', 'lede', 'Choose another public video from the watch drawer.');
         appendArrowLink(section, 'button', '/videos/', 'Back to videos');
 
         page.append(section);
@@ -189,8 +189,8 @@
         section.className = 'hero hero-compact';
 
         appendTextElement(section, 'p', 'eyebrow', 'Loading error');
-        appendTextElement(section, 'h1', '', 'This video could not be loaded.');
-        appendTextElement(section, 'p', 'lede', 'Try the videos tab again in a moment.');
+        appendTextElement(section, 'h1', '', 'The watch page would not load.');
+        appendTextElement(section, 'p', 'lede', 'Try the video shelf again in a moment.');
         appendArrowLink(section, 'button', '/videos/', 'Back to videos');
 
         page.append(section);
@@ -203,8 +203,8 @@
         section.className = 'hero hero-compact';
 
         appendTextElement(section, 'p', 'eyebrow', 'Video unavailable');
-        appendTextElement(section, 'h1', '', 'The watch page is missing a playable video.');
-        appendTextElement(section, 'p', 'lede', 'Pick another upload from the videos list to keep browsing.');
+        appendTextElement(section, 'h1', '', 'This watch page has no playable video.');
+        appendTextElement(section, 'p', 'lede', 'Pick another upload from the video shelf.');
         appendArrowLink(section, 'button', '/videos/', 'Back to videos');
 
         page.append(section);
@@ -218,13 +218,13 @@
         appendTextElement(section, 'h2', '', 'Related videos');
 
         if (state === 'loading') {
-            appendTextElement(section, 'p', 'videos-related-state', 'Loading related videos...');
+            appendTextElement(section, 'p', 'videos-related-state', 'Finding nearby uploads...');
             container.append(section);
             return;
         }
 
         if (state === 'error') {
-            appendTextElement(section, 'p', 'videos-related-state', 'Related videos could not be loaded right now.');
+            appendTextElement(section, 'p', 'videos-related-state', 'Nearby uploads would not load right now.');
             container.append(section);
             return;
         }
@@ -237,7 +237,7 @@
             .slice(0, 8);
 
         if (visibleVideos.length === 0) {
-            appendTextElement(section, 'p', 'videos-related-state', 'No related videos are available yet.');
+            appendTextElement(section, 'p', 'videos-related-state', 'No nearby uploads yet.');
             container.append(section);
             return;
         }

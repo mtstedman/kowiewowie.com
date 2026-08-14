@@ -48,16 +48,16 @@
     emptyState.hidden = matchCount !== 0;
 
     if (query === '') {
-      status.textContent = `Showing all ${totalCount} dongers.`;
+      status.textContent = `Showing all ${totalCount} faces.`;
       return;
     }
 
     if (matchCount === 0) {
-      status.textContent = `No dongers matched "${input.value}".`;
+      status.textContent = `No faces matched "${input.value}".`;
       return;
     }
 
-    status.textContent = `Showing ${matchCount} dongers matching "${input.value}".`;
+    status.textContent = `Showing ${matchCount} faces matching "${input.value}".`;
   };
 
   form.addEventListener('submit', (event) => {

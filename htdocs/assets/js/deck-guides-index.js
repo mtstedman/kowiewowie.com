@@ -37,7 +37,7 @@
 
     function renderGuides(guides, decks) {
         if (!Array.isArray(guides) || guides.length === 0) {
-            guideList.innerHTML = '<p>No deck guides are available yet.</p>';
+            guideList.innerHTML = '<p>No play guides are on the lectern yet.</p>';
             return;
         }
 
@@ -58,14 +58,14 @@
                         ${published !== '' ? `<span class="feature-number">${escapeHtml(published)}</span>` : ''}
                         <h3><a href="/decks/guide.php?slug=${encodeURIComponent(slug)}">${escapeHtml(title)}</a></h3>
                         <p>${escapeHtml(summary)}</p>
-                        <p>Linked deck: <a href="/decks/deck.php?slug=${encodeURIComponent(deckSlug)}">${escapeHtml(deckName)}</a></p>
+                        <p>Deck box: <a href="/decks/deck.php?slug=${encodeURIComponent(deckSlug)}">${escapeHtml(deckName)}</a></p>
                     </article>
                 `;
             })
             .join('');
 
         guideList.innerHTML = articles === ''
-            ? '<p>No deck guides are available yet.</p>'
+            ? '<p>No play guides are on the lectern yet.</p>'
             : `<div class="feature-grid">${articles}</div>`;
     }
 
@@ -78,7 +78,7 @@
 
             renderGuides(guides, decks);
         } catch (error) {
-            guideList.innerHTML = '<p>Deck guides could not be loaded. Please try again later.</p>';
+            guideList.innerHTML = '<p>The play guides wandered off the lectern. Try again in a moment.</p>';
         }
     }
 

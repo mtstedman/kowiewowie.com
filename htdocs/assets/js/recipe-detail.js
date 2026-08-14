@@ -59,11 +59,11 @@
     }
 
     function renderNotFound() {
-        renderMessage('Recipe not found', 'No recipe matched that link.', 'Choose a recipe from the list and try again.');
+        renderMessage('Recipe not found', 'That recipe slipped behind the fridge.', 'Pick another note from the recipe drawer and try again.');
     }
 
     function renderError() {
-        renderMessage('Recipe unavailable', 'Recipe could not be loaded right now.', 'Choose a recipe from the list and try again.');
+        renderMessage('Recipe unavailable', 'The recipe drawer stuck halfway open.', 'Try the list again in a moment.');
     }
 
     function renderRecipe(recipe) {

@@ -16,7 +16,7 @@
 
     const renderDecks = (decks) => {
         if (decks.length === 0) {
-            deckList.innerHTML = '<p>No decks are available yet.</p>';
+            deckList.innerHTML = '<p>No deck boxes are on the shelf yet.</p>';
             return;
         }
 
@@ -35,7 +35,7 @@
                         <article>
                             <span class="feature-number">${escapeHtml(cardCount)} cards</span>
                             <h3><a href="/decks/deck.php?slug=${encodeURIComponent(slug)}">${escapeHtml(name)}</a></h3>
-                            <p>${escapeHtml(format)} - ${escapeHtml(colors)}</p>
+                            <p>${escapeHtml(format)} deck - ${escapeHtml(colors)}</p>
                             ${summary !== '' ? `<p>${escapeHtml(summary)}</p>` : ''}
                         </article>
                     `;
@@ -51,11 +51,11 @@
     fetch('/api/decks')
         .then((response) => {
             if (response.status === 404) {
-                throw new Error('No decks are available yet.');
+                throw new Error('No deck boxes are on the shelf yet.');
             }
 
             if (!response.ok) {
-                throw new Error('Unable to load decks. Please try again later.');
+                throw new Error('The deck shelf would not load. Try again in a moment.');
             }
 
             return response.json();
