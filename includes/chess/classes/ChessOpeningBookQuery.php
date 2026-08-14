@@ -17,17 +17,17 @@ final class ChessOpeningBookQuery
 
     /**
      * @param list<string> $uciMoves
-     * @return array{eco_code: string, name: string}|null
+     * @return array{on_book: bool, eco_code: string|null, name: string|null}
      */
-    public function query(array $uciMoves): ?array
+    public function query(array $uciMoves): array
     {
         $position = $this->initialPosition();
         if ($position === null) {
-            return null;
+            return $this->offBookResponse();
         }
 
         $currentPositionId = (string) $position['id'];
-        $opening = $this->openingFromPosition($position);
+        $currentOpening = $this->openingFromPosition($position);
         $statement = $this->pdo->prepare(<<<'SQL'
             SELECT
                 next_position.id,
@@ -50,17 +50,18 @@ final class ChessOpeningBookQuery
             ]);
             $nextPosition = $statement->fetch(PDO::FETCH_ASSOC);
             if (!is_array($nextPosition)) {
-                return null;
+                return $this->offBookResponse();
             }
 
             $currentPositionId = (string) $nextPosition['id'];
-            $nextOpening = $this->openingFromPosition($nextPosition);
-            if ($nextOpening !== null) {
-                $opening = $nextOpening;
-            }
+            $currentOpening = $this->openingFromPosition($nextPosition);
         }
 
-        return $opening;
+        return [
+            'on_book' => true,
+            'eco_code' => $currentOpening['eco_code'],
+            'name' => $currentOpening['name'],
+        ];
     }
 
     /** @return array{id: mixed, eco_code: mixed, name: mixed}|null */
@@ -85,17 +86,23 @@ final class ChessOpeningBookQuery
 
     /**
      * @param array{id: mixed, eco_code: mixed, name: mixed} $position
-     * @return array{eco_code: string, name: string}|null
+     * @return array{eco_code: string|null, name: string|null}
      */
-    private function openingFromPosition(array $position): ?array
+    private function openingFromPosition(array $position): array
     {
-        if ($position['eco_code'] === null || $position['name'] === null) {
-            return null;
-        }
-
         return [
-            'eco_code' => (string) $position['eco_code'],
-            'name' => (string) $position['name'],
+            'eco_code' => $position['eco_code'] === null ? null : (string) $position['eco_code'],
+            'name' => $position['name'] === null ? null : (string) $position['name'],
+        ];
+    }
+
+    /** @return array{on_book: false, eco_code: null, name: null} */
+    private function offBookResponse(): array
+    {
+        return [
+            'on_book' => false,
+            'eco_code' => null,
+            'name' => null,
         ];
     }
 }
