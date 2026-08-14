@@ -31,6 +31,11 @@ jobs:
         run: |
           php tests/chess-rules.php
           php tests/chess-opening-book.php
+          php tests/chess-opening-book-status.php
+          php tests/chess-repository-query-count.php
+
+      - name: Run chess browser regressions
+        run: node tests/chess-game-opening-status.test.mjs
 
       - name: Check deployment shell syntax
         run: bash -n deploy/deploy.sh .githooks/post-commit

@@ -33,34 +33,36 @@ const PIECE_ASSETS = Object.freeze({
     k: '/assets/chess/black-king.png',
 });
 
+const chessDocument = typeof document === 'undefined' ? null : document;
+
 const elements = {
-    root: document.querySelector('[data-chess-game]'),
-    summary: document.getElementById('chess-game-summary'),
-    error: document.getElementById('chess-game-error'),
-    turnStatus: document.getElementById('chess-turn-status'),
-    ruleStatus: document.getElementById('chess-rule-status'),
-    controlStatus: document.getElementById('chess-control-status'),
-    openingStatus: document.getElementById('chess-opening-status'),
-    takebackButton: document.getElementById('chess-takeback-button'),
-    resignButton: document.getElementById('chess-resign-button'),
-    fullscreenToggle: document.getElementById('chess-fullscreen-toggle'),
-    fullscreenExit: document.getElementById('chess-fullscreen-exit'),
-    board: document.getElementById('chess-board'),
-    boardMessage: document.getElementById('chess-board-message'),
-    whitePlayer: document.getElementById('chess-white-player'),
-    blackPlayer: document.getElementById('chess-black-player'),
-    viewerPlayer: document.getElementById('chess-viewer-player'),
-    currentName: document.getElementById('chess-current-name'),
-    profileForm: document.getElementById('chess-profile-form'),
-    displayName: document.getElementById('chess-display-name'),
-    saveNameButton: document.getElementById('chess-save-name-button'),
-    notificationToggle: document.getElementById('chess-move-notifications'),
-    notificationMessage: document.getElementById('chess-notification-message'),
-    profileMessage: document.getElementById('chess-profile-message'),
-    moveList: document.getElementById('chess-move-list'),
-    promotionDialog: document.getElementById('chess-promotion-dialog'),
-    promotionOptions: document.getElementById('chess-promotion-options'),
-    promotionCancel: document.getElementById('chess-promotion-cancel'),
+    root: chessDocument?.querySelector('[data-chess-game]') || null,
+    summary: chessDocument?.getElementById('chess-game-summary') || null,
+    error: chessDocument?.getElementById('chess-game-error') || null,
+    turnStatus: chessDocument?.getElementById('chess-turn-status') || null,
+    ruleStatus: chessDocument?.getElementById('chess-rule-status') || null,
+    controlStatus: chessDocument?.getElementById('chess-control-status') || null,
+    openingStatus: chessDocument?.getElementById('chess-opening-status') || null,
+    takebackButton: chessDocument?.getElementById('chess-takeback-button') || null,
+    resignButton: chessDocument?.getElementById('chess-resign-button') || null,
+    fullscreenToggle: chessDocument?.getElementById('chess-fullscreen-toggle') || null,
+    fullscreenExit: chessDocument?.getElementById('chess-fullscreen-exit') || null,
+    board: chessDocument?.getElementById('chess-board') || null,
+    boardMessage: chessDocument?.getElementById('chess-board-message') || null,
+    whitePlayer: chessDocument?.getElementById('chess-white-player') || null,
+    blackPlayer: chessDocument?.getElementById('chess-black-player') || null,
+    viewerPlayer: chessDocument?.getElementById('chess-viewer-player') || null,
+    currentName: chessDocument?.getElementById('chess-current-name') || null,
+    profileForm: chessDocument?.getElementById('chess-profile-form') || null,
+    displayName: chessDocument?.getElementById('chess-display-name') || null,
+    saveNameButton: chessDocument?.getElementById('chess-save-name-button') || null,
+    notificationToggle: chessDocument?.getElementById('chess-move-notifications') || null,
+    notificationMessage: chessDocument?.getElementById('chess-notification-message') || null,
+    profileMessage: chessDocument?.getElementById('chess-profile-message') || null,
+    moveList: chessDocument?.getElementById('chess-move-list') || null,
+    promotionDialog: chessDocument?.getElementById('chess-promotion-dialog') || null,
+    promotionOptions: chessDocument?.getElementById('chess-promotion-options') || null,
+    promotionCancel: chessDocument?.getElementById('chess-promotion-cancel') || null,
 };
 
 const state = {
@@ -109,24 +111,31 @@ const ensureOpeningStatusElement = () => {
     return openingStatus;
 };
 
-const formatOpening = (opening) => {
-    if (!opening || typeof opening !== 'object') {
-        return 'Off book';
+export const formatOpening = (opening) => {
+    if (!opening || typeof opening !== 'object' || opening.on_book !== true) {
+        return {
+            label: 'Off book',
+            onBook: false,
+            tone: 'neutral',
+        };
     }
 
     const ecoCode = typeof opening.eco_code === 'string' ? opening.eco_code.trim() : '';
     const name = typeof opening.name === 'string' ? opening.name.trim() : '';
+    let label = 'On book';
     if (ecoCode !== '' && name !== '') {
-        return `[${ecoCode}] ${name}`;
-    }
-    if (ecoCode !== '') {
-        return `[${ecoCode}]`;
-    }
-    if (name !== '') {
-        return name;
+        label = `[${ecoCode}] ${name}`;
+    } else if (ecoCode !== '') {
+        label = `[${ecoCode}]`;
+    } else if (name !== '') {
+        label = name;
     }
 
-    return 'Off book';
+    return {
+        label,
+        onBook: true,
+        tone: 'success',
+    };
 };
 
 const renderOpeningStatus = () => {
@@ -135,11 +144,10 @@ const renderOpeningStatus = () => {
         return;
     }
 
-    const message = formatOpening(state.game?.opening);
-    const onBook = message !== 'Off book';
+    const opening = formatOpening(state.game?.opening);
     openingStatus.hidden = false;
-    openingStatus.setAttribute('aria-label', `Opening: ${message}`);
-    setMessage(openingStatus, message, onBook ? 'success' : 'neutral');
+    openingStatus.setAttribute('aria-label', `Opening: ${opening.label}`);
+    setMessage(openingStatus, opening.label, opening.tone);
 };
 
 const errorMessage = (error, fallback) => {
@@ -938,4 +946,6 @@ const init = () => {
     startPolling();
 };
 
-init();
+if (chessDocument !== null) {
+    init();
+}

@@ -711,9 +711,11 @@ final class ChessRepository
 
         $gameIds = array_map(static fn (array $game): string => (string) $game['id'], $games);
         $playersByGame = $this->loadPlayersForGames($gameIds);
+        $openingsByGame = $this->loadOpeningsForGames($games);
         $result = [];
         foreach ($games as $game) {
-            $result[] = $this->presentGame($game, $playersByGame[(string) $game['id']] ?? [], $identity, false);
+            $gameId = (string) $game['id'];
+            $result[] = $this->presentGame($game, $playersByGame[$gameId] ?? [], $identity, false, $openingsByGame[$gameId]);
         }
 
         return $result;
@@ -825,12 +827,185 @@ final class ChessRepository
     }
 
     /**
+     * @param list<array<string, mixed>> $games
+     * @return array<string, array{on_book: bool, eco_code: string|null, name: string|null}>
+     */
+    private function loadOpeningsForGames(array $games): array
+    {
+        if ($games === []) {
+            return [];
+        }
+
+        $gameIds = array_map(static fn (array $game): string => (string) $game['id'], $games);
+        $movesByGame = $this->loadMoveUciForGames($gameIds);
+        $openingGraph = $this->loadOpeningGraph();
+
+        $openingsByGame = [];
+        foreach ($games as $game) {
+            $gameId = (string) $game['id'];
+            $openingsByGame[$gameId] = $this->openingForMovesFromGraph($movesByGame[$gameId] ?? [], $openingGraph);
+        }
+
+        return $openingsByGame;
+    }
+
+    /**
+     * @param list<string> $gameIds
+     * @return array<string, list<string>>
+     */
+    private function loadMoveUciForGames(array $gameIds): array
+    {
+        if ($gameIds === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+        foreach (array_values($gameIds) as $index => $gameId) {
+            $placeholder = ':game_' . $index;
+            $placeholders[] = $placeholder;
+            $params[$placeholder] = $gameId;
+        }
+
+        $statement = $this->pdo->prepare(sprintf(<<<'SQL'
+            SELECT game_id, uci
+            FROM chess_game_moves
+            WHERE game_id IN (%s)
+            ORDER BY game_id ASC, ply ASC
+        SQL, implode(', ', $placeholders)));
+        foreach ($params as $placeholder => $gameId) {
+            $statement->bindValue($placeholder, $gameId, PDO::PARAM_STR);
+        }
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        $movesByGame = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $movesByGame[(string) $row['game_id']][] = strtolower(trim((string) $row['uci']));
+        }
+
+        return $movesByGame;
+    }
+
+    /**
+     * @return array{
+     *   initial: array{id: string, eco_code: string|null, name: string|null}|null,
+     *   moves: array<string, array<string, array{id: string, eco_code: string|null, name: string|null}>>
+     * }
+     */
+    private function loadOpeningGraph(): array
+    {
+        $initialStatement = $this->pdo->prepare(<<<'SQL'
+            SELECT
+                initial_position.id,
+                opening.eco_code,
+                opening.name
+            FROM chess_opening_positions initial_position
+            LEFT JOIN chess_openings opening
+              ON opening.id = initial_position.opening_id
+            WHERE initial_position.epd = :epd
+            LIMIT 1
+        SQL);
+        $initialStatement->execute([
+            'epd' => 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -',
+        ]);
+        $initial = $initialStatement->fetch(PDO::FETCH_ASSOC);
+
+        $moveStatement = $this->pdo->prepare(<<<'SQL'
+            SELECT
+                book_move.from_position_id,
+                book_move.uci,
+                next_position.id,
+                opening.eco_code,
+                opening.name
+            FROM chess_opening_moves book_move
+            JOIN chess_opening_positions next_position
+              ON next_position.id = book_move.to_position_id
+            LEFT JOIN chess_openings opening
+              ON opening.id = next_position.opening_id
+        SQL);
+        $moveStatement->execute();
+        $rows = $moveStatement->fetchAll(PDO::FETCH_ASSOC);
+
+        $moves = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $moves[(string) $row['from_position_id']][strtolower(trim((string) $row['uci']))] = [
+                'id' => (string) $row['id'],
+                'eco_code' => $row['eco_code'] === null ? null : (string) $row['eco_code'],
+                'name' => $row['name'] === null ? null : (string) $row['name'],
+            ];
+        }
+
+        return [
+            'initial' => is_array($initial) ? [
+                'id' => (string) $initial['id'],
+                'eco_code' => $initial['eco_code'] === null ? null : (string) $initial['eco_code'],
+                'name' => $initial['name'] === null ? null : (string) $initial['name'],
+            ] : null,
+            'moves' => $moves,
+        ];
+    }
+
+    /**
+     * @param list<string> $uciMoves
+     * @param array{
+     *   initial: array{id: string, eco_code: string|null, name: string|null}|null,
+     *   moves: array<string, array<string, array{id: string, eco_code: string|null, name: string|null}>>
+     * } $openingGraph
+     * @return array{on_book: bool, eco_code: string|null, name: string|null}
+     */
+    private function openingForMovesFromGraph(array $uciMoves, array $openingGraph): array
+    {
+        if ($openingGraph['initial'] === null) {
+            return $this->offBookOpening();
+        }
+
+        $currentPositionId = $openingGraph['initial']['id'];
+        $currentOpening = [
+            'eco_code' => $openingGraph['initial']['eco_code'],
+            'name' => $openingGraph['initial']['name'],
+        ];
+
+        foreach ($uciMoves as $uci) {
+            $nextPosition = $openingGraph['moves'][$currentPositionId][strtolower(trim($uci))] ?? null;
+            if ($nextPosition === null) {
+                return $this->offBookOpening();
+            }
+
+            $currentPositionId = $nextPosition['id'];
+            if ($nextPosition['eco_code'] !== null || $nextPosition['name'] !== null) {
+                $currentOpening = [
+                    'eco_code' => $nextPosition['eco_code'],
+                    'name' => $nextPosition['name'],
+                ];
+            }
+        }
+
+        return [
+            'on_book' => true,
+            'eco_code' => $currentOpening['eco_code'],
+            'name' => $currentOpening['name'],
+        ];
+    }
+
+    /** @return array{on_book: false, eco_code: null, name: null} */
+    private function offBookOpening(): array
+    {
+        return [
+            'on_book' => false,
+            'eco_code' => null,
+            'name' => null,
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $game
      * @param list<array<string, mixed>> $players
      * @param array<string, mixed> $identity
+     * @param array{on_book: bool, eco_code: string|null, name: string|null}|null $opening
      * @return array<string, mixed>
      */
-    private function presentGame(array $game, array $players, array $identity, bool $includeLegalMoves): array
+    private function presentGame(array $game, array $players, array $identity, bool $includeLegalMoves, ?array $opening = null): array
     {
         $state = $this->engine->detectState((string) $game['current_fen']);
         if (($state['ok'] ?? false) !== true) {
@@ -842,7 +1017,7 @@ final class ChessRepository
         $canControlTurn = $currentSeat !== null && $this->canActAsSeat($game, $players, $currentSeat, $identity);
         $pendingTakebackBy = $game['pending_takeback_by_player_id'] !== null ? (string) $game['pending_takeback_by_player_id'] : null;
         $pendingTakebackRequester = $pendingTakebackBy !== null ? $this->playerById($players, $pendingTakebackBy) : null;
-        $opening = (new ChessOpeningBookQuery($this->pdo))->query($this->loadMoveUciForGame((string) $game['id']));
+        $opening ??= (new ChessOpeningBookQuery($this->pdo))->query($this->loadMoveUciForGame((string) $game['id']));
         $payload = [
             'id' => (string) $game['public_id'],
             'variant' => (string) $game['variant'],

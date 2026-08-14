@@ -54,7 +54,10 @@ final class ChessOpeningBookQuery
             }
 
             $currentPositionId = (string) $nextPosition['id'];
-            $currentOpening = $this->openingFromPosition($nextPosition);
+            $nextOpening = $this->openingFromPosition($nextPosition);
+            if ($nextOpening['eco_code'] !== null || $nextOpening['name'] !== null) {
+                $currentOpening = $nextOpening;
+            }
         }
 
         return [
