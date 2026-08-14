@@ -502,18 +502,18 @@ footer {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-items: center;
-    gap: clamp(1rem, 3vw, var(--space-lg));
-    padding: clamp(2.75rem, 7vw, 5.25rem) 0 clamp(2.25rem, 6vw, 4.5rem);
+    gap: clamp(0.875rem, 2.5vw, var(--space-lg));
+    padding: clamp(2.25rem, 5vw, 4rem) 0 clamp(2rem, 4.5vw, 3.5rem);
 }
 
 .hero-compact {
     min-height: 0;
-    padding-block: clamp(1.25rem, 3vw, 2.25rem);
+    padding-block: clamp(0.875rem, 2vw, 1.5rem);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap: 0.75rem;
+    gap: 0.55rem;
 }
 
 .bio-hero {
@@ -899,11 +899,11 @@ footer {
     }
 
     .hero {
-        padding: 56px 0 64px;
+        padding: 42px 0 48px;
     }
 
     .hero.hero-compact {
-        padding-block: clamp(1.25rem, 4vw, 2.5rem);
+        padding-block: clamp(0.75rem, 3vw, 1.375rem);
     }
 
     .bio-hero {
