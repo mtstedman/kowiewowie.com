@@ -379,6 +379,7 @@ const buildLobbyDom = (document) => {
 };
 
 const gameId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const uppercaseGameId = gameId.toUpperCase();
 
 const gamePayload = (sideToMove = 'white') => ({
     id: gameId,
@@ -464,6 +465,53 @@ const buildGameDom = (document) => {
 
     assert.ok(calls.some((call) => call.resource === '/api/v1/chess/profile'), 'lobby loads guest profile through chess API');
     assert.ok(calls.some((call) => call.resource === '/api/v1/chess/games' && call.options.method === 'POST'), 'lobby creates games through chess API');
+}
+
+{
+    const { document, calls } = installBrowserGlobals({
+        url: `https://wowiekowie.com/chess/game.php?id=${uppercaseGameId}`,
+        fetchHandler: async (resource, options) => {
+            if (resource === '/api/v1/chess/profile') {
+                return { body: { data: { display_name: 'White player' } } };
+            }
+            if (resource === `/api/v1/chess/games/${gameId}` && (options.method || 'GET') === 'GET') {
+                return { body: { data: gamePayload('white') } };
+            }
+            if (resource === `/api/v1/chess/games/${gameId}/moves` && (options.method || 'GET') === 'GET') {
+                return { body: { data: [] } };
+            }
+            throw new Error(`unexpected uppercase game request ${options.method || 'GET'} ${resource}`);
+        },
+    });
+    buildGameDom(document);
+
+    await importFresh('../htdocs/assets/js/chess-game.js');
+    document.readyState = 'interactive';
+    document.dispatchEvent({ type: 'DOMContentLoaded' });
+
+    await flushUntil(() => calls.some((call) => call.resource === `/api/v1/chess/games/${gameId}/moves` && (call.options.method || 'GET') === 'GET'));
+    assert.ok(calls.some((call) => call.resource === `/api/v1/chess/games/${gameId}` && (call.options.method || 'GET') === 'GET'), 'uppercase canonical game id is normalized before game state request');
+    assert.ok(!calls.some((call) => call.resource.includes(uppercaseGameId)), 'uppercase canonical game id is not used in chess API requests');
+}
+
+{
+    const malformedGameId = 'a'.repeat(36);
+    const { document, calls } = installBrowserGlobals({
+        url: `https://wowiekowie.com/chess/game.php?id=${malformedGameId}`,
+        fetchHandler: async (resource, options) => {
+            throw new Error(`unexpected malformed game request ${options.method || 'GET'} ${resource}`);
+        },
+    });
+    buildGameDom(document);
+
+    await importFresh('../htdocs/assets/js/chess-game.js');
+    document.readyState = 'interactive';
+    document.dispatchEvent({ type: 'DOMContentLoaded' });
+    await Promise.resolve();
+
+    assert.equal(document.getElementById('chess-game-error').textContent, 'Open a chess game with a valid game id.', 'malformed game id renders the local invalid-game message');
+    assert.equal(document.getElementById('chess-board-message').textContent, 'Open a chess game with a valid game id.', 'malformed game id exposes the invalid-game message to board status');
+    assert.equal(calls.length, 0, 'malformed 36-character hex-only game id does not call chess API endpoints during boot');
 }
 
 {

@@ -163,6 +163,7 @@ const errorMessage = (error, fallback) => {
     return fallback;
 };
 
+const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const normalizeUuid = (value) => String(value || '').trim().toLowerCase();
 
 const notificationsSupported = () => 'Notification' in window;
@@ -249,7 +250,7 @@ const handleNotificationToggle = async () => {
 const readGameId = () => {
     const params = new URLSearchParams(window.location.search);
     const id = normalizeUuid(params.get('id'));
-    return /^[a-f0-9-]{36}$/.test(id) ? id : '';
+    return UUID_PATTERN.test(id) ? id : '';
 };
 
 const squareName = (fileIndex, rankIndex) => `${BOARD_FILES[fileIndex]}${BOARD_RANKS[rankIndex]}`;
