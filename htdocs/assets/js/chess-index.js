@@ -127,6 +127,8 @@ const titleCase = (value) => {
 
 const oppositeColor = (color) => (color === 'black' ? 'white' : 'black');
 
+const concreteSeatColor = (color) => (color === 'white' || color === 'black' ? color : '');
+
 const gameHref = (gameId) => `/chess/game.php?id=${encodeURIComponent(gameId)}`;
 
 const normalizeGames = (payload) => {
@@ -290,6 +292,13 @@ const tokenFromLink = (link) => {
     return '';
 };
 
+const resetChallengeLink = () => {
+    elements.joinUrl.value = '';
+    elements.openGameLink.href = '';
+    elements.openGameLink.hidden = true;
+    elements.linkBox.hidden = true;
+};
+
 const showChallengeLink = (url, gameId) => {
     elements.joinUrl.value = url;
     elements.linkBox.hidden = false;
@@ -298,6 +307,7 @@ const showChallengeLink = (url, gameId) => {
         elements.openGameLink.href = gameHref(gameId);
         elements.openGameLink.hidden = false;
     } else {
+        elements.openGameLink.href = '';
         elements.openGameLink.hidden = true;
     }
 };
@@ -306,7 +316,7 @@ const handleNewGame = async (event) => {
     event.preventDefault();
     setMessage(elements.createMessage, 'Creating game...', 'neutral');
     elements.newGameButton.disabled = true;
-    elements.linkBox.hidden = true;
+    resetChallengeLink();
 
     const selectedCreatorColor = elements.creatorColor.value;
     const creatorColor = selectedCreatorColor === 'random'
@@ -332,10 +342,10 @@ const handleNewGame = async (event) => {
             return;
         }
 
-        const viewerSeatColor = game?.viewer?.seat_color;
-        const viewerColor = viewerSeatColor === 'black'
-            ? 'black'
-            : viewerSeatColor === 'white' ? 'white' : creatorColor === 'black' ? 'black' : 'white';
+        const viewerColor = concreteSeatColor(game?.viewer?.seat_color);
+        if (viewerColor === '') {
+            throw new Error('The new chess game did not return your assigned color.');
+        }
         const linkPayload = await createChallengeLink(gameId, {
             type: 'play',
             seat_color: oppositeColor(viewerColor),

@@ -117,6 +117,7 @@
 
 .chess-field input,
 .chess-field select {
+    box-sizing: border-box;
     width: 100%;
     min-height: 2.75rem;
     border: 1px solid var(--chess-line);
@@ -138,6 +139,7 @@
 }
 
 .chess-button {
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -184,6 +186,16 @@
     font-weight: 800;
     text-decoration-thickness: 0.12em;
     text-underline-offset: 0.18em;
+}
+
+.chess-copy-box .chess-text-link {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 
 .chess-message {
