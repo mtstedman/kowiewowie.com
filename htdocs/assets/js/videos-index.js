@@ -2,8 +2,12 @@
     const results = document.getElementById('videos-results');
     const filters = document.getElementById('videos-filters');
     const searchInput = document.getElementById('videos-search');
+    const resultsStatus = document.getElementById('videos-results-status');
 
-    if (!(results instanceof HTMLElement) || !(filters instanceof HTMLElement) || !(searchInput instanceof HTMLInputElement)) {
+    if (!(results instanceof HTMLElement)
+        || !(filters instanceof HTMLElement)
+        || !(searchInput instanceof HTMLInputElement)
+        || !(resultsStatus instanceof HTMLElement)) {
         return;
     }
 
@@ -17,6 +21,9 @@
     let activeQuery = '';
 
     const readText = (value) => typeof value === 'string' ? value.trim() : '';
+    const setStatus = (message) => {
+        resultsStatus.textContent = message;
+    };
 
     const normalizeCount = (value) => {
         if (typeof value === 'number' && Number.isFinite(value)) {
@@ -154,8 +161,9 @@
         return video.is_published !== false && video.published !== false && video.public !== false;
     };
 
-    const renderState = (title, description, className) => {
+    const renderState = (title, description, className, statusText = `${title}. ${description}`) => {
         results.replaceChildren();
+        setStatus(statusText);
 
         const section = document.createElement('section');
         section.className = className;
@@ -249,6 +257,8 @@
             button.className = `videos-chip${isActive ? ' is-active' : ''}`;
             button.dataset.topic = label;
             button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            button.setAttribute('aria-controls', 'videos-results');
+            button.setAttribute('aria-describedby', 'videos-results-status');
             button.textContent = label;
             filters.append(button);
         });
@@ -312,8 +322,7 @@
         };
     };
 
-    const createResultsSummary = (count) => {
-        const summary = getResultsSummary(count);
+    const createResultsSummary = (count, summary = getResultsSummary(count)) => {
         const section = document.createElement('section');
         section.className = 'videos-results-summary';
 
@@ -341,17 +350,20 @@
         }
 
         const filteredVideos = getFilteredVideos();
+        const summary = getResultsSummary(filteredVideos.length);
         if (filteredVideos.length === 0) {
             renderState(
                 'No matching videos',
                 'Try a different search term or switch back to another filter chip.',
-                'videos-empty-state'
+                'videos-empty-state',
+                `${summary.eyebrow}. ${summary.description}`
             );
             return;
         }
 
         results.replaceChildren();
-        results.append(createResultsSummary(filteredVideos.length));
+        setStatus(`${summary.eyebrow}. ${summary.description}`);
+        results.append(createResultsSummary(filteredVideos.length, summary));
 
         const grid = document.createElement('div');
         grid.className = 'videos-grid';
@@ -374,6 +386,8 @@
         activeQuery = searchInput.value.trim();
         renderResults();
     });
+
+    setStatus('Loading videos...');
 
     fetch('/api/v1/videos')
         .then((response) => {

@@ -27,15 +27,16 @@ $metaDescription = 'Browse public videos on wowiekowie.com.';
 
                     <label class="videos-search" for="videos-search">
                         <span class="videos-visually-hidden">Search videos</span>
-                        <input id="videos-search" type="search" name="search" placeholder="Search videos, channels, and tags" autocomplete="off">
+                        <input id="videos-search" type="search" name="search" placeholder="Search videos, channels, and tags" autocomplete="off" aria-controls="videos-results" aria-describedby="videos-results-status">
                     </label>
                 </div>
 
                 <div id="videos-filters" class="videos-chips" aria-label="Video filters">
-                    <button class="videos-chip is-active" type="button" data-topic="All" aria-pressed="true">All</button>
+                    <button class="videos-chip is-active" type="button" data-topic="All" aria-pressed="true" aria-controls="videos-results" aria-describedby="videos-results-status">All</button>
                 </div>
 
-                <div id="videos-results" aria-live="polite">
+                <p id="videos-results-status" class="videos-visually-hidden" role="status" aria-live="polite" aria-atomic="true">Loading videos...</p>
+                <div id="videos-results" role="region" aria-labelledby="videos-title" aria-describedby="videos-results-status">
                     <p class="videos-state">Loading videos...</p>
                 </div>
             </section>
