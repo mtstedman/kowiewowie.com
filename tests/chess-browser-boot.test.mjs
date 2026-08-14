@@ -494,6 +494,12 @@ const buildGameDom = (document) => {
     await flushUntil(() => calls.some((call) => call.resource === `/api/v1/chess/games/${gameId}/moves` && (call.options.method || 'GET') === 'GET'));
     assert.ok(calls.some((call) => call.resource === `/api/v1/chess/games/${gameId}` && (call.options.method || 'GET') === 'GET'), 'game boot loads game state through chess API');
 
+    await flushUntil(() => {
+        const fromSquare = document.querySelector('[data-square="e2"]');
+        const toSquare = document.querySelector('[data-square="e4"]');
+        return fromSquare && toSquare && fromSquare.disabled === false;
+    });
+
     const board = document.getElementById('chess-board');
     board.dispatchEvent(clickEvent(document.querySelector('[data-square="e2"]')));
     board.dispatchEvent(clickEvent(document.querySelector('[data-square="e4"]')));
