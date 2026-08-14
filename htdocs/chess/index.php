@@ -102,6 +102,6 @@ $pageStyles = ['/assets/css/chess.css'];
         <?php include dirname(__DIR__) . '/partials/footer.php'; ?>
     </div>
 
-    <script type="module" src="/assets/js/chess-index.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/chess-index.js') ?>"></script>
+    <script type="module" src="/assets/js/chess-index.js?v=<?= @filemtime(dirname(__DIR__) . '/assets/js/chess-index.js') ?: time() ?>"></script>
 </body>
 </html>

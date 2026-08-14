@@ -1,22 +1,83 @@
 import { claimLink, createChallengeLink, createGame, getProfile, listGames, updateProfile } from './chess-api.js';
 
-const elements = {
-    gamesList: document.getElementById('chess-games-list'),
-    newGameForm: document.getElementById('chess-new-game-form'),
-    gameMode: document.getElementById('chess-game-mode'),
-    creatorColor: document.getElementById('chess-creator-color'),
-    newGameButton: document.getElementById('chess-new-game-button'),
-    createMessage: document.getElementById('chess-create-message'),
-    linkBox: document.getElementById('chess-link-box'),
-    joinUrl: document.getElementById('chess-join-url'),
-    copyLinkButton: document.getElementById('chess-copy-link-button'),
-    openGameLink: document.getElementById('chess-open-game-link'),
-    profileForm: document.getElementById('chess-profile-form'),
-    displayName: document.getElementById('chess-display-name'),
-    saveNameButton: document.getElementById('chess-save-name-button'),
-    currentName: document.getElementById('chess-current-name'),
-    profileMessage: document.getElementById('chess-profile-message'),
-    joinMessage: document.getElementById('chess-join-message'),
+const initializationFailureMessage = 'Chess could not finish loading. The create-game controls were not initialized.';
+let elements;
+let initializationError = null;
+let initialized = false;
+
+const requireElement = (id) => {
+    const element = document.getElementById(id);
+    if (!element) {
+        throw new Error(`Chess page initialization failed: missing #${id}.`);
+    }
+
+    return element;
+};
+
+const resolveElements = () => ({
+    gamesList: requireElement('chess-games-list'),
+    newGameForm: requireElement('chess-new-game-form'),
+    gameMode: requireElement('chess-game-mode'),
+    creatorColor: requireElement('chess-creator-color'),
+    newGameButton: requireElement('chess-new-game-button'),
+    createMessage: requireElement('chess-create-message'),
+    linkBox: requireElement('chess-link-box'),
+    joinUrl: requireElement('chess-join-url'),
+    copyLinkButton: requireElement('chess-copy-link-button'),
+    openGameLink: requireElement('chess-open-game-link'),
+    profileForm: requireElement('chess-profile-form'),
+    displayName: requireElement('chess-display-name'),
+    saveNameButton: requireElement('chess-save-name-button'),
+    currentName: requireElement('chess-current-name'),
+    profileMessage: requireElement('chess-profile-message'),
+    joinMessage: requireElement('chess-join-message'),
+});
+
+const renderInitializationFailure = () => {
+    const gamesList = document.getElementById('chess-games-list');
+    if (gamesList) {
+        const paragraph = document.createElement('p');
+        paragraph.className = 'lede';
+        paragraph.textContent = initializationFailureMessage;
+        gamesList.replaceChildren(paragraph);
+    }
+
+    const createMessage = document.getElementById('chess-create-message');
+    if (createMessage) {
+        createMessage.textContent = initializationFailureMessage;
+        createMessage.dataset.tone = 'error';
+    }
+};
+
+const handleInitializationFailure = (error) => {
+    initializationError = error;
+    console.error('Chess page initialization failed.', error);
+    renderInitializationFailure();
+};
+
+const guardNewGameBeforeInitialization = (event) => {
+    if (initialized && initializationError === null) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    renderInitializationFailure();
+};
+
+const findNewGameForm = () => {
+    try {
+        return document.getElementById('chess-new-game-form') || document.querySelector('form.chess-new-game-form');
+    } catch (error) {
+        return document.querySelector('form.chess-new-game-form');
+    }
+};
+
+const installNewGameInitializationGuard = () => {
+    const newGameForm = findNewGameForm();
+    if (newGameForm) {
+        newGameForm.addEventListener('submit', guardNewGameBeforeInitialization);
+    }
 };
 
 const state = {
@@ -365,13 +426,27 @@ const claimJoinToken = async () => {
     }
 };
 
-elements.newGameForm.addEventListener('submit', handleNewGame);
-elements.copyLinkButton.addEventListener('click', handleCopy);
-elements.profileForm.addEventListener('submit', handleProfileSave);
+const initializeChessIndex = () => {
+    elements = resolveElements();
 
-claimJoinToken().then(async (isRedirecting) => {
-    if (!isRedirecting) {
-        await seedProfileName();
-        refreshGames();
-    }
-});
+    elements.newGameForm.addEventListener('submit', handleNewGame);
+    elements.copyLinkButton.addEventListener('click', handleCopy);
+    elements.profileForm.addEventListener('submit', handleProfileSave);
+
+    initialized = true;
+    initializationError = null;
+
+    claimJoinToken().then(async (isRedirecting) => {
+        if (!isRedirecting) {
+            await seedProfileName();
+            refreshGames();
+        }
+    }).catch(handleInitializationFailure);
+};
+
+try {
+    installNewGameInitializationGuard();
+    initializeChessIndex();
+} catch (error) {
+    handleInitializationFailure(error);
+}
