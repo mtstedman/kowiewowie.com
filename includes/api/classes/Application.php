@@ -93,7 +93,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos'],
             ]);
         }
 

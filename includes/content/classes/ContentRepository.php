@@ -552,16 +552,21 @@ final class ContentRepository
         }
 
         $status = contentStatus($input);
+        $publishedAt = $this->videoPublishedAt($input);
         $statement = $this->pdo->prepare(<<<'SQL'
             INSERT INTO videos (slug, title, description, youtube_id, channel_title, thumbnail_url, duration_seconds, view_count, tags, status, created_by, updated_by, published_at)
             VALUES (:slug, :title, :description, :youtube_id, :channel_title, :thumbnail_url, :duration_seconds, :view_count, :tags, :status, :actor, :actor,
-                    CASE WHEN :status = 'published' THEN now() ELSE NULL END)
+                    COALESCE(CAST(:published_at AS timestamptz), CASE WHEN :status = 'published' THEN now() ELSE NULL END))
             ON CONFLICT (slug) DO UPDATE SET
                 title = EXCLUDED.title, description = EXCLUDED.description, youtube_id = EXCLUDED.youtube_id,
                 channel_title = EXCLUDED.channel_title, thumbnail_url = EXCLUDED.thumbnail_url,
                 duration_seconds = EXCLUDED.duration_seconds, view_count = EXCLUDED.view_count,
                 tags = EXCLUDED.tags, status = EXCLUDED.status, updated_by = EXCLUDED.updated_by,
-                published_at = CASE WHEN EXCLUDED.status = 'published' THEN COALESCE(videos.published_at, now()) ELSE videos.published_at END
+                published_at = CASE
+                    WHEN :published_at IS NOT NULL THEN CAST(:published_at AS timestamptz)
+                    WHEN EXCLUDED.status = 'published' THEN COALESCE(videos.published_at, now())
+                    ELSE videos.published_at
+                END
         SQL);
         $statement->execute([
             'slug' => requiredSlug($input),
@@ -575,7 +580,57 @@ final class ContentRepository
             'tags' => json_encode(array_key_exists('tags', $input) ? stringList($input, 'tags') : [], JSON_THROW_ON_ERROR),
             'status' => $status,
             'actor' => $actorId,
+            'published_at' => $publishedAt,
         ]);
+    }
+
+    /** @param array<string, mixed> $input */
+    private function videoPublishedAt(array $input): ?string
+    {
+        $value = optionalString($input, 'published_at', 64);
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?(Z|[+-]\d{2}(?::?\d{2})?)?$/', $value, $matches)) {
+            throw new ApiException(422, 'validation_failed', 'published_at must be a valid timestamp.');
+        }
+
+        $year = (int) $matches[1];
+        $month = (int) $matches[2];
+        $day = (int) $matches[3];
+        $hour = (int) $matches[4];
+        $minute = (int) $matches[5];
+        $second = isset($matches[6]) && $matches[6] !== '' ? (int) $matches[6] : 0;
+        if (!checkdate($month, $day, $year) || $hour > 23 || $minute > 59 || $second > 59) {
+            throw new ApiException(422, 'validation_failed', 'published_at must be a valid timestamp.');
+        }
+
+        $fraction = str_pad($matches[7] ?? '', 6, '0');
+        $timezone = $matches[8] ?? '+00:00';
+        if ($timezone === 'Z') {
+            $timezone = '+00:00';
+        } elseif (preg_match('/^([+-]\d{2})$/', $timezone, $timezoneMatches)) {
+            $timezone = $timezoneMatches[1] . ':00';
+        } elseif (preg_match('/^([+-]\d{2})(\d{2})$/', $timezone, $timezoneMatches)) {
+            $timezone = $timezoneMatches[1] . ':' . $timezoneMatches[2];
+        }
+
+        $timezoneHour = (int) substr($timezone, 1, 2);
+        $timezoneMinute = (int) substr($timezone, 4, 2);
+        if ($timezoneHour > 14 || $timezoneMinute > 59 || ($timezoneHour === 14 && $timezoneMinute !== 0)) {
+            throw new ApiException(422, 'validation_failed', 'published_at must be a valid timestamp.');
+        }
+
+        $timestamp = \DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i:s.uP',
+            sprintf('%04d-%02d-%02d %02d:%02d:%02d.%s%s', $year, $month, $day, $hour, $minute, $second, $fraction, $timezone),
+        );
+        if ($timestamp === false) {
+            throw new ApiException(422, 'validation_failed', 'published_at must be a valid timestamp.');
+        }
+
+        return $timestamp->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s.uP');
     }
 
     /** @return list<mixed> */
