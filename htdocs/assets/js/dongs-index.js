@@ -69,12 +69,13 @@
       const copied = await copyText(text);
 
       if (!copied) {
+        announce(`Could not copy ${name}. Select it and copy it manually.`);
         return;
       }
 
       announce(`Copied ${name}.`);
     } catch {
-      // Intentionally silent: failed clipboard access should not spam the console.
+      announce(`Could not copy ${name}. Select it and copy it manually.`);
     }
   });
 })();
