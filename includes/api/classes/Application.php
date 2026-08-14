@@ -25,6 +25,8 @@ final class Application
     private readonly ScryfallClient $scryfall;
     private readonly ChessRepository $chess;
     private readonly ChessIdentityService $chessGuests;
+    /** @var array<string, string> */
+    private array $chessIdentityResponseHeaders = [];
 
     public function __construct(
         private readonly Config $config,
@@ -41,6 +43,7 @@ final class Application
     public function handle(Request $request): Response
     {
         $requestId = preg_replace('/[^a-zA-Z0-9._-]/', '', $request->header('x-request-id') ?? '') ?: bin2hex(random_bytes(8));
+        $this->chessIdentityResponseHeaders = [];
         try {
             $response = $request->method === 'OPTIONS'
                 ? Response::empty()
@@ -72,6 +75,7 @@ final class Application
             ...$this->corsHeaders($request),
             'X-Request-ID' => $requestId,
             'X-Content-Type-Options' => 'nosniff',
+            ...$this->chessIdentityResponseHeaders,
         ]);
     }
 
@@ -361,7 +365,11 @@ final class Application
     /** @return array<string, mixed> */
     private function resolveChessIdentity(Request $request): array
     {
-        return $this->chessGuests->resolve($this->optionalAuthenticatedUser($request));
+        $identity = $this->chessGuests->resolve($this->optionalAuthenticatedUser($request));
+        $headers = $identity['response_headers'] ?? [];
+        $this->chessIdentityResponseHeaders = is_array($headers) ? $headers : [];
+
+        return $identity;
     }
 
     /**

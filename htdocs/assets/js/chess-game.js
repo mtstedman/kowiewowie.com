@@ -1,4 +1,4 @@
-import { cancelTakeback, getGame, getPromotionOptions, listMoves, requestTakeback, resignGame, submitMove, updateProfile } from './chess-api.js';
+import { cancelTakeback, getGame, getProfile, getPromotionOptions, listMoves, requestTakeback, resignGame, submitMove, updateProfile } from './chess-api.js';
 
 const BOARD_FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const BOARD_RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -844,6 +844,19 @@ const handleVisibilityChange = () => {
     startPolling();
 };
 
+const seedProfileName = async () => {
+    try {
+        const profile = await getProfile();
+        const displayName = typeof profile?.display_name === 'string' ? profile.display_name.trim() : '';
+        if (displayName !== '' && state.savedDisplayName === '') {
+            state.savedDisplayName = displayName;
+            setVisibleIdentity(displayName);
+        }
+    } catch (error) {
+        // Keep the seat-derived name as the fallback when profile lookup is unavailable.
+    }
+};
+
 const init = () => {
     setBoardFullscreen(false);
     restoreNotificationPreference();
@@ -866,6 +879,7 @@ const init = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', stopPolling);
 
+    seedProfileName();
     refresh();
     startPolling();
 };
