@@ -433,6 +433,23 @@ footer {
     transform: translateY(-1px);
 }
 
+.site-nav a[aria-current="page"] {
+    border-color: var(--accent-warm);
+    background: linear-gradient(135deg, rgba(249, 248, 113, 0.18), rgba(0, 245, 255, 0.14));
+    color: var(--accent-warm);
+    box-shadow: 0 0 24px rgba(249, 248, 113, 0.22), inset 0 -2px 0 var(--accent-warm);
+    text-shadow: 0 0 16px rgba(249, 248, 113, 0.36);
+}
+
+.site-nav a[aria-current="page"]:hover,
+.site-nav a[aria-current="page"]:focus-visible {
+    border-color: var(--accent-warm);
+    background: linear-gradient(135deg, rgba(249, 248, 113, 0.24), rgba(255, 43, 214, 0.16));
+    color: #ffffff;
+    box-shadow: 0 0 28px rgba(249, 248, 113, 0.34), inset 0 -2px 0 var(--accent-warm);
+    text-shadow: 0 0 18px rgba(249, 248, 113, 0.5);
+}
+
 .status {
     display: inline-flex;
     align-items: center;
