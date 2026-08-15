@@ -24,8 +24,12 @@ $metaDescription = 'Recipe notes, repeatable meals, and kitchen wins from wowiek
                     <h2 id="recipe-list-title">Cook from the scribbles.</h2>
                 </div>
 
-                <div class="feature-grid" id="recipe-list" aria-live="polite">
-                    <p>Warming the recipe drawer...</p>
+                <p id="recipe-list-status" class="public-visually-hidden" role="status" aria-live="polite" aria-atomic="true">Warming the recipe drawer...</p>
+                <div class="feature-grid content-grid" id="recipe-list" role="region" aria-labelledby="recipe-list-title" aria-describedby="recipe-list-status">
+                    <section class="content-state content-state--loading" aria-label="Recipes loading">
+                        <h3>Warming the recipe drawer.</h3>
+                        <p>Fetching the kitchen notes that are ready to cook from.</p>
+                    </section>
                 </div>
             </section>
         </main>

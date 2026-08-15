@@ -24,8 +24,12 @@ $metaDescription = 'Board games and per-game strategy notes from wowiekowie.com.
                     <h2 id="games-title">Pick a box, find the angle.</h2>
                 </div>
 
-                <div id="games-list" aria-live="polite">
-                    <p class="lede">Checking the game shelf...</p>
+                <p id="games-list-status" class="public-visually-hidden" role="status" aria-live="polite" aria-atomic="true">Checking the game shelf...</p>
+                <div id="games-list" class="content-results" role="region" aria-labelledby="games-title" aria-describedby="games-list-status">
+                    <section class="content-state content-state--loading" aria-label="Games loading">
+                        <h3>Checking the game shelf.</h3>
+                        <p>Fetching the boxes with table notes ready to read.</p>
+                    </section>
                 </div>
             </section>
         </main>

@@ -1,34 +1,87 @@
 (() => {
     const container = document.getElementById('games-list');
+    const gamesStatus = document.getElementById('games-list-status');
 
     if (!(container instanceof HTMLElement)) {
         return;
     }
 
-    const renderMessage = (message) => {
+    const textValue = (value, fallback = '') => (typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback);
+
+    const normalizeGames = (data) => {
+        if (Array.isArray(data)) {
+            return data;
+        }
+
+        return data && typeof data === 'object' && Array.isArray(data.games) ? data.games : [];
+    };
+
+    const setStatus = (message) => {
+        if (gamesStatus instanceof HTMLElement) {
+            gamesStatus.textContent = message;
+        }
+    };
+
+    const appendArrow = (link) => {
+        const arrow = document.createElement('span');
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.textContent = '->';
+        link.append(arrow);
+    };
+
+    const renderState = (title, description, modifier, statusText = `${title}. ${description}`) => {
         container.replaceChildren();
+        setStatus(statusText);
+
+        const section = document.createElement('section');
+        section.className = `content-state content-state--${modifier}`;
+
+        const heading = document.createElement('h3');
+        heading.textContent = title;
+
         const paragraph = document.createElement('p');
-        paragraph.className = 'lede';
-        paragraph.textContent = message;
-        container.append(paragraph);
+        paragraph.textContent = description;
+
+        section.append(heading, paragraph);
+        container.append(section);
+    };
+
+    const createSummary = (count) => {
+        const countLabel = count === 1 ? '1 game ready' : `${count} games ready`;
+        const section = document.createElement('section');
+        section.className = 'content-summary';
+
+        const eyebrow = document.createElement('p');
+        eyebrow.className = 'content-summary-eyebrow';
+        eyebrow.textContent = countLabel;
+
+        const description = document.createElement('p');
+        description.className = 'content-summary-text';
+        description.textContent = 'Board game notes stocked from the public shelf.';
+
+        section.append(eyebrow, description);
+        return section;
     };
 
     const renderGames = (games) => {
+        const safeGames = games.filter((game) => game && typeof game === 'object' && !Array.isArray(game));
         container.replaceChildren();
 
-        if (!Array.isArray(games) || games.length === 0) {
-            renderMessage('The game shelf is waiting for its first box.');
+        if (safeGames.length === 0) {
+            renderState('No games yet', 'The game shelf is waiting for its first box of table notes.', 'empty');
             return;
         }
+
+        setStatus(safeGames.length === 1 ? '1 game loaded.' : `${safeGames.length} games loaded.`);
+        container.append(createSummary(safeGames.length));
 
         const grid = document.createElement('div');
         grid.className = 'feature-grid';
 
-        games.forEach((game) => {
-            const safeGame = game && typeof game === 'object' ? game : {};
-            const slug = typeof safeGame.slug === 'string' ? safeGame.slug : '';
-            const name = typeof safeGame.name === 'string' ? safeGame.name : 'Untitled game';
-            const description = typeof safeGame.shortDescription === 'string' ? safeGame.shortDescription : '';
+        safeGames.forEach((game) => {
+            const slug = textValue(game.slug);
+            const name = textValue(game.name, 'Untitled game');
+            const description = textValue(game.shortDescription);
 
             const article = document.createElement('article');
 
@@ -52,12 +105,7 @@
                 link.className = 'text-link';
                 link.href = `/games/game.php?slug=${encodeURIComponent(slug)}`;
                 link.append('Read table notes ');
-
-                const arrow = document.createElement('span');
-                arrow.setAttribute('aria-hidden', 'true');
-                arrow.textContent = '->';
-                link.append(arrow);
-
+                appendArrow(link);
                 article.append(link);
             }
 
@@ -66,6 +114,8 @@
 
         container.append(grid);
     };
+
+    setStatus('Checking the game shelf...');
 
     fetch('/api/games')
         .then((response) => {
@@ -76,10 +126,9 @@
             return response.json();
         })
         .then((data) => {
-            const games = data && typeof data === 'object' ? data.games : [];
-            renderGames(Array.isArray(data) ? data : games);
+            renderGames(normalizeGames(data));
         })
         .catch(() => {
-            renderMessage('The game shelf would not load. Try again in a moment.');
+            renderState('Games unavailable', 'The game shelf would not load. Try again in a moment.', 'error');
         });
 })();

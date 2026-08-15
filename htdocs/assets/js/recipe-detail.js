@@ -8,26 +8,44 @@
     }
 
     function textValue(value, fallback = '') {
-        return typeof value === 'string' && value.trim() !== '' ? value : fallback;
+        return typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback;
     }
 
     function stringList(value) {
-        return Array.isArray(value) ? value.filter((item) => typeof item === 'string') : [];
+        return Array.isArray(value) ? value.map((item) => textValue(item)).filter((item) => item !== '') : [];
+    }
+
+    function hasRecipeContent(recipe) {
+        return textValue(recipe.title) !== '' || stringList(recipe.ingredients).length > 0 || stringList(recipe.instructions).length > 0;
     }
 
     function normalizeRecipe(data) {
-        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        const candidate = data && typeof data === 'object' && !Array.isArray(data) && Object.prototype.hasOwnProperty.call(data, 'recipe') ? data.recipe : data;
+
+        if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate) || !hasRecipeContent(candidate)) {
             return null;
         }
 
-        if (Object.prototype.hasOwnProperty.call(data, 'recipe')) {
-            return data.recipe && typeof data.recipe === 'object' && !Array.isArray(data.recipe) ? data.recipe : null;
-        }
-
-        return data;
+        return candidate;
     }
 
-    function renderMessage(eyebrowText, headingText, ledeText) {
+    function appendArrowLink(parent, className, href, text) {
+        const link = document.createElement('a');
+        link.className = className;
+        link.href = href;
+        link.append(`${text} `);
+
+        const arrow = document.createElement('span');
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.textContent = '->';
+        link.append(arrow);
+
+        parent.append(link);
+        return link;
+    }
+
+    function renderMessage(eyebrowText, headingText, ledeText, titleText) {
+        document.title = `${titleText} - wowiekowie.com`;
         detail.innerHTML = '';
 
         const section = document.createElement('section');
@@ -44,26 +62,17 @@
         lede.className = 'lede';
         lede.textContent = ledeText;
 
-        const link = document.createElement('a');
-        link.className = 'button';
-        link.href = '/recipes/';
-        link.textContent = 'Back to recipes ';
-
-        const arrow = document.createElement('span');
-        arrow.setAttribute('aria-hidden', 'true');
-        arrow.textContent = '->';
-        link.append(arrow);
-
-        section.append(eyebrow, heading, lede, link);
+        section.append(eyebrow, heading, lede);
+        appendArrowLink(section, 'button', '/recipes/', 'Back to recipes');
         detail.append(section);
     }
 
     function renderNotFound() {
-        renderMessage('Recipe not found', 'That recipe slipped behind the fridge.', 'Pick another note from the recipe drawer and try again.');
+        renderMessage('Recipe not found', 'That recipe slipped behind the fridge.', 'Pick another note from the recipe drawer and try again.', 'Recipe not found');
     }
 
     function renderError() {
-        renderMessage('Recipe unavailable', 'The recipe drawer stuck halfway open.', 'Try the list again in a moment.');
+        renderMessage('Recipe unavailable', 'The recipe drawer stuck halfway open.', 'Try the list again in a moment.', 'Recipe unavailable');
     }
 
     function renderRecipe(recipe) {
@@ -98,11 +107,21 @@
         img.height = 540;
 
         hero.append(eyebrow, heading, lede, img);
-        article.append(hero, renderListSection('Prep', 'ingredients-title', 'Ingredients', ingredients, 'ul'), renderListSection('Cook', 'instructions-title', 'Instructions', instructions, 'ol'));
+
+        const backParagraph = document.createElement('p');
+        backParagraph.className = 'content-back-link';
+        appendArrowLink(backParagraph, 'text-link', '/recipes/', 'Back to all recipes');
+
+        article.append(
+            hero,
+            renderListSection('Prep', 'ingredients-title', 'Ingredients', ingredients, 'ul', 'No ingredients have been added to this note yet.'),
+            renderListSection('Cook', 'instructions-title', 'Instructions', instructions, 'ol', 'No cooking steps have been added to this note yet.'),
+            backParagraph
+        );
         detail.append(article);
     }
 
-    function renderListSection(eyebrowText, headingId, headingText, items, listTag) {
+    function renderListSection(eyebrowText, headingId, headingText, items, listTag, emptyText) {
         const section = document.createElement('section');
         section.className = 'foundation';
         section.setAttribute('aria-labelledby', headingId);
@@ -118,6 +137,17 @@
         heading.id = headingId;
         heading.textContent = headingText;
 
+        headingWrap.append(eyebrow, heading);
+        section.append(headingWrap);
+
+        if (items.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'lede';
+            empty.textContent = emptyText;
+            section.append(empty);
+            return section;
+        }
+
         const list = document.createElement(listTag);
         items.forEach((item) => {
             const listItem = document.createElement('li');
@@ -125,8 +155,7 @@
             list.append(listItem);
         });
 
-        headingWrap.append(eyebrow, heading);
-        section.append(headingWrap, list);
+        section.append(list);
         return section;
     }
 
@@ -138,13 +167,18 @@
 
         try {
             const response = await fetch(`/api/recipes/${encodeURIComponent(slug)}`);
+            if (response.status === 404) {
+                renderNotFound();
+                return;
+            }
+
             if (!response.ok) {
                 throw new Error('Recipe request failed.');
             }
 
             const recipe = normalizeRecipe(await response.json());
             if (recipe === null) {
-                renderNotFound();
+                renderError();
                 return;
             }
 

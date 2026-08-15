@@ -6,6 +6,23 @@
         return;
     }
 
+    const textValue = (value, fallback = '') => (typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback);
+    const stringList = (value) => (Array.isArray(value) ? value.map((item) => textValue(item)).filter((item) => item !== '') : []);
+
+    const normalizeGame = (data) => {
+        const candidate = data && typeof data === 'object' && !Array.isArray(data) && Object.prototype.hasOwnProperty.call(data, 'game') ? data.game : data;
+
+        if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+            return null;
+        }
+
+        if (textValue(candidate.name) === '' && textValue(candidate.shortDescription) === '' && stringList(candidate.strategyNotes).length === 0) {
+            return null;
+        }
+
+        return candidate;
+    };
+
     const appendTextElement = (parent, tagName, className, text) => {
         const element = document.createElement(tagName);
 
@@ -36,6 +53,7 @@
     };
 
     const renderNotFound = () => {
+        document.title = 'Game not found - wowiekowie.com';
         content.replaceChildren();
 
         const section = document.createElement('section');
@@ -50,6 +68,7 @@
     };
 
     const renderError = () => {
+        document.title = 'Game unavailable - wowiekowie.com';
         content.replaceChildren();
 
         const section = document.createElement('section');
@@ -64,10 +83,9 @@
     };
 
     const renderGame = (game) => {
-        const safeGame = game && typeof game === 'object' ? game : {};
-        const name = typeof safeGame.name === 'string' ? safeGame.name : 'Board game';
-        const description = typeof safeGame.shortDescription === 'string' ? safeGame.shortDescription : '';
-        const notes = Array.isArray(safeGame.strategyNotes) ? safeGame.strategyNotes : [];
+        const name = textValue(game.name, 'Board game');
+        const description = textValue(game.shortDescription);
+        const notes = stringList(game.strategyNotes);
 
         document.title = `${name} strategy notes - wowiekowie.com`;
 
@@ -97,15 +115,13 @@
         title.id = 'strategy-title';
         section.append(heading);
 
-        const validNotes = notes.filter((note) => typeof note === 'string' && note !== '');
-
-        if (validNotes.length === 0) {
+        if (notes.length === 0) {
             appendTextElement(section, 'p', 'lede', 'No table notes have been tucked into this box yet.');
         } else {
             const grid = document.createElement('div');
             grid.className = 'feature-grid';
 
-            validNotes.forEach((note, index) => {
+            notes.forEach((note, index) => {
                 const article = document.createElement('article');
                 appendTextElement(article, 'span', 'feature-number', String(index + 1).padStart(2, '0'));
                 appendTextElement(article, 'p', '', note);
@@ -116,34 +132,41 @@
         }
 
         const backParagraph = document.createElement('p');
+        backParagraph.className = 'content-back-link';
         appendArrowLink(backParagraph, 'text-link', '/games/', 'Back to all games');
         section.append(backParagraph);
 
         content.append(section);
     };
 
-    if (slug === '') {
-        renderNotFound();
-        return;
-    }
+    const loadGame = async () => {
+        if (slug === '') {
+            renderNotFound();
+            return;
+        }
 
-    fetch(`/api/games/${encodeURIComponent(slug)}`)
-        .then((response) => {
+        try {
+            const response = await fetch(`/api/games/${encodeURIComponent(slug)}`);
             if (response.status === 404) {
                 renderNotFound();
-                return null;
+                return;
             }
 
             if (!response.ok) {
                 throw new Error('Unable to load game.');
             }
 
-            return response.json();
-        })
-        .then((game) => {
-            if (game !== null) {
-                renderGame(game && typeof game === 'object' && 'game' in game ? game.game : game);
+            const game = normalizeGame(await response.json());
+            if (game === null) {
+                renderError();
+                return;
             }
-        })
-        .catch(renderError);
+
+            renderGame(game);
+        } catch (error) {
+            renderError();
+        }
+    };
+
+    loadGame();
 })();
