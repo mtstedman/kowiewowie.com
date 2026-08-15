@@ -13,6 +13,7 @@ final class ChessRepository
     public function __construct(
         private readonly PDO $pdo,
         private readonly ChessEngine $engine,
+        private readonly ?ChessBot $bot = null,
     ) {
     }
 
@@ -31,6 +32,12 @@ final class ChessRepository
         }
         $creatorColor = $this->normalizeColor($creatorColorInput, 'creator_color');
         $links = $this->normalizeInitialLinks($input['links'] ?? []);
+        if ($mode === 'bot') {
+            $links = array_values(array_filter(
+                $links,
+                static fn (array $link): bool => ($link['type'] ?? null) === 'spectate',
+            ));
+        }
         $actor = $this->seatActor($identity);
         $opponentColor = $creatorColor === 'white' ? 'black' : 'white';
         $startingFen = $this->startingFenForVariant($variant);
@@ -46,8 +53,8 @@ final class ChessRepository
             SQL);
             $gameStatement->execute([
                 'variant' => $variant,
-                'status' => $mode === 'local' ? 'active' : 'waiting',
-                'started_at' => $mode === 'local' ? gmdate(DATE_ATOM) : null,
+                'status' => $mode === 'online' ? 'waiting' : 'active',
+                'started_at' => $mode === 'online' ? null : gmdate(DATE_ATOM),
             ]);
             $game = $gameStatement->fetch(PDO::FETCH_ASSOC);
             if (!is_array($game)) {
@@ -67,7 +74,19 @@ final class ChessRepository
             ]);
 
             $creatorSeat = $this->insertPlayerSeat($gameId, $creatorColor, $actor['user_id'], $actor['guest_profile_id'], $actor['display_name']);
-            $this->insertPlayerSeat($gameId, $opponentColor, null, null, $this->emptySeatDisplayName($opponentColor, $mode));
+            $opponentSeat = $this->insertPlayerSeat($gameId, $opponentColor, null, null, $this->emptySeatDisplayName($opponentColor, $mode));
+
+            if ($mode === 'bot' && $opponentColor === 'white') {
+                $botUci = $this->chessBot()->chooseMove($startingFen);
+                if ($botUci !== null) {
+                    $botMove = $this->engine->applyUciMove($startingFen, $botUci);
+                    if (($botMove['ok'] ?? false) === true) {
+                        $game['status'] = 'active';
+                        $game['current_ply'] = 0;
+                        $this->recordAppliedMove($game, $opponentSeat, $botMove, null, [$creatorSeat, $opponentSeat]);
+                    }
+                }
+            }
 
             foreach ($links as $linkInput) {
                 $createdLinks[] = $this->createStoredLink($gameId, $publicId, $creatorSeat, $linkInput);
@@ -246,85 +265,23 @@ final class ChessRepository
             }
 
             if ($clientMoveId !== null) {
-                $duplicateStatement = $this->pdo->prepare(<<<'SQL'
-                    SELECT 1
-                    FROM chess_game_moves
-                    WHERE game_id = :game_id
-                      AND client_move_id = :client_move_id
-                    LIMIT 1
-                SQL);
-                $duplicateStatement->execute([
-                    'game_id' => $game['id'],
-                    'client_move_id' => $clientMoveId,
-                ]);
-                if ($duplicateStatement->fetchColumn() !== false) {
-                    throw new ApiException(409, 'duplicate_client_move', 'That client_move_id has already been used for this game.');
-                }
+                $this->assertClientMoveIdUnused((string) $game['id'], $clientMoveId);
             }
 
-            $nextPly = ((int) $game['current_ply']) + 1;
-            $positionStatement = $this->pdo->prepare(<<<'SQL'
-                INSERT INTO chess_game_positions (game_id, ply, fen)
-                VALUES (:game_id, :ply, :fen)
-            SQL);
-            $positionStatement->execute([
-                'game_id' => $game['id'],
-                'ply' => $nextPly,
-                'fen' => (string) $move['fen'],
-            ]);
+            $game = $this->recordAppliedMove($game, $currentSeat, $move, $clientMoveId, $players);
 
-            $moveStatement = $this->pdo->prepare(<<<'SQL'
-                INSERT INTO chess_game_moves (game_id, ply, played_by_player_id, client_move_id, uci, san)
-                VALUES (:game_id, :ply, :played_by_player_id, COALESCE(CAST(:client_move_id AS uuid), gen_random_uuid()), :uci, :san)
-            SQL);
-            $moveStatement->execute([
-                'game_id' => $game['id'],
-                'ply' => $nextPly,
-                'played_by_player_id' => $currentSeat['id'],
-                'client_move_id' => $clientMoveId,
-                'uci' => (string) $move['uci'],
-                'san' => (string) $move['san'],
-            ]);
-
-            $state = is_array($move['state'] ?? null) ? $move['state'] : [];
-            $status = $this->nextStoredStatus((string) $game['status'], $players, $state);
-            $result = $status === 'completed' ? (string) ($state['result'] ?? '*') : '*';
-            $termination = $status === 'completed' ? $this->terminationFromState($state) : null;
-
-            $updateGame = $this->pdo->prepare(<<<'SQL'
-                UPDATE chess_games
-                SET status = :status,
-                    result = :result,
-                    termination = :termination,
-                    started_at = CASE
-                        WHEN :status = 'waiting' THEN started_at
-                        ELSE COALESCE(started_at, now())
-                    END,
-                    finished_at = CASE
-                        WHEN :status IN ('completed', 'abandoned') THEN COALESCE(finished_at, now())
-                        ELSE NULL
-                    END,
-                    last_activity_at = now(),
-                    updated_at = now()
-                WHERE id = :id
-            SQL);
-            $updateGame->execute([
-                'status' => $status,
-                'result' => $result,
-                'termination' => $termination,
-                'id' => $game['id'],
-            ]);
-
-            $touchSeat = $this->pdo->prepare(<<<'SQL'
-                UPDATE chess_game_players
-                SET last_seen_at = now()
-                WHERE game_id = :game_id
-                  AND id = :id
-            SQL);
-            $touchSeat->execute([
-                'game_id' => $game['id'],
-                'id' => $currentSeat['id'],
-            ]);
+            if ($this->modeFromStoredGame($game, $players) === 'bot' && (string) $game['status'] === 'active') {
+                $botSeat = $this->currentTurnSeat($players, (string) $game['side_to_move']);
+                if ($botSeat !== null && $this->isBotSeat($botSeat)) {
+                    $botUci = $this->chessBot()->chooseMove((string) $game['current_fen']);
+                    if ($botUci !== null) {
+                        $botMove = $this->engine->applyUciMove((string) $game['current_fen'], $botUci);
+                        if (($botMove['ok'] ?? false) === true) {
+                            $game = $this->recordAppliedMove($game, $botSeat, $botMove, null, $players);
+                        }
+                    }
+                }
+            }
 
             $this->pdo->commit();
         } catch (Throwable $error) {
@@ -393,6 +350,118 @@ final class ChessRepository
         return $this->findGame($publicId, $identity);
     }
 
+    private function assertClientMoveIdUnused(string $gameId, string $clientMoveId): void
+    {
+        $duplicateStatement = $this->pdo->prepare(<<<'SQL'
+            SELECT 1
+            FROM chess_game_moves
+            WHERE game_id = :game_id
+              AND client_move_id = :client_move_id
+            LIMIT 1
+        SQL);
+        $duplicateStatement->execute([
+            'game_id' => $gameId,
+            'client_move_id' => $clientMoveId,
+        ]);
+        if ($duplicateStatement->fetchColumn() !== false) {
+            throw new ApiException(409, 'duplicate_client_move', 'That client_move_id has already been used for this game.');
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $game
+     * @param array<string, mixed> $seat
+     * @param array<string, mixed> $move
+     * @param list<array<string, mixed>> $players
+     * @return array<string, mixed>
+     */
+    private function recordAppliedMove(array $game, array $seat, array $move, ?string $clientMoveId, array $players): array
+    {
+        $nextPly = ((int) $game['current_ply']) + 1;
+        $positionStatement = $this->pdo->prepare(<<<'SQL'
+            INSERT INTO chess_game_positions (game_id, ply, fen)
+            VALUES (:game_id, :ply, :fen)
+        SQL);
+        $positionStatement->execute([
+            'game_id' => $game['id'],
+            'ply' => $nextPly,
+            'fen' => (string) $move['fen'],
+        ]);
+
+        $moveStatement = $this->pdo->prepare(<<<'SQL'
+            INSERT INTO chess_game_moves (game_id, ply, played_by_player_id, client_move_id, uci, san)
+            VALUES (:game_id, :ply, :played_by_player_id, COALESCE(CAST(:client_move_id AS uuid), gen_random_uuid()), :uci, :san)
+        SQL);
+        $moveStatement->execute([
+            'game_id' => $game['id'],
+            'ply' => $nextPly,
+            'played_by_player_id' => $seat['id'],
+            'client_move_id' => $clientMoveId,
+            'uci' => (string) $move['uci'],
+            'san' => (string) $move['san'],
+        ]);
+
+        $state = is_array($move['state'] ?? null) ? $move['state'] : [];
+        $status = $this->nextStoredStatus((string) $game['status'], $players, $state);
+        $result = $status === 'completed' ? (string) ($state['result'] ?? '*') : '*';
+        $termination = $status === 'completed' ? $this->terminationFromState($state) : null;
+
+        $updateGame = $this->pdo->prepare(<<<'SQL'
+            UPDATE chess_games
+            SET status = :status,
+                result = :result,
+                termination = :termination,
+                started_at = CASE
+                    WHEN :status = 'waiting' THEN started_at
+                    ELSE COALESCE(started_at, now())
+                END,
+                finished_at = CASE
+                    WHEN :status IN ('completed', 'abandoned') THEN COALESCE(finished_at, now())
+                    ELSE NULL
+                END,
+                pending_takeback_by_player_id = NULL,
+                pending_takeback_requested_at = NULL,
+                last_activity_at = now(),
+                updated_at = now()
+            WHERE id = :id
+        SQL);
+        $updateGame->execute([
+            'status' => $status,
+            'result' => $result,
+            'termination' => $termination,
+            'id' => $game['id'],
+        ]);
+
+        $touchSeat = $this->pdo->prepare(<<<'SQL'
+            UPDATE chess_game_players
+            SET last_seen_at = now()
+            WHERE game_id = :game_id
+              AND id = :id
+        SQL);
+        $touchSeat->execute([
+            'game_id' => $game['id'],
+            'id' => $seat['id'],
+        ]);
+
+        $game['current_ply'] = $nextPly;
+        $game['current_fen'] = (string) $move['fen'];
+        $game['side_to_move'] = $this->sideToMoveFromFen((string) $move['fen']);
+        $game['status'] = $status;
+        $game['result'] = $result;
+        $game['termination'] = $termination;
+        $game['pending_takeback_by_player_id'] = null;
+        $game['pending_takeback_requested_at'] = null;
+
+        return $game;
+    }
+
+    private function sideToMoveFromFen(string $fen): string
+    {
+        $parts = preg_split('/\s+/', trim($fen));
+
+        return ($parts[1] ?? 'w') === 'b' ? 'b' : 'w';
+    }
+
     /**
      * @param array<string, mixed> $identity
      * @return array<string, mixed>
@@ -411,8 +480,16 @@ final class ChessRepository
             }
 
             $pendingBy = $game['pending_takeback_by_player_id'] !== null ? (string) $game['pending_takeback_by_player_id'] : null;
-            if ($this->modeFromStoredGame($game, $players) === 'local') {
+            $mode = $this->modeFromStoredGame($game, $players);
+            if ($mode === 'local') {
                 $this->rollbackLatestMove($game);
+            } elseif ($mode === 'bot') {
+                $this->rollbackLatestMove($game);
+                if ((int) $game['current_ply'] > 1) {
+                    $game['current_ply'] = (int) $game['current_ply'] - 1;
+                    $this->rollbackLatestMove($game);
+                }
+                $this->markGameActive((string) $game['id']);
             } elseif ($pendingBy === null) {
                 $statement = $this->pdo->prepare(<<<'SQL'
                     UPDATE chess_games
@@ -579,7 +656,7 @@ final class ChessRepository
             if ($seat === null) {
                 throw new ApiException(409, 'seat_unavailable', 'That invitation no longer points to a valid player seat.');
             }
-            if ($this->seatHasIdentity($seat)) {
+            if ($this->seatHasIdentity($seat) || $this->isBotSeat($seat)) {
                 throw new ApiException(409, 'seat_unavailable', 'That player seat has already been claimed.');
             }
             if ($this->identityOwnsAnySeat($players, $identity)) {
@@ -1078,6 +1155,8 @@ final class ChessRepository
      */
     private function presentPlayer(array $player, array $identity): array
     {
+        $isBotSeat = $this->isBotSeat($player);
+
         return [
             'id' => (string) $player['id'],
             'color' => (string) $player['color'],
@@ -1086,9 +1165,10 @@ final class ChessRepository
             'guest_profile_id' => $player['guest_profile_id'] !== null ? (string) $player['guest_profile_id'] : null,
             'joined_at' => (string) $player['joined_at'],
             'last_seen_at' => (string) $player['last_seen_at'],
-            'claimed' => $this->seatHasIdentity($player),
-            'viewer_controls_seat' => $this->identityOwnsSeat($player, $identity),
-            'anonymous_local_seat' => !$this->seatHasIdentity($player),
+            'claimed' => $this->seatHasIdentity($player) || $isBotSeat,
+            'viewer_controls_seat' => !$isBotSeat && $this->identityOwnsSeat($player, $identity),
+            'anonymous_local_seat' => !$this->seatHasIdentity($player) && !$isBotSeat,
+            'automated' => $isBotSeat,
         ];
     }
 
@@ -1261,6 +1341,18 @@ final class ChessRepository
         }
     }
 
+    private function markGameActive(string $gameId): void
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            UPDATE chess_games
+            SET status = 'active',
+                started_at = COALESCE(started_at, now()),
+                updated_at = now()
+            WHERE id = :id
+        SQL);
+        $statement->execute(['id' => $gameId]);
+    }
+
     /**
      * @param array<string, mixed> $game
      * @param list<array<string, mixed>> $players
@@ -1282,6 +1374,9 @@ final class ChessRepository
      */
     private function canActAsSeat(array $game, array $players, array $seat, array $identity): bool
     {
+        if ($this->isBotSeat($seat)) {
+            return false;
+        }
         if ($this->identityOwnsSeat($seat, $identity)) {
             return true;
         }
@@ -1327,12 +1422,28 @@ final class ChessRepository
         return $seat['user_id'] !== null || $seat['guest_profile_id'] !== null;
     }
 
+    /** @param array<string, mixed> $seat */
+    private function isBotSeat(array $seat): bool
+    {
+        return !$this->seatHasIdentity($seat) && (string) $seat['display_name'] === 'Computer';
+    }
+
+    private function chessBot(): ChessBot
+    {
+        return $this->bot ?? new ChessBot($this->engine);
+    }
+
     /**
      * @param array<string, mixed> $game
      * @param list<array<string, mixed>> $players
      */
     private function modeFromStoredGame(array $game, array $players): string
     {
+        foreach ($players as $player) {
+            if ($this->isBotSeat($player)) {
+                return 'bot';
+            }
+        }
         foreach ($players as $player) {
             if (!$this->seatHasIdentity($player)) {
                 return (string) $game['status'] === 'waiting' ? 'online' : 'local';
@@ -1361,7 +1472,7 @@ final class ChessRepository
         }
 
         foreach ($players as $player) {
-            if (!$this->seatHasIdentity($player)) {
+            if (!$this->seatHasIdentity($player) && !$this->isBotSeat($player)) {
                 return false;
             }
         }
@@ -1383,9 +1494,12 @@ final class ChessRepository
     private function normalizeMode(mixed $value): string
     {
         $mode = strtolower(trim((string) $value));
-        if (!in_array($mode, ['online', 'local'], true)) {
-            throw new ApiException(422, 'validation_error', 'mode must be online or local.', [
-                'mode' => 'Choose either online or local.',
+        if ($mode === 'computer') {
+            $mode = 'bot';
+        }
+        if (!in_array($mode, ['online', 'local', 'bot'], true)) {
+            throw new ApiException(422, 'validation_error', 'mode must be online, local, or bot.', [
+                'mode' => 'Choose online, local, or bot.',
             ]);
         }
 
@@ -1502,6 +1616,10 @@ final class ChessRepository
 
     private function emptySeatDisplayName(string $color, string $mode): string
     {
+        if ($mode === 'bot') {
+            return 'Computer';
+        }
+
         return $mode === 'local'
             ? 'Local ' . ucfirst($color)
             : 'Open ' . ucfirst($color);
@@ -1532,7 +1650,7 @@ final class ChessRepository
             if ($seat === null) {
                 throw new ApiException(409, 'seat_unavailable', 'That game no longer has the requested player seat.');
             }
-            if ($this->seatHasIdentity($seat)) {
+            if ($this->seatHasIdentity($seat) || $this->isBotSeat($seat)) {
                 throw new ApiException(409, 'seat_unavailable', 'That player seat has already been claimed.');
             }
         }

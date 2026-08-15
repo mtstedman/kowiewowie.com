@@ -356,7 +356,10 @@ const handleNewGame = async (event) => {
     const creatorColor = selectedCreatorColor === 'random'
         ? 'random'
         : selectedCreatorColor === 'black' ? 'black' : 'white';
-    const gameMode = elements.gameMode.value === 'local' ? 'local' : 'online';
+    const selectedGameMode = elements.gameMode.value;
+    const gameMode = selectedGameMode === 'local'
+        ? 'local'
+        : selectedGameMode === 'bot' ? 'bot' : 'online';
 
     try {
         const game = await createGame({
@@ -369,9 +372,15 @@ const handleNewGame = async (event) => {
             throw new Error('The new chess game did not return an id.');
         }
 
-        if (gameMode === 'local') {
+        if (gameMode === 'local' || gameMode === 'bot') {
             setDisplayName(deriveDisplayName([game]));
-            setMessage(elements.createMessage, 'Local board created. Opening it now...', 'success');
+            setMessage(
+                elements.createMessage,
+                gameMode === 'bot'
+                    ? 'Computer game created. Opening it now...'
+                    : 'Local board created. Opening it now...',
+                'success'
+            );
             await refreshGames();
             window.location.assign(gameHref(gameId));
             return;

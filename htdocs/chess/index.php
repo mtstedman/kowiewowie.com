@@ -32,6 +32,7 @@ $pageStyles = ['/assets/css/chess.css'];
                                 <span>Mode</span>
                                 <select id="chess-game-mode" name="mode">
                                     <option value="online" selected>Online challenge link</option>
+                                    <option value="bot">Computer opponent (moderate strength)</option>
                                     <option value="local">Local same-device game</option>
                                 </select>
                             </label>
