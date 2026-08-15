@@ -57,6 +57,7 @@
 }
 
 .chess-panel {
+    min-width: 0;
     border-radius: 8px;
     color: var(--chess-ink);
     display: grid;
@@ -65,12 +66,14 @@
 }
 
 .chess-board-panel {
+    min-width: 0;
     border-radius: 8px;
     color: var(--chess-ink);
     padding: clamp(0.75rem, 2.5vw, 1rem);
 }
 
 .chess-move-panel {
+    min-width: 0;
     border-radius: 8px;
     color: var(--chess-ink);
     padding: clamp(0.75rem, 2.5vw, 1rem);
@@ -165,9 +168,14 @@
 }
 
 .chess-button:disabled {
-    cursor: wait;
+    cursor: not-allowed;
     opacity: 0.62;
     transform: none;
+}
+
+[aria-busy="true"] .chess-button:disabled,
+.chess-button[aria-busy="true"]:disabled {
+    cursor: wait;
 }
 
 .chess-button-primary {
@@ -196,6 +204,12 @@
     min-height: 2.75rem;
     max-width: 100%;
     overflow-wrap: anywhere;
+    text-align: center;
+}
+
+#chess-join-url {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.88rem;
 }
 
 .chess-message {
@@ -203,6 +217,7 @@
     margin: 0;
     color: var(--chess-muted);
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .chess-alert {
@@ -210,13 +225,49 @@
     margin: 0;
     color: var(--chess-red);
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .chess-message[data-tone="success"] {
     color: var(--chess-green-dark);
 }
 
-.chess-message[data-tone="error"] {
+.chess-message[data-tone="error"],
+.chess-alert[data-tone="error"] {
+    color: var(--chess-red);
+}
+
+.chess-alert[data-tone="neutral"] {
+    color: var(--chess-muted);
+}
+
+.chess-alert[data-tone="success"] {
+    color: var(--chess-green-dark);
+}
+
+.chess-games-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.chess-state-message {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--chess-line);
+    border-radius: 8px;
+    background: rgba(8, 14, 27, 0.42);
+    color: var(--chess-muted);
+    font-weight: 700;
+}
+
+.chess-state-message-loading {
+    color: var(--chess-ink);
+}
+
+.chess-state-message-error {
+    border-color: rgba(196, 72, 72, 0.45);
     color: var(--chess-red);
 }
 
@@ -386,6 +437,7 @@
 .chess-status-pill {
     display: inline-flex;
     align-items: center;
+    min-width: 0;
     min-height: 1.8rem;
     border: 1px solid var(--chess-line);
     border-radius: 999px;
@@ -393,7 +445,9 @@
     color: var(--chess-muted);
     font-size: 0.82rem;
     font-weight: 800;
+    line-height: 1.15;
     padding: 0.28rem 0.6rem;
+    overflow-wrap: anywhere;
 }
 
 .chess-move-list {
@@ -402,6 +456,11 @@
     max-height: 24rem;
     overflow: auto;
     padding-right: 0.25rem;
+    scrollbar-gutter: stable;
+}
+
+.chess-move-list .chess-state-message {
+    margin-right: 0.25rem;
 }
 
 .chess-move-row {
@@ -410,6 +469,10 @@
     gap: 0.5rem;
     padding: 0.45rem 0;
     border-bottom: 1px solid var(--chess-line);
+}
+
+.chess-game-page[data-loading="true"] .chess-board {
+    cursor: progress;
 }
 
 .chess-game-page[data-state="error"] .chess-board-shell {
@@ -437,6 +500,20 @@
     margin-top: 1.35rem;
     padding-top: 1.35rem;
     border-top: 1px solid var(--chess-line);
+}
+
+.chess-notification-control > span:last-child {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--chess-ink);
+    font-weight: 700;
+}
+
+.chess-notification-control input {
+    flex: 0 0 auto;
+    width: 1.1rem;
+    height: 1.1rem;
 }
 
 .chess-player-meta dd {
@@ -516,18 +593,32 @@
 
     .chess-game-page[data-board-fullscreen="true"] .chess-game-status-bar,
     .chess-game-page[data-board-fullscreen="true"] .chess-fullscreen-toggle,
-    .chess-game-page[data-board-fullscreen="true"] .chess-board-help,
-    .chess-game-page[data-board-fullscreen="true"] #chess-board-message {
+    .chess-game-page[data-board-fullscreen="true"] .chess-board-help {
         display: none;
     }
 
     .chess-game-page[data-board-fullscreen="true"] .chess-board {
         align-self: center;
         justify-self: center;
-        width: min(calc(100vh - 5.5rem), calc(100vw - 1.5rem));
-        width: min(calc(100dvh - 5.5rem), calc(100vw - 1.5rem));
-        height: min(calc(100vh - 5.5rem), calc(100vw - 1.5rem));
-        height: min(calc(100dvh - 5.5rem), calc(100vw - 1.5rem));
+        width: min(calc(100vh - 8rem), calc(100vw - 1.5rem));
+        width: min(calc(100dvh - 8rem), calc(100vw - 1.5rem));
+        height: min(calc(100vh - 8rem), calc(100vw - 1.5rem));
+        height: min(calc(100dvh - 8rem), calc(100vw - 1.5rem));
+    }
+
+    .chess-game-page[data-board-fullscreen="true"] #chess-board-message {
+        position: fixed;
+        right: 0.75rem;
+        bottom: 4.35rem;
+        left: 0.75rem;
+        z-index: 11;
+        box-sizing: border-box;
+        min-height: 0;
+        padding: 0.55rem 0.75rem;
+        border: 1px solid var(--chess-line);
+        border-radius: 8px;
+        background: var(--chess-panel-strong);
+        text-align: center;
     }
 
     .chess-game-page[data-board-fullscreen="true"] .chess-board-actions {

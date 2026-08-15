@@ -38,7 +38,7 @@ const renderInitializationFailure = () => {
     const gamesList = document.getElementById('chess-games-list');
     if (gamesList) {
         const paragraph = document.createElement('p');
-        paragraph.className = 'lede';
+        paragraph.className = 'lede chess-state-message chess-state-message-error';
         paragraph.textContent = initializationFailureMessage;
         gamesList.replaceChildren(paragraph);
     }
@@ -85,6 +85,7 @@ const installNewGameInitializationGuard = () => {
 const state = {
     games: [],
     displayName: '',
+    isRefreshing: false,
 };
 
 const copyWithFallback = (text) => {
@@ -110,6 +111,18 @@ const copyWithFallback = (text) => {
 const setMessage = (element, message = '', tone = '') => {
     element.textContent = message;
     element.dataset.tone = tone;
+};
+
+const clearAttribute = (element, name) => {
+    if (typeof element.removeAttribute === 'function') {
+        element.removeAttribute(name);
+        return;
+    }
+
+    if (element.attributes && typeof element.attributes.delete === 'function') {
+        element.attributes.delete(name);
+    }
+    delete element[name];
 };
 
 const errorMessage = (error, fallback) => {
@@ -186,8 +199,8 @@ const seedProfileName = async () => {
 
 const renderEmpty = () => {
     const paragraph = document.createElement('p');
-    paragraph.className = 'lede';
-    paragraph.textContent = 'No boards are tied to this browser yet.';
+    paragraph.className = 'lede chess-state-message';
+    paragraph.textContent = 'No browser-tied games yet. Start a board to keep it here.';
     elements.gamesList.replaceChildren(paragraph);
 };
 
@@ -211,6 +224,7 @@ const renderGames = (games) => {
 
         const article = document.createElement('article');
         article.className = 'chess-game-card';
+        article.setAttribute('aria-label', `${white?.display_name || 'White'} versus ${black?.display_name || 'Black'}`);
 
         const label = document.createElement('span');
         label.className = 'chess-kicker';
@@ -241,6 +255,7 @@ const renderGames = (games) => {
             link.className = 'chess-button chess-button-small';
             link.href = gameHref(gameId);
             link.textContent = 'Open game';
+            link.setAttribute('aria-label', `Open ${white?.display_name || 'White'} versus ${black?.display_name || 'Black'}`);
             article.append(link);
         }
 
@@ -251,10 +266,16 @@ const renderGames = (games) => {
 };
 
 const refreshGames = async () => {
+    if (state.isRefreshing) {
+        return;
+    }
+
+    state.isRefreshing = true;
+    elements.gamesList.setAttribute('aria-busy', 'true');
     elements.gamesList.replaceChildren();
     const loading = document.createElement('p');
-    loading.className = 'lede';
-    loading.textContent = 'Looking for your boards...';
+    loading.className = 'lede chess-state-message chess-state-message-loading';
+    loading.textContent = 'Loading your browser-tied games...';
     elements.gamesList.append(loading);
 
     try {
@@ -267,9 +288,12 @@ const refreshGames = async () => {
         renderGames(games);
     } catch (error) {
         const paragraph = document.createElement('p');
-        paragraph.className = 'lede';
-        paragraph.textContent = errorMessage(error, 'The board shelf would not load. Try again in a moment.');
+        paragraph.className = 'lede chess-state-message chess-state-message-error';
+        paragraph.textContent = errorMessage(error, 'Your browser-tied games could not be loaded. Try refreshing in a moment.');
         elements.gamesList.replaceChildren(paragraph);
+    } finally {
+        state.isRefreshing = false;
+        clearAttribute(elements.gamesList, 'aria-busy');
     }
 };
 
@@ -294,6 +318,8 @@ const tokenFromLink = (link) => {
 
 const resetChallengeLink = () => {
     elements.joinUrl.value = '';
+    elements.copyLinkButton.disabled = true;
+    elements.copyLinkButton.textContent = 'Copy link';
     elements.openGameLink.href = '';
     elements.openGameLink.hidden = true;
     elements.linkBox.hidden = true;
@@ -301,6 +327,8 @@ const resetChallengeLink = () => {
 
 const showChallengeLink = (url, gameId) => {
     elements.joinUrl.value = url;
+    elements.copyLinkButton.disabled = false;
+    elements.copyLinkButton.textContent = 'Copy link';
     elements.linkBox.hidden = false;
 
     if (gameId) {
@@ -310,12 +338,18 @@ const showChallengeLink = (url, gameId) => {
         elements.openGameLink.href = '';
         elements.openGameLink.hidden = true;
     }
+
+    elements.joinUrl.focus({ preventScroll: true });
+    elements.joinUrl.select();
 };
 
 const handleNewGame = async (event) => {
     event.preventDefault();
-    setMessage(elements.createMessage, 'Setting up the board...', 'neutral');
+    setMessage(elements.createMessage, 'Creating a new board...', 'neutral');
+    const originalButtonText = elements.newGameButton.textContent.trim() || 'New game';
     elements.newGameButton.disabled = true;
+    elements.newGameButton.textContent = 'Creating...';
+    elements.newGameForm.setAttribute('aria-busy', 'true');
     resetChallengeLink();
 
     const selectedCreatorColor = elements.creatorColor.value;
@@ -337,6 +371,7 @@ const handleNewGame = async (event) => {
 
         if (gameMode === 'local') {
             setDisplayName(deriveDisplayName([game]));
+            setMessage(elements.createMessage, 'Local board created. Opening it now...', 'success');
             await refreshGames();
             window.location.assign(gameHref(gameId));
             return;
@@ -359,20 +394,26 @@ const handleNewGame = async (event) => {
 
         showChallengeLink(linkUrlFromToken(token), gameId);
         setDisplayName(deriveDisplayName([game]));
-        setMessage(elements.createMessage, 'Challenge link is ready.', 'success');
+        setMessage(elements.createMessage, 'Challenge link is ready. Copy it or open your board.', 'success');
         await refreshGames();
     } catch (error) {
         setMessage(elements.createMessage, errorMessage(error, 'The game could not be created.'), 'error');
     } finally {
         elements.newGameButton.disabled = false;
+        elements.newGameButton.textContent = originalButtonText;
+        clearAttribute(elements.newGameForm, 'aria-busy');
     }
 };
 
 const handleCopy = async () => {
     const value = elements.joinUrl.value;
     if (value === '') {
+        setMessage(elements.createMessage, 'Create a challenge link before copying.', 'error');
         return;
     }
+
+    elements.copyLinkButton.disabled = true;
+    elements.copyLinkButton.textContent = 'Copying...';
 
     try {
         if (navigator.clipboard && window.isSecureContext) {
@@ -380,13 +421,22 @@ const handleCopy = async () => {
         } else if (!copyWithFallback(value)) {
             throw new Error('Copy failed.');
         }
-        setMessage(elements.createMessage, 'Link copied to the clipboard.', 'success');
+        elements.copyLinkButton.textContent = 'Copied';
+        setMessage(elements.createMessage, 'Challenge link copied.', 'success');
     } catch (error) {
         if (copyWithFallback(value)) {
-            setMessage(elements.createMessage, 'Link copied to the clipboard.', 'success');
+            elements.copyLinkButton.textContent = 'Copied';
+            setMessage(elements.createMessage, 'Challenge link copied.', 'success');
             return;
         }
-        setMessage(elements.createMessage, 'Copy failed. Select the link and copy it manually.', 'error');
+        elements.joinUrl.focus({ preventScroll: true });
+        elements.joinUrl.select();
+        setMessage(elements.createMessage, 'Copy failed. The link is selected so you can copy it manually.', 'error');
+    } finally {
+        window.setTimeout(() => {
+            elements.copyLinkButton.disabled = false;
+            elements.copyLinkButton.textContent = 'Copy link';
+        }, 1200);
     }
 };
 
@@ -400,18 +450,20 @@ const handleProfileSave = async (event) => {
     }
 
     elements.saveNameButton.disabled = true;
-    setMessage(elements.profileMessage, 'Saving your badge...', 'neutral');
+    elements.profileForm.setAttribute('aria-busy', 'true');
+    setMessage(elements.profileMessage, 'Saving display name...', 'neutral');
 
     try {
         const profile = await updateProfile(displayName);
         const savedName = typeof profile?.display_name === 'string' ? profile.display_name : displayName;
         setDisplayName(savedName);
         elements.displayName.value = '';
-        setMessage(elements.profileMessage, 'Badge name saved.', 'success');
+        setMessage(elements.profileMessage, 'Display name saved.', 'success');
     } catch (error) {
-        setMessage(elements.profileMessage, errorMessage(error, 'The badge name could not be saved.'), 'error');
+        setMessage(elements.profileMessage, errorMessage(error, 'The display name could not be saved.'), 'error');
     } finally {
         elements.saveNameButton.disabled = false;
+        clearAttribute(elements.profileForm, 'aria-busy');
     }
 };
 
@@ -423,6 +475,7 @@ const claimJoinToken = async () => {
     }
 
     elements.joinMessage.hidden = false;
+    elements.joinMessage.dataset.tone = 'neutral';
     elements.joinMessage.textContent = 'Claiming chess challenge...';
 
     try {
@@ -430,9 +483,12 @@ const claimJoinToken = async () => {
         if (typeof game?.id !== 'string' || game.id === '') {
             throw new Error('The claimed challenge did not return a game.');
         }
+        elements.joinMessage.dataset.tone = 'success';
+        elements.joinMessage.textContent = 'Challenge claimed. Opening the board...';
         window.location.assign(gameHref(game.id));
         return true;
     } catch (error) {
+        elements.joinMessage.dataset.tone = 'error';
         elements.joinMessage.textContent = errorMessage(error, 'That chess challenge could not be claimed.');
         return false;
     }

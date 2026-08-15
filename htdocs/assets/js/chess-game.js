@@ -97,6 +97,18 @@ const setMessage = (element, message = '', tone = '') => {
     element.dataset.tone = tone;
 };
 
+const clearAriaBusy = (element) => {
+    if (typeof element?.removeAttribute === 'function') {
+        element.removeAttribute('aria-busy');
+        return;
+    }
+
+    if (typeof element?.attributes?.delete === 'function') {
+        element.attributes.delete('aria-busy');
+    }
+    delete element?.['aria-busy'];
+};
+
 const ensureOpeningStatusElement = () => {
     if (elements.openingStatus instanceof HTMLElement) {
         return elements.openingStatus;
@@ -389,10 +401,12 @@ const setVisibleIdentity = (name) => {
 };
 
 const renderError = (message) => {
+    state.selectedSquare = '';
     elements.error.hidden = false;
     elements.error.textContent = message;
     elements.root.dataset.state = 'error';
     setMessage(elements.boardMessage, message, 'error');
+    renderActionControls();
 };
 
 const clearError = () => {
@@ -402,6 +416,10 @@ const clearError = () => {
 };
 
 const renderActionControls = () => {
+    if (!elements.resignButton || !elements.takebackButton) {
+        return;
+    }
+
     const seatColor = viewerSeatColor();
     const canAct = gameAllowsPlayerActions();
     const offer = pendingTakeback();
@@ -409,12 +427,14 @@ const renderActionControls = () => {
 
     elements.resignButton.hidden = !canAct;
     elements.resignButton.disabled = state.isSubmitting;
+    elements.resignButton.title = state.isSubmitting ? 'Finishing the current chess action.' : 'Resign this game.';
     elements.takebackButton.hidden = !canAct;
     elements.takebackButton.disabled = state.isSubmitting;
     elements.takebackButton.dataset.action = takebackAction;
     elements.takebackButton.textContent = takebackAction === 'cancel'
         ? 'Cancel takeback'
-        : (takebackAction === 'accept' ? 'Accept takeback' : 'Takeback');
+        : (takebackAction === 'accept' ? 'Accept takeback' : 'Request takeback');
+    elements.takebackButton.title = state.isSubmitting ? 'Finishing the current chess action.' : elements.takebackButton.textContent;
 };
 
 const renderBoard = () => {
@@ -506,8 +526,8 @@ const renderMoves = () => {
 
     if (state.moves.length === 0) {
         const empty = document.createElement('p');
-        empty.className = 'lede';
-        empty.textContent = 'No moves yet. The board is holding its breath.';
+        empty.className = 'lede chess-state-message';
+        empty.textContent = 'No moves yet. The first move will appear here.';
         elements.moveList.append(empty);
         return;
     }
@@ -597,6 +617,8 @@ const refresh = async ({ quiet = false } = {}) => {
     }
 
     state.isLoading = true;
+    elements.root.dataset.loading = 'true';
+    elements.board.setAttribute('aria-busy', 'true');
     if (!quiet) {
         setMessage(elements.boardMessage, 'Loading the board...', 'neutral');
     }
@@ -616,13 +638,15 @@ const refresh = async ({ quiet = false } = {}) => {
         clearError();
         renderGame();
         if (!quiet) {
-            setMessage(elements.boardMessage, viewerControlsTurn() ? 'Your move.' : 'Board refreshed.', 'success');
+            setMessage(elements.boardMessage, viewerControlsTurn() ? 'Your move. Select a piece to begin.' : 'Board refreshed. Waiting for the next move.', 'success');
         }
     } catch (error) {
         const notFound = error?.status === 404;
         renderError(notFound ? 'That chess game was not found.' : errorMessage(error, 'The chess game could not be loaded.'));
     } finally {
         state.isLoading = false;
+        delete elements.root.dataset.loading;
+        clearAriaBusy(elements.board);
     }
 };
 
@@ -659,6 +683,7 @@ const choosePromotion = (moves) => new Promise((resolve) => {
     });
 
     elements.promotionDialog.hidden = false;
+    elements.promotionDialog.removeAttribute('aria-hidden');
     elements.promotionOptions.querySelector('button')?.focus();
 });
 
@@ -670,9 +695,12 @@ const closePromotionDialog = (value = null) => {
     state.pendingMove = null;
     state.promotionFocusReturn = null;
     elements.promotionDialog.hidden = true;
+    elements.promotionDialog.setAttribute('aria-hidden', 'true');
     elements.promotionOptions.replaceChildren();
     if (focusReturn && document.contains(focusReturn) && !focusReturn.disabled) {
         focusReturn.focus();
+    } else {
+        elements.board.focus({ preventScroll: true });
     }
 };
 
@@ -812,6 +840,8 @@ const setBoardFullscreen = (isFullscreen) => {
     state.isBoardFullscreen = isFullscreen;
     elements.root.dataset.boardFullscreen = isFullscreen ? 'true' : 'false';
     elements.fullscreenToggle.setAttribute('aria-expanded', isFullscreen ? 'true' : 'false');
+    elements.fullscreenToggle.textContent = isFullscreen ? 'Exit fullscreen' : 'Fullscreen board';
+    document.body.style.overflow = isFullscreen ? 'hidden' : '';
 };
 
 const handleFullscreenToggle = () => {
@@ -853,10 +883,39 @@ const handlePromotionClick = (event) => {
     closePromotionDialog(button.dataset.promotion || null);
 };
 
-const handlePromotionKeydown = (event) => {
-    if (event.key === 'Escape' && !elements.promotionDialog.hidden) {
+const promotionFocusableControls = () => Array.from(elements.promotionDialog.querySelectorAll('button:not(:disabled)'));
+
+const handleDocumentKeydown = (event) => {
+    if (!elements.promotionDialog.hidden) {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closePromotionDialog(null);
+            return;
+        }
+
+        if (event.key === 'Tab') {
+            const controls = promotionFocusableControls();
+            if (controls.length === 0) {
+                event.preventDefault();
+                return;
+            }
+
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+        return;
+    }
+
+    if (event.key === 'Escape' && state.isBoardFullscreen) {
         event.preventDefault();
-        closePromotionDialog(null);
+        setBoardFullscreen(false);
     }
 };
 
@@ -870,19 +929,21 @@ const handleProfileSave = async (event) => {
     }
 
     elements.saveNameButton.disabled = true;
-    setMessage(elements.profileMessage, 'Saving name...', 'neutral');
+    elements.profileForm.setAttribute('aria-busy', 'true');
+    setMessage(elements.profileMessage, 'Saving display name...', 'neutral');
 
     try {
         const profile = await updateProfile(displayName);
         state.savedDisplayName = typeof profile?.display_name === 'string' ? profile.display_name : displayName;
         setVisibleIdentity(state.savedDisplayName);
         elements.displayName.value = '';
-        setMessage(elements.profileMessage, 'Name saved.', 'success');
+        setMessage(elements.profileMessage, 'Display name saved.', 'success');
         await refresh({ quiet: true });
     } catch (error) {
         setMessage(elements.profileMessage, errorMessage(error, 'The display name could not be saved.'), 'error');
     } finally {
         elements.saveNameButton.disabled = false;
+        elements.profileForm.removeAttribute('aria-busy');
     }
 };
 
@@ -927,6 +988,7 @@ const seedProfileName = async () => {
 
 const init = () => {
     elements = resolveElements();
+    elements.board.tabIndex = -1;
 
     setBoardFullscreen(false);
     restoreNotificationPreference();
@@ -945,7 +1007,7 @@ const init = () => {
     elements.notificationToggle.addEventListener('change', handleNotificationToggle);
     elements.promotionOptions.addEventListener('click', handlePromotionClick);
     elements.promotionCancel.addEventListener('click', () => closePromotionDialog(null));
-    document.addEventListener('keydown', handlePromotionKeydown);
+    document.addEventListener('keydown', handleDocumentKeydown);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', stopPolling);
 

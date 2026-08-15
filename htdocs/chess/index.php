@@ -15,8 +15,8 @@ $pageStyles = ['/assets/css/chess.css'];
         <main class="chess-page" data-chess-lobby>
             <section class="chess-hero" aria-labelledby="chess-title">
                 <p class="eyebrow">Chess lobby</p>
-                <h1 id="chess-title">Challenge links without the velvet rope.</h1>
-                <p class="lede">Create a game, copy an invite, or reopen a board already tied to this browser.</p>
+                <h1 id="chess-title">Chess challenge links.</h1>
+                <p class="lede">Create a game, copy an invite, or reopen a board tied to this browser.</p>
             </section>
 
             <section class="chess-layout" aria-label="Chess lobby">
@@ -69,7 +69,7 @@ $pageStyles = ['/assets/css/chess.css'];
                         </div>
 
                         <div class="chess-games-list" id="chess-games-list" aria-live="polite">
-                            <p class="lede">Looking for your boards...</p>
+                            <p class="lede chess-state-message chess-state-message-loading">Loading your browser-tied games...</p>
                         </div>
                     </section>
                 </div>

@@ -15,8 +15,8 @@ $pageStyles = ['/assets/css/chess.css'];
         <main class="chess-page chess-game-page" data-chess-game>
             <section class="chess-hero chess-game-hero" aria-labelledby="chess-game-title">
                 <p class="eyebrow">Chess board</p>
-                <h1 id="chess-game-title">The board is thinking.</h1>
-                <p class="lede" id="chess-game-summary">Loading the position, seats, and tiny clocks in our heads...</p>
+                <h1 id="chess-game-title">Chess game.</h1>
+                <p class="lede" id="chess-game-summary">Loading the position, seats, and move history...</p>
             </section>
 
             <section class="chess-board-shell" aria-label="Chess game board and controls">
@@ -36,7 +36,7 @@ $pageStyles = ['/assets/css/chess.css'];
                         <div class="chess-board-actions" id="chess-board-actions" aria-label="Fullscreen board controls">
                             <button class="chess-button chess-button-small" type="button" id="chess-fullscreen-exit">Exit fullscreen</button>
                         </div>
-                        <p class="chess-board-help" id="chess-board-help">Pick one of your pieces, then choose a highlighted square.</p>
+                        <p class="chess-board-help" id="chess-board-help">Select one of your pieces, then choose a highlighted square.</p>
                         <p class="chess-message" id="chess-board-message" role="status" aria-live="polite"></p>
                     </div>
                 </div>
@@ -89,7 +89,7 @@ $pageStyles = ['/assets/css/chess.css'];
                         </div>
 
                         <div class="chess-move-list" id="chess-move-list" aria-live="polite">
-                            <p class="lede">No moves yet.</p>
+                            <p class="lede chess-state-message">No moves yet. The first move will appear here.</p>
                         </div>
                     </section>
                 </aside>
