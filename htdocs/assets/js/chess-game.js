@@ -78,6 +78,7 @@ const state = {
     selectedSquare: '',
     pendingMove: null,
     promotionFocusReturn: null,
+    fullscreenFocusReturn: null,
     pollTimer: 0,
     isLoading: false,
     isSubmitting: false,
@@ -131,7 +132,7 @@ const ensureOpeningStatusElement = () => {
 export const formatOpening = (opening) => {
     if (!opening || typeof opening !== 'object' || opening.on_book !== true) {
         return {
-            label: 'Off book',
+            label: '',
             onBook: false,
             tone: 'neutral',
         };
@@ -162,6 +163,13 @@ const renderOpeningStatus = () => {
     }
 
     const opening = formatOpening(state.game?.opening);
+    if (opening.onBook !== true) {
+        openingStatus.hidden = true;
+        openingStatus.removeAttribute('aria-label');
+        setMessage(openingStatus);
+        return;
+    }
+
     openingStatus.hidden = false;
     openingStatus.setAttribute('aria-label', `Opening: ${opening.label}`);
     setMessage(openingStatus, opening.label, opening.tone);
@@ -837,11 +845,28 @@ const selectTarget = async (from, to) => {
 };
 
 const setBoardFullscreen = (isFullscreen) => {
+    const wasFullscreen = state.isBoardFullscreen;
     state.isBoardFullscreen = isFullscreen;
     elements.root.dataset.boardFullscreen = isFullscreen ? 'true' : 'false';
     elements.fullscreenToggle.setAttribute('aria-expanded', isFullscreen ? 'true' : 'false');
     elements.fullscreenToggle.textContent = isFullscreen ? 'Exit fullscreen' : 'Fullscreen board';
     document.body.style.overflow = isFullscreen ? 'hidden' : '';
+
+    if (isFullscreen && !wasFullscreen) {
+        state.fullscreenFocusReturn = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        elements.fullscreenExit.focus({ preventScroll: true });
+        return;
+    }
+
+    if (!isFullscreen && wasFullscreen) {
+        const focusReturn = state.fullscreenFocusReturn;
+        state.fullscreenFocusReturn = null;
+        if (focusReturn && document.contains(focusReturn) && !focusReturn.disabled) {
+            focusReturn.focus({ preventScroll: true });
+        } else {
+            elements.fullscreenToggle.focus({ preventScroll: true });
+        }
+    }
 };
 
 const handleFullscreenToggle = () => {

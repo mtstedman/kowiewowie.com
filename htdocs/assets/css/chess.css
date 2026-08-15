@@ -569,12 +569,27 @@
         max-width: 11ch;
     }
 
+    .chess-board-shell {
+        gap: 0.75rem;
+    }
+
+    .chess-board-panel,
+    .chess-move-panel {
+        padding: 0.75rem;
+    }
+
     .chess-board-frame {
         width: 100%;
+        gap: 0.6rem;
     }
 
     .chess-fullscreen-toggle {
         display: inline-flex;
+    }
+
+    .chess-game-status-bar .chess-button {
+        flex: 1 1 8rem;
+        width: auto;
     }
 
     .chess-game-page[data-board-fullscreen="true"] .chess-board-frame {
@@ -582,28 +597,45 @@
         inset: 0;
         z-index: 10;
         box-sizing: border-box;
-        grid-template-rows: minmax(0, 1fr) auto;
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
         align-content: stretch;
         min-height: 100vh;
         height: 100vh;
         height: 100dvh;
-        padding: 0.75rem 0.75rem 5rem;
+        padding: 0.6rem;
         background: var(--chess-panel);
     }
 
-    .chess-game-page[data-board-fullscreen="true"] .chess-game-status-bar,
     .chess-game-page[data-board-fullscreen="true"] .chess-fullscreen-toggle,
     .chess-game-page[data-board-fullscreen="true"] .chess-board-help {
         display: none;
     }
 
+    .chess-game-page[data-board-fullscreen="true"] .chess-game-status-bar {
+        align-self: start;
+        max-height: 6.75rem;
+        overflow: auto;
+        padding-bottom: 0.15rem;
+        scrollbar-gutter: stable;
+    }
+
+    .chess-game-page[data-board-fullscreen="true"] .chess-game-status-bar .chess-alert {
+        flex-basis: 100%;
+        padding: 0;
+    }
+
+    .chess-game-page[data-board-fullscreen="true"] .chess-status-pill,
+    .chess-game-page[data-board-fullscreen="true"] .chess-game-status-bar .chess-button {
+        flex: 1 1 7.25rem;
+    }
+
     .chess-game-page[data-board-fullscreen="true"] .chess-board {
         align-self: center;
         justify-self: center;
-        width: min(calc(100vh - 8rem), calc(100vw - 1.5rem));
-        width: min(calc(100dvh - 8rem), calc(100vw - 1.5rem));
-        height: min(calc(100vh - 8rem), calc(100vw - 1.5rem));
-        height: min(calc(100dvh - 8rem), calc(100vw - 1.5rem));
+        width: min(calc(100vh - 12rem), calc(100vw - 1.2rem));
+        width: min(calc(100dvh - 12rem), calc(100vw - 1.2rem));
+        height: min(calc(100vh - 12rem), calc(100vw - 1.2rem));
+        height: min(calc(100dvh - 12rem), calc(100vw - 1.2rem));
     }
 
     .chess-game-page[data-board-fullscreen="true"] #chess-board-message {
