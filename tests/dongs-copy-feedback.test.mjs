@@ -4,8 +4,8 @@ import vm from 'node:vm';
 
 const SCRIPT_PATH = new URL('../htdocs/assets/js/dongs-index.js', import.meta.url);
 const script = await readFile(SCRIPT_PATH, 'utf8');
-const successMessage = 'Copied Shrug.';
-const failureMessage = 'Could not copy Shrug. Select it and copy it manually.';
+const successMessage = 'Copied Shrug. Go deploy the face.';
+const failureMessage = 'Could not copy Shrug. Select the face and copy it manually.';
 const donger = '¯\\_(ツ)_/¯';
 
 class ClassList {

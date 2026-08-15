@@ -161,6 +161,16 @@ foreach (['@media (max-width: 900px)', '@media (max-width: 760px)', '@media (max
     public_ux_assert(strpos($css, $mediaRule) !== false, 'Expected responsive rule missing: ' . $mediaRule);
 }
 
+public_ux_assert(
+    (bool) preg_match('/@media \(max-width: 900px\)\s*\{.*?\.site-header\s*\{(?P<rule>[^}]*)\}/s', $css, $mobileHeaderRule),
+    'The mobile site-header rule is missing.'
+);
+public_ux_assert(
+    (bool) preg_match('/\bposition\s*:\s*relative\s*;/', $mobileHeaderRule['rule'])
+        && (bool) preg_match('/\btop\s*:\s*auto\s*;/', $mobileHeaderRule['rule']),
+    'The mobile site header must remain in document flow so it cannot cover page content.'
+);
+
 $publicShellScript = file_get_contents($root . '/htdocs/assets/js/public-shell.js');
 public_ux_assert(is_string($publicShellScript), 'Unable to read public shell script.');
 public_ux_assert(strpos($publicShellScript, '<script') === false, 'Public shell script must not contain HTML script tags.');

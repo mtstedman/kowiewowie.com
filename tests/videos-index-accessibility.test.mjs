@@ -335,7 +335,7 @@ const buildVideosDom = (document) => {
             'aria-live': 'polite',
             'aria-atomic': 'true',
         },
-        text: 'Loading videos...',
+        text: 'Tuning the video shelf...',
     });
     const results = appendElement(surface, 'div', {
         id: 'videos-results',
@@ -345,7 +345,7 @@ const buildVideosDom = (document) => {
             'aria-describedby': 'videos-results-status',
         },
     });
-    appendElement(results, 'p', { className: 'videos-state', text: 'Loading videos...' });
+    appendElement(results, 'p', { className: 'videos-state', text: 'Tuning the video shelf...' });
 };
 
 const collectElements = (root) => {
@@ -433,7 +433,7 @@ const videos = [
     assert.equal(status.getAttribute('aria-live'), 'polite');
     assert.equal(status.getAttribute('aria-atomic'), 'true');
     assert.equal(status.className, 'videos-visually-hidden');
-    assert.equal(status.textContent, 'Loading videos...', 'loading status is announced before fetch success');
+    assert.equal(status.textContent, 'Tuning the video shelf...', 'loading status is announced before fetch success');
     assert.equal(search.getAttribute('aria-controls'), 'videos-results');
     assert.equal(search.getAttribute('aria-describedby'), 'videos-results-status');
     assertResultsAreNotLive(document);
@@ -442,9 +442,9 @@ const videos = [
     await flushBrowserWork();
     assert.equal(results.querySelectorAll('.videos-grid-item').length, 3, 'fetch success renders published video cards');
     assert.equal(calls.length, 1, 'videos are fetched once during boot');
-    assert.equal(status.textContent, '3 videos available. Showing the latest published uploads.');
+    assert.equal(status.textContent, '3 videos available. Latest published uploads from the watch drawer.');
     assert.match(visibleText(results), /3 videos available/);
-    assert.match(visibleText(results), /Showing the latest published uploads\./);
+    assert.match(visibleText(results), /Latest published uploads from the watch drawer\./);
     assertResultsAreNotLive(document);
 
     const musicChip = filters.querySelectorAll('button').find((button) => button.dataset.topic === 'Music');
@@ -455,7 +455,7 @@ const videos = [
     search.value = 'alpha';
     search.dispatchEvent(inputEvent(search));
     assert.equal(results.querySelectorAll('.videos-grid-item').length, 1, 'search rerenders synchronously');
-    assert.equal(status.textContent, '1 video found. Showing results for "alpha" across titles, channels, descriptions, and tags.');
+    assert.equal(status.textContent, '1 video found. Searching titles, channels, descriptions, and tags for "alpha".');
     assert.match(visibleText(results), /1 video found/);
     assertResultsAreNotLive(document);
 
@@ -463,7 +463,7 @@ const videos = [
     search.dispatchEvent(inputEvent(search));
     filters.dispatchEvent(clickEvent(musicChip));
     assert.equal(results.querySelectorAll('.videos-grid-item').length, 2, 'filter rerenders synchronously');
-    assert.equal(status.textContent, '2 videos in Music. Showing every published video tagged with Music.');
+    assert.equal(status.textContent, '2 videos in Music. Every published video wearing the Music tag.');
     assert.match(visibleText(results), /2 videos in Music/);
     assertResultsAreNotLive(document);
 
@@ -471,7 +471,7 @@ const videos = [
     search.dispatchEvent(inputEvent(search));
     assert.equal(results.querySelectorAll('.videos-grid-item').length, 0, 'empty search result removes the card grid');
     assert.ok(results.querySelector('.videos-empty-state'), 'empty search result keeps a visible empty state');
-    assert.equal(status.textContent, '0 videos found. Showing results for "nomatch" in Music.');
+    assert.equal(status.textContent, '0 videos found. Filtered to "nomatch" inside Music.');
     assertResultsAreNotLive(document);
 }
 
@@ -489,7 +489,7 @@ const videos = [
     await flushBrowserWork();
     assert.ok(status.textContent.startsWith('No videos yet.'), 'empty library status is announced after fetch success');
     assert.ok(results.querySelector('.videos-empty-state'), 'empty library keeps a visible empty state');
-    assert.equal(status.textContent, 'No videos yet. Published uploads will appear here once they are available.');
+    assert.equal(status.textContent, 'No videos yet. Fresh uploads will land here when the watch drawer gets stocked.');
     assertResultsAreNotLive(document);
 }
 
@@ -507,6 +507,6 @@ const videos = [
     await flushBrowserWork();
     assert.ok(status.textContent.startsWith('Videos unavailable.'), 'error status is announced after fetch failure');
     assert.ok(results.querySelector('.videos-error-state'), 'fetch errors keep a visible error state');
-    assert.equal(status.textContent, 'Videos unavailable. The videos library could not be loaded right now. Please try again later.');
+    assert.equal(status.textContent, 'Videos unavailable. The watch drawer would not open. Try again in a moment.');
     assertResultsAreNotLive(document);
 }

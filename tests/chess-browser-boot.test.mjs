@@ -89,6 +89,11 @@ class TestElement {
         return this.attributes.get(name) || null;
     }
 
+    removeAttribute(name) {
+        this.attributes.delete(name);
+        delete this[name];
+    }
+
     append(...nodes) {
         nodes.forEach((node) => {
             if (!(node instanceof TestElement)) {

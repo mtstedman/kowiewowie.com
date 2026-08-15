@@ -411,7 +411,7 @@ const assertSpotifyLink = (link, href) => {
 
     const musicList = document.getElementById('music-list');
     assert.equal(musicList.querySelectorAll('a').length, 0, 'empty API results render no Spotify links');
-    assert.equal(musicList.textContent, 'No songs have been added yet.');
+    assert.equal(musicList.textContent, 'The tiny queue is empty for now.');
 }
 
 {
@@ -426,7 +426,7 @@ const assertSpotifyLink = (link, href) => {
 
     const musicList = document.getElementById('music-list');
     assert.equal(musicList.querySelectorAll('a').length, 0, 'HTTP failures render no Spotify links');
-    assert.equal(musicList.textContent, 'Unable to load songs right now.');
+    assert.equal(musicList.textContent, 'The tiny queue would not load. Try again in a moment.');
 }
 
 {
@@ -443,5 +443,5 @@ const assertSpotifyLink = (link, href) => {
 
     const musicList = document.getElementById('music-list');
     assert.equal(musicList.querySelectorAll('a').length, 0, 'fetch failures render no Spotify links');
-    assert.equal(musicList.textContent, 'Unable to load songs right now.');
+    assert.equal(musicList.textContent, 'The tiny queue would not load. Try again in a moment.');
 }

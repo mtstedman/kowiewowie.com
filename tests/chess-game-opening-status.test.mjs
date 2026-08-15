@@ -40,14 +40,14 @@ const cases = [
         },
     },
     {
-        description: 'off-book position',
+        description: 'off-book position hides the opening badge',
         opening: {
             on_book: false,
             eco_code: 'C20',
             name: "King's Pawn Game",
         },
         expected: {
-            label: 'Off book',
+            label: '',
             onBook: false,
         },
     },
