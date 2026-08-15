@@ -968,10 +968,12 @@ footer {
     .site-header {
         position: relative;
         top: auto;
+        min-height: 0;
         align-items: flex-start;
         flex-direction: column;
         justify-content: center;
-        padding-block: 22px;
+        gap: 0.75rem;
+        padding-block: 0.75rem;
     }
 
     .site-header::after {
@@ -981,13 +983,22 @@ footer {
     }
 
     .site-nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.4rem), 1fr));
         justify-content: flex-start;
-        flex-wrap: wrap;
+        gap: 0.4rem;
+        flex: 0 1 auto;
+        min-width: 0;
         width: 100%;
     }
 
+    .site-nav a {
+        width: 100%;
+        padding-inline: 0.5rem;
+    }
+
     .status {
-        align-self: flex-start;
+        display: none;
     }
 
     .hero,

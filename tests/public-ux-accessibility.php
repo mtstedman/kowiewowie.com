@@ -167,8 +167,18 @@ public_ux_assert(
 );
 public_ux_assert(
     (bool) preg_match('/\bposition\s*:\s*relative\s*;/', $mobileHeaderRule['rule'])
-        && (bool) preg_match('/\btop\s*:\s*auto\s*;/', $mobileHeaderRule['rule']),
-    'The mobile site header must remain in document flow so it cannot cover page content.'
+        && (bool) preg_match('/\btop\s*:\s*auto\s*;/', $mobileHeaderRule['rule'])
+        && (bool) preg_match('/\bmin-height\s*:\s*0\s*;/', $mobileHeaderRule['rule']),
+    'The mobile site header must remain compact and in document flow so it cannot cover page content.'
+);
+public_ux_assert(
+    (bool) preg_match('/@media \(max-width: 900px\)\s*\{.*?\.site-nav\s*\{(?P<rule>[^}]*)\}/s', $css, $mobileNavRule),
+    'The mobile site-nav rule is missing.'
+);
+public_ux_assert(
+    (bool) preg_match('/\bflex\s*:\s*0\s+1\s+auto\s*;/', $mobileNavRule['rule'])
+        && (bool) preg_match('/\bmin-width\s*:\s*0\s*;/', $mobileNavRule['rule']),
+    'The mobile site nav must reset the desktop flex basis so it cannot reserve a full screen of vertical space.'
 );
 
 $publicShellScript = file_get_contents($root . '/htdocs/assets/js/public-shell.js');
