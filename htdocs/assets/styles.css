@@ -966,6 +966,8 @@ footer {
 
 @media (max-width: 900px) {
     .site-header {
+        position: relative;
+        top: auto;
         align-items: flex-start;
         flex-direction: column;
         justify-content: center;
