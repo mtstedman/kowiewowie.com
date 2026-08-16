@@ -63,6 +63,15 @@
           "sha256": "88a71dfba278e74532faaa0bb8b2e384fb8b3fd4a12f84eb15ac5b9829477a7b"
         }
       ]
+    },
+    {
+      "version": 8,
+      "updates": [
+        {
+          "file": "updates/008_trivia_question_bank.sql",
+          "sha256": "514cf38330c5c3463e8ff86c08d7f2d00921b9f506f14118e221569dbe8b5854"
+        }
+      ]
     }
   ]
 }

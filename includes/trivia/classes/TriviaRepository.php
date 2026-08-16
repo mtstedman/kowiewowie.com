@@ -26,7 +26,8 @@ final class TriviaRepository
     {
         $maxPlayers = $this->normalizeMaxPlayers($input['max_players'] ?? 6);
         $answerWindowSeconds = $this->normalizeAnswerWindow($input['answer_window_seconds'] ?? 30);
-        $prompts = $this->normalizePrompts($input['prompts'] ?? null);
+        $promptInput = $input['prompts'] ?? null;
+        $prompts = ($promptInput === null || $promptInput === []) ? null : $this->normalizePrompts($promptInput);
         $actor = $this->seatActor($identity);
         $createdLink = null;
         $publicId = null;
@@ -62,7 +63,7 @@ final class TriviaRepository
                 'id' => $roomId,
             ]);
 
-            $this->insertPrompts($roomId, $prompts);
+            $this->insertPrompts($roomId, $prompts ?? $this->loadDefaultPrompts());
             $createdLink = $this->createStoredLink($roomId, $publicId, $host, $this->normalizeLinkInput($input['link'] ?? []));
 
             $this->pdo->commit();
@@ -527,6 +528,42 @@ final class TriviaRepository
         }
 
         return $player;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function loadDefaultPrompts(): array
+    {
+        $statement = $this->pdo->query(<<<'SQL'
+            SELECT question, correct_answer, choices, explanation
+            FROM trivia_question_catalog
+            WHERE is_active
+            ORDER BY display_order ASC, slug ASC
+            LIMIT 100
+        SQL);
+        if ($statement === false) {
+            throw new \RuntimeException('The trivia question catalog could not be loaded.');
+        }
+
+        $prompts = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $choices = json_decode((string) ($row['choices'] ?? ''), true);
+            if (!is_array($choices) || !array_is_list($choices)) {
+                throw new ApiException(409, 'trivia_catalog_malformed', 'The trivia question catalog contains a malformed prompt.');
+            }
+            $prompts[] = [
+                'question' => (string) ($row['question'] ?? ''),
+                'correct_answer' => (string) ($row['correct_answer'] ?? ''),
+                'choices' => $choices,
+                'explanation' => $row['explanation'] !== null ? (string) $row['explanation'] : null,
+            ];
+        }
+        if (count($prompts) < 8) {
+            throw new ApiException(409, 'trivia_catalog_unavailable', 'The trivia question catalog does not have enough active prompts to create a room.');
+        }
+
+        return $this->questionCatalog->resolve($prompts);
     }
 
     /**
@@ -1113,7 +1150,11 @@ final class TriviaRepository
      */
     private function normalizePrompts(mixed $value): array
     {
-        return $this->questionCatalog->resolve($value);
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new ApiException(422, 'validation_error', 'prompts must be a list of trivia prompt objects.');
+        }
+
+        return array_map(fn (mixed $prompt): array => $this->normalizePrompt($prompt), $value);
     }
 
     /** @return array<string, mixed> */

@@ -10,66 +10,11 @@ final class TriviaQuestionCatalog
 {
     private const MIN_PROMPTS = 8;
 
-    /** @var list<array{question: string, correct_answer: string, choices: list<string>, explanation: string}> */
-    private const DEFAULT_PROMPTS = [
-        [
-            'question' => 'Which planet is known as the Red Planet?',
-            'correct_answer' => 'Mars',
-            'choices' => ['Mercury', 'Venus', 'Mars', 'Jupiter'],
-            'explanation' => 'Iron oxide dust gives Mars its reddish color.',
-        ],
-        [
-            'question' => 'What is the largest ocean on Earth?',
-            'correct_answer' => 'Pacific Ocean',
-            'choices' => ['Atlantic Ocean', 'Indian Ocean', 'Pacific Ocean', 'Arctic Ocean'],
-            'explanation' => 'The Pacific Ocean covers more area than all land on Earth combined.',
-        ],
-        [
-            'question' => 'Which gas do plants absorb from the atmosphere during photosynthesis?',
-            'correct_answer' => 'Carbon dioxide',
-            'choices' => ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Hydrogen'],
-            'explanation' => 'Plants use carbon dioxide, water, and sunlight to produce sugars.',
-        ],
-        [
-            'question' => 'Who wrote the play Romeo and Juliet?',
-            'correct_answer' => 'William Shakespeare',
-            'choices' => ['Jane Austen', 'William Shakespeare', 'Charles Dickens', 'Mary Shelley'],
-            'explanation' => 'Romeo and Juliet is one of Shakespeare\'s best-known tragedies.',
-        ],
-        [
-            'question' => 'What is the chemical symbol for gold?',
-            'correct_answer' => 'Au',
-            'choices' => ['Ag', 'Au', 'Gd', 'Go'],
-            'explanation' => 'Au comes from the Latin word aurum.',
-        ],
-        [
-            'question' => 'Which continent is the Sahara Desert located on?',
-            'correct_answer' => 'Africa',
-            'choices' => ['Asia', 'Africa', 'Australia', 'South America'],
-            'explanation' => 'The Sahara spans much of northern Africa.',
-        ],
-        [
-            'question' => 'How many sides does a hexagon have?',
-            'correct_answer' => 'Six',
-            'choices' => ['Five', 'Six', 'Seven', 'Eight'],
-            'explanation' => 'The prefix hexa- means six.',
-        ],
-        [
-            'question' => 'Which instrument is used to measure temperature?',
-            'correct_answer' => 'Thermometer',
-            'choices' => ['Barometer', 'Thermometer', 'Anemometer', 'Hygrometer'],
-            'explanation' => 'A thermometer measures temperature.',
-        ],
-    ];
-
     /**
      * @return list<array{question: string, correct_answer: string, choices: list<string>, explanation: ?string}>
      */
     public function resolve(mixed $value): array
     {
-        if ($value === null || $value === []) {
-            return self::DEFAULT_PROMPTS;
-        }
         if (!is_array($value) || !array_is_list($value)) {
             throw new ApiException(422, 'validation_error', 'prompts must be a list of trivia prompt objects.');
         }

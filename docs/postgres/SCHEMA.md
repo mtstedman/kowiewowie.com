@@ -1,9 +1,9 @@
-<!-- schema-version: 7 -->
+<!-- schema-version: 8 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 7**. `migration-chain.json` is the ordered,
+current release pin is **version 8**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -24,11 +24,12 @@ per-file execution ledger.
 | 5 | `005_chess_takeback_offers.sql` | Pending takeback-offer player and timestamp columns on chess games |
 | 6 | `006_chess_opening_book.sql` | ECO opening labels and a transposition-aware graph of book positions and moves |
 | 7 | `007_trivia_games.sql` | Shared-link trivia rooms, seated players, prompts, timed rounds, answer records, eliminations, and winner state |
+| 8 | `008_trivia_question_bank.sql` | Persistent shared trivia question catalog used to seed default room prompts |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 7 inventory
+## Current version 8 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -41,8 +42,8 @@ their full basenames are already stored in production's migration ledger.
   `chess_game_current_positions` view; `chess_games.pending_takeback_by_player_id`
   and `chess_games.pending_takeback_requested_at` persist pending takeback offers
 - Trivia: `trivia_rooms`, `trivia_players`, `trivia_room_links`,
-  `trivia_link_claims`, `trivia_prompts`, `trivia_rounds`, and
-  `trivia_answers`
+  `trivia_link_claims`, `trivia_question_catalog`, `trivia_prompts`,
+  `trivia_rounds`, and `trivia_answers`
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -142,21 +143,30 @@ shared and reusable until expiry, revocation, room start, or capacity, but they
 only create or return a seat; host actions and answer submissions must match the
 seat's registered user or guest profile.
 
+`trivia_question_catalog` stores the shared, version-seeded prompt bank used
+when a new room is created without caller-supplied prompts. Its rows have stable
+slugs, display ordering, active flags, question text, correct answers, answer
+choices, and optional explanations. The idempotent starter catalog lives in
+`database/data/trivia-questions.json` and is imported by `php database/seed.php`.
+
 `trivia_prompts` stores the ordered prompt text, correct answer, optional choice
-array, and post-resolution explanation for each room. `trivia_rounds` binds one
-prompt to a timed answer window with `opened_at`, `closes_at`, and resolved
-state. `trivia_answers` records one answer per player per round, a per-room
-client idempotency UUID, correctness, and submission timestamp. The application
-rejects duplicate or late answers, eliminates wrong-answer players immediately,
-and eliminates active players without an answer when the host resolves a round.
+array, and post-resolution explanation for each room. Default catalog questions
+are copied into these room-scoped rows at room creation, so gameplay still uses
+the persisted room-local prompt snapshot. `trivia_rounds` binds one prompt to a
+timed answer window with `opened_at`, `closes_at`, and resolved state.
+`trivia_answers` records one answer per player per round, a per-room client
+idempotency UUID, correctness, and submission timestamp. The application rejects
+duplicate or late answers, eliminates wrong-answer players immediately, and
+eliminates active players without an answer when the host resolves a round.
 
 Creating a room is one transaction: insert the room, seat the host, attach the
-host to the room, persist prompts, and create the initial hashed join link. A
-host starts the game only after at least two seats are occupied, which opens
-round 1. Resolving a round closes missing answers, updates eliminations, and
-finishes the game when zero or one active player remains; otherwise the host can
-advance to the next persisted prompt. Exhausting prompts finishes the room with
-the remaining active player as winner only if exactly one remains.
+host to the room, persist caller-supplied prompts or copy active default prompts
+from `trivia_question_catalog`, and create the initial hashed join link. A host
+starts the game only after at least two seats are occupied, which opens round 1.
+Resolving a round closes missing answers, updates eliminations, and finishes the
+game when zero or one active player remains; otherwise the host can advance to
+the next persisted prompt. Exhausting prompts finishes the room with the
+remaining active player as winner only if exactly one remains.
 
 ## Chess opening book
 

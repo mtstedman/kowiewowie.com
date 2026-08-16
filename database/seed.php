@@ -26,9 +26,50 @@ function loadSeedFile(string $path): array
     return $data;
 }
 
+function seedTriviaQuestions(\PDO $pdo, string $path): int
+{
+    $items = loadSeedFile($path);
+    $statement = $pdo->prepare(<<<'SQL'
+        INSERT INTO trivia_question_catalog (slug, display_order, question, correct_answer, choices, explanation, is_active)
+        VALUES (:slug, :display_order, :question, :correct_answer, CAST(:choices AS jsonb), :explanation, :is_active)
+        ON CONFLICT (slug) DO UPDATE
+        SET display_order = EXCLUDED.display_order,
+            question = EXCLUDED.question,
+            correct_answer = EXCLUDED.correct_answer,
+            choices = EXCLUDED.choices,
+            explanation = EXCLUDED.explanation,
+            is_active = EXCLUDED.is_active,
+            updated_at = now()
+    SQL);
+
+    $count = 0;
+    foreach ($items as $index => $item) {
+        if (!is_array($item)) {
+            throw new RuntimeException("Trivia question seed {$index} must be an object.");
+        }
+        $choices = $item['choices'] ?? null;
+        if (!is_array($choices) || !array_is_list($choices)) {
+            throw new RuntimeException("Trivia question seed {$index} must include a choices array.");
+        }
+        $statement->execute([
+            'slug' => (string) ($item['slug'] ?? ''),
+            'display_order' => (int) ($item['display_order'] ?? ($index + 1)),
+            'question' => (string) ($item['question'] ?? ''),
+            'correct_answer' => (string) ($item['correct_answer'] ?? $item['answer'] ?? ''),
+            'choices' => json_encode(array_values($choices), JSON_THROW_ON_ERROR),
+            'explanation' => isset($item['explanation']) ? (string) $item['explanation'] : null,
+            'is_active' => array_key_exists('is_active', $item) ? (bool) $item['is_active'] : true,
+        ]);
+        $count++;
+    }
+
+    return $count;
+}
+
 $projectRoot = dirname(__DIR__);
 $config = Config::load($projectRoot);
-$repository = new ContentRepository(Database::connect($config));
+$pdo = Database::connect($config);
+$repository = new ContentRepository($pdo);
 $sourceRoot = $projectRoot . '/htdocs/data';
 $sources = [
     'recipes' => 'recipes.json',
@@ -90,3 +131,6 @@ foreach (array_keys($sources + $inlineSources) as $resource) {
     }
     fwrite(STDOUT, "Seeded {$count} {$resource} item(s).\n");
 }
+
+$triviaCount = seedTriviaQuestions($pdo, $projectRoot . '/database/data/trivia-questions.json');
+fwrite(STDOUT, "Seeded {$triviaCount} trivia question(s).\n");
