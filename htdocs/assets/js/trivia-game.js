@@ -91,6 +91,14 @@ const formatTimer = (room) => {
     return String(Math.max(0, Math.ceil((closesAt - Date.now()) / 1000)));
 };
 
+const isTimerClosed = (room) => {
+    const closesAt = room?.round?.closes_at ? Date.parse(room.round.closes_at) : NaN;
+    return Number.isFinite(closesAt)
+        && room?.round?.status === 'answering'
+        && room?.status === 'active'
+        && closesAt <= Date.now();
+};
+
 const renderRoster = (room) => {
     const players = Array.isArray(room?.players) ? room.players : [];
     elements.roster.replaceChildren();
@@ -142,8 +150,9 @@ const renderChoices = (room) => {
     const isAlive = Boolean(room?.viewer?.is_active);
     const isAnswering = room?.status === 'active' && round?.status === 'answering';
     const secondsLeft = Number.parseInt(formatTimer(room), 10);
+    const timerClosed = isTimerClosed(room);
     const locked = state.lockedRoundId === round?.id;
-    const canAnswer = isAnswering && isAlive && !locked && Number.isFinite(secondsLeft) && secondsLeft > 0;
+    const canAnswer = isAnswering && isAlive && !locked && Number.isFinite(secondsLeft) && secondsLeft > 0 && !timerClosed;
 
     elements.choiceGrid.replaceChildren();
     state.selectedAnswer = canAnswer ? state.selectedAnswer : '';
@@ -184,7 +193,7 @@ const renderChoices = (room) => {
         setMessage(elements.roundMessage, 'You have been eliminated. You can keep watching the survivors.', 'error');
     } else if (locked) {
         setMessage(elements.roundMessage, `Answer locked: ${state.lockedAnswer}. Waiting for the round to resolve.`, 'success');
-    } else if (isAnswering && !canAnswer && isAlive) {
+    } else if (isAnswering && timerClosed && isAlive) {
         setMessage(elements.roundMessage, 'The timer closed before an answer was locked.', 'error');
     }
 };
@@ -247,6 +256,7 @@ const renderRoom = (room) => {
     const alive = activePlayers(room);
     const viewer = viewerPlayer(room);
     const winner = players.find((player) => player.id === room?.winner_player_id) || null;
+    const timerClosed = isTimerClosed(room);
 
     elements.error.hidden = true;
     elements.summary.textContent = room.status === 'waiting'
@@ -259,7 +269,7 @@ const renderRoom = (room) => {
     elements.playerStatus.textContent = viewer ? (viewer.status === 'active' ? 'Alive' : 'Eliminated') : 'Spectating';
     elements.answerStatus.textContent = state.lockedRoundId === round?.id
         ? 'Answer locked'
-        : round?.status === 'answering' ? 'Answering' : round?.status === 'resolved' ? 'Resolved' : 'Waiting';
+        : round?.status === 'answering' ? (timerClosed ? 'Timer closed' : 'Answering') : round?.status === 'resolved' ? 'Resolved' : 'Waiting';
 
     elements.timerValue.textContent = formatTimer(room);
     elements.roundLabel.textContent = round ? `Round ${round.round_number}` : 'Waiting room';
@@ -273,7 +283,7 @@ const renderRoom = (room) => {
     } else if (room.status === 'finished') {
         setMessage(elements.roundMessage, winner ? `${winner.display_name} survived the table.` : 'The trivia game finished with no single survivor.', 'success');
     } else if (round?.status === 'answering') {
-        setMessage(elements.roundMessage, 'Choose before the timer closes. Wrong answers eliminate immediately.', 'neutral');
+        setMessage(elements.roundMessage, timerClosed ? 'The answer window is closed. Waiting for the host to resolve.' : 'Choose before the timer closes. Wrong answers eliminate immediately.', timerClosed ? 'error' : 'neutral');
     } else if (round?.status === 'resolved') {
         setMessage(elements.roundMessage, 'Round resolved. The host can open the next prompt.', 'success');
     }
@@ -393,7 +403,12 @@ await refreshRoom();
 state.pollTimer = window.setInterval(refreshRoom, 4000);
 state.clockTimer = window.setInterval(() => {
     if (state.room) {
+        const previousTimer = elements.timerValue.textContent;
         elements.timerValue.textContent = formatTimer(state.room);
+        if (previousTimer !== '0' && elements.timerValue.textContent === '0') {
+            renderRoom(state.room);
+            return;
+        }
         renderHostControls(state.room);
     }
 }, 1000);
