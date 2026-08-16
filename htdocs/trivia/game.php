@@ -51,6 +51,7 @@ $pageStyles = ['/assets/css/trivia.css'];
                     <div class="trivia-result-panel" id="trivia-result-panel" hidden></div>
 
                     <div class="trivia-host-actions trivia-game-host-actions" id="trivia-game-host-actions" hidden>
+                        <button class="trivia-button trivia-button-primary" type="button" id="trivia-start-game-button">Start game</button>
                         <button class="trivia-button" type="button" id="trivia-resolve-round-button">Resolve round</button>
                         <button class="trivia-button trivia-button-primary" type="button" id="trivia-advance-round-button">Next round</button>
                     </div>

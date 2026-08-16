@@ -1,4 +1,4 @@
-import { TriviaApiError, advanceRound, getRoom, submitAnswer } from './trivia-api.js';
+import { TriviaApiError, advanceRound, getRoom, startRoom, submitAnswer } from './trivia-api.js';
 
 const requireElement = (id) => {
     const element = document.getElementById(id);
@@ -24,6 +24,7 @@ const elements = {
     submitButton: requireElement('trivia-submit-answer-button'),
     resultPanel: requireElement('trivia-result-panel'),
     hostActions: requireElement('trivia-game-host-actions'),
+    startButton: requireElement('trivia-start-game-button'),
     resolveButton: requireElement('trivia-resolve-round-button'),
     advanceButton: requireElement('trivia-advance-round-button'),
     roster: requireElement('trivia-game-roster'),
@@ -42,6 +43,7 @@ const state = {
     pollTimer: null,
     clockTimer: null,
     isSubmitting: false,
+    isStarting: false,
 };
 
 const setMessage = (element, message = '', tone = '') => {
@@ -176,7 +178,7 @@ const renderChoices = (room) => {
     elements.choiceFieldset.disabled = !canAnswer;
     elements.submitButton.disabled = !canAnswer || state.selectedAnswer === '' || state.isSubmitting;
 
-    if (!viewer && room?.status !== 'finished') {
+    if (!viewer && !room?.viewer?.is_host && room?.status !== 'finished') {
         setMessage(elements.roundMessage, 'You are spectating this room. Claim the shared link in the lobby to play.', 'neutral');
     } else if (!isAlive && room?.status === 'active') {
         setMessage(elements.roundMessage, 'You have been eliminated. You can keep watching the survivors.', 'error');
@@ -224,9 +226,18 @@ const renderResult = (room) => {
 const renderHostControls = (room) => {
     const isHost = Boolean(room?.viewer?.is_host);
     const roundStatus = room?.round?.status || '';
-    elements.hostActions.hidden = !isHost || room?.status === 'finished';
-    elements.resolveButton.disabled = !isHost || room?.status !== 'active' || roundStatus !== 'answering';
-    elements.advanceButton.disabled = !isHost || room?.status !== 'active' || roundStatus !== 'resolved';
+    const playersReady = activePlayers(room).length >= 2;
+    const canStart = isHost && room?.status === 'waiting';
+    const canResolve = isHost && room?.status === 'active' && roundStatus === 'answering';
+    const canAdvance = isHost && room?.status === 'active' && roundStatus === 'resolved';
+
+    elements.startButton.hidden = !canStart;
+    elements.resolveButton.hidden = !canResolve;
+    elements.advanceButton.hidden = !canAdvance;
+    elements.hostActions.hidden = !canStart && !canResolve && !canAdvance;
+    elements.startButton.disabled = !canStart || !playersReady || state.isStarting;
+    elements.resolveButton.disabled = !canResolve;
+    elements.advanceButton.disabled = !canAdvance;
 };
 
 const renderRoom = (room) => {
@@ -301,6 +312,29 @@ const refreshRoom = async () => {
     }
 };
 
+const handleStartRoom = async () => {
+    if (state.roomId === '' || state.isStarting) {
+        return;
+    }
+
+    state.isStarting = true;
+    elements.startButton.disabled = true;
+    setMessage(elements.roundMessage, 'Starting the trivia game...', 'neutral');
+
+    try {
+        state.lockedRoundId = '';
+        state.lockedAnswer = '';
+        state.selectedAnswer = '';
+        const room = await startRoom(state.roomId);
+        state.isStarting = false;
+        renderRoom(room);
+    } catch (error) {
+        state.isStarting = false;
+        setMessage(elements.roundMessage, errorMessage(error, 'The trivia game could not be started.'), 'error');
+        renderHostControls(state.room);
+    }
+};
+
 const submitCurrentAnswer = async (event) => {
     event.preventDefault();
     const round = state.room?.round;
@@ -351,6 +385,7 @@ const handleRoundAction = async (action) => {
 };
 
 elements.answerForm.addEventListener('submit', submitCurrentAnswer);
+elements.startButton.addEventListener('click', handleStartRoom);
 elements.resolveButton.addEventListener('click', () => handleRoundAction('resolve'));
 elements.advanceButton.addEventListener('click', () => handleRoundAction('advance'));
 

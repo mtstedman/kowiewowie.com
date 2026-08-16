@@ -56,14 +56,17 @@ final class TriviaQuestionCatalog
         if ($correctAnswer === '' || mb_strlen($correctAnswer) > 200) {
             throw new ApiException(422, 'validation_error', 'Each prompt correct_answer must contain 1 to 200 characters.');
         }
-        $choices = $value['choices'] ?? [];
-        if ($choices !== [] && (!is_array($choices) || !array_is_list($choices))) {
+        $choices = $value['choices'] ?? null;
+        if (!is_array($choices) || !array_is_list($choices)) {
             throw new ApiException(422, 'validation_error', 'Prompt choices must be a list of answer strings.');
         }
-        $choices = array_values(array_map(static fn (mixed $choice): string => trim((string) $choice), is_array($choices) ? $choices : []));
+        $choices = array_values(array_map(static fn (mixed $choice): string => trim((string) $choice), $choices));
         $choices = array_values(array_filter($choices, static fn (string $choice): bool => $choice !== ''));
-        if ($choices !== [] && !in_array($correctAnswer, $choices, true)) {
+        if (!in_array($correctAnswer, $choices, true)) {
             $choices[] = $correctAnswer;
+        }
+        if (count($choices) < 2) {
+            throw new ApiException(422, 'validation_error', 'Each prompt must provide at least two answer choices.');
         }
 
         return [

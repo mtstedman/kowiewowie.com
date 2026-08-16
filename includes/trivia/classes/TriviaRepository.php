@@ -576,7 +576,7 @@ final class TriviaRepository
     private function openRound(array $room, int $roundNumber): void
     {
         $promptStatement = $this->pdo->prepare(<<<'SQL'
-            SELECT id
+            SELECT id, question, correct_answer, choices
             FROM trivia_prompts
             WHERE room_id = :room_id
               AND prompt_order = :prompt_order
@@ -586,9 +586,22 @@ final class TriviaRepository
             'room_id' => $room['id'],
             'prompt_order' => $roundNumber,
         ]);
-        $promptId = $promptStatement->fetchColumn();
-        if ($promptId === false) {
+        $prompt = $promptStatement->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($prompt)) {
             throw new ApiException(409, 'prompt_unavailable', 'There is no trivia prompt available for that round.');
+        }
+
+        $choices = json_decode((string) ($prompt['choices'] ?? ''), true);
+        if (!is_array($choices) || !array_is_list($choices)) {
+            throw new ApiException(409, 'prompt_malformed', 'The trivia prompt for that round is malformed and cannot be used.');
+        }
+        $choices = array_values(array_filter(
+            array_map(static fn (mixed $choice): string => trim((string) $choice), $choices),
+            static fn (string $choice): bool => $choice !== ''
+        ));
+        $correctAnswer = trim((string) ($prompt['correct_answer'] ?? ''));
+        if (trim((string) ($prompt['question'] ?? '')) === '' || $correctAnswer === '' || count($choices) < 2 || !in_array($correctAnswer, $choices, true)) {
+            throw new ApiException(409, 'prompt_malformed', 'The trivia prompt for that round is malformed and cannot be used.');
         }
 
         $statement = $this->pdo->prepare(<<<'SQL'
@@ -604,7 +617,7 @@ final class TriviaRepository
         $statement->execute([
             'room_id' => $room['id'],
             'round_number' => $roundNumber,
-            'prompt_id' => $promptId,
+            'prompt_id' => (string) $prompt['id'],
             'answer_window_seconds' => (int) $room['answer_window_seconds'],
         ]);
     }
