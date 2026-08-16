@@ -308,23 +308,7 @@ final class TriviaRepository
                 }
             }
 
-            $nextRound = ((int) $round['round_number']) + 1;
-            if ((int) $round['round_number'] >= 2 || !$this->promptExists((string) $room['id'], $nextRound)) {
-                $this->finishRoom($room, $players, 'prompts_exhausted');
-            } else {
-                $this->openRound($room, $nextRound);
-                $statement = $this->pdo->prepare(<<<'SQL'
-                    UPDATE trivia_rooms
-                    SET current_round_number = :round_number,
-                        last_activity_at = now(),
-                        updated_at = now()
-                    WHERE id = :id
-                SQL);
-                $statement->execute([
-                    'round_number' => $nextRound,
-                    'id' => $room['id'],
-                ]);
-            }
+            $this->openNextRoundOrFinish($room, $players, $round);
 
             $this->pdo->commit();
         } catch (Throwable $error) {
@@ -400,33 +384,27 @@ final class TriviaRepository
                 'is_correct' => $isCorrect,
             ]);
 
-            if (!$isCorrect) {
-                $eliminateStatement = $this->pdo->prepare(<<<'SQL'
-                    UPDATE trivia_players
-                    SET status = 'eliminated',
-                        eliminated_round_id = :round_id,
-                        last_seen_at = now()
-                    WHERE id = :id
-                SQL);
-                $eliminateStatement->execute([
-                    'round_id' => $round['id'],
-                    'id' => $seat['id'],
-                ]);
-            } else {
-                $touchStatement = $this->pdo->prepare(<<<'SQL'
-                    UPDATE trivia_players
-                    SET last_seen_at = now()
-                    WHERE id = :id
-                SQL);
-                $touchStatement->execute(['id' => $seat['id']]);
-            }
-
-            $activityStatement = $this->pdo->prepare(<<<'SQL'
-                UPDATE trivia_rooms
-                SET last_activity_at = now(), updated_at = now()
+            $touchStatement = $this->pdo->prepare(<<<'SQL'
+                UPDATE trivia_players
+                SET last_seen_at = now()
                 WHERE id = :id
             SQL);
-            $activityStatement->execute(['id' => $room['id']]);
+            $touchStatement->execute(['id' => $seat['id']]);
+
+            if ($this->allEligiblePlayersAnswered($round)) {
+                $this->resolveRound($round);
+                $players = $this->loadPlayersForRoom((string) $room['id'], true);
+                if (!$this->finishIfResolved($room, $players, 'elimination')) {
+                    $this->openNextRoundOrFinish($room, $players, $round);
+                }
+            } else {
+                $activityStatement = $this->pdo->prepare(<<<'SQL'
+                    UPDATE trivia_rooms
+                    SET last_activity_at = now(), updated_at = now()
+                    WHERE id = :id
+                SQL);
+                $activityStatement->execute(['id' => $room['id']]);
+            }
 
             $this->pdo->commit();
         } catch (Throwable $error) {
@@ -625,24 +603,47 @@ final class TriviaRepository
     /** @param array<string, mixed> $round */
     private function resolveRound(array $round): void
     {
-        $timeoutStatement = $this->pdo->prepare(<<<'SQL'
-            UPDATE trivia_players p
-            SET status = 'eliminated',
-                eliminated_round_id = :round_id,
-                last_seen_at = now()
-            WHERE p.room_id = :room_id
-              AND p.status = 'active'
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM trivia_answers a
-                  WHERE a.round_id = :round_id
-                    AND a.player_id = p.id
-              )
-        SQL);
-        $timeoutStatement->execute([
-            'round_id' => $round['id'],
-            'room_id' => $round['room_id'],
-        ]);
+        if ((int) $round['round_number'] > 1) {
+            $eliminateStatement = $this->pdo->prepare(<<<'SQL'
+                UPDATE trivia_players p
+                SET status = 'eliminated',
+                    eliminated_round_id = :round_id,
+                    last_seen_at = now()
+                WHERE p.room_id = :room_id
+                  AND p.status = 'active'
+                  AND (
+                      NOT EXISTS (
+                          SELECT 1
+                          FROM trivia_answers a
+                          WHERE a.round_id = :round_id
+                            AND a.player_id = p.id
+                            AND a.is_correct
+                      )
+                      OR (
+                          :round_number = 2
+                          AND EXISTS (
+                              SELECT 1
+                              FROM trivia_rounds first_round
+                              WHERE first_round.room_id = p.room_id
+                                AND first_round.round_number = 1
+                                AND first_round.status = 'resolved'
+                                AND NOT EXISTS (
+                                    SELECT 1
+                                    FROM trivia_answers first_answer
+                                    WHERE first_answer.round_id = first_round.id
+                                      AND first_answer.player_id = p.id
+                                      AND first_answer.is_correct
+                                )
+                          )
+                      )
+                  )
+            SQL);
+            $eliminateStatement->execute([
+                'round_id' => $round['id'],
+                'room_id' => $round['room_id'],
+                'round_number' => (int) $round['round_number'],
+            ]);
+        }
 
         $roundStatement = $this->pdo->prepare(<<<'SQL'
             UPDATE trivia_rounds
@@ -699,6 +700,57 @@ final class TriviaRepository
             'termination' => $termination,
             'id' => $room['id'],
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $room
+     * @param list<array<string, mixed>> $players
+     * @param array<string, mixed> $round
+     */
+    private function openNextRoundOrFinish(array $room, array $players, array $round): void
+    {
+        $nextRound = ((int) $round['round_number']) + 1;
+        if (!$this->promptExists((string) $room['id'], $nextRound)) {
+            $this->finishRoom($room, $players, 'prompts_exhausted');
+            return;
+        }
+
+        $this->openRound($room, $nextRound);
+        $statement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_rooms
+            SET current_round_number = :round_number,
+                last_activity_at = now(),
+                updated_at = now()
+            WHERE id = :id
+        SQL);
+        $statement->execute([
+            'round_number' => $nextRound,
+            'id' => $room['id'],
+        ]);
+    }
+
+    private function allEligiblePlayersAnswered(array $round): bool
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT CASE WHEN NOT EXISTS (
+                SELECT 1
+                FROM trivia_players p
+                WHERE p.room_id = :room_id
+                  AND p.status = 'active'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM trivia_answers a
+                      WHERE a.round_id = :round_id
+                        AND a.player_id = p.id
+                  )
+            ) THEN 1 ELSE 0 END
+        SQL);
+        $statement->execute([
+            'room_id' => $round['room_id'],
+            'round_id' => $round['id'],
+        ]);
+
+        return (int) $statement->fetchColumn() === 1;
     }
 
     private function promptExists(string $roomId, int $roundNumber): bool
@@ -802,6 +854,9 @@ final class TriviaRepository
         $viewerSeat = $this->ownedSeat($players, $identity);
         $round = $this->loadCurrentRound((string) $room['id']);
         $answerCounts = $round !== null ? $this->answerCounts((string) $round['id']) : ['submitted' => 0, 'correct' => 0];
+        $viewerAnswer = $round !== null && $viewerSeat !== null
+            ? $this->playerAnswerForRound((string) $round['id'], (string) $viewerSeat['id'])
+            : null;
 
         return [
             'id' => (string) $room['public_id'],
@@ -817,7 +872,7 @@ final class TriviaRepository
             'created_at' => (string) $room['created_at'],
             'updated_at' => (string) $room['updated_at'],
             'players' => array_map(fn (array $player): array => $this->presentPlayer($player, $identity), $players),
-            'round' => $round !== null ? $this->presentRound($round, (string) $room['status'], $answerCounts) : null,
+            'round' => $round !== null ? $this->presentRound($round, (string) $room['status'], $answerCounts, $viewerAnswer) : null,
             'viewer' => [
                 'user_id' => isset($identity['user']['id']) ? (string) $identity['user']['id'] : null,
                 'guest_profile_id' => isset($identity['guest_profile']['id']) ? (string) $identity['guest_profile']['id'] : null,
@@ -847,12 +902,35 @@ final class TriviaRepository
         ];
     }
 
+    /** @return array{answered: bool, answer_text: ?string} */
+    private function playerAnswerForRound(string $roundId, string $playerId): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT answer_text
+            FROM trivia_answers
+            WHERE round_id = :round_id
+              AND player_id = :player_id
+            LIMIT 1
+        SQL);
+        $statement->execute([
+            'round_id' => $roundId,
+            'player_id' => $playerId,
+        ]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return [
+            'answered' => is_array($row),
+            'answer_text' => is_array($row) ? (string) $row['answer_text'] : null,
+        ];
+    }
+
     /**
      * @param array<string, mixed> $round
      * @param array{submitted: int, correct: int} $answerCounts
+     * @param array{answered: bool, answer_text: ?string}|null $viewerAnswer
      * @return array<string, mixed>
      */
-    private function presentRound(array $round, string $roomStatus, array $answerCounts): array
+    private function presentRound(array $round, string $roomStatus, array $answerCounts, ?array $viewerAnswer): array
     {
         $choices = json_decode((string) $round['choices'], true);
         if (!is_array($choices)) {
@@ -872,6 +950,7 @@ final class TriviaRepository
                 'choices' => array_values(array_map(static fn (mixed $choice): string => (string) $choice, $choices)),
             ],
             'answers' => $answerCounts,
+            'viewer_answer' => $viewerAnswer ?? ['answered' => false, 'answer_text' => null],
         ];
         if ($resolved) {
             $payload['prompt']['correct_answer'] = (string) $round['correct_answer'];

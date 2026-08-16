@@ -67,6 +67,13 @@ const viewerPlayer = (room) => {
     return Array.isArray(room?.players) ? room.players.find((player) => player.id === viewerId) || null : null;
 };
 
+const viewerAnswer = (room) => {
+    const answer = room?.round?.viewer_answer;
+    return answer && typeof answer === 'object' ? answer : { answered: false, answer_text: null };
+};
+
+const viewerHasAnswered = (room) => Boolean(viewerAnswer(room).answered);
+
 const createUuid = () => {
     const browserCrypto = globalThis.crypto;
     if (browserCrypto?.randomUUID) {
@@ -151,7 +158,11 @@ const renderChoices = (room) => {
     const isAnswering = room?.status === 'active' && round?.status === 'answering';
     const secondsLeft = Number.parseInt(formatTimer(room), 10);
     const timerClosed = isTimerClosed(room);
-    const locked = state.lockedRoundId === round?.id;
+    const serverAnswer = viewerAnswer(room);
+    const locked = state.lockedRoundId === round?.id || Boolean(serverAnswer.answered);
+    const lockedAnswer = typeof serverAnswer.answer_text === 'string' && serverAnswer.answer_text !== ''
+        ? serverAnswer.answer_text
+        : (state.lockedRoundId === round?.id ? state.lockedAnswer : '');
     const canAnswer = isAnswering && isAlive && !locked && Number.isFinite(secondsLeft) && secondsLeft > 0 && !timerClosed;
 
     elements.choiceGrid.replaceChildren();
@@ -171,7 +182,7 @@ const renderChoices = (room) => {
         input.id = id;
         input.value = choice;
         input.disabled = !canAnswer;
-        input.checked = state.selectedAnswer === choice || state.lockedAnswer === choice;
+        input.checked = state.selectedAnswer === choice || lockedAnswer === choice;
         input.addEventListener('change', () => {
             state.selectedAnswer = choice;
             elements.submitButton.disabled = !canAnswer;
@@ -192,7 +203,7 @@ const renderChoices = (room) => {
     } else if (!isAlive && room?.status === 'active') {
         setMessage(elements.roundMessage, 'You have been eliminated. You can keep watching the survivors.', 'error');
     } else if (locked) {
-        setMessage(elements.roundMessage, `Answer locked: ${state.lockedAnswer}. Waiting for the round to resolve.`, 'success');
+        setMessage(elements.roundMessage, `Answer locked: ${lockedAnswer}. Waiting for the round to resolve.`, 'success');
     } else if (isAnswering && timerClosed && isAlive) {
         setMessage(elements.roundMessage, 'The timer closed before an answer was locked.', 'error');
     }
@@ -257,6 +268,13 @@ const renderRoom = (room) => {
     const viewer = viewerPlayer(room);
     const winner = players.find((player) => player.id === room?.winner_player_id) || null;
     const timerClosed = isTimerClosed(room);
+    const answered = viewerHasAnswered(room);
+
+    if (round?.id && state.lockedRoundId !== '' && state.lockedRoundId !== round.id) {
+        state.lockedRoundId = '';
+        state.lockedAnswer = '';
+        state.selectedAnswer = '';
+    }
 
     elements.error.hidden = true;
     elements.summary.textContent = room.status === 'waiting'
@@ -267,7 +285,7 @@ const renderRoom = (room) => {
 
     elements.roomStatus.textContent = room.status === 'waiting' ? 'Waiting' : room.status === 'finished' ? 'Finished' : 'Active';
     elements.playerStatus.textContent = viewer ? (viewer.status === 'active' ? 'Alive' : 'Eliminated') : 'Spectating';
-    elements.answerStatus.textContent = state.lockedRoundId === round?.id
+    elements.answerStatus.textContent = (state.lockedRoundId === round?.id || answered)
         ? 'Answer locked'
         : round?.status === 'answering' ? (timerClosed ? 'Timer closed' : 'Answering') : round?.status === 'resolved' ? 'Resolved' : 'Waiting';
 
@@ -283,7 +301,7 @@ const renderRoom = (room) => {
     } else if (room.status === 'finished') {
         setMessage(elements.roundMessage, winner ? `${winner.display_name} survived the table.` : 'The trivia game finished with no single survivor.', 'success');
     } else if (round?.status === 'answering') {
-        setMessage(elements.roundMessage, timerClosed ? 'The answer window is closed. Waiting for the host to resolve.' : 'Choose before the timer closes. Wrong answers eliminate immediately.', timerClosed ? 'error' : 'neutral');
+        setMessage(elements.roundMessage, timerClosed ? 'The answer window is closed. Waiting for the host to resolve.' : 'Choose before the timer closes.', timerClosed ? 'error' : 'neutral');
     } else if (round?.status === 'resolved') {
         setMessage(elements.roundMessage, 'Round resolved. The host can open the next prompt.', 'success');
     }
@@ -348,10 +366,12 @@ const handleStartRoom = async () => {
 const submitCurrentAnswer = async (event) => {
     event.preventDefault();
     const round = state.room?.round;
-    if (!round || state.selectedAnswer === '' || state.isSubmitting) {
+    if (!round || state.selectedAnswer === '' || state.isSubmitting || viewerHasAnswered(state.room)) {
         return;
     }
 
+    const submittedRoundId = round.id;
+    const submittedAnswer = state.selectedAnswer;
     state.isSubmitting = true;
     elements.submitButton.disabled = true;
     setMessage(elements.roundMessage, 'Locking answer...', 'neutral');
@@ -361,8 +381,14 @@ const submitCurrentAnswer = async (event) => {
             answer: state.selectedAnswer,
             client_answer_id: createUuid(),
         });
-        state.lockedRoundId = round.id;
-        state.lockedAnswer = state.selectedAnswer;
+        if (room?.round?.id === submittedRoundId) {
+            state.lockedRoundId = submittedRoundId;
+            state.lockedAnswer = submittedAnswer;
+        } else {
+            state.lockedRoundId = '';
+            state.lockedAnswer = '';
+            state.selectedAnswer = '';
+        }
         renderRoom(room);
     } catch (error) {
         setMessage(elements.roundMessage, errorMessage(error, 'Your answer could not be submitted. It may be late or already locked.'), 'error');
