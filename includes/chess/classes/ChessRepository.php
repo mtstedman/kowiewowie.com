@@ -126,6 +126,110 @@ final class ChessRepository
         return $this->presentGame($game, $players, $identity, true);
     }
 
+    /** @return list<array<string, mixed>> */
+    public function leaderboard(int $limit = 25): array
+    {
+        $limit = max(1, min(100, $limit));
+        $statement = $this->pdo->prepare(<<<'SQL'
+            WITH completed_players AS (
+                SELECT
+                    gp.id,
+                    gp.color,
+                    gp.user_id,
+                    gp.guest_profile_id,
+                    gp.display_name,
+                    g.result,
+                    g.finished_at,
+                    g.created_at,
+                    CASE
+                        WHEN gp.user_id IS NOT NULL THEN 'user:' || gp.user_id::text
+                        WHEN gp.guest_profile_id IS NOT NULL THEN 'guest:' || gp.guest_profile_id::text
+                        WHEN gp.display_name = 'Computer' THEN 'bot:computer'
+                        ELSE 'seat:' || gp.id::text
+                    END AS player_key,
+                    CASE
+                        WHEN gp.user_id IS NOT NULL THEN 'user'
+                        WHEN gp.guest_profile_id IS NOT NULL THEN 'guest'
+                        WHEN gp.display_name = 'Computer' THEN 'bot'
+                        ELSE 'seat'
+                    END AS player_type,
+                    gp.user_id IS NULL AND gp.guest_profile_id IS NULL AND gp.display_name = 'Computer' AS automated
+                FROM chess_games g
+                JOIN chess_game_players gp
+                  ON gp.game_id = g.id
+                WHERE g.status = 'completed'
+                  AND g.result IN ('1-0', '0-1', '1/2-1/2')
+            ), leaderboard AS (
+                SELECT
+                    player_key,
+                    player_type,
+                    user_id,
+                    guest_profile_id,
+                    automated,
+                    (ARRAY_AGG(display_name ORDER BY finished_at DESC, created_at DESC, id DESC))[1] AS display_name,
+                    COUNT(*) AS games_played,
+                    SUM(CASE WHEN (result = '1-0' AND color = 'white') OR (result = '0-1' AND color = 'black') THEN 1 ELSE 0 END) AS wins,
+                    SUM(CASE WHEN (result = '1-0' AND color = 'black') OR (result = '0-1' AND color = 'white') THEN 1 ELSE 0 END) AS losses,
+                    SUM(CASE WHEN result = '1/2-1/2' THEN 1 ELSE 0 END) AS draws,
+                    SUM(CASE
+                        WHEN (result = '1-0' AND color = 'white') OR (result = '0-1' AND color = 'black') THEN 2
+                        WHEN result = '1/2-1/2' THEN 1
+                        ELSE 0
+                    END) AS score_half_points
+                FROM completed_players
+                GROUP BY player_key, player_type, user_id, guest_profile_id, automated
+            )
+            SELECT
+                player_key,
+                player_type,
+                user_id,
+                guest_profile_id,
+                CASE WHEN automated THEN 1 ELSE 0 END AS automated,
+                display_name,
+                games_played,
+                wins,
+                losses,
+                draws,
+                score_half_points
+            FROM leaderboard
+            ORDER BY
+                score_half_points DESC,
+                wins DESC,
+                draws DESC,
+                games_played DESC,
+                LOWER(display_name) ASC,
+                player_key ASC
+            LIMIT :limit
+        SQL);
+        $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        $leaderboard = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $scoreHalfPoints = (int) $row['score_half_points'];
+            $leaderboard[] = [
+                'rank' => count($leaderboard) + 1,
+                'player' => [
+                    'key' => (string) $row['player_key'],
+                    'type' => (string) $row['player_type'],
+                    'display_name' => (string) $row['display_name'],
+                    'user_id' => $row['user_id'] !== null ? (string) $row['user_id'] : null,
+                    'guest_profile_id' => $row['guest_profile_id'] !== null ? (string) $row['guest_profile_id'] : null,
+                    'automated' => (int) $row['automated'] === 1,
+                ],
+                'games_played' => (int) $row['games_played'],
+                'wins' => (int) $row['wins'],
+                'losses' => (int) $row['losses'],
+                'draws' => (int) $row['draws'],
+                'score' => $scoreHalfPoints / 2,
+                'score_half_points' => $scoreHalfPoints,
+            ];
+        }
+
+        return $leaderboard;
+    }
+
     public function updateGuestProfileSeatDisplayName(string $guestProfileId, string $displayName): void
     {
         $statement = $this->pdo->prepare(<<<'SQL'

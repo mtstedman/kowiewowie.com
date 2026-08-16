@@ -203,6 +203,23 @@ final class Application
 
     private function dispatchChess(Request $request): ?Response
     {
+        if ($request->path === '/v1/chess/leaderboard') {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'GET') {
+                $limit = isset($request->query['limit']) ? (int) $request->query['limit'] : 25;
+                $leaderboard = $this->chess->leaderboard($limit);
+                return $this->withChessIdentity(Response::json([
+                    'data' => $leaderboard,
+                    'meta' => [
+                        'limit' => max(1, min(100, $limit)),
+                        'count' => count($leaderboard),
+                        'king' => $leaderboard[0] ?? null,
+                    ],
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for the chess leaderboard.');
+        }
+
         if ($request->path === '/v1/chess/games') {
             $identity = $this->resolveChessIdentity($request);
             if ($request->method === 'GET') {

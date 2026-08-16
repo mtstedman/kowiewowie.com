@@ -380,6 +380,8 @@ const buildLobbyDom = (document) => {
     appendElement(root, 'strong', { id: 'chess-current-name' });
     appendElement(root, 'p', { id: 'chess-profile-message' });
     appendElement(root, 'p', { id: 'chess-join-message' });
+    appendElement(root, 'div', { id: 'chess-king-card' });
+    appendElement(root, 'div', { id: 'chess-leaderboard-list' });
     return { form };
 };
 
@@ -442,6 +444,9 @@ const buildGameDom = (document) => {
             if (resource === '/api/v1/chess/games' && (options.method || 'GET') === 'GET') {
                 return { body: { data: [] } };
             }
+            if (resource === '/api/v1/chess/leaderboard' && (options.method || 'GET') === 'GET') {
+                return { body: { data: [], meta: { king: null } } };
+            }
             if (resource === '/api/v1/chess/games' && options.method === 'POST') {
                 return { body: { data: gamePayload() } };
             }
@@ -469,6 +474,7 @@ const buildGameDom = (document) => {
     await flushUntil(() => calls.some((call) => call.resource === `/api/v1/chess/games/${gameId}/links` && call.options.method === 'POST'));
 
     assert.ok(calls.some((call) => call.resource === '/api/v1/chess/profile'), 'lobby loads guest profile through chess API');
+    assert.ok(calls.some((call) => call.resource === '/api/v1/chess/leaderboard'), 'lobby loads the chess leaderboard through chess API');
     assert.ok(calls.some((call) => call.resource === '/api/v1/chess/games' && call.options.method === 'POST'), 'lobby creates games through chess API');
 }
 

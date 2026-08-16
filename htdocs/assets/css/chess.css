@@ -322,6 +322,112 @@
     color: var(--chess-ink);
 }
 
+.chess-sidebar {
+    align-content: start;
+}
+
+.chess-leaderboard-panel {
+    gap: 0.9rem;
+}
+
+.chess-king-card,
+.chess-leaderboard-row {
+    border: 1px solid var(--chess-line);
+    border-radius: 8px;
+    background: rgba(8, 14, 27, 0.56);
+}
+
+.chess-king-card {
+    display: grid;
+    gap: 0.7rem;
+    padding: 1rem;
+}
+
+.chess-king-card .chess-state-message,
+.chess-leaderboard-list .chess-state-message {
+    margin: 0;
+}
+
+.chess-king-label {
+    color: var(--chess-gold);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.chess-king-name,
+.chess-leaderboard-name {
+    margin: 0;
+    color: var(--chess-ink);
+    font-weight: 800;
+}
+
+.chess-king-name {
+    font-size: 1.25rem;
+    line-height: 1.1;
+}
+
+.chess-king-meta,
+.chess-leaderboard-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.chess-king-meta {
+    margin: 0;
+}
+
+.chess-leaderboard-list {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.chess-leaderboard-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.85rem 0.9rem;
+}
+
+.chess-leaderboard-rank {
+    display: grid;
+    place-items: center;
+    min-width: 2.4rem;
+    min-height: 2.4rem;
+    border-radius: 999px;
+    background: rgba(196, 164, 96, 0.16);
+    color: var(--chess-gold);
+    font-weight: 900;
+}
+
+.chess-leaderboard-body {
+    display: grid;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.chess-leaderboard-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.7rem;
+    align-items: baseline;
+}
+
+.chess-leaderboard-stats {
+    color: var(--chess-muted);
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.chess-leaderboard-note {
+    color: var(--chess-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
 .chess-board-shell {
     display: grid;
     grid-template-columns: minmax(18rem, 34rem) minmax(16rem, 1fr);

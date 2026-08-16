@@ -75,26 +75,43 @@ $pageStyles = ['/assets/css/chess.css'];
                     </section>
                 </div>
 
-                <aside class="chess-panel chess-identity-panel" aria-labelledby="chess-profile-title">
-                    <div class="chess-section-heading">
-                        <p class="eyebrow">Guest badge</p>
-                        <h2 id="chess-profile-title">Display name</h2>
-                    </div>
+                <div class="chess-stack chess-sidebar">
+                    <section class="chess-panel chess-leaderboard-panel" aria-labelledby="chess-leaderboard-title">
+                        <div class="chess-section-heading">
+                            <p class="eyebrow">Leaderboard</p>
+                            <h2 id="chess-leaderboard-title">Current king</h2>
+                        </div>
 
-                    <p class="chess-identity-current">
-                        Playing as <strong id="chess-current-name">Guest player</strong>
-                    </p>
+                        <div class="chess-king-card" id="chess-king-card" aria-live="polite">
+                            <p class="lede chess-state-message chess-state-message-loading" id="chess-king-state">Loading the current king...</p>
+                        </div>
 
-                    <form class="chess-form" id="chess-profile-form">
-                        <label class="chess-field" for="chess-display-name">
-                            <span>Name</span>
-                            <input id="chess-display-name" name="display_name" type="text" maxlength="40" autocomplete="nickname" placeholder="Guest player">
-                        </label>
-                        <button class="chess-button" type="submit" id="chess-save-name-button">Save name</button>
-                    </form>
+                        <div class="chess-leaderboard-list" id="chess-leaderboard-list" aria-live="polite">
+                            <p class="lede chess-state-message chess-state-message-loading">Loading the leaderboard...</p>
+                        </div>
+                    </section>
 
-                    <p class="chess-message" id="chess-profile-message" role="status" aria-live="polite"></p>
-                </aside>
+                    <aside class="chess-panel chess-identity-panel" aria-labelledby="chess-profile-title">
+                        <div class="chess-section-heading">
+                            <p class="eyebrow">Guest badge</p>
+                            <h2 id="chess-profile-title">Display name</h2>
+                        </div>
+
+                        <p class="chess-identity-current">
+                            Playing as <strong id="chess-current-name">Guest player</strong>
+                        </p>
+
+                        <form class="chess-form" id="chess-profile-form">
+                            <label class="chess-field" for="chess-display-name">
+                                <span>Name</span>
+                                <input id="chess-display-name" name="display_name" type="text" maxlength="40" autocomplete="nickname" placeholder="Guest player">
+                            </label>
+                            <button class="chess-button" type="submit" id="chess-save-name-button">Save name</button>
+                        </form>
+
+                        <p class="chess-message" id="chess-profile-message" role="status" aria-live="polite"></p>
+                    </aside>
+                </div>
             </section>
 
             <p class="chess-alert" id="chess-join-message" role="alert" hidden></p>

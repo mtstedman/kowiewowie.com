@@ -1,4 +1,4 @@
-import { claimLink, createChallengeLink, createGame, getProfile, listGames, updateProfile } from './chess-api.js';
+import { claimLink, createChallengeLink, createGame, getProfile, listGames, requestChess, updateProfile } from './chess-api.js';
 
 const initializationFailureMessage = 'Chess could not finish loading. The create-game controls were not initialized.';
 let elements;
@@ -32,6 +32,8 @@ const resolveElements = () => ({
     currentName: requireElement('chess-current-name'),
     profileMessage: requireElement('chess-profile-message'),
     joinMessage: requireElement('chess-join-message'),
+    kingCard: requireElement('chess-king-card'),
+    leaderboardList: requireElement('chess-leaderboard-list'),
 });
 
 const renderInitializationFailure = () => {
@@ -85,7 +87,10 @@ const installNewGameInitializationGuard = () => {
 const state = {
     games: [],
     displayName: '',
+    leaderboard: [],
+    king: null,
     isRefreshing: false,
+    isRefreshingLeaderboard: false,
 };
 
 const copyWithFallback = (text) => {
@@ -155,6 +160,39 @@ const normalizeGames = (payload) => {
 
     return [];
 };
+
+const normalizeLeaderboardPayload = (payload) => {
+    const entries = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data) ? payload.data : [];
+    const king = payload?.meta?.king ?? entries[0] ?? null;
+
+    return {
+        entries,
+        king,
+    };
+};
+
+const leaderboardName = (entry) => {
+    const name = typeof entry?.player?.display_name === 'string' ? entry.player.display_name.trim() : '';
+    return name === '' ? 'Anonymous challenger' : name;
+};
+
+const formatLeaderboardScore = (entry) => {
+    if (Number.isFinite(entry?.score)) {
+        return `${entry.score} pts`;
+    }
+
+    if (Number.isInteger(entry?.score_half_points)) {
+        return `${entry.score_half_points / 2} pts`;
+    }
+
+    return '0 pts';
+};
+
+const leaderboardRecord = (entry) => `${entry?.wins ?? 0}W ${entry?.draws ?? 0}D ${entry?.losses ?? 0}L`;
+
+const loadLeaderboard = () => requestChess('/leaderboard');
 
 const viewerPlayer = (game) => {
     if (!Array.isArray(game?.players)) {
@@ -294,6 +332,148 @@ const refreshGames = async () => {
     } finally {
         state.isRefreshing = false;
         clearAttribute(elements.gamesList, 'aria-busy');
+    }
+};
+
+const renderKingState = (message, className = '') => {
+    const paragraph = document.createElement('p');
+    paragraph.className = ['lede', 'chess-state-message', className].filter(Boolean).join(' ');
+    paragraph.textContent = message;
+    elements.kingCard.replaceChildren(paragraph);
+};
+
+const renderLeaderboardState = (message, className = '') => {
+    const paragraph = document.createElement('p');
+    paragraph.className = ['lede', 'chess-state-message', className].filter(Boolean).join(' ');
+    paragraph.textContent = message;
+    elements.leaderboardList.replaceChildren(paragraph);
+};
+
+const renderKing = (entry) => {
+    if (!entry) {
+        renderKingState('No crowned king yet. Finish a match to claim the board.');
+        return;
+    }
+
+    const card = document.createDocumentFragment();
+    const label = document.createElement('span');
+    label.className = 'chess-king-label';
+    label.textContent = 'King of the board';
+
+    const name = document.createElement('p');
+    name.className = 'chess-king-name';
+    name.textContent = leaderboardName(entry);
+
+    const meta = document.createElement('div');
+    meta.className = 'chess-king-meta';
+    [
+        formatLeaderboardScore(entry),
+        `${entry?.games_played ?? 0} games`,
+        leaderboardRecord(entry),
+    ].forEach((value) => {
+        const pill = document.createElement('span');
+        pill.className = 'chess-status-pill';
+        pill.textContent = value;
+        meta.append(pill);
+    });
+
+    card.append(label, name, meta);
+
+    if (entry?.player?.automated === true) {
+        const note = document.createElement('p');
+        note.className = 'chess-leaderboard-note';
+        note.textContent = 'Currently held by the computer opponent.';
+        card.append(note);
+    }
+
+    elements.kingCard.replaceChildren(card);
+};
+
+const renderLeaderboard = (entries) => {
+    if (entries.length === 0) {
+        renderLeaderboardState('No ranked players yet. Completed games will appear here.');
+        return;
+    }
+
+    const list = document.createElement('div');
+    list.className = 'chess-leaderboard-list';
+
+    entries.forEach((entry) => {
+        const row = document.createElement('article');
+        row.className = 'chess-leaderboard-row';
+
+        const rank = document.createElement('span');
+        rank.className = 'chess-leaderboard-rank';
+        rank.textContent = String(entry?.rank ?? '?');
+
+        const body = document.createElement('div');
+        body.className = 'chess-leaderboard-body';
+
+        const header = document.createElement('div');
+        header.className = 'chess-leaderboard-header';
+
+        const name = document.createElement('p');
+        name.className = 'chess-leaderboard-name';
+        name.textContent = leaderboardName(entry);
+        header.append(name);
+
+        if (entry?.player?.automated === true) {
+            const badge = document.createElement('span');
+            badge.className = 'chess-status-pill';
+            badge.textContent = 'Computer';
+            header.append(badge);
+        }
+
+        const stats = document.createElement('div');
+        stats.className = 'chess-leaderboard-stats';
+        [
+            formatLeaderboardScore(entry),
+            `${entry?.games_played ?? 0} games`,
+            leaderboardRecord(entry),
+        ].forEach((value) => {
+            const stat = document.createElement('span');
+            stat.textContent = value;
+            stats.append(stat);
+        });
+
+        body.append(header, stats);
+        row.append(rank, body);
+        list.append(row);
+    });
+
+    elements.leaderboardList.replaceChildren(list);
+};
+
+const refreshLeaderboard = async () => {
+    if (state.isRefreshingLeaderboard) {
+        return;
+    }
+
+    state.isRefreshingLeaderboard = true;
+    elements.kingCard.setAttribute('aria-busy', 'true');
+    elements.leaderboardList.setAttribute('aria-busy', 'true');
+    renderKingState('Loading the current king...', 'chess-state-message-loading');
+    renderLeaderboardState('Loading the leaderboard...', 'chess-state-message-loading');
+
+    try {
+        const payload = await loadLeaderboard();
+        const { entries, king } = normalizeLeaderboardPayload(payload);
+        state.leaderboard = entries;
+        state.king = king;
+        renderKing(king);
+        renderLeaderboard(entries);
+    } catch (error) {
+        state.leaderboard = [];
+        state.king = null;
+        renderKingState('The current king could not be loaded right now.', 'chess-state-message-error');
+        renderLeaderboardState(
+            errorMessage(error, 'The leaderboard could not be loaded right now. Try refreshing in a moment.'),
+            'chess-state-message-error'
+        );
+    } finally {
+        state.isRefreshingLeaderboard = false;
+        clearAttribute(elements.kingCard, 'aria-busy');
+        clearAttribute(elements.leaderboardList, 'aria-busy');
     }
 };
 
@@ -513,10 +693,11 @@ const initializeChessIndex = () => {
     initialized = true;
     initializationError = null;
 
-    claimJoinToken().then(async (isRedirecting) => {
+    claimJoinToken().then((isRedirecting) => {
         if (!isRedirecting) {
-            await seedProfileName();
-            refreshGames();
+            void seedProfileName();
+            void refreshGames();
+            void refreshLeaderboard();
         }
     }).catch(handleInitializationFailure);
 };
