@@ -407,7 +407,7 @@ function admin_decks_render_sections(mixed $decklist): void
                         $name = (string) $card;
                     }
                     ?>
-                    <div class="admin-form-row" data-card-row>
+                    <div class="admin-form-row" data-card-row data-section-index="<?= $sectionIndex ?>" data-card-index="<?= $cardIndex ?>" draggable="true">
                         <div data-card-image>
                             <?php if ($imageUrl !== ''): ?>
                                 <img src="<?= admin_decks_h($imageUrl) ?>" alt="<?= admin_decks_h($name) ?> card art" loading="lazy">

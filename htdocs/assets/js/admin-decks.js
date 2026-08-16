@@ -10,10 +10,12 @@
 
     const SEARCH_DEBOUNCE_MS = 250;
     const DRAG_MIME_TYPE = 'application/x-admin-deck-card';
+    const ROW_DRAG_MIME_TYPE = 'application/x-admin-deck-row';
     let searchTimer = null;
     let currentRequest = 0;
     let searchController = null;
     let draggedCard = null;
+    let draggedRow = null;
 
     const escapeHtml = (value) => String(value)
         .replace(/&/g, '&amp;')
@@ -31,7 +33,7 @@
         <input type="hidden" name="deck_sections[${sectionIndex}][cards][${cardIndex}][image_url]" value="${escapeHtml(imageUrl)}">`;
 
     const cardRow = (sectionIndex, cardIndex, quantity = '', name = '', cardId = '', imageUrl = '') => `
-        <div class="admin-form-row" data-card-row>
+        <div class="admin-form-row" data-card-row data-section-index="${sectionIndex}" data-card-index="${cardIndex}" draggable="true">
             ${cardImage(imageUrl, name)}
             <label>
                 <span>Quantity</span>
@@ -94,6 +96,54 @@
 
     const findSection = (sectionIndex) => sections()
         .find((section) => (section.dataset.sectionIndex || '') === sectionIndex) || sections()[0] || null;
+
+    const cardRows = (list) => Array.from(list.querySelectorAll('[data-card-row]'))
+        .filter((row) => row instanceof HTMLElement);
+
+    const rowAfterPointer = (list, clientY) => cardRows(list).find((row) => {
+        if (row === draggedRow) {
+            return false;
+        }
+        const box = row.getBoundingClientRect();
+        return clientY < box.top + (box.height / 2);
+    }) || null;
+
+    const fieldNameFromInput = (input) => {
+        const match = input.name.match(/\[cards\]\[\d+\]\[([^\]]+)\]$/);
+        return match ? match[1] : '';
+    };
+
+    const refreshDeckIndices = () => {
+        sections().forEach((section, sectionIndex) => {
+            section.dataset.sectionIndex = String(sectionIndex);
+            const sectionNameInput = Array.from(section.querySelectorAll('input[name$="[name]"]'))
+                .find((input) => input instanceof HTMLInputElement && !input.closest('[data-card-row]'));
+            if (sectionNameInput instanceof HTMLInputElement) {
+                sectionNameInput.name = `deck_sections[${sectionIndex}][name]`;
+            }
+
+            const list = section.querySelector('[data-card-list]');
+            if (!(list instanceof HTMLElement)) {
+                section.dataset.nextCard = '0';
+                return;
+            }
+
+            cardRows(list).forEach((row, cardIndex) => {
+                row.dataset.sectionIndex = String(sectionIndex);
+                row.dataset.cardIndex = String(cardIndex);
+                row.setAttribute('draggable', 'true');
+                row.querySelectorAll('input').forEach((input) => {
+                    const fieldName = fieldNameFromInput(input);
+                    if (fieldName !== '') {
+                        input.name = `deck_sections[${sectionIndex}][cards][${cardIndex}][${fieldName}]`;
+                    }
+                });
+            });
+            section.dataset.nextCard = String(cardRows(list).length);
+        });
+        sectionsRoot.dataset.nextSection = String(sections().length);
+        refreshSearchResultSectionOptions();
+    };
 
     const cardFromResult = (result) => ({
         name: result.dataset.cardName || '',
@@ -167,7 +217,7 @@
         searchResults.innerHTML = `<p>${escapeHtml(message)}</p>`;
     };
 
-    const insertCardIntoSection = (section, card, quantity = '1') => {
+    const insertCardIntoSection = (section, card, quantity = '1', beforeRow = null) => {
         const list = section.querySelector('[data-card-list]');
         if (!(list instanceof HTMLElement)) {
             return;
@@ -176,7 +226,11 @@
         const sectionIndex = Number(section.dataset.sectionIndex || '0');
         const cardIndex = Number(section.dataset.nextCard || '0');
         list.insertAdjacentHTML('beforeend', cardRow(sectionIndex, cardIndex, normalizeQuantity(quantity), card.name, card.cardId, card.imageUrl));
-        section.dataset.nextCard = String(cardIndex + 1);
+        const insertedRow = list.lastElementChild;
+        if (insertedRow instanceof HTMLElement && beforeRow instanceof HTMLElement && beforeRow.parentElement === list) {
+            list.insertBefore(insertedRow, beforeRow);
+        }
+        refreshDeckIndices();
     };
 
     const searchCards = async (query) => {
@@ -228,12 +282,12 @@
     };
 
     clearSearchResults();
+    refreshDeckIndices();
 
     addSection.addEventListener('click', () => {
         const index = Number(sectionsRoot.dataset.nextSection || '0');
         sectionsRoot.insertAdjacentHTML('beforeend', sectionBlock(index));
-        sectionsRoot.dataset.nextSection = String(index + 1);
-        refreshSearchResultSectionOptions();
+        refreshDeckIndices();
     });
 
     searchInput.addEventListener('input', () => {
@@ -299,11 +353,12 @@
 
         if (target.matches('[data-remove-card]')) {
             target.closest('[data-card-row]')?.remove();
+            refreshDeckIndices();
         }
 
         if (target.matches('[data-remove-section]')) {
             target.closest('[data-section]')?.remove();
-            refreshSearchResultSectionOptions();
+            refreshDeckIndices();
         }
     });
 
@@ -317,25 +372,40 @@
             return;
         }
 
+        draggedCard = null;
+        draggedRow = null;
+
         const result = target.closest('[data-search-result]');
-        if (!(result instanceof HTMLElement)) {
+        if (result instanceof HTMLElement) {
+            draggedCard = {
+                ...cardFromResult(result),
+                quantity: searchResultQuantity(result),
+            };
+
+            if (event.dataTransfer && draggedCard.name !== '' && draggedCard.cardId !== '') {
+                event.dataTransfer.effectAllowed = 'copy';
+                event.dataTransfer.setData(DRAG_MIME_TYPE, JSON.stringify(draggedCard));
+                event.dataTransfer.setData('text/plain', draggedCard.name);
+            }
             return;
         }
 
-        draggedCard = {
-            ...cardFromResult(result),
-            quantity: searchResultQuantity(result),
-        };
+        const row = target.closest('[data-card-row]');
+        if (!(row instanceof HTMLElement) || !sectionsRoot.contains(row)) {
+            return;
+        }
 
-        if (event.dataTransfer && draggedCard.name !== '' && draggedCard.cardId !== '') {
-            event.dataTransfer.effectAllowed = 'copy';
-            event.dataTransfer.setData(DRAG_MIME_TYPE, JSON.stringify(draggedCard));
-            event.dataTransfer.setData('text/plain', draggedCard.name);
+        draggedRow = row;
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData(ROW_DRAG_MIME_TYPE, 'move');
+            event.dataTransfer.setData('text/plain', 'Move deck row');
         }
     });
 
     root.addEventListener('dragend', () => {
         draggedCard = null;
+        draggedRow = null;
     });
 
     root.addEventListener('dragover', (event) => {
@@ -351,7 +421,7 @@
 
         event.preventDefault();
         if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = 'copy';
+            event.dataTransfer.dropEffect = draggedRow instanceof HTMLElement ? 'move' : 'copy';
         }
     });
 
@@ -362,12 +432,23 @@
         }
 
         const list = target.closest('[data-card-list]');
-        const section = target.closest('[data-section]');
+        const section = list?.closest('[data-section]');
         if (!(list instanceof HTMLElement) || !(section instanceof HTMLElement)) {
             return;
         }
 
         event.preventDefault();
+        const beforeRow = rowAfterPointer(list, event.clientY);
+
+        if (draggedRow instanceof HTMLElement) {
+            if (beforeRow instanceof HTMLElement) {
+                list.insertBefore(draggedRow, beforeRow);
+            } else {
+                list.appendChild(draggedRow);
+            }
+            refreshDeckIndices();
+            return;
+        }
 
         let droppedCard = draggedCard;
         const payload = event.dataTransfer?.getData(DRAG_MIME_TYPE) || '';
@@ -391,6 +472,6 @@
             return;
         }
 
-        insertCardIntoSection(section, droppedCard, droppedCard.quantity || '1');
+        insertCardIntoSection(section, droppedCard, droppedCard.quantity || '1', beforeRow);
     });
 })();
