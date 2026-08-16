@@ -542,6 +542,34 @@ final class TriviaRepository
     private function loadDefaultPrompts(int $minimumPrompts = TriviaQuestionCatalog::MIN_PROMPTS): array
     {
         $minimumPrompts = max(TriviaQuestionCatalog::MIN_PROMPTS, $minimumPrompts);
+        $prompts = $this->loadCatalogPrompts();
+        if ($prompts !== []) {
+            $prompts = $this->questionCatalog->resolve($prompts);
+        }
+        if (count($prompts) < $minimumPrompts) {
+            $repositoryPrompts = $this->loadRepositoryManagedPrompts();
+            if (count($repositoryPrompts) >= $minimumPrompts) {
+                return array_slice($repositoryPrompts, 0, 100);
+            }
+        }
+        if (count($prompts) === 0) {
+            throw new ApiException(409, 'trivia_catalog_unavailable', 'The trivia question catalog does not have any active prompts available before creating or starting a room.');
+        }
+        if (count($prompts) < $minimumPrompts) {
+            throw new ApiException(409, 'trivia_catalog_insufficient', sprintf(
+                'The trivia question catalog needs at least %d active prompts before creating or starting this room.',
+                $minimumPrompts,
+            ));
+        }
+
+        return $prompts;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function loadCatalogPrompts(): array
+    {
         $statement = $this->pdo->query(<<<'SQL'
             SELECT question, correct_answer, choices, explanation
             FROM trivia_question_catalog
@@ -566,17 +594,58 @@ final class TriviaRepository
                 'explanation' => $row['explanation'] !== null ? (string) $row['explanation'] : null,
             ];
         }
-        if (count($prompts) === 0) {
-            throw new ApiException(409, 'trivia_catalog_unavailable', 'The trivia question catalog does not have any active prompts available before creating or starting a room.');
+
+        return $prompts;
+    }
+
+    /**
+     * @return list<array{question: string, correct_answer: string, choices: list<string>, explanation: ?string}>
+     */
+    private function loadRepositoryManagedPrompts(): array
+    {
+        $path = dirname(__DIR__, 3) . '/database/data/trivia-questions.json';
+        if (!is_file($path) || !is_readable($path)) {
+            return [];
         }
-        if (count($prompts) < $minimumPrompts) {
-            throw new ApiException(409, 'trivia_catalog_insufficient', sprintf(
-                'The trivia question catalog needs at least %d active prompts before creating or starting this room.',
-                $minimumPrompts,
-            ));
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            return [];
+        }
+        try {
+            $items = json_decode($contents, true, 128, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw new ApiException(409, 'trivia_catalog_malformed', 'The repository trivia question source contains malformed JSON.');
+        }
+        if (!is_array($items) || !array_is_list($items)) {
+            throw new ApiException(409, 'trivia_catalog_malformed', 'The repository trivia question source must contain a JSON array.');
         }
 
-        return $this->questionCatalog->resolve($prompts);
+        $preparedItems = [];
+        foreach ($items as $index => $item) {
+            if (!is_array($item)) {
+                throw new ApiException(409, 'trivia_catalog_malformed', 'The repository trivia question source contains a malformed prompt.');
+            }
+            try {
+                $prompt = $this->questionCatalog->resolve([$item])[0];
+            } catch (ApiException) {
+                throw new ApiException(409, 'trivia_catalog_malformed', 'The repository trivia question source contains a malformed prompt.');
+            }
+            $isActive = array_key_exists('is_active', $item) ? (bool) $item['is_active'] : true;
+            if (!$isActive) {
+                continue;
+            }
+            $preparedItems[] = [
+                'display_order' => (int) ($item['display_order'] ?? ($index + 1)),
+                'slug' => (string) ($item['slug'] ?? ''),
+                'prompt' => $prompt,
+            ];
+        }
+
+        usort($preparedItems, static function (array $left, array $right): int {
+            return ($left['display_order'] <=> $right['display_order']) ?: ($left['slug'] <=> $right['slug']);
+        });
+
+        return array_map(static fn (array $item): array => $item['prompt'], $preparedItems);
     }
 
     /**
