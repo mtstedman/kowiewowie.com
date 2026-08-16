@@ -27,7 +27,7 @@ final class TriviaRepository
         $maxPlayers = $this->normalizeMaxPlayers($input['max_players'] ?? 6);
         $answerWindowSeconds = $this->normalizeAnswerWindow($input['answer_window_seconds'] ?? 30);
         $promptInput = $input['prompts'] ?? null;
-        $prompts = ($promptInput === null || $promptInput === []) ? null : $this->normalizePrompts($promptInput);
+        $prompts = $promptInput === null ? null : $this->normalizePrompts($promptInput);
         $actor = $this->seatActor($identity);
         $createdLinks = [];
         $publicId = null;
@@ -562,8 +562,8 @@ final class TriviaRepository
                 'explanation' => $row['explanation'] !== null ? (string) $row['explanation'] : null,
             ];
         }
-        if (count($prompts) < 8) {
-            throw new ApiException(409, 'trivia_catalog_unavailable', 'The trivia question catalog does not have enough active prompts to create a room.');
+        if (count($prompts) === 0) {
+            throw new ApiException(409, 'trivia_catalog_unavailable', 'The trivia question catalog does not have any active prompts to create a room.');
         }
 
         return $this->questionCatalog->resolve($prompts);
@@ -1156,6 +1156,9 @@ final class TriviaRepository
         if (!is_array($value) || !array_is_list($value)) {
             throw new ApiException(422, 'validation_error', 'prompts must be a list of trivia prompt objects.');
         }
+        if (count($value) === 0) {
+            throw new ApiException(422, 'validation_error', 'prompts must contain at least 1 entry for the trivia game.');
+        }
 
         return array_map(fn (mixed $prompt): array => $this->normalizePrompt($prompt), $value);
     }
@@ -1174,14 +1177,17 @@ final class TriviaRepository
         if ($correctAnswer === '' || mb_strlen($correctAnswer) > 200) {
             throw new ApiException(422, 'validation_error', 'Each prompt correct_answer must contain 1 to 200 characters.');
         }
-        $choices = $value['choices'] ?? [];
-        if ($choices !== [] && (!is_array($choices) || !array_is_list($choices))) {
+        $choices = $value['choices'] ?? null;
+        if (!is_array($choices) || !array_is_list($choices)) {
             throw new ApiException(422, 'validation_error', 'Prompt choices must be a list of answer strings.');
         }
-        $choices = array_values(array_map(static fn (mixed $choice): string => trim((string) $choice), is_array($choices) ? $choices : []));
+        $choices = array_values(array_map(static fn (mixed $choice): string => trim((string) $choice), $choices));
         $choices = array_values(array_filter($choices, static fn (string $choice): bool => $choice !== ''));
-        if ($choices !== [] && !in_array($correctAnswer, $choices, true)) {
+        if (!in_array($correctAnswer, $choices, true)) {
             $choices[] = $correctAnswer;
+        }
+        if (count($choices) < 2) {
+            throw new ApiException(422, 'validation_error', 'Each prompt must provide at least two answer choices.');
         }
 
         return [

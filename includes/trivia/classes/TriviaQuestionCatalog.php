@@ -8,7 +8,7 @@ use Wowie\Api\ApiException;
 
 final class TriviaQuestionCatalog
 {
-    private const MIN_PROMPTS = 8;
+    private const MIN_PROMPTS = 1;
 
     /**
      * @return list<array{question: string, correct_answer: string, choices: list<string>, explanation: ?string}>
@@ -19,7 +19,7 @@ final class TriviaQuestionCatalog
             throw new ApiException(422, 'validation_error', 'prompts must be a list of trivia prompt objects.');
         }
         if (count($value) < self::MIN_PROMPTS) {
-            throw new ApiException(422, 'validation_error', 'prompts must contain at least 8 entries for the trivia game.');
+            throw new ApiException(422, 'validation_error', 'prompts must contain at least 1 entry for the trivia game.');
         }
 
         return array_map(fn (mixed $prompt): array => $this->normalizePrompt($prompt), $value);
