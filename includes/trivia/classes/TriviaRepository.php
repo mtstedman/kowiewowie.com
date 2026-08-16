@@ -29,7 +29,7 @@ final class TriviaRepository
         $promptInput = $input['prompts'] ?? null;
         $prompts = ($promptInput === null || $promptInput === []) ? null : $this->normalizePrompts($promptInput);
         $actor = $this->seatActor($identity);
-        $createdLink = null;
+        $createdLinks = [];
         $publicId = null;
 
         $this->pdo->beginTransaction();
@@ -64,7 +64,10 @@ final class TriviaRepository
             ]);
 
             $this->insertPrompts($roomId, $prompts ?? $this->loadDefaultPrompts());
-            $createdLink = $this->createStoredLink($roomId, $publicId, $host, $this->normalizeLinkInput($input['link'] ?? []));
+            $linkInput = $this->normalizeLinkInput($input['link'] ?? []);
+            for ($seat = 2; $seat <= $maxPlayers; $seat++) {
+                $createdLinks[] = $this->createStoredLink($roomId, $publicId, $host, $linkInput);
+            }
 
             $this->pdo->commit();
         } catch (Throwable $error) {
@@ -79,7 +82,7 @@ final class TriviaRepository
         }
 
         $room = $this->findRoom($publicId, $identity);
-        $room['created_links'] = [$createdLink];
+        $room['created_links'] = $createdLinks;
 
         return $room;
     }
