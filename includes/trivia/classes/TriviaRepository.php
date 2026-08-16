@@ -64,7 +64,9 @@ final class TriviaRepository
                 'id' => $roomId,
             ]);
 
-            $this->insertPrompts($roomId, $prompts ?? $this->loadDefaultPrompts($promptMinimum));
+            $roomPrompts = $prompts ?? $this->loadDefaultPrompts($promptMinimum);
+            shuffle($roomPrompts);
+            $this->insertPrompts($roomId, $roomPrompts);
             $linkInput = $this->normalizeLinkInput($input['link'] ?? []);
             for ($seat = 2; $seat <= $maxPlayers; $seat++) {
                 $createdLinks[] = $this->createStoredLink($roomId, $publicId, $host, $linkInput);
