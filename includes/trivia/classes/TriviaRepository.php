@@ -241,6 +241,7 @@ final class TriviaRepository
             if ($this->activePlayerCount($players) < 2) {
                 throw new ApiException(409, 'not_enough_players', 'A trivia room needs at least two seated players before it can start.');
             }
+            $this->ensureStartPromptAvailable($room);
 
             $this->openRound($room, 1);
             $statement = $this->pdo->prepare(<<<'SQL'
@@ -563,7 +564,7 @@ final class TriviaRepository
             ];
         }
         if (count($prompts) === 0) {
-            throw new ApiException(409, 'trivia_catalog_unavailable', 'The trivia question catalog does not have any active prompts to create a room.');
+            throw new ApiException(409, 'trivia_catalog_unavailable', 'The trivia question catalog does not have any active prompts available before creating or starting a room.');
         }
 
         return $this->questionCatalog->resolve($prompts);
@@ -588,6 +589,49 @@ final class TriviaRepository
                 'explanation' => $prompt['explanation'] ?? null,
             ]);
         }
+    }
+
+    /** @param array<string, mixed> $room */
+    private function ensureStartPromptAvailable(array $room): void
+    {
+        $roomId = (string) $room['id'];
+        if ($this->hasPromptForRound($roomId, 1)) {
+            return;
+        }
+        if ($this->promptCountForRoom($roomId) > 0) {
+            throw new ApiException(409, 'start_prompt_unavailable', 'This trivia room does not have a first prompt available to start.');
+        }
+
+        $this->insertPrompts($roomId, $this->loadDefaultPrompts());
+    }
+
+    private function hasPromptForRound(string $roomId, int $roundNumber): bool
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT 1
+            FROM trivia_prompts
+            WHERE room_id = :room_id
+              AND prompt_order = :prompt_order
+            LIMIT 1
+        SQL);
+        $statement->execute([
+            'room_id' => $roomId,
+            'prompt_order' => $roundNumber,
+        ]);
+
+        return $statement->fetchColumn() !== false;
+    }
+
+    private function promptCountForRoom(string $roomId): int
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT COUNT(*)
+            FROM trivia_prompts
+            WHERE room_id = :room_id
+        SQL);
+        $statement->execute(['room_id' => $roomId]);
+
+        return (int) $statement->fetchColumn();
     }
 
     /** @param array<string, mixed> $room */
