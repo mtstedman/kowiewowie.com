@@ -6,6 +6,7 @@ declare(strict_types=1);
 use Wowie\Api\Config;
 use Wowie\Api\Content\ContentRepository;
 use Wowie\Api\Database\Database;
+use Wowie\Api\Trivia\TriviaQuestionCatalog;
 
 use function Wowie\Api\Content\slugify;
 
@@ -29,6 +30,33 @@ function loadSeedFile(string $path): array
 function seedTriviaQuestions(\PDO $pdo, string $path): int
 {
     $items = loadSeedFile($path);
+    $catalog = new TriviaQuestionCatalog();
+    $preparedItems = [];
+    $activeCount = 0;
+
+    foreach ($items as $index => $item) {
+        if (!is_array($item)) {
+            throw new RuntimeException("Trivia question seed {$index} must be an object.");
+        }
+        $isActive = array_key_exists('is_active', $item) ? (bool) $item['is_active'] : true;
+        $normalizedPrompt = $catalog->resolve([$item])[0];
+        if ($isActive) {
+            $activeCount++;
+        }
+        $preparedItems[] = [
+            'source' => $item,
+            'prompt' => $normalizedPrompt,
+            'is_active' => $isActive,
+        ];
+    }
+
+    if ($activeCount < TriviaQuestionCatalog::MAX_ROOM_PROMPTS) {
+        throw new RuntimeException(sprintf(
+            'Trivia question seed catalog must contain at least %d active questions.',
+            TriviaQuestionCatalog::MAX_ROOM_PROMPTS,
+        ));
+    }
+
     $statement = $pdo->prepare(<<<'SQL'
         INSERT INTO trivia_question_catalog (slug, display_order, question, correct_answer, choices, explanation, is_active)
         VALUES (:slug, :display_order, :question, :correct_answer, CAST(:choices AS jsonb), :explanation, :is_active)
@@ -43,22 +71,17 @@ function seedTriviaQuestions(\PDO $pdo, string $path): int
     SQL);
 
     $count = 0;
-    foreach ($items as $index => $item) {
-        if (!is_array($item)) {
-            throw new RuntimeException("Trivia question seed {$index} must be an object.");
-        }
-        $choices = $item['choices'] ?? null;
-        if (!is_array($choices) || !array_is_list($choices)) {
-            throw new RuntimeException("Trivia question seed {$index} must include a choices array.");
-        }
+    foreach ($preparedItems as $index => $preparedItem) {
+        $source = $preparedItem['source'];
+        $prompt = $preparedItem['prompt'];
         $statement->execute([
-            'slug' => (string) ($item['slug'] ?? ''),
-            'display_order' => (int) ($item['display_order'] ?? ($index + 1)),
-            'question' => (string) ($item['question'] ?? ''),
-            'correct_answer' => (string) ($item['correct_answer'] ?? $item['answer'] ?? ''),
-            'choices' => json_encode(array_values($choices), JSON_THROW_ON_ERROR),
-            'explanation' => isset($item['explanation']) ? (string) $item['explanation'] : null,
-            'is_active' => array_key_exists('is_active', $item) ? (bool) $item['is_active'] : true,
+            'slug' => (string) ($source['slug'] ?? ''),
+            'display_order' => (int) ($source['display_order'] ?? ($index + 1)),
+            'question' => $prompt['question'],
+            'correct_answer' => $prompt['correct_answer'],
+            'choices' => json_encode($prompt['choices'], JSON_THROW_ON_ERROR),
+            'explanation' => $prompt['explanation'],
+            'is_active' => $preparedItem['is_active'],
         ]);
         $count++;
     }

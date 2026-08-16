@@ -26,8 +26,9 @@ final class TriviaRepository
     {
         $maxPlayers = $this->normalizeMaxPlayers($input['max_players'] ?? 6);
         $answerWindowSeconds = $this->normalizeAnswerWindow($input['answer_window_seconds'] ?? 30);
+        $promptMinimum = $maxPlayers;
         $promptInput = $input['prompts'] ?? null;
-        $prompts = $promptInput === null ? null : $this->normalizePrompts($promptInput);
+        $prompts = $promptInput === null ? null : $this->normalizePrompts($promptInput, $promptMinimum);
         $actor = $this->seatActor($identity);
         $createdLinks = [];
         $publicId = null;
@@ -63,7 +64,7 @@ final class TriviaRepository
                 'id' => $roomId,
             ]);
 
-            $this->insertPrompts($roomId, $prompts ?? $this->loadDefaultPrompts());
+            $this->insertPrompts($roomId, $prompts ?? $this->loadDefaultPrompts($promptMinimum));
             $linkInput = $this->normalizeLinkInput($input['link'] ?? []);
             for ($seat = 2; $seat <= $maxPlayers; $seat++) {
                 $createdLinks[] = $this->createStoredLink($roomId, $publicId, $host, $linkInput);
@@ -238,10 +239,11 @@ final class TriviaRepository
             }
             $players = $this->loadPlayersForRoom((string) $room['id'], true);
             $this->assertHost($room, $players, $identity);
-            if ($this->activePlayerCount($players) < 2) {
+            $activePlayerCount = $this->activePlayerCount($players);
+            if ($activePlayerCount < 2) {
                 throw new ApiException(409, 'not_enough_players', 'A trivia room needs at least two seated players before it can start.');
             }
-            $this->ensureStartPromptAvailable($room);
+            $this->ensurePromptSupplyAvailable($room, $activePlayerCount);
 
             $this->openRound($room, 1);
             $statement = $this->pdo->prepare(<<<'SQL'
@@ -537,8 +539,9 @@ final class TriviaRepository
     /**
      * @return list<array<string, mixed>>
      */
-    private function loadDefaultPrompts(): array
+    private function loadDefaultPrompts(int $minimumPrompts = TriviaQuestionCatalog::MIN_PROMPTS): array
     {
+        $minimumPrompts = max(TriviaQuestionCatalog::MIN_PROMPTS, $minimumPrompts);
         $statement = $this->pdo->query(<<<'SQL'
             SELECT question, correct_answer, choices, explanation
             FROM trivia_question_catalog
@@ -566,6 +569,12 @@ final class TriviaRepository
         if (count($prompts) === 0) {
             throw new ApiException(409, 'trivia_catalog_unavailable', 'The trivia question catalog does not have any active prompts available before creating or starting a room.');
         }
+        if (count($prompts) < $minimumPrompts) {
+            throw new ApiException(409, 'trivia_catalog_insufficient', sprintf(
+                'The trivia question catalog needs at least %d active prompts before creating or starting this room.',
+                $minimumPrompts,
+            ));
+        }
 
         return $this->questionCatalog->resolve($prompts);
     }
@@ -575,63 +584,73 @@ final class TriviaRepository
      */
     private function insertPrompts(string $roomId, array $prompts): void
     {
+        foreach ($prompts as $index => $prompt) {
+            $this->insertPromptAtOrder($roomId, $prompt, $index + 1);
+        }
+    }
+
+    /** @param array<string, mixed> $prompt */
+    private function insertPromptAtOrder(string $roomId, array $prompt, int $promptOrder): void
+    {
         $statement = $this->pdo->prepare(<<<'SQL'
             INSERT INTO trivia_prompts (room_id, prompt_order, question, correct_answer, choices, explanation)
             VALUES (:room_id, :prompt_order, :question, :correct_answer, CAST(:choices AS jsonb), :explanation)
         SQL);
-        foreach ($prompts as $index => $prompt) {
-            $statement->execute([
-                'room_id' => $roomId,
-                'prompt_order' => $index + 1,
-                'question' => $prompt['question'],
-                'correct_answer' => $prompt['correct_answer'],
-                'choices' => json_encode($prompt['choices'], JSON_THROW_ON_ERROR),
-                'explanation' => $prompt['explanation'] ?? null,
-            ]);
-        }
+        $statement->execute([
+            'room_id' => $roomId,
+            'prompt_order' => $promptOrder,
+            'question' => $prompt['question'],
+            'correct_answer' => $prompt['correct_answer'],
+            'choices' => json_encode($prompt['choices'], JSON_THROW_ON_ERROR),
+            'explanation' => $prompt['explanation'] ?? null,
+        ]);
     }
 
     /** @param array<string, mixed> $room */
-    private function ensureStartPromptAvailable(array $room): void
+    private function ensurePromptSupplyAvailable(array $room, int $minimumPrompts): void
     {
         $roomId = (string) $room['id'];
-        if ($this->hasPromptForRound($roomId, 1)) {
-            return;
-        }
-        if ($this->promptCountForRoom($roomId) > 0) {
+        $promptOrders = $this->promptOrdersForRoom($roomId);
+        $hasPromptOrders = $promptOrders !== [];
+        if (!isset($promptOrders[1]) && $hasPromptOrders) {
             throw new ApiException(409, 'start_prompt_unavailable', 'This trivia room does not have a first prompt available to start.');
         }
 
-        $this->insertPrompts($roomId, $this->loadDefaultPrompts());
+        $missingOrders = [];
+        $existingRequiredPromptCount = 0;
+        for ($promptOrder = 1; $promptOrder <= $minimumPrompts; $promptOrder++) {
+            if (isset($promptOrders[$promptOrder])) {
+                $existingRequiredPromptCount++;
+                continue;
+            }
+            $missingOrders[] = $promptOrder;
+        }
+        if ($missingOrders === []) {
+            return;
+        }
+
+        $defaultPrompts = $this->loadDefaultPrompts($minimumPrompts);
+        foreach ($missingOrders as $index => $promptOrder) {
+            $this->insertPromptAtOrder($roomId, $defaultPrompts[$existingRequiredPromptCount + $index], $promptOrder);
+        }
     }
 
-    private function hasPromptForRound(string $roomId, int $roundNumber): bool
+    /** @return array<int, true> */
+    private function promptOrdersForRoom(string $roomId): array
     {
         $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT 1
-            FROM trivia_prompts
-            WHERE room_id = :room_id
-              AND prompt_order = :prompt_order
-            LIMIT 1
-        SQL);
-        $statement->execute([
-            'room_id' => $roomId,
-            'prompt_order' => $roundNumber,
-        ]);
-
-        return $statement->fetchColumn() !== false;
-    }
-
-    private function promptCountForRoom(string $roomId): int
-    {
-        $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT COUNT(*)
+            SELECT prompt_order
             FROM trivia_prompts
             WHERE room_id = :room_id
         SQL);
         $statement->execute(['room_id' => $roomId]);
 
-        return (int) $statement->fetchColumn();
+        $orders = [];
+        foreach ($statement->fetchAll(PDO::FETCH_COLUMN) ?: [] as $promptOrder) {
+            $orders[(int) $promptOrder] = true;
+        }
+
+        return $orders;
     }
 
     /** @param array<string, mixed> $room */
@@ -794,6 +813,9 @@ final class TriviaRepository
     private function openNextRoundOrFinish(array $room, array $players, array $round): void
     {
         $nextRound = ((int) $round['round_number']) + 1;
+        if (!$this->promptExists((string) $room['id'], $nextRound)) {
+            $this->ensurePromptSupplyAvailable($room, $nextRound);
+        }
         if (!$this->promptExists((string) $room['id'], $nextRound)) {
             $this->finishRoom($room, $players, 'prompts_exhausted');
             return;
@@ -1195,13 +1217,17 @@ final class TriviaRepository
     /**
      * @return list<array<string, mixed>>
      */
-    private function normalizePrompts(mixed $value): array
+    private function normalizePrompts(mixed $value, int $minimumPrompts = TriviaQuestionCatalog::MIN_PROMPTS): array
     {
         if (!is_array($value) || !array_is_list($value)) {
             throw new ApiException(422, 'validation_error', 'prompts must be a list of trivia prompt objects.');
         }
-        if (count($value) === 0) {
-            throw new ApiException(422, 'validation_error', 'prompts must contain at least 1 entry for the trivia game.');
+        $minimumPrompts = max(TriviaQuestionCatalog::MIN_PROMPTS, $minimumPrompts);
+        if (count($value) < $minimumPrompts) {
+            throw new ApiException(422, 'validation_error', sprintf(
+                'prompts must contain at least %d entries for the trivia game.',
+                $minimumPrompts,
+            ));
         }
 
         return array_map(fn (mixed $prompt): array => $this->normalizePrompt($prompt), $value);
