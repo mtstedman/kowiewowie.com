@@ -54,6 +54,15 @@
           "sha256": "9d36238a8c50977dccfc88eed3ca06719c4028fbe2f61122c1efcc6533edcd1f"
         }
       ]
+    },
+    {
+      "version": 7,
+      "updates": [
+        {
+          "file": "updates/007_trivia_games.sql",
+          "sha256": "7a0ca74dd811b445a3a6501609a57aa8401ed66255151830bafc76aacf9127ab"
+        }
+      ]
     }
   ]
 }

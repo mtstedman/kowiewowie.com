@@ -58,6 +58,27 @@ from/to squares. `POST .../moves` requires `uci` and may include `promotion`
 (`q`, `r`, `b`, or `n`) when the UCI value does not already include its
 promotion suffix.
 
+Shared-link trivia rooms are a sibling live-game feature under `/v1/trivia/...`.
+They reuse the same browser guest identity cookie model, store 2-6 seated
+players, hash join-link tokens, persist prompts and timed answer windows, and
+eliminate players after wrong or missing answers. Trivia API routes are:
+
+```text
+GET  /v1/trivia/rooms
+POST /v1/trivia/rooms
+POST /v1/trivia/links/claim
+POST /v1/trivia/links/<token>/claim
+GET  /v1/trivia/rooms/<uuid>
+POST /v1/trivia/rooms/<uuid>/links
+POST /v1/trivia/rooms/<uuid>/start
+POST /v1/trivia/rooms/<uuid>/rounds/advance
+POST /v1/trivia/rooms/<uuid>/answers
+```
+
+Room creation returns a raw join token once. Later room mutations require the
+resolved browser identity to own the host or player seat; the shared link alone
+is only a seating claim.
+
 ## Database configuration
 
 The API reads configuration in this order:

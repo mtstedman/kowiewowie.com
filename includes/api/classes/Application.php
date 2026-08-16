@@ -16,6 +16,7 @@ use Wowie\Api\Content\ContentRepository;
 use Wowie\Api\Content\ScryfallClient;
 use Wowie\Api\Http\Request;
 use Wowie\Api\Http\Response;
+use Wowie\Api\Trivia\TriviaRepository;
 
 final class Application
 {
@@ -25,6 +26,7 @@ final class Application
     private readonly ScryfallClient $scryfall;
     private readonly ChessRepository $chess;
     private readonly ChessIdentityService $chessGuests;
+    private readonly TriviaRepository $trivia;
     /** @var array<string, string> */
     private array $chessIdentityResponseHeaders = [];
 
@@ -38,6 +40,7 @@ final class Application
         $this->scryfall = new ScryfallClient();
         $this->chess = new ChessRepository($pdo, new ChessEngine());
         $this->chessGuests = new ChessIdentityService($pdo);
+        $this->trivia = new TriviaRepository($pdo);
     }
 
     public function handle(Request $request): Response
@@ -93,7 +96,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/trivia/rooms'],
             ]);
         }
 
@@ -156,6 +159,11 @@ final class Application
         $chessResponse = $this->dispatchChess($request);
         if ($chessResponse !== null) {
             return $chessResponse;
+        }
+
+        $triviaResponse = $this->dispatchTrivia($request);
+        if ($triviaResponse !== null) {
+            return $triviaResponse;
         }
 
         $contentRoute = $this->contentRoute($request->path);
@@ -364,6 +372,98 @@ final class Application
                 ], 201), $identity);
             }
             throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess invitation links.');
+        }
+
+        return null;
+    }
+
+    private function dispatchTrivia(Request $request): ?Response
+    {
+        if ($request->path === '/v1/trivia/rooms') {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'GET') {
+                $limit = isset($request->query['limit']) ? (int) $request->query['limit'] : 100;
+                $offset = isset($request->query['offset']) ? (int) $request->query['offset'] : 0;
+                $rooms = $this->trivia->listRoomsForIdentity($identity, $limit, $offset);
+                return $this->withChessIdentity(Response::json([
+                    'data' => $rooms,
+                    'meta' => [
+                        'limit' => max(1, min(100, $limit)),
+                        'offset' => max(0, $offset),
+                        'count' => count($rooms),
+                    ],
+                ]), $identity);
+            }
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->trivia->createRoom($request->json(), $identity),
+                ], 201), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for trivia rooms.');
+        }
+
+        if ($request->method === 'POST' && $request->path === '/v1/trivia/links/claim') {
+            $identity = $this->resolveChessIdentity($request);
+            $body = $request->json();
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->trivia->claimLink((string) ($body['token'] ?? ''), $identity),
+            ]), $identity);
+        }
+        if ($request->method === 'POST' && preg_match('#^/v1/trivia/links/([A-Za-z0-9_-]+)/claim$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->trivia->claimLink($matches[1], $identity),
+            ]), $identity);
+        }
+
+        if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'GET') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->trivia->findRoom($matches[1], $identity),
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for this trivia room.');
+        }
+
+        if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/links$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->trivia->createLink($matches[1], $request->json(), $identity),
+                ], 201), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for trivia invitation links.');
+        }
+
+        if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/start$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->trivia->startRoom($matches[1], $identity),
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for trivia room starts.');
+        }
+
+        if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/rounds/advance$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->trivia->advanceRound($matches[1], $request->json(), $identity),
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for trivia rounds.');
+        }
+
+        if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/answers$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->trivia->submitAnswer($matches[1], $request->json(), $identity),
+                ]), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for trivia answers.');
         }
 
         return null;
