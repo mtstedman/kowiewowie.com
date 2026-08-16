@@ -16,6 +16,7 @@ use Wowie\Api\Content\ContentRepository;
 use Wowie\Api\Content\ScryfallClient;
 use Wowie\Api\Http\Request;
 use Wowie\Api\Http\Response;
+use Wowie\Api\Trivia\TriviaIdentityService;
 use Wowie\Api\Trivia\TriviaRepository;
 
 final class Application
@@ -26,6 +27,7 @@ final class Application
     private readonly ScryfallClient $scryfall;
     private readonly ChessRepository $chess;
     private readonly ChessIdentityService $chessGuests;
+    private readonly TriviaIdentityService $triviaGuests;
     private readonly TriviaRepository $trivia;
     /** @var array<string, string> */
     private array $chessIdentityResponseHeaders = [];
@@ -40,6 +42,7 @@ final class Application
         $this->scryfall = new ScryfallClient();
         $this->chess = new ChessRepository($pdo, new ChessEngine());
         $this->chessGuests = new ChessIdentityService($pdo);
+        $this->triviaGuests = new TriviaIdentityService($pdo);
         $this->trivia = new TriviaRepository($pdo);
     }
 
@@ -380,7 +383,7 @@ final class Application
     private function dispatchTrivia(Request $request): ?Response
     {
         if ($request->path === '/v1/trivia/rooms') {
-            $identity = $this->resolveChessIdentity($request);
+            $identity = $this->resolveTriviaIdentity($request);
             if ($request->method === 'GET') {
                 $limit = isset($request->query['limit']) ? (int) $request->query['limit'] : 100;
                 $offset = isset($request->query['offset']) ? (int) $request->query['offset'] : 0;
@@ -403,21 +406,21 @@ final class Application
         }
 
         if ($request->method === 'POST' && $request->path === '/v1/trivia/links/claim') {
-            $identity = $this->resolveChessIdentity($request);
+            $identity = $this->resolveTriviaIdentity($request);
             $body = $request->json();
             return $this->withChessIdentity(Response::json([
                 'data' => $this->trivia->claimLink((string) ($body['token'] ?? ''), $identity),
             ]), $identity);
         }
         if ($request->method === 'POST' && preg_match('#^/v1/trivia/links/([A-Za-z0-9_-]+)/claim$#', $request->path, $matches)) {
-            $identity = $this->resolveChessIdentity($request);
+            $identity = $this->resolveTriviaIdentity($request);
             return $this->withChessIdentity(Response::json([
                 'data' => $this->trivia->claimLink($matches[1], $identity),
             ]), $identity);
         }
 
         if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})$#', $request->path, $matches)) {
-            $identity = $this->resolveChessIdentity($request);
+            $identity = $this->resolveTriviaIdentity($request);
             if ($request->method === 'GET') {
                 return $this->withChessIdentity(Response::json([
                     'data' => $this->trivia->findRoom($matches[1], $identity),
@@ -427,7 +430,7 @@ final class Application
         }
 
         if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/links$#', $request->path, $matches)) {
-            $identity = $this->resolveChessIdentity($request);
+            $identity = $this->resolveTriviaIdentity($request);
             if ($request->method === 'POST') {
                 return $this->withChessIdentity(Response::json([
                     'data' => $this->trivia->createLink($matches[1], $request->json(), $identity),
@@ -437,7 +440,7 @@ final class Application
         }
 
         if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/start$#', $request->path, $matches)) {
-            $identity = $this->resolveChessIdentity($request);
+            $identity = $this->resolveTriviaIdentity($request);
             if ($request->method === 'POST') {
                 return $this->withChessIdentity(Response::json([
                     'data' => $this->trivia->startRoom($matches[1], $identity),
@@ -447,7 +450,7 @@ final class Application
         }
 
         if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/rounds/advance$#', $request->path, $matches)) {
-            $identity = $this->resolveChessIdentity($request);
+            $identity = $this->resolveTriviaIdentity($request);
             if ($request->method === 'POST') {
                 return $this->withChessIdentity(Response::json([
                     'data' => $this->trivia->advanceRound($matches[1], $request->json(), $identity),
@@ -457,7 +460,7 @@ final class Application
         }
 
         if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/answers$#', $request->path, $matches)) {
-            $identity = $this->resolveChessIdentity($request);
+            $identity = $this->resolveTriviaIdentity($request);
             if ($request->method === 'POST') {
                 return $this->withChessIdentity(Response::json([
                     'data' => $this->trivia->submitAnswer($matches[1], $request->json(), $identity),
@@ -483,6 +486,16 @@ final class Application
     private function resolveChessIdentity(Request $request): array
     {
         $identity = $this->chessGuests->resolve($this->optionalAuthenticatedUser($request));
+        $headers = $identity['response_headers'] ?? [];
+        $this->chessIdentityResponseHeaders = is_array($headers) ? $headers : [];
+
+        return $identity;
+    }
+
+    /** @return array<string, mixed> */
+    private function resolveTriviaIdentity(Request $request): array
+    {
+        $identity = $this->triviaGuests->resolve($this->optionalAuthenticatedUser($request));
         $headers = $identity['response_headers'] ?? [];
         $this->chessIdentityResponseHeaders = is_array($headers) ? $headers : [];
 

@@ -33,7 +33,6 @@ CREATE TABLE trivia_players (
     eliminated_round_id uuid,
     joined_at timestamptz NOT NULL DEFAULT now(),
     last_seen_at timestamptz NOT NULL DEFAULT now(),
-    CHECK (num_nonnulls(user_id, guest_profile_id) <= 1),
     UNIQUE (room_id, seat_number),
     UNIQUE (room_id, id),
     UNIQUE (room_id, user_id),

@@ -63,6 +63,8 @@ $pageStyles = ['/assets/css/trivia.css'];
                             <a class="trivia-text-link" id="trivia-open-game-link" href="/trivia/game.php" hidden>Open room</a>
                         </div>
 
+                        <div class="trivia-invite-list" id="trivia-invite-list" hidden></div>
+
                         <p class="trivia-message" id="trivia-create-message" role="status" aria-live="polite"></p>
                     </section>
 

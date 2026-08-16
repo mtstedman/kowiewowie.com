@@ -130,7 +130,7 @@ round number, termination, and activity timestamps. The host and winner foreign
 keys are scoped through `(room_id, player_id)` so they must point to seats in the
 same room.
 
-`trivia_players` stores seat numbers, host/player role, user or guest identity,
+`trivia_players` stores seat numbers, host/player role, user and/or guest identity,
 display-name snapshots, active/eliminated/left status, and the round that
 eliminated a player. A user or guest profile can occupy only one seat per room,
 so possession of a shared link cannot impersonate a different seated player.

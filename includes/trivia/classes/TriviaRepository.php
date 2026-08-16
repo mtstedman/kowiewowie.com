@@ -10,42 +10,11 @@ use Wowie\Api\ApiException;
 
 final class TriviaRepository
 {
-    /** @var list<array{question: string, correct_answer: string, choices: list<string>, explanation: string}> */
-    private const DEFAULT_PROMPTS = [
-        [
-            'question' => 'Which planet is known as the Red Planet?',
-            'correct_answer' => 'Mars',
-            'choices' => ['Mercury', 'Venus', 'Mars', 'Jupiter'],
-            'explanation' => 'Iron oxide dust gives Mars its reddish color.',
-        ],
-        [
-            'question' => 'What is the largest ocean on Earth?',
-            'correct_answer' => 'Pacific Ocean',
-            'choices' => ['Atlantic Ocean', 'Indian Ocean', 'Pacific Ocean', 'Arctic Ocean'],
-            'explanation' => 'The Pacific Ocean covers more area than all land on Earth combined.',
-        ],
-        [
-            'question' => 'How many sides does a hexagon have?',
-            'correct_answer' => '6',
-            'choices' => ['5', '6', '7', '8'],
-            'explanation' => 'A hexagon is any six-sided polygon.',
-        ],
-        [
-            'question' => 'Which gas do plants absorb from the atmosphere during photosynthesis?',
-            'correct_answer' => 'Carbon dioxide',
-            'choices' => ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Helium'],
-            'explanation' => 'Plants use carbon dioxide, water, and light energy to produce sugars.',
-        ],
-        [
-            'question' => 'What is the chemical symbol for gold?',
-            'correct_answer' => 'Au',
-            'choices' => ['Ag', 'Au', 'Gd', 'Go'],
-            'explanation' => 'Au comes from the Latin word aurum.',
-        ],
-    ];
+    private readonly TriviaQuestionCatalog $questionCatalog;
 
     public function __construct(private readonly PDO $pdo)
     {
+        $this->questionCatalog = new TriviaQuestionCatalog();
     }
 
     /**
@@ -340,7 +309,7 @@ final class TriviaRepository
             }
 
             $nextRound = ((int) $round['round_number']) + 1;
-            if (!$this->promptExists((string) $room['id'], $nextRound)) {
+            if ((int) $round['round_number'] >= 2 || !$this->promptExists((string) $room['id'], $nextRound)) {
                 $this->finishRoom($room, $players, 'prompts_exhausted');
             } else {
                 $this->openRound($room, $nextRound);
@@ -994,17 +963,18 @@ final class TriviaRepository
      */
     private function seatActor(array $identity): array
     {
+        $guestProfileId = isset($identity['guest_profile']['id']) ? (string) $identity['guest_profile']['id'] : null;
         if (isset($identity['user']['id'])) {
             return [
                 'user_id' => (string) $identity['user']['id'],
-                'guest_profile_id' => null,
+                'guest_profile_id' => $guestProfileId,
                 'display_name' => trim((string) ($identity['user']['display_name'] ?? '')) ?: 'Registered player',
             ];
         }
-        if (isset($identity['guest_profile']['id'])) {
+        if ($guestProfileId !== null) {
             return [
                 'user_id' => null,
-                'guest_profile_id' => (string) $identity['guest_profile']['id'],
+                'guest_profile_id' => $guestProfileId,
                 'display_name' => trim((string) ($identity['guest_profile']['display_name'] ?? '')) ?: 'Guest',
             ];
         }
@@ -1051,17 +1021,7 @@ final class TriviaRepository
      */
     private function normalizePrompts(mixed $value): array
     {
-        if ($value === null || $value === []) {
-            return self::DEFAULT_PROMPTS;
-        }
-        if (!is_array($value) || !array_is_list($value)) {
-            throw new ApiException(422, 'validation_error', 'prompts must be a list of trivia prompt objects.');
-        }
-        if (count($value) < 1 || count($value) > 100) {
-            throw new ApiException(422, 'validation_error', 'prompts must contain between 1 and 100 entries.');
-        }
-
-        return array_map(fn (mixed $prompt): array => $this->normalizePrompt($prompt), $value);
+        return $this->questionCatalog->resolve($value);
     }
 
     /** @return array<string, mixed> */

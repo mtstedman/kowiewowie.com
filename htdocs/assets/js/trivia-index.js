@@ -17,6 +17,7 @@ const elements = {
     joinUrl: requireElement('trivia-join-url'),
     copyButton: requireElement('trivia-copy-link-button'),
     openGameLink: requireElement('trivia-open-game-link'),
+    inviteList: requireElement('trivia-invite-list'),
     createMessage: requireElement('trivia-create-message'),
     joinMessage: requireElement('trivia-join-message'),
     roomSummary: requireElement('trivia-room-summary'),
@@ -199,6 +200,64 @@ const showJoinLink = (url, roomId) => {
     elements.joinUrl.select();
 };
 
+const linkUrlFromApiLink = (link) => {
+    const token = tokenFromLink(link);
+    return token !== '' ? linkUrlFromToken(token) : new URL(link?.url || '/trivia/', window.location.origin).toString();
+};
+
+const openSeatNumbers = (room) => {
+    const used = new Set((Array.isArray(room?.players) ? room.players : []).map((player) => Number(player.seat_number)));
+    const seats = [];
+    for (let seat = 1; seat <= Number(room?.max_players || 0); seat += 1) {
+        if (!used.has(seat)) {
+            seats.push(seat);
+        }
+    }
+    return seats;
+};
+
+const showInviteLinks = (links, room) => {
+    const urls = links.map(linkUrlFromApiLink).filter((url) => url !== '');
+    const seats = openSeatNumbers(room);
+    elements.inviteList.replaceChildren();
+    elements.inviteList.hidden = urls.length === 0;
+
+    urls.forEach((url, index) => {
+        const card = document.createElement('article');
+        card.className = 'trivia-invite-card';
+
+        const title = document.createElement('h3');
+        title.textContent = `Seat ${seats[index] ?? index + 2} invite`;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.readOnly = true;
+        input.value = url;
+        input.setAttribute('aria-label', title.textContent);
+
+        const button = document.createElement('button');
+        button.className = 'trivia-button';
+        button.type = 'button';
+        button.textContent = 'Copy';
+        button.addEventListener('click', async () => {
+            const previousJoinUrl = elements.joinUrl.value;
+            try {
+                elements.joinUrl.value = url;
+                await copyWithFallback(url);
+                button.textContent = 'Copied';
+                setMessage(elements.createMessage, `${title.textContent} copied.`, 'success');
+            } catch (error) {
+                setMessage(elements.createMessage, 'Copy failed. Select the invite link and copy it manually.', 'error');
+            } finally {
+                elements.joinUrl.value = previousJoinUrl;
+            }
+        });
+
+        card.append(title, input, button);
+        elements.inviteList.append(card);
+    });
+};
+
 const renderRoomList = (rooms) => {
     elements.roomList.replaceChildren();
 
@@ -249,6 +308,8 @@ const handleCreateRoom = async (event) => {
     elements.newRoomButton.disabled = true;
     elements.form.setAttribute('aria-busy', 'true');
     elements.linkBox.hidden = true;
+    elements.inviteList.replaceChildren();
+    elements.inviteList.hidden = true;
 
     try {
         const room = await createRoom({
@@ -256,13 +317,16 @@ const handleCreateRoom = async (event) => {
             answer_window_seconds: Number.parseInt(elements.answerWindow.value, 10),
             create_link: true,
         });
-        const createdLinks = Array.isArray(room.created_links) ? room.created_links : [];
-        const link = createdLinks[0] || await createJoinLink(room.id, {});
-        const token = tokenFromLink(link);
-        showJoinLink(token !== '' ? linkUrlFromToken(token) : new URL(link?.url || '/trivia/', window.location.origin).toString(), room.id);
+        const createdLinks = Array.isArray(room.created_links) ? [...room.created_links] : [];
+        const inviteCount = Math.max(1, Number(room.max_players || 2) - activePlayers(room).length);
+        while (createdLinks.length < inviteCount) {
+            createdLinks.push(await createJoinLink(room.id, {}));
+        }
+        showJoinLink(linkUrlFromApiLink(createdLinks[0]), room.id);
+        showInviteLinks(createdLinks, room);
         renderCurrentRoom(room);
         scheduleRoomPolling();
-        setMessage(elements.createMessage, 'Room created. Copy the invite link for the other players.', 'success');
+        setMessage(elements.createMessage, 'Room created. Copy one invite link for each remaining seat.', 'success');
         await refreshRooms();
     } catch (error) {
         setMessage(elements.createMessage, errorMessage(error, 'The trivia room could not be created.'), 'error');

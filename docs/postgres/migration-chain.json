@@ -60,7 +60,7 @@
       "updates": [
         {
           "file": "updates/007_trivia_games.sql",
-          "sha256": "7a0ca74dd811b445a3a6501609a57aa8401ed66255151830bafc76aacf9127ab"
+          "sha256": "88a71dfba278e74532faaa0bb8b2e384fb8b3fd4a12f84eb15ac5b9829477a7b"
         }
       ]
     }

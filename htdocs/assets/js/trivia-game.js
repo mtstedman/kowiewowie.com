@@ -121,7 +121,7 @@ const renderRoster = (room) => {
         if (player.id === room.winner_player_id) {
             meta.textContent = 'Winner';
         } else if (player.status === 'eliminated') {
-            meta.textContent = 'Eliminated';
+            meta.textContent = player.eliminated_round_id === room.round?.id ? `Eliminated round ${room.round.round_number}` : 'Eliminated earlier';
         } else if (player.role === 'host') {
             meta.textContent = 'Host alive';
         } else {
@@ -209,7 +209,15 @@ const renderResult = (room) => {
     const explanation = document.createElement('p');
     explanation.textContent = round.prompt?.explanation || 'No explanation was provided for this prompt.';
 
-    elements.resultPanel.append(title, answer, explanation);
+    const eliminatedThisRound = (Array.isArray(room?.players) ? room.players : [])
+        .filter((player) => player.status === 'eliminated' && player.eliminated_round_id === round.id)
+        .map((player) => (typeof player.display_name === 'string' && player.display_name.trim() !== '' ? player.display_name.trim() : `Seat ${player.seat_number ?? '?'}`));
+    const eliminated = document.createElement('p');
+    eliminated.textContent = eliminatedThisRound.length > 0
+        ? `Eliminated this round: ${eliminatedThisRound.join(', ')}.`
+        : 'No players were eliminated this round.';
+
+    elements.resultPanel.append(title, answer, explanation, eliminated);
     elements.resultPanel.hidden = false;
 };
 
@@ -218,7 +226,7 @@ const renderHostControls = (room) => {
     const roundStatus = room?.round?.status || '';
     elements.hostActions.hidden = !isHost || room?.status === 'finished';
     elements.resolveButton.disabled = !isHost || room?.status !== 'active' || roundStatus !== 'answering';
-    elements.advanceButton.disabled = !isHost || room?.status !== 'active' || (roundStatus !== 'resolved' && roundStatus !== 'answering');
+    elements.advanceButton.disabled = !isHost || room?.status !== 'active' || roundStatus !== 'resolved';
 };
 
 const renderRoom = (room) => {
@@ -329,7 +337,7 @@ const handleRoundAction = async (action) => {
     setMessage(elements.roundMessage, action === 'resolve' ? 'Resolving the round...' : 'Opening the next round...', 'neutral');
 
     try {
-        const room = await advanceRound(state.roomId, { action, force: true });
+        const room = await advanceRound(state.roomId, action === 'resolve' ? { action, force: true } : { action });
         if (action === 'advance') {
             state.lockedRoundId = '';
             state.lockedAnswer = '';
