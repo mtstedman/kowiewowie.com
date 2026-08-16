@@ -1,0 +1,305 @@
+.risk-page-shell {
+    --risk-human: #4ade80;
+    --risk-human-soft: rgba(74, 222, 128, 0.16);
+    --risk-ai: #fb7185;
+    --risk-ai-soft: rgba(251, 113, 133, 0.17);
+    --risk-neutral: #facc15;
+    --risk-water: rgba(14, 45, 70, 0.72);
+}
+
+.risk-page {
+    gap: clamp(1rem, 3vw, 2rem);
+}
+
+.risk-hero,
+.risk-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(0, 245, 255, 0.08), transparent 48%),
+        linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
+    box-shadow: 0 20px 45px -30px rgba(0, 245, 255, 0.44), inset 0 1px 0 var(--surface-highlight);
+}
+
+.risk-hero {
+    display: grid;
+    gap: 0.6rem;
+    padding: clamp(1.3rem, 4vw, 2.4rem);
+}
+
+.risk-hero h1,
+.risk-hero p {
+    margin: 0;
+}
+
+.risk-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: 1rem;
+    align-items: start;
+}
+
+.risk-panel {
+    padding: clamp(1rem, 2.5vw, 1.35rem);
+}
+
+.risk-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.risk-panel-heading h2,
+.risk-panel-heading p,
+.risk-territory-card h3,
+.risk-log-panel h3 {
+    margin: 0;
+}
+
+.risk-turn-summary,
+.risk-scoreboard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.risk-turn-summary span,
+.risk-scoreboard span {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 6px;
+    background: rgba(5, 14, 28, 0.78);
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.risk-scoreboard {
+    margin-bottom: 1rem;
+}
+
+.risk-map {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+    min-height: 440px;
+    padding: 0.75rem;
+    border: 1px solid rgba(0, 245, 255, 0.24);
+    border-radius: 8px;
+    background:
+        linear-gradient(90deg, rgba(0, 245, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(rgba(0, 245, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(135deg, rgba(8, 38, 55, 0.92), var(--risk-water));
+    background-size: 42px 42px, 42px 42px, auto;
+}
+
+.risk-territory {
+    min-width: 0;
+    min-height: 96px;
+    display: grid;
+    align-content: space-between;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    border: 2px solid rgba(245, 251, 255, 0.2);
+    border-radius: 8px;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 14px 24px -20px rgba(0, 0, 0, 0.9);
+    transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.risk-territory:hover,
+.risk-territory:focus-visible {
+    border-color: var(--accent-warm);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px rgba(249, 248, 113, 0.3), 0 18px 28px -20px rgba(0, 0, 0, 0.9);
+}
+
+.risk-territory.is-selected {
+    border-color: var(--accent-warm);
+    box-shadow: 0 0 0 2px rgba(249, 248, 113, 0.3), 0 0 24px rgba(249, 248, 113, 0.16);
+}
+
+.risk-territory.is-targeted {
+    border-color: var(--accent-strong);
+    box-shadow: 0 0 0 2px rgba(255, 43, 214, 0.28), 0 0 24px rgba(255, 43, 214, 0.2);
+}
+
+.risk-territory.owner-human {
+    background: linear-gradient(135deg, var(--risk-human-soft), rgba(5, 20, 16, 0.92));
+}
+
+.risk-territory.owner-ai {
+    background: linear-gradient(135deg, var(--risk-ai-soft), rgba(26, 8, 16, 0.92));
+}
+
+.risk-territory-name {
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1.15;
+}
+
+.risk-territory-meta,
+.risk-territory-armies {
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.risk-territory-armies {
+    color: var(--accent-warm);
+    font-size: 1.15rem;
+}
+
+.risk-status-message {
+    min-height: 2.8rem;
+    margin: 1rem 0 0;
+    padding: 0.75rem;
+    border-left: 4px solid var(--accent-warm);
+    background: rgba(249, 248, 113, 0.08);
+    color: var(--ink-soft);
+    font-weight: 750;
+}
+
+.risk-command-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.risk-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+}
+
+.risk-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.7rem 0.8rem;
+    border: 2px solid var(--surface-edge-strong);
+    border-radius: 6px;
+    background: rgba(0, 245, 255, 0.08);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.risk-button-primary {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(74, 222, 128, 0.16));
+}
+
+.risk-button:hover:not(:disabled),
+.risk-button:focus-visible:not(:disabled) {
+    border-color: var(--accent-warm);
+    background: rgba(249, 248, 113, 0.16);
+    color: #ffffff;
+}
+
+.risk-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.risk-territory-card,
+.risk-log-panel {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.85rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background: rgba(5, 14, 28, 0.68);
+}
+
+.risk-selection-list {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+}
+
+.risk-selection-list div {
+    display: grid;
+    grid-template-columns: minmax(7rem, auto) minmax(0, 1fr);
+    gap: 0.6rem;
+}
+
+.risk-selection-list dt {
+    color: var(--muted);
+    font-weight: 850;
+}
+
+.risk-selection-list dd {
+    margin: 0;
+    color: var(--ink);
+}
+
+.risk-log {
+    display: grid;
+    gap: 0.45rem;
+    max-height: 240px;
+    margin: 0;
+    padding-left: 1.25rem;
+    overflow: auto;
+    color: var(--ink-soft);
+}
+
+.risk-log li::marker {
+    color: var(--accent-warm);
+}
+
+@media (max-width: 940px) {
+    .risk-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .risk-command-panel {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .risk-command-panel > .risk-panel-heading,
+    .risk-command-panel > .risk-actions {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 700px) {
+    .risk-panel-heading {
+        display: grid;
+    }
+
+    .risk-map {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        min-height: 0;
+    }
+
+    .risk-command-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .risk-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .risk-territory {
+        min-height: 88px;
+    }
+}
