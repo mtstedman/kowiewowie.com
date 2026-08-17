@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-labelledby="title desc">
+  <title id="title">Risk command map</title>
+  <desc id="desc">A stylized tactical island map with connected regions, coastlines, routes, and landmarks for the browser Risk game.</desc>
+  <defs>
+    <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#123c4a"/>
+      <stop offset="0.54" stop-color="#0d2d3b"/>
+      <stop offset="1" stop-color="#071923"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9c179"/>
+      <stop offset="0.48" stop-color="#8fb876"/>
+      <stop offset="1" stop-color="#7f6a4b"/>
+    </linearGradient>
+    <linearGradient id="south" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9a15c"/>
+      <stop offset="0.48" stop-color="#a66c55"/>
+      <stop offset="1" stop-color="#5e4f4a"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.34"/>
+    </filter>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0v64" fill="none" stroke="#ffffff" stroke-opacity="0.055" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1000" height="700" fill="url(#ocean)"/>
+  <rect width="1000" height="700" fill="url(#grid)"/>
+  <path d="M78 154c52-72 156-102 248-82 78 17 106 76 166 86 57 10 102-28 165-12 80 21 144 101 144 184 0 77-53 126-37 190 13 54 68 84 59 116-9 33-78 29-151 18-85-13-117-39-187-34-90 7-127 55-201 34-57-16-67-55-127-66-62-11-98 20-122-3-32-30 25-84 18-165-7-85-79-120-66-186 5-26 23-51 91-80Z" fill="url(#land)" filter="url(#shadow)" opacity="0.94"/>
+  <path d="M248 406c48-35 112-22 145 13 39 42 26 100 68 126 43 27 91-14 146 12 42 20 73 68 66 111-86 9-178 11-273 5-109-7-204-25-281-49 10-65 58-166 129-218Z" fill="url(#south)" opacity="0.86"/>
+  <path d="M139 186c51-43 139-58 194-20 55 39 29 98 80 127 57 33 114-23 175 16 55 36 51 107 88 128 28 16 64 1 101-20" fill="none" stroke="#fff6c9" stroke-opacity="0.18" stroke-width="18" stroke-linecap="round"/>
+  <path d="M180 520c71-47 142-36 190 5 48 42 88 79 164 66 68-12 87-59 153-49 50 8 85 43 110 74" fill="none" stroke="#5b4638" stroke-opacity="0.22" stroke-width="20" stroke-linecap="round"/>
+  <g fill="none" stroke="#f8d16c" stroke-opacity="0.38" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 12">
+    <path d="M360 98 180 196 390 231 632 168 750 329 490 350 230 343 300 483 585 483 690 600"/>
+    <path d="M180 196 230 343 490 350 585 483 380 602 210 588"/>
+    <path d="M490 350 750 329 585 483 690 600 380 602"/>
+  </g>
+  <g fill="#f7fbff" opacity="0.2">
+    <circle cx="88" cy="102" r="2"/>
+    <circle cx="880" cy="126" r="2.4"/>
+    <circle cx="912" cy="436" r="1.8"/>
+    <circle cx="132" cy="632" r="2.2"/>
+    <circle cx="504" cy="72" r="1.8"/>
+    <circle cx="822" cy="612" r="2.6"/>
+  </g>
+  <g fill="#071923" opacity="0.22">
+    <path d="M305 82c27 33 36 72 27 118-36-34-74-43-119-28 22-42 52-72 92-90Z"/>
+    <path d="M628 128c35 35 52 75 51 121-39-29-83-37-133-23 19-44 46-77 82-98Z"/>
+    <path d="M574 438c36 28 57 63 64 105-48-21-92-18-132 9 6-44 29-82 68-114Z"/>
+  </g>
+</svg>

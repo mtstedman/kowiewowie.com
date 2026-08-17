@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="emblem-fortress" viewBox="0 0 32 32">
+    <path d="M6 28V12h4V7h4v5h4V7h4v5h4v16H6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M11 28v-7a5 5 0 0 1 10 0v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M8 16h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="emblem-mountain" viewBox="0 0 32 32">
+    <path d="M3 27 13 7l5 9 3-5 8 16H3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    <path d="m13 7 1.5 8 3.5 1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="emblem-harbor" viewBox="0 0 32 32">
+    <path d="M16 5v20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M10 10a6 6 0 0 0 12 0H10Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M6 25c3 2 6 2 10 0 4 2 7 2 10 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M13 5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="emblem-field" viewBox="0 0 32 32">
+    <path d="M6 24c6-8 14-12 22-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M6 24c8-1 15 0 21 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M9 21c3-4 6-6 10-8M14 23c3-4 7-7 12-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+</svg>

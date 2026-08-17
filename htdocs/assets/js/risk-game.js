@@ -7,19 +7,23 @@
         return;
     }
 
+    const mapAsset = '/assets/img/risk-map.svg';
+    const emblemAsset = '/assets/img/risk-emblems.svg';
+    const svgNamespace = 'http://www.w3.org/2000/svg';
+
     const territoryDefinitions = [
-        { id: 'northreach', name: 'North Reach', region: 'Frost Belt', neighbors: ['westwatch', 'ironpass', 'stormbay'] },
-        { id: 'westwatch', name: 'Westwatch', region: 'Frost Belt', neighbors: ['northreach', 'ironpass', 'greenvale'] },
-        { id: 'ironpass', name: 'Iron Pass', region: 'Highlands', neighbors: ['northreach', 'westwatch', 'stormbay', 'greenvale', 'dustplain'] },
-        { id: 'stormbay', name: 'Storm Bay', region: 'Highlands', neighbors: ['northreach', 'ironpass', 'embercoast'] },
-        { id: 'greenvale', name: 'Greenvale', region: 'Heartland', neighbors: ['westwatch', 'ironpass', 'dustplain', 'sunfield'] },
-        { id: 'dustplain', name: 'Dustplain', region: 'Heartland', neighbors: ['ironpass', 'greenvale', 'embercoast', 'sunfield', 'obsidian'] },
-        { id: 'embercoast', name: 'Ember Coast', region: 'Coast', neighbors: ['stormbay', 'dustplain', 'obsidian'] },
-        { id: 'sunfield', name: 'Sunfield', region: 'Southlands', neighbors: ['greenvale', 'dustplain', 'lowlands'] },
-        { id: 'obsidian', name: 'Obsidian Gate', region: 'Southlands', neighbors: ['dustplain', 'embercoast', 'lowlands', 'citadel'] },
-        { id: 'lowlands', name: 'Lowlands', region: 'Riverlands', neighbors: ['sunfield', 'obsidian', 'harbor', 'citadel'] },
-        { id: 'harbor', name: 'Free Harbor', region: 'Riverlands', neighbors: ['lowlands', 'citadel'] },
-        { id: 'citadel', name: 'Last Citadel', region: 'Riverlands', neighbors: ['obsidian', 'lowlands', 'harbor'] }
+        { id: 'northreach', name: 'North Reach', region: 'Frost Belt', neighbors: ['westwatch', 'ironpass', 'stormbay'], position: [36, 14], emblem: 'mountain' },
+        { id: 'westwatch', name: 'Westwatch', region: 'Frost Belt', neighbors: ['northreach', 'ironpass', 'greenvale'], position: [18, 28], emblem: 'fortress' },
+        { id: 'ironpass', name: 'Iron Pass', region: 'Highlands', neighbors: ['northreach', 'westwatch', 'stormbay', 'greenvale', 'dustplain'], position: [39, 33], emblem: 'mountain' },
+        { id: 'stormbay', name: 'Storm Bay', region: 'Highlands', neighbors: ['northreach', 'ironpass', 'embercoast'], position: [63, 24], emblem: 'harbor' },
+        { id: 'greenvale', name: 'Greenvale', region: 'Heartland', neighbors: ['westwatch', 'ironpass', 'dustplain', 'sunfield'], position: [23, 49], emblem: 'field' },
+        { id: 'dustplain', name: 'Dustplain', region: 'Heartland', neighbors: ['ironpass', 'greenvale', 'embercoast', 'sunfield', 'obsidian'], position: [49, 50], emblem: 'field' },
+        { id: 'embercoast', name: 'Ember Coast', region: 'Coast', neighbors: ['stormbay', 'dustplain', 'obsidian'], position: [75, 47], emblem: 'harbor' },
+        { id: 'sunfield', name: 'Sunfield', region: 'Southlands', neighbors: ['greenvale', 'dustplain', 'lowlands'], position: [30, 69], emblem: 'field' },
+        { id: 'obsidian', name: 'Obsidian Gate', region: 'Southlands', neighbors: ['dustplain', 'embercoast', 'lowlands', 'citadel'], position: [59, 69], emblem: 'fortress' },
+        { id: 'lowlands', name: 'Lowlands', region: 'Riverlands', neighbors: ['sunfield', 'obsidian', 'harbor', 'citadel'], position: [46, 84], emblem: 'field' },
+        { id: 'harbor', name: 'Free Harbor', region: 'Riverlands', neighbors: ['lowlands', 'citadel'], position: [13, 88], emblem: 'harbor' },
+        { id: 'citadel', name: 'Last Citadel', region: 'Riverlands', neighbors: ['obsidian', 'lowlands', 'harbor'], position: [69, 86], emblem: 'fortress' }
     ];
 
     const elements = {
@@ -39,9 +43,14 @@
         endButton: document.getElementById('risk-end-button')
     };
 
+    if (Object.values(elements).some((element) => !element)) {
+        return;
+    }
+
     const ownerLabels = {
         human: 'Player',
-        ai: 'Browser'
+        ai: 'Browser',
+        neutral: 'Unclaimed'
     };
 
     const phaseLabels = {
@@ -62,18 +71,20 @@
         sourceId: null,
         targetId: null,
         message: 'Start a new game to deploy armies.',
-        log: []
+        log: [],
+        aiTimer: null
     };
 
     const byId = (id) => state.territories.find((territory) => territory.id === id) || null;
     const opponentOf = (player) => player === 'human' ? 'ai' : 'human';
     const ownedBy = (player) => state.territories.filter((territory) => territory.owner === player);
-    const isNeighbor = (territory, neighborId) => territory.neighbors.includes(neighborId);
+    const isNeighbor = (territory, neighborId) => territory?.neighbors.includes(neighborId) || false;
     const ownerLabel = (owner) => ownerLabels[owner] || 'Unknown';
+    const pluralArmy = (count) => `${count} arm${count === 1 ? 'y' : 'ies'}`;
 
     const addLog = (message) => {
         state.log.unshift(message);
-        state.log = state.log.slice(0, 10);
+        state.log = state.log.slice(0, 12);
     };
 
     const calculateReinforcements = (player) => Math.max(3, Math.floor(ownedBy(player).length / 3));
@@ -81,7 +92,7 @@
     const rollDie = () => Math.floor(Math.random() * 6) + 1;
 
     const bestRoll = (diceCount) => {
-        const rolls = Array.from({ length: diceCount }, rollDie);
+        const rolls = Array.from({ length: Math.max(1, diceCount) }, rollDie);
         return Math.max(...rolls);
     };
 
@@ -109,6 +120,10 @@
         .map(byId)
         .filter((territory) => territory && territory.owner === opponentOf(player));
 
+    const hasLegalAttack = (player) => ownedBy(player).some((territory) => (
+        territory.armies > 1 && adjacentEnemies(territory, player).length > 0
+    ));
+
     const createText = (tagName, className, text) => {
         const node = document.createElement(tagName);
         if (className) {
@@ -118,7 +133,33 @@
         return node;
     };
 
+    const createEmblem = (territory) => {
+        const svg = document.createElementNS(svgNamespace, 'svg');
+        const use = document.createElementNS(svgNamespace, 'use');
+
+        svg.classList.add('risk-territory-emblem');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('viewBox', '0 0 32 32');
+        use.setAttribute('href', `${emblemAsset}#emblem-${territory.emblem}`);
+        svg.append(use);
+
+        return svg;
+    };
+
+    const clearAiTimer = () => {
+        if (state.aiTimer) {
+            window.clearTimeout(state.aiTimer);
+            state.aiTimer = null;
+        }
+    };
+
+    const selectDefaultTerritory = (player) => {
+        state.sourceId = weakestBorderTerritory(player)?.id || ownedBy(player)[0]?.id || null;
+        state.targetId = null;
+    };
+
     const startGame = () => {
+        clearAiTimer();
         state.active = true;
         state.territories = territoryDefinitions.map((territory, index) => ({
             ...territory,
@@ -129,10 +170,9 @@
         state.phase = 'reinforce';
         state.turn = 1;
         state.reinforcementRemaining = calculateReinforcements('human');
-        state.sourceId = ownedBy('human')[0]?.id || null;
-        state.targetId = null;
         state.message = 'Deploy reinforcements to your territories, then attack adjacent browser territory.';
         state.log = [];
+        selectDefaultTerritory('human');
         addLog('New game started. Player takes the first reinforcement phase.');
         render();
     };
@@ -145,7 +185,9 @@
         }
 
         if (!state.active) {
-            state.message = 'Start a new game before selecting territory.';
+            state.sourceId = territory.id;
+            state.targetId = null;
+            state.message = 'Start a new game before issuing orders.';
             render();
             return;
         }
@@ -199,6 +241,12 @@
 
         if (!source || source.owner !== 'human' || source.armies <= 1) {
             state.message = 'Select one of your territories with at least two armies before choosing a target.';
+            state.targetId = null;
+            return;
+        }
+
+        if (territory.owner !== 'ai') {
+            state.message = 'Only browser territories can be attacked.';
             state.targetId = null;
             return;
         }
@@ -261,7 +309,9 @@
         if (state.reinforcementRemaining <= 0) {
             state.phase = 'attack';
             state.reinforcementRemaining = 0;
-            state.message = 'Reinforcement complete. Select an attacking territory, then an adjacent target.';
+            state.message = hasLegalAttack('human')
+                ? 'Reinforcement complete. Select an attacking territory, then an adjacent target.'
+                : 'Reinforcement complete. You have no legal attacks, so end the turn or fortify.';
         } else {
             state.message = `${state.reinforcementRemaining} reinforcement${state.reinforcementRemaining === 1 ? '' : 's'} remaining.`;
         }
@@ -344,6 +394,12 @@
             return;
         }
 
+        if (state.phase === 'reinforce') {
+            state.message = 'Place all reinforcements before ending the turn.';
+            render();
+            return;
+        }
+
         state.current = 'ai';
         state.phase = 'reinforce';
         state.reinforcementRemaining = 0;
@@ -351,7 +407,8 @@
         state.targetId = null;
         state.message = 'Browser is taking its turn.';
         render();
-        window.setTimeout(runAiTurn, 650);
+        clearAiTimer();
+        state.aiTimer = window.setTimeout(runAiTurn, 550);
     };
 
     const resolveBattle = (player, source, target) => {
@@ -367,7 +424,7 @@
             if (target.armies <= 0) {
                 target.owner = player;
                 target.armies = 1;
-                source.armies -= 1;
+                source.armies = Math.max(1, source.armies - 1);
                 state.message = `${attackerName} conquers ${target.name} from ${source.name}.`;
                 addLog(`${attackerName} rolls ${attackRoll} over ${defendRoll} and takes ${target.name}.`);
                 return;
@@ -378,7 +435,7 @@
             return;
         }
 
-        source.armies -= 1;
+        source.armies = Math.max(1, source.armies - 1);
         state.message = `${attackerName} loses one army attacking ${target.name}.`;
         addLog(`${attackerName} rolls ${attackRoll} against ${defendRoll}; ${source.name} loses one army.`);
     };
@@ -391,6 +448,7 @@
             return false;
         }
 
+        clearAiTimer();
         state.active = false;
         state.phase = 'gameover';
         state.reinforcementRemaining = 0;
@@ -417,7 +475,7 @@
             return null;
         }
 
-        candidates.sort((a, b) => b.source.armies - a.source.armies);
+        candidates.sort((a, b) => b.source.armies - a.source.armies || a.targets.length - b.targets.length);
         const move = candidates[0];
         move.targets.sort((a, b) => a.armies - b.armies);
 
@@ -428,7 +486,9 @@
     };
 
     const runAiTurn = () => {
-        if (!state.active || state.phase === 'gameover') {
+        state.aiTimer = null;
+
+        if (!state.active || state.phase === 'gameover' || state.current !== 'ai') {
             return;
         }
 
@@ -459,50 +519,94 @@
                 return;
             }
 
-            if (Math.random() < 0.35) {
+            if (!hasLegalAttack('ai') || Math.random() < 0.35) {
                 break;
             }
+        }
+
+        if (attackCount === 0) {
+            addLog('Browser has no legal attacks and yields the turn.');
+        } else {
+            addLog(`Browser ends its attack phase after ${attackCount} attack${attackCount === 1 ? '' : 's'}.`);
         }
 
         state.current = 'human';
         state.turn += 1;
         state.phase = 'reinforce';
         state.reinforcementRemaining = calculateReinforcements('human');
-        state.sourceId = weakestBorderTerritory('human')?.id || ownedBy('human')[0]?.id || null;
-        state.targetId = null;
+        selectDefaultTerritory('human');
         state.message = `Your turn. Place ${state.reinforcementRemaining} reinforcement${state.reinforcementRemaining === 1 ? '' : 's'}.`;
         addLog('Player turn begins.');
         render();
     };
 
-    const renderTerritory = (territory) => {
-        const button = document.createElement('button');
+    const territoryStateClass = (territory) => {
         const isSelected = territory.id === state.sourceId;
         const isTargeted = territory.id === state.targetId;
+        const source = byId(state.sourceId);
+        const isAttackTarget = state.phase === 'attack'
+            && source
+            && source.owner === 'human'
+            && source.armies > 1
+            && territory.owner === 'ai'
+            && isNeighbor(source, territory.id);
+        const isFortifyTarget = state.phase === 'fortify'
+            && source
+            && source.owner === 'human'
+            && source.armies > 1
+            && territory.owner === 'human'
+            && territory.id !== source.id
+            && isNeighbor(source, territory.id);
 
-        button.type = 'button';
-        button.className = [
+        return [
             'risk-territory',
             `owner-${territory.owner}`,
             isSelected ? 'is-selected' : '',
-            isTargeted ? 'is-targeted' : ''
+            isTargeted ? 'is-targeted' : '',
+            isAttackTarget || isFortifyTarget ? 'is-actionable' : '',
+            state.current === 'ai' ? 'is-disabled' : ''
         ].filter(Boolean).join(' ');
-        button.setAttribute('aria-pressed', isSelected || isTargeted ? 'true' : 'false');
-        button.setAttribute('aria-label', `${territory.name}, ${ownerLabel(territory.owner)}, ${territory.armies} armies, ${territory.region}`);
+    };
+
+    const renderTerritory = (territory) => {
+        const button = document.createElement('button');
+        const label = document.createElement('span');
+        const name = createText('span', 'risk-territory-name', territory.name);
+        const meta = createText('span', 'risk-territory-meta', territory.region);
+        const armies = createText('span', 'risk-territory-armies', String(territory.armies));
+
+        label.className = 'risk-territory-label';
+        label.append(name, meta);
+
+        button.type = 'button';
+        button.className = territoryStateClass(territory);
+        button.dataset.territory = territory.id;
+        button.style.setProperty('--x', `${territory.position[0]}%`);
+        button.style.setProperty('--y', `${territory.position[1]}%`);
+        button.setAttribute('aria-pressed', territory.id === state.sourceId || territory.id === state.targetId ? 'true' : 'false');
+        button.setAttribute('aria-label', `${territory.name}, ${ownerLabel(territory.owner)}, ${pluralArmy(territory.armies)}, ${territory.region}`);
         button.disabled = state.current === 'ai';
         button.addEventListener('click', () => selectTerritory(territory.id));
 
-        button.append(
-            createText('span', 'risk-territory-name', territory.name),
-            createText('span', 'risk-territory-meta', `${territory.region} / ${ownerLabel(territory.owner)}`),
-            createText('span', 'risk-territory-armies', `${territory.armies} arm${territory.armies === 1 ? 'y' : 'ies'}`)
-        );
+        button.append(createEmblem(territory), label, armies);
 
         return button;
     };
 
     const renderMap = () => {
-        elements.map.replaceChildren(...state.territories.map(renderTerritory));
+        const mapImage = document.createElement('img');
+        const layer = document.createElement('div');
+
+        mapImage.className = 'risk-map-art';
+        mapImage.src = mapAsset;
+        mapImage.alt = '';
+        mapImage.decoding = 'async';
+        mapImage.setAttribute('aria-hidden', 'true');
+
+        layer.className = 'risk-territory-layer';
+        layer.append(...state.territories.map(renderTerritory));
+
+        elements.map.replaceChildren(mapImage, layer);
     };
 
     const renderSelection = () => {
@@ -523,12 +627,12 @@
         const rows = [
             ['Territory', source.name],
             ['Owner', ownerLabel(source.owner)],
-            ['Armies', String(source.armies)],
+            ['Armies', pluralArmy(source.armies)],
             ['Neighbors', source.neighbors.map((neighborId) => byId(neighborId)?.name || neighborId).join(', ')]
         ];
 
         if (target) {
-            rows.push(['Target', `${target.name} (${target.armies} armies)`]);
+            rows.push(['Target', `${target.name} (${pluralArmy(target.armies)})`]);
         }
 
         rows.forEach(([term, description]) => {
@@ -537,7 +641,7 @@
             list.append(row);
         });
 
-        help.className = 'risk-status-message';
+        help.className = 'risk-selection-help';
         help.textContent = selectionHelpText(source, target);
         wrapper.append(list, help);
         elements.selection.replaceChildren(wrapper);
@@ -568,7 +672,7 @@
                 : 'Pick one of your territories with at least two armies.';
         }
 
-        return 'Start a new game to play again.';
+        return state.phase === 'gameover' ? 'Start a new game to play again.' : 'Start a new game to deploy armies.';
     };
 
     const renderLog = () => {
@@ -642,7 +746,7 @@
 
     state.territories = territoryDefinitions.map((territory) => ({
         ...territory,
-        owner: 'human',
+        owner: 'neutral',
         armies: 0
     }));
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Risk - wowiekowie.com';
-$metaDescription = 'Play a compact browser-only Risk game on wowiekowie.com.';
+$metaDescription = 'Play a polished browser-only Risk strategy game on wowiekowie.com.';
 $pageStyles = ['/assets/css/risk.css'];
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
@@ -15,8 +15,8 @@ $pageStyles = ['/assets/css/risk.css'];
         <main class="risk-page" data-risk-game>
             <section class="risk-hero" aria-labelledby="risk-title">
                 <p class="eyebrow">Risk table</p>
-                <h1 id="risk-title">Risk in the browser.</h1>
-                <p class="lede">Take the map, reinforce your lines, attack adjacent territory, and hold enough ground to clear the board.</p>
+                <h1 id="risk-title">Risk command map</h1>
+                <p class="lede">Reinforce your front, attack adjacent territory, fortify the line, and outlast the browser across a compact tactical map.</p>
             </section>
 
             <section class="risk-layout" aria-label="Playable Risk game">
