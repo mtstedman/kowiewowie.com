@@ -31,6 +31,7 @@ final class TriviaRepository
         $prompts = $promptInput === null ? null : $this->normalizePrompts($promptInput, $promptMinimum);
         $actor = $this->seatActor($identity);
         $createdLinks = [];
+        $hostRejoinLink = null;
         $publicId = null;
 
         $this->pdo->beginTransaction();
@@ -52,6 +53,7 @@ final class TriviaRepository
             $roomId = (string) $room['id'];
             $publicId = (string) $room['public_id'];
             $host = $this->insertPlayer($roomId, 1, $actor['user_id'], $actor['guest_profile_id'], $actor['display_name'], 'host');
+            $hostRejoinLink = $this->createRecoveryLinkForPlayer($publicId, $host);
 
             $hostStatement = $this->pdo->prepare(<<<'SQL'
                 UPDATE trivia_rooms
@@ -85,6 +87,9 @@ final class TriviaRepository
         }
 
         $room = $this->findRoom($publicId, $identity);
+        if ($hostRejoinLink !== null) {
+            $room['rejoin_link'] = $hostRejoinLink;
+        }
         $room['created_links'] = $createdLinks;
 
         return $room;
@@ -176,6 +181,7 @@ final class TriviaRepository
     {
         $token = $this->normalizeToken($token);
         $publicId = null;
+        $rejoinLink = null;
 
         $this->pdo->beginTransaction();
         try {
@@ -195,6 +201,7 @@ final class TriviaRepository
                 $actor = $this->seatActor($identity);
                 $seatNumber = $this->nextSeatNumber($players, (int) $link['max_players']);
                 $existingSeat = $this->insertPlayer((string) $link['room_id'], $seatNumber, $actor['user_id'], $actor['guest_profile_id'], $actor['display_name'], 'player');
+                $rejoinLink = $this->createRecoveryLinkForPlayer($publicId, $existingSeat);
             }
 
             $claimStatement = $this->pdo->prepare(<<<'SQL'
@@ -227,7 +234,86 @@ final class TriviaRepository
             throw new \RuntimeException('The claimed trivia link is missing its room identifier.');
         }
 
-        return $this->findRoom($publicId, $identity);
+        $room = $this->findRoom($publicId, $identity);
+        if ($rejoinLink !== null) {
+            $room['rejoin_link'] = $rejoinLink;
+        }
+
+        return $room;
+    }
+
+    /** @return array<string, mixed> */
+    public function rejoinPlayer(string $token, array $identity, ?string $expectedPublicId = null): array
+    {
+        $token = $this->normalizeRecoveryToken($token);
+        $expectedPublicId = $expectedPublicId !== null && trim($expectedPublicId) !== ''
+            ? $this->normalizeUuid($expectedPublicId, 'room_id')
+            : null;
+        $actor = $this->seatActor($identity);
+        $publicId = null;
+        $seat = null;
+
+        $this->pdo->beginTransaction();
+        try {
+            $statement = $this->pdo->prepare(<<<'SQL'
+                SELECT p.id, p.room_id, p.seat_number, p.role, p.user_id, p.guest_profile_id,
+                       p.display_name, p.status, p.eliminated_round_id, p.joined_at, p.last_seen_at,
+                       r.public_id, r.status AS room_status
+                FROM trivia_players p
+                JOIN trivia_rooms r ON r.id = p.room_id
+                WHERE p.recovery_token_hash = :token_hash
+                LIMIT 1
+                FOR UPDATE OF p, r
+            SQL);
+            $statement->execute(['token_hash' => hash('sha256', $token)]);
+            $seat = $statement->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($seat)) {
+                throw new ApiException(404, 'rejoin_not_found', 'That trivia rejoin link is not valid.');
+            }
+
+            $publicId = (string) $seat['public_id'];
+            if ($expectedPublicId !== null && $expectedPublicId !== $publicId) {
+                throw new ApiException(409, 'rejoin_room_mismatch', 'That trivia rejoin link belongs to a different room.');
+            }
+
+            $players = $this->loadPlayersForRoom((string) $seat['room_id'], true);
+            $ownedSeat = $this->ownedSeat($players, $identity);
+            if ($ownedSeat !== null && (string) $ownedSeat['id'] !== (string) $seat['id']) {
+                throw new ApiException(409, 'identity_already_seated', 'That identity already occupies a different seat in this trivia room.');
+            }
+
+            $updateStatement = $this->pdo->prepare(<<<'SQL'
+                UPDATE trivia_players
+                SET user_id = :user_id,
+                    guest_profile_id = :guest_profile_id,
+                    display_name = :display_name,
+                    last_seen_at = now(),
+                    recovery_token_last_used_at = now()
+                WHERE id = :id
+            SQL);
+            $updateStatement->execute([
+                'user_id' => $actor['user_id'],
+                'guest_profile_id' => $actor['guest_profile_id'],
+                'display_name' => $actor['display_name'],
+                'id' => $seat['id'],
+            ]);
+
+            $this->pdo->commit();
+        } catch (Throwable $error) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        if ($publicId === null || !is_array($seat)) {
+            throw new \RuntimeException('The trivia rejoin link is missing its room identifier.');
+        }
+
+        $room = $this->findRoom($publicId, $identity);
+        $room['rejoin_link'] = $this->rejoinLinkFromToken($publicId, $token, (int) $seat['seat_number']);
+
+        return $room;
     }
 
     /** @return array<string, mixed> */
@@ -472,7 +558,10 @@ final class TriviaRepository
         if (!is_array($link)) {
             throw new ApiException(404, 'link_not_found', 'That trivia join link is invalid.');
         }
-        if ($link['revoked_at'] !== null || ($link['expires_at'] !== null && strtotime((string) $link['expires_at']) <= time())) {
+        if ($link['revoked_at'] !== null) {
+            throw new ApiException(409, 'link_revoked', 'That trivia join link has been revoked.');
+        }
+        if ($link['expires_at'] !== null && strtotime((string) $link['expires_at']) <= time()) {
             throw new ApiException(410, 'link_expired', 'That trivia join link has expired.');
         }
 
@@ -536,6 +625,52 @@ final class TriviaRepository
         }
 
         return $player;
+    }
+
+    /** @return array<string, mixed> */
+    private function createRecoveryLinkForPlayer(string $publicId, array $player): array
+    {
+        $rawToken = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        $statement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_players
+            SET recovery_token_hash = :token_hash,
+                recovery_token_created_at = now(),
+                recovery_token_last_used_at = NULL
+            WHERE id = :id
+            RETURNING recovery_token_created_at
+        SQL);
+        $statement->execute([
+            'token_hash' => hash('sha256', $rawToken),
+            'id' => $player['id'],
+        ]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            throw new \RuntimeException('The trivia recovery link could not be created.');
+        }
+
+        return [
+            'token' => $rawToken,
+            'url' => $this->rejoinUrl($publicId, $rawToken),
+            'room_public_id' => $publicId,
+            'seat_number' => (int) $player['seat_number'],
+            'created_at' => (string) $row['recovery_token_created_at'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function rejoinLinkFromToken(string $publicId, string $rawToken, int $seatNumber): array
+    {
+        return [
+            'token' => $rawToken,
+            'url' => $this->rejoinUrl($publicId, $rawToken),
+            'room_public_id' => $publicId,
+            'seat_number' => $seatNumber,
+        ];
+    }
+
+    private function rejoinUrl(string $publicId, string $rawToken): string
+    {
+        return '/trivia/game.php?id=' . rawurlencode($publicId) . '&rejoin=' . rawurlencode($rawToken);
     }
 
     /**
@@ -1373,6 +1508,18 @@ final class TriviaRepository
         if (!preg_match('/^[A-Za-z0-9_-]{20,512}$/', $value)) {
             throw new ApiException(422, 'validation_error', 'token must be a valid trivia join token.', [
                 'token' => 'Use the token from the shared trivia link.',
+            ]);
+        }
+
+        return $value;
+    }
+
+    private function normalizeRecoveryToken(string $value): string
+    {
+        $value = trim($value);
+        if (!preg_match('/^[A-Za-z0-9_-]{20,512}$/', $value)) {
+            throw new ApiException(422, 'validation_error', 'token must be a valid trivia rejoin token.', [
+                'token' => 'Use the token from the trivia rejoin link.',
             ]);
         }
 

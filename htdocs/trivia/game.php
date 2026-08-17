@@ -66,6 +66,19 @@ $pageStyles = ['/assets/css/trivia.css'];
                         <div class="trivia-roster" id="trivia-game-roster" aria-live="polite"></div>
                     </section>
 
+                    <section class="trivia-panel" aria-labelledby="trivia-game-rejoin-title" id="trivia-rejoin-section" hidden>
+                        <div class="trivia-section-heading">
+                            <p class="eyebrow">Recovery</p>
+                            <h2 id="trivia-game-rejoin-title">Rejoin link</h2>
+                        </div>
+                        <label class="trivia-field" for="trivia-rejoin-url">
+                            <span>Seat link</span>
+                            <input id="trivia-rejoin-url" type="text" readonly>
+                        </label>
+                        <button class="trivia-button" type="button" id="trivia-copy-rejoin-button">Copy rejoin</button>
+                        <p class="trivia-message" id="trivia-rejoin-message" role="status" aria-live="polite"></p>
+                    </section>
+
                     <section class="trivia-panel" aria-labelledby="trivia-game-meta-title">
                         <div class="trivia-section-heading">
                             <p class="eyebrow">Table</p>

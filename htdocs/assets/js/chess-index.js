@@ -1,4 +1,4 @@
-import { claimLink, createChallengeLink, createGame, getProfile, listGames, requestChess, updateProfile } from './chess-api.js';
+import { claimLink, createChallengeLink, createGame, getProfile, listGames, rejoinGame, requestChess, updateProfile } from './chess-api.js';
 
 const initializationFailureMessage = 'Chess could not finish loading. The create-game controls were not initialized.';
 let elements;
@@ -26,6 +26,10 @@ const resolveElements = () => ({
     joinUrl: requireElement('chess-join-url'),
     copyLinkButton: requireElement('chess-copy-link-button'),
     openGameLink: requireElement('chess-open-game-link'),
+    rejoinBox: requireElement('chess-rejoin-box'),
+    rejoinUrl: requireElement('chess-rejoin-url'),
+    copyRejoinButton: requireElement('chess-copy-rejoin-button'),
+    openRejoinLink: requireElement('chess-open-rejoin-link'),
     profileForm: requireElement('chess-profile-form'),
     displayName: requireElement('chess-display-name'),
     saveNameButton: requireElement('chess-save-name-button'),
@@ -148,6 +152,7 @@ const oppositeColor = (color) => (color === 'black' ? 'white' : 'black');
 const concreteSeatColor = (color) => (color === 'white' || color === 'black' ? color : '');
 
 const gameHref = (gameId) => `/chess/game.php?id=${encodeURIComponent(gameId)}`;
+const rejoinStorageKey = (gameId) => `wowie.chess.rejoin.${gameId}`;
 
 const normalizeGames = (payload) => {
     if (Array.isArray(payload)) {
@@ -238,7 +243,7 @@ const seedProfileName = async () => {
 const renderEmpty = () => {
     const paragraph = document.createElement('p');
     paragraph.className = 'lede chess-state-message';
-    paragraph.textContent = 'No browser-tied games yet. Start a board to keep it here.';
+    paragraph.textContent = 'No saved games yet. Start a board or open a rejoin link to keep it here.';
     elements.gamesList.replaceChildren(paragraph);
 };
 
@@ -313,7 +318,7 @@ const refreshGames = async () => {
     elements.gamesList.replaceChildren();
     const loading = document.createElement('p');
     loading.className = 'lede chess-state-message chess-state-message-loading';
-    loading.textContent = 'Loading your browser-tied games...';
+    loading.textContent = 'Loading your saved games...';
     elements.gamesList.append(loading);
 
     try {
@@ -327,7 +332,7 @@ const refreshGames = async () => {
     } catch (error) {
         const paragraph = document.createElement('p');
         paragraph.className = 'lede chess-state-message chess-state-message-error';
-        paragraph.textContent = errorMessage(error, 'Your browser-tied games could not be loaded. Try refreshing in a moment.');
+        paragraph.textContent = errorMessage(error, 'Your saved games could not be loaded. Try refreshing in a moment.');
         elements.gamesList.replaceChildren(paragraph);
     } finally {
         state.isRefreshing = false;
@@ -503,6 +508,12 @@ const resetChallengeLink = () => {
     elements.openGameLink.href = '';
     elements.openGameLink.hidden = true;
     elements.linkBox.hidden = true;
+    elements.rejoinUrl.value = '';
+    elements.copyRejoinButton.disabled = true;
+    elements.copyRejoinButton.textContent = 'Copy rejoin';
+    elements.openRejoinLink.href = '';
+    elements.openRejoinLink.hidden = true;
+    elements.rejoinBox.hidden = true;
 };
 
 const showChallengeLink = (url, gameId) => {
@@ -521,6 +532,45 @@ const showChallengeLink = (url, gameId) => {
 
     elements.joinUrl.focus({ preventScroll: true });
     elements.joinUrl.select();
+};
+
+const persistRejoinLink = (gameId, url) => {
+    if (!gameId || !url) {
+        return;
+    }
+    try {
+        window.localStorage.setItem(rejoinStorageKey(gameId), url);
+    } catch {
+        // Rejoin links remain copyable even when local storage is unavailable.
+    }
+};
+
+const showRejoinLink = (link, fallbackGameId = '') => {
+    const url = typeof link?.url === 'string' ? new URL(link.url, window.location.origin).toString() : '';
+    const gameId = typeof link?.game_public_id === 'string' && link.game_public_id !== ''
+        ? link.game_public_id
+        : fallbackGameId;
+    if (url === '') {
+        return;
+    }
+
+    elements.rejoinUrl.value = url;
+    elements.copyRejoinButton.disabled = false;
+    elements.copyRejoinButton.textContent = 'Copy rejoin';
+    elements.openRejoinLink.href = url;
+    elements.openRejoinLink.hidden = false;
+    elements.rejoinBox.hidden = false;
+    persistRejoinLink(gameId, url);
+};
+
+const copyText = async (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+    if (!copyWithFallback(text)) {
+        throw new Error('Copy failed.');
+    }
 };
 
 const handleNewGame = async (event) => {
@@ -551,6 +601,8 @@ const handleNewGame = async (event) => {
         if (gameId === '') {
             throw new Error('The new chess game did not return an id.');
         }
+
+        showRejoinLink(game?.rejoin_link, gameId);
 
         if (gameMode === 'local' || gameMode === 'bot') {
             setDisplayName(deriveDisplayName([game]));
@@ -583,7 +635,7 @@ const handleNewGame = async (event) => {
 
         showChallengeLink(linkUrlFromToken(token), gameId);
         setDisplayName(deriveDisplayName([game]));
-        setMessage(elements.createMessage, 'Challenge link is ready. Copy it or open your board.', 'success');
+        setMessage(elements.createMessage, 'Challenge and rejoin links are ready. Copy the rejoin link for this seat.', 'success');
         await refreshGames();
     } catch (error) {
         setMessage(elements.createMessage, errorMessage(error, 'The game could not be created.'), 'error');
@@ -605,11 +657,7 @@ const handleCopy = async () => {
     elements.copyLinkButton.textContent = 'Copying...';
 
     try {
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(value);
-        } else if (!copyWithFallback(value)) {
-            throw new Error('Copy failed.');
-        }
+        await copyText(value);
         elements.copyLinkButton.textContent = 'Copied';
         setMessage(elements.createMessage, 'Challenge link copied.', 'success');
     } catch (error) {
@@ -625,6 +673,32 @@ const handleCopy = async () => {
         window.setTimeout(() => {
             elements.copyLinkButton.disabled = false;
             elements.copyLinkButton.textContent = 'Copy link';
+        }, 1200);
+    }
+};
+
+const handleCopyRejoin = async () => {
+    const value = elements.rejoinUrl.value;
+    if (value === '') {
+        setMessage(elements.createMessage, 'Create, claim, or restore a game before copying a rejoin link.', 'error');
+        return;
+    }
+
+    elements.copyRejoinButton.disabled = true;
+    elements.copyRejoinButton.textContent = 'Copying...';
+
+    try {
+        await copyText(value);
+        elements.copyRejoinButton.textContent = 'Copied';
+        setMessage(elements.createMessage, 'Rejoin link copied.', 'success');
+    } catch (error) {
+        elements.rejoinUrl.focus({ preventScroll: true });
+        elements.rejoinUrl.select();
+        setMessage(elements.createMessage, 'Copy failed. The rejoin link is selected so you can copy it manually.', 'error');
+    } finally {
+        window.setTimeout(() => {
+            elements.copyRejoinButton.disabled = false;
+            elements.copyRejoinButton.textContent = 'Copy rejoin';
         }, 1200);
     }
 };
@@ -658,27 +732,29 @@ const handleProfileSave = async (event) => {
 
 const claimJoinToken = async () => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('join') || params.get('claim') || '';
+    const rejoinToken = params.get('rejoin') || '';
+    const token = rejoinToken || params.get('join') || params.get('claim') || '';
     if (token === '') {
         return false;
     }
 
     elements.joinMessage.hidden = false;
     elements.joinMessage.dataset.tone = 'neutral';
-    elements.joinMessage.textContent = 'Claiming chess challenge...';
+    elements.joinMessage.textContent = rejoinToken ? 'Restoring chess seat...' : 'Claiming chess challenge...';
 
     try {
-        const game = await claimLink(token);
+        const game = rejoinToken ? await rejoinGame(rejoinToken) : await claimLink(token);
         if (typeof game?.id !== 'string' || game.id === '') {
-            throw new Error('The claimed challenge did not return a game.');
+            throw new Error('The chess link did not return a game.');
         }
+        showRejoinLink(game?.rejoin_link, game.id);
         elements.joinMessage.dataset.tone = 'success';
-        elements.joinMessage.textContent = 'Challenge claimed. Opening the board...';
+        elements.joinMessage.textContent = rejoinToken ? 'Seat restored. Opening the board...' : 'Challenge claimed. Opening the board...';
         window.location.assign(gameHref(game.id));
         return true;
     } catch (error) {
         elements.joinMessage.dataset.tone = 'error';
-        elements.joinMessage.textContent = errorMessage(error, 'That chess challenge could not be claimed.');
+        elements.joinMessage.textContent = errorMessage(error, rejoinToken ? 'That chess rejoin link could not be restored.' : 'That chess challenge could not be claimed.');
         return false;
     }
 };
@@ -688,6 +764,7 @@ const initializeChessIndex = () => {
 
     elements.newGameForm.addEventListener('submit', handleNewGame);
     elements.copyLinkButton.addEventListener('click', handleCopy);
+    elements.copyRejoinButton.addEventListener('click', handleCopyRejoin);
     elements.profileForm.addEventListener('submit', handleProfileSave);
 
     initialized = true;

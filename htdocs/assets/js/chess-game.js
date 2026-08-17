@@ -1,4 +1,4 @@
-import { cancelTakeback, getGame, getProfile, getPromotionOptions, listMoves, requestTakeback, resignGame, submitMove, updateProfile } from './chess-api.js';
+import { cancelTakeback, getGame, getProfile, getPromotionOptions, listMoves, rejoinGame, requestTakeback, resignGame, submitMove, updateProfile } from './chess-api.js';
 
 const BOARD_FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const BOARD_RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
@@ -67,6 +67,10 @@ const resolveElements = () => {
         promotionDialog: currentDocument?.getElementById('chess-promotion-dialog') || null,
         promotionOptions: currentDocument?.getElementById('chess-promotion-options') || null,
         promotionCancel: currentDocument?.getElementById('chess-promotion-cancel') || null,
+        rejoinSection: currentDocument?.getElementById('chess-rejoin-section') || null,
+        rejoinUrl: currentDocument?.getElementById('chess-rejoin-url') || null,
+        copyRejoinButton: currentDocument?.getElementById('chess-copy-rejoin-button') || null,
+        rejoinMessage: currentDocument?.getElementById('chess-rejoin-message') || null,
     };
 };
 
@@ -185,6 +189,7 @@ const errorMessage = (error, fallback) => {
 
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const normalizeUuid = (value) => String(value || '').trim().toLowerCase();
+const rejoinStorageKey = (gameId) => `wowie.chess.rejoin.${gameId}`;
 
 const notificationsSupported = () => 'Notification' in window;
 
@@ -271,6 +276,85 @@ const readGameId = () => {
     const params = new URLSearchParams(window.location.search);
     const id = normalizeUuid(params.get('id'));
     return UUID_PATTERN.test(id) ? id : '';
+};
+
+const readRejoinToken = () => new URLSearchParams(window.location.search).get('rejoin') || '';
+
+const cleanRejoinParam = () => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('rejoin')) {
+        return;
+    }
+    url.searchParams.delete('rejoin');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+};
+
+const copyWithFallback = (text) => {
+    const helper = document.createElement('textarea');
+    helper.value = text;
+    helper.setAttribute('readonly', 'readonly');
+    helper.style.position = 'fixed';
+    helper.style.opacity = '0';
+    helper.style.pointerEvents = 'none';
+    document.body.appendChild(helper);
+    helper.focus();
+    helper.select();
+    helper.setSelectionRange(0, helper.value.length);
+    try {
+        return document.execCommand('copy');
+    } finally {
+        helper.remove();
+    }
+};
+
+const copyText = async (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+    if (!copyWithFallback(text)) {
+        throw new Error('Copy failed.');
+    }
+};
+
+const persistRejoinLink = (gameId, url) => {
+    if (!gameId || !url) {
+        return;
+    }
+    try {
+        window.localStorage.setItem(rejoinStorageKey(gameId), url);
+    } catch {
+        // The visible input still lets the player copy the link manually.
+    }
+};
+
+const showRejoinUrl = (url) => {
+    if (!elements.rejoinSection || !elements.rejoinUrl || !elements.copyRejoinButton || !url) {
+        return;
+    }
+    elements.rejoinUrl.value = url;
+    elements.copyRejoinButton.disabled = false;
+    elements.rejoinSection.hidden = false;
+};
+
+const showStoredRejoinLink = () => {
+    if (state.gameId === '') {
+        return;
+    }
+    try {
+        showRejoinUrl(window.localStorage.getItem(rejoinStorageKey(state.gameId)) || '');
+    } catch {
+        // Storage may be unavailable; URL-based rejoin still works.
+    }
+};
+
+const storeApiRejoinLink = (link) => {
+    const url = typeof link?.url === 'string' ? new URL(link.url, window.location.origin).toString() : '';
+    if (url === '') {
+        return;
+    }
+    persistRejoinLink(state.gameId, url);
+    showRejoinUrl(url);
 };
 
 const squareName = (fileIndex, rankIndex) => `${BOARD_FILES[fileIndex]}${BOARD_RANKS[rankIndex]}`;
@@ -1011,6 +1095,48 @@ const seedProfileName = async () => {
     }
 };
 
+const restoreSeatFromUrl = async () => {
+    const token = readRejoinToken();
+    if (token === '') {
+        showStoredRejoinLink();
+        return;
+    }
+
+    setMessage(elements.rejoinMessage || elements.boardMessage, 'Restoring your chess seat...', 'neutral');
+    try {
+        const game = await rejoinGame(token, state.gameId);
+        storeApiRejoinLink(game?.rejoin_link);
+        cleanRejoinParam();
+        setMessage(elements.rejoinMessage || elements.boardMessage, 'Chess seat restored. Save the rejoin link for this seat.', 'success');
+    } catch (error) {
+        setMessage(elements.rejoinMessage || elements.boardMessage, errorMessage(error, 'That chess rejoin link could not be restored.'), 'error');
+    }
+};
+
+const handleCopyRejoin = async () => {
+    const value = elements.rejoinUrl?.value || '';
+    if (value === '') {
+        setMessage(elements.rejoinMessage || elements.boardMessage, 'No rejoin link is saved for this browser yet.', 'error');
+        return;
+    }
+
+    elements.copyRejoinButton.disabled = true;
+    try {
+        await copyText(value);
+        elements.copyRejoinButton.textContent = 'Copied';
+        setMessage(elements.rejoinMessage || elements.boardMessage, 'Rejoin link copied.', 'success');
+    } catch {
+        elements.rejoinUrl.focus({ preventScroll: true });
+        elements.rejoinUrl.select();
+        setMessage(elements.rejoinMessage || elements.boardMessage, 'Copy failed. The rejoin link is selected so you can copy it manually.', 'error');
+    } finally {
+        window.setTimeout(() => {
+            elements.copyRejoinButton.disabled = false;
+            elements.copyRejoinButton.textContent = 'Copy rejoin';
+        }, 1200);
+    }
+};
+
 const init = () => {
     elements = resolveElements();
     elements.board.tabIndex = -1;
@@ -1029,6 +1155,7 @@ const init = () => {
     elements.fullscreenToggle.addEventListener('click', handleFullscreenToggle);
     elements.fullscreenExit.addEventListener('click', () => setBoardFullscreen(false));
     elements.profileForm.addEventListener('submit', handleProfileSave);
+    elements.copyRejoinButton?.addEventListener('click', handleCopyRejoin);
     elements.notificationToggle.addEventListener('change', handleNotificationToggle);
     elements.promotionOptions.addEventListener('click', handlePromotionClick);
     elements.promotionCancel.addEventListener('click', () => closePromotionDialog(null));
@@ -1037,8 +1164,10 @@ const init = () => {
     window.addEventListener('beforeunload', stopPolling);
 
     seedProfileName();
-    refresh();
-    startPolling();
+    restoreSeatFromUrl().finally(() => {
+        refresh();
+        startPolling();
+    });
 };
 
 const handleInitializationFailure = (error) => {

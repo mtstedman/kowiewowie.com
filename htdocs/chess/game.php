@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Chess game - wowiekowie.com';
-$metaDescription = 'Play a guest chess game with browser-tied seats on wowiekowie.com.';
+$metaDescription = 'Play a guest chess game with durable seat rejoin links on wowiekowie.com.';
 $pageStyles = ['/assets/css/chess.css'];
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
@@ -56,6 +56,19 @@ $pageStyles = ['/assets/css/chess.css'];
                             <dt>You</dt>
                             <dd id="chess-viewer-player">Guest player</dd>
                         </dl>
+                    </section>
+
+                    <section class="chess-game-detail-section" aria-labelledby="chess-rejoin-title" id="chess-rejoin-section" hidden>
+                        <div class="chess-section-heading">
+                            <p class="eyebrow">Recovery</p>
+                            <h2 id="chess-rejoin-title">Rejoin link</h2>
+                        </div>
+                        <label class="chess-field" for="chess-rejoin-url">
+                            <span>Seat link</span>
+                            <input id="chess-rejoin-url" type="text" readonly>
+                        </label>
+                        <button class="chess-button" type="button" id="chess-copy-rejoin-button">Copy rejoin</button>
+                        <p class="chess-message" id="chess-rejoin-message" role="status" aria-live="polite"></p>
                     </section>
 
                     <section class="chess-game-detail-section" aria-labelledby="chess-profile-title">

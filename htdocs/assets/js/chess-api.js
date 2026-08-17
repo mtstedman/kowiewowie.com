@@ -107,6 +107,14 @@ export const claimLink = (token) => requestChess('/links/claim', {
     body: { token },
 });
 
+export const rejoinGame = (token, gameId = '') => {
+    const body = gameId === '' ? { token } : { token, game_id: gameId };
+    return requestChess(gameId === '' ? '/rejoin' : `/games/${encodeURIComponent(gameId)}/rejoin`, {
+        method: 'POST',
+        body,
+    });
+};
+
 export const listMoves = (gameId) => requestChess(`/games/${encodeURIComponent(gameId)}/moves`);
 
 export const submitMove = (gameId, payload) => requestChess(`/games/${encodeURIComponent(gameId)}/moves`, {
@@ -145,6 +153,7 @@ export default Object.freeze({
     getGame,
     createChallengeLink,
     claimLink,
+    rejoinGame,
     listMoves,
     submitMove,
     resignGame,

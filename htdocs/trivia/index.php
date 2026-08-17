@@ -63,6 +63,15 @@ $pageStyles = ['/assets/css/trivia.css'];
                             <a class="trivia-text-link" id="trivia-open-game-link" href="/trivia/game.php" hidden>Open room</a>
                         </div>
 
+                        <div class="trivia-copy-box" id="trivia-rejoin-box" hidden>
+                            <label class="trivia-field" for="trivia-rejoin-url">
+                                <span>Your rejoin link</span>
+                                <input id="trivia-rejoin-url" type="text" readonly>
+                            </label>
+                            <button class="trivia-button" type="button" id="trivia-copy-rejoin-button">Copy rejoin</button>
+                            <a class="trivia-text-link" id="trivia-open-rejoin-link" href="/trivia/game.php" hidden>Open rejoin</a>
+                        </div>
+
                         <div class="trivia-invite-list" id="trivia-invite-list" hidden></div>
 
                         <p class="trivia-message" id="trivia-create-message" role="status" aria-live="polite"></p>
@@ -88,7 +97,7 @@ $pageStyles = ['/assets/css/trivia.css'];
                     <section class="trivia-panel" aria-labelledby="trivia-rooms-title">
                         <div class="trivia-section-heading">
                             <p class="eyebrow">Your rooms</p>
-                            <h2 id="trivia-rooms-title">Browser-tied trivia</h2>
+                            <h2 id="trivia-rooms-title">Saved trivia</h2>
                         </div>
 
                         <div class="trivia-room-list" id="trivia-room-list" aria-live="polite">

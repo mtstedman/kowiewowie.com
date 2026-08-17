@@ -1,4 +1,4 @@
-import { TriviaApiError, advanceRound, getRoom, startRoom, submitAnswer } from './trivia-api.js';
+import { TriviaApiError, advanceRound, getRoom, rejoinRoom, startRoom, submitAnswer } from './trivia-api.js';
 
 const requireElement = (id) => {
     const element = document.getElementById(id);
@@ -32,6 +32,10 @@ const elements = {
     metaRound: requireElement('trivia-meta-round'),
     metaAnswers: requireElement('trivia-meta-answers'),
     metaViewer: requireElement('trivia-meta-viewer'),
+    rejoinSection: requireElement('trivia-rejoin-section'),
+    rejoinUrl: requireElement('trivia-rejoin-url'),
+    copyRejoinButton: requireElement('trivia-copy-rejoin-button'),
+    rejoinMessage: requireElement('trivia-rejoin-message'),
 };
 
 const state = {
@@ -57,6 +61,64 @@ const errorMessage = (error, fallback) => {
     }
 
     return fallback;
+};
+
+const rejoinStorageKey = (roomId) => `wowie.trivia.rejoin.${roomId}`;
+const readRejoinToken = () => new URLSearchParams(window.location.search).get('rejoin') || '';
+
+const cleanRejoinParam = () => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('rejoin')) {
+        return;
+    }
+    url.searchParams.delete('rejoin');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+};
+
+const persistRejoinLink = (roomId, url) => {
+    if (!roomId || !url) {
+        return;
+    }
+    try {
+        window.localStorage.setItem(rejoinStorageKey(roomId), url);
+    } catch {
+        // Keep the visible link as the manual fallback.
+    }
+};
+
+const showRejoinUrl = (url) => {
+    if (!url) {
+        return;
+    }
+    elements.rejoinUrl.value = url;
+    elements.rejoinSection.hidden = false;
+};
+
+const showStoredRejoinLink = () => {
+    try {
+        showRejoinUrl(window.localStorage.getItem(rejoinStorageKey(state.roomId)) || '');
+    } catch {
+        // Storage may be unavailable; URL-based rejoin still works.
+    }
+};
+
+const storeApiRejoinLink = (link) => {
+    const url = typeof link?.url === 'string' ? new URL(link.url, window.location.origin).toString() : '';
+    if (url === '') {
+        return;
+    }
+    persistRejoinLink(state.roomId, url);
+    showRejoinUrl(url);
+};
+
+const copyWithFallback = async (text) => {
+    if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+    elements.rejoinUrl.focus({ preventScroll: true });
+    elements.rejoinUrl.select();
+    document.execCommand('copy');
 };
 
 const activePlayers = (room) => (Array.isArray(room?.players) ? room.players : [])
@@ -317,6 +379,42 @@ const renderRoom = (room) => {
     elements.metaViewer.textContent = viewer ? `${viewer.display_name}, ${viewer.status}` : 'Spectator';
 };
 
+const restoreSeatFromUrl = async () => {
+    const token = readRejoinToken();
+    if (token === '') {
+        showStoredRejoinLink();
+        return;
+    }
+
+    setMessage(elements.rejoinMessage, 'Restoring your trivia seat...', 'neutral');
+    try {
+        const room = await rejoinRoom(token, state.roomId);
+        storeApiRejoinLink(room?.rejoin_link);
+        cleanRejoinParam();
+        setMessage(elements.rejoinMessage, 'Trivia seat restored. Save the rejoin link for this seat.', 'success');
+    } catch (error) {
+        setMessage(elements.rejoinMessage, errorMessage(error, 'That trivia rejoin link could not be restored.'), 'error');
+    }
+};
+
+const handleCopyRejoin = async () => {
+    const value = elements.rejoinUrl.value;
+    if (value === '') {
+        setMessage(elements.rejoinMessage, 'No rejoin link is saved for this browser yet.', 'error');
+        return;
+    }
+
+    try {
+        await copyWithFallback(value);
+        elements.copyRejoinButton.textContent = 'Copied';
+        setMessage(elements.rejoinMessage, 'Rejoin link copied.', 'success');
+    } catch (error) {
+        elements.rejoinUrl.focus({ preventScroll: true });
+        elements.rejoinUrl.select();
+        setMessage(elements.rejoinMessage, 'Copy failed. Select the rejoin link and copy it manually.', 'error');
+    }
+};
+
 const refreshRoom = async () => {
     if (state.roomId === '') {
         elements.error.hidden = false;
@@ -421,10 +519,12 @@ const handleRoundAction = async (action) => {
 };
 
 elements.answerForm.addEventListener('submit', submitCurrentAnswer);
+elements.copyRejoinButton.addEventListener('click', handleCopyRejoin);
 elements.startButton.addEventListener('click', handleStartRoom);
 elements.resolveButton.addEventListener('click', () => handleRoundAction('resolve'));
 elements.advanceButton.addEventListener('click', () => handleRoundAction('advance'));
 
+await restoreSeatFromUrl();
 await refreshRoom();
 state.pollTimer = window.setInterval(refreshRoom, 4000);
 state.clockTimer = window.setInterval(() => {

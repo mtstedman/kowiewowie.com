@@ -42,6 +42,7 @@ final class ChessRepository
         $opponentColor = $creatorColor === 'white' ? 'black' : 'white';
         $startingFen = $this->startingFenForVariant($variant);
         $createdLinks = [];
+        $creatorRejoinLink = null;
         $publicId = null;
 
         $this->pdo->beginTransaction();
@@ -74,6 +75,7 @@ final class ChessRepository
             ]);
 
             $creatorSeat = $this->insertPlayerSeat($gameId, $creatorColor, $actor['user_id'], $actor['guest_profile_id'], $actor['display_name']);
+            $creatorRejoinLink = $this->createRecoveryLinkForSeat($publicId, $creatorSeat);
             $opponentSeat = $this->insertPlayerSeat($gameId, $opponentColor, null, null, $this->emptySeatDisplayName($opponentColor, $mode));
 
             if ($mode === 'bot' && $opponentColor === 'white') {
@@ -105,11 +107,12 @@ final class ChessRepository
         }
 
         $game = $this->findGame($publicId, $identity);
-        if ($createdLinks === []) {
-            return $game;
+        if ($creatorRejoinLink !== null) {
+            $game['rejoin_link'] = $creatorRejoinLink;
         }
-
-        $game['created_links'] = $createdLinks;
+        if ($createdLinks !== []) {
+            $game['created_links'] = $createdLinks;
+        }
 
         return $game;
     }
@@ -704,6 +707,7 @@ final class ChessRepository
 
         $tokenHash = hash('sha256', $rawToken);
         $publicId = null;
+        $rejoinLink = null;
 
         $this->pdo->beginTransaction();
         try {
@@ -805,6 +809,7 @@ final class ChessRepository
                 WHERE id = :id
             SQL);
             $gameStatement->execute(['id' => $link['game_id']]);
+            $rejoinLink = $this->createRecoveryLinkForSeat($publicId, $seat);
 
             $this->pdo->commit();
         } catch (Throwable $error) {
@@ -818,7 +823,98 @@ final class ChessRepository
             throw new \RuntimeException('The claimed chess link is missing its game identifier.');
         }
 
-        return $this->findGame($publicId, $identity);
+        $game = $this->findGame($publicId, $identity);
+        if ($rejoinLink !== null) {
+            $game['rejoin_link'] = $rejoinLink;
+        }
+
+        return $game;
+    }
+
+    /**
+     * @param array<string, mixed> $identity
+     * @return array<string, mixed>
+     */
+    public function rejoinSeat(string $rawToken, array $identity, ?string $expectedPublicId = null): array
+    {
+        $rawToken = $this->normalizeRecoveryToken($rawToken);
+        $expectedPublicId = $expectedPublicId !== null && trim($expectedPublicId) !== ''
+            ? $this->normalizeUuid($expectedPublicId, 'game_id')
+            : null;
+        $actor = $this->seatActor($identity);
+        $publicId = null;
+        $seat = null;
+
+        $this->pdo->beginTransaction();
+        try {
+            $statement = $this->pdo->prepare(<<<'SQL'
+                SELECT
+                    p.id,
+                    p.game_id,
+                    p.color,
+                    p.user_id,
+                    p.guest_profile_id,
+                    p.display_name,
+                    p.joined_at,
+                    p.last_seen_at,
+                    g.public_id,
+                    g.status
+                FROM chess_game_players p
+                JOIN chess_games g
+                  ON g.id = p.game_id
+                WHERE p.recovery_token_hash = :token_hash
+                LIMIT 1
+                FOR UPDATE OF p, g
+            SQL);
+            $statement->execute(['token_hash' => hash('sha256', $rawToken)]);
+            $seat = $statement->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($seat)) {
+                throw new ApiException(404, 'rejoin_not_found', 'That chess rejoin link is not valid.');
+            }
+
+            $publicId = (string) $seat['public_id'];
+            if ($expectedPublicId !== null && $expectedPublicId !== $publicId) {
+                throw new ApiException(409, 'rejoin_game_mismatch', 'That chess rejoin link belongs to a different game.');
+            }
+
+            $players = $this->loadPlayersForGame((string) $seat['game_id'], true);
+            $ownedSeat = $this->ownedSeat($players, $identity);
+            if ($ownedSeat !== null && (string) $ownedSeat['id'] !== (string) $seat['id']) {
+                throw new ApiException(409, 'identity_already_seated', 'That identity already occupies a different seat in this game.');
+            }
+
+            $updateStatement = $this->pdo->prepare(<<<'SQL'
+                UPDATE chess_game_players
+                SET user_id = :user_id,
+                    guest_profile_id = :guest_profile_id,
+                    display_name = :display_name,
+                    last_seen_at = now(),
+                    recovery_token_last_used_at = now()
+                WHERE id = :id
+            SQL);
+            $updateStatement->execute([
+                'user_id' => $actor['user_id'],
+                'guest_profile_id' => $actor['guest_profile_id'],
+                'display_name' => $actor['display_name'],
+                'id' => $seat['id'],
+            ]);
+
+            $this->pdo->commit();
+        } catch (Throwable $error) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        if ($publicId === null || !is_array($seat)) {
+            throw new \RuntimeException('The chess rejoin link is missing its game identifier.');
+        }
+
+        $game = $this->findGame($publicId, $identity);
+        $game['rejoin_link'] = $this->rejoinLinkFromToken($publicId, $rawToken, (string) $seat['color']);
+
+        return $game;
     }
 
     /**
@@ -1299,6 +1395,64 @@ final class ChessRepository
         }
 
         throw new ApiException(401, 'identity_required', 'A chess guest identity is required for this request.');
+    }
+
+    /** @return array<string, mixed> */
+    private function createRecoveryLinkForSeat(string $publicId, array $seat): array
+    {
+        $rawToken = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        $statement = $this->pdo->prepare(<<<'SQL'
+            UPDATE chess_game_players
+            SET recovery_token_hash = :token_hash,
+                recovery_token_created_at = now(),
+                recovery_token_last_used_at = NULL
+            WHERE id = :id
+            RETURNING recovery_token_created_at
+        SQL);
+        $statement->execute([
+            'token_hash' => hash('sha256', $rawToken),
+            'id' => $seat['id'],
+        ]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            throw new \RuntimeException('The chess recovery link could not be created.');
+        }
+
+        return [
+            'token' => $rawToken,
+            'url' => $this->rejoinUrl($publicId, $rawToken),
+            'game_public_id' => $publicId,
+            'seat_color' => (string) $seat['color'],
+            'created_at' => (string) $row['recovery_token_created_at'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function rejoinLinkFromToken(string $publicId, string $rawToken, string $seatColor): array
+    {
+        return [
+            'token' => $rawToken,
+            'url' => $this->rejoinUrl($publicId, $rawToken),
+            'game_public_id' => $publicId,
+            'seat_color' => $seatColor,
+        ];
+    }
+
+    private function rejoinUrl(string $publicId, string $rawToken): string
+    {
+        return '/chess/game.php?id=' . rawurlencode($publicId) . '&rejoin=' . rawurlencode($rawToken);
+    }
+
+    private function normalizeRecoveryToken(string $value): string
+    {
+        $value = trim($value);
+        if (!preg_match('/^[A-Za-z0-9_-]{20,512}$/', $value)) {
+            throw new ApiException(422, 'validation_error', 'token must be a valid chess rejoin token.', [
+                'token' => 'Use the token from the chess rejoin link.',
+            ]);
+        }
+
+        return $value;
     }
 
     /** @return array<string, mixed> */

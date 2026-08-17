@@ -298,6 +298,24 @@ final class Application
                 'data' => $this->chess->claimLink($matches[1], $identity),
             ]), $identity);
         }
+        if ($request->method === 'POST' && $request->path === '/v1/chess/rejoin') {
+            $identity = $this->resolveChessIdentity($request);
+            $body = $request->json();
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->chess->rejoinSeat(
+                    (string) ($body['token'] ?? ''),
+                    $identity,
+                    isset($body['game_id']) ? (string) $body['game_id'] : null,
+                ),
+            ]), $identity);
+        }
+        if ($request->method === 'POST' && preg_match('#^/v1/chess/games/([A-Fa-f0-9-]{36})/rejoin$#', $request->path, $matches)) {
+            $identity = $this->resolveChessIdentity($request);
+            $body = $request->json();
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->chess->rejoinSeat((string) ($body['token'] ?? ''), $identity, $matches[1]),
+            ]), $identity);
+        }
 
         if (preg_match('#^/v1/chess/games/([A-Fa-f0-9-]{36})$#', $request->path, $matches)) {
             $identity = $this->resolveChessIdentity($request);
@@ -416,6 +434,24 @@ final class Application
             $identity = $this->resolveTriviaIdentity($request);
             return $this->withChessIdentity(Response::json([
                 'data' => $this->trivia->claimLink($matches[1], $identity),
+            ]), $identity);
+        }
+        if ($request->method === 'POST' && $request->path === '/v1/trivia/rejoin') {
+            $identity = $this->resolveTriviaIdentity($request);
+            $body = $request->json();
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->trivia->rejoinPlayer(
+                    (string) ($body['token'] ?? ''),
+                    $identity,
+                    isset($body['room_id']) ? (string) $body['room_id'] : null,
+                ),
+            ]), $identity);
+        }
+        if ($request->method === 'POST' && preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/rejoin$#', $request->path, $matches)) {
+            $identity = $this->resolveTriviaIdentity($request);
+            $body = $request->json();
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->trivia->rejoinPlayer((string) ($body['token'] ?? ''), $identity, $matches[1]),
             ]), $identity);
         }
 

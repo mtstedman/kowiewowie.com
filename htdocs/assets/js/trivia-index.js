@@ -1,4 +1,4 @@
-import { TriviaApiError, claimLink, createJoinLink, createRoom, getRoom, listRooms, startRoom } from './trivia-api.js';
+import { TriviaApiError, claimLink, createJoinLink, createRoom, getRoom, listRooms, rejoinRoom, startRoom } from './trivia-api.js';
 
 const requireElement = (id) => {
     const element = document.getElementById(id);
@@ -17,6 +17,10 @@ const elements = {
     joinUrl: requireElement('trivia-join-url'),
     copyButton: requireElement('trivia-copy-link-button'),
     openGameLink: requireElement('trivia-open-game-link'),
+    rejoinBox: requireElement('trivia-rejoin-box'),
+    rejoinUrl: requireElement('trivia-rejoin-url'),
+    copyRejoinButton: requireElement('trivia-copy-rejoin-button'),
+    openRejoinLink: requireElement('trivia-open-rejoin-link'),
     inviteList: requireElement('trivia-invite-list'),
     createMessage: requireElement('trivia-create-message'),
     joinMessage: requireElement('trivia-join-message'),
@@ -36,6 +40,7 @@ const state = {
 };
 
 const roomHref = (roomId) => `/trivia/game.php?id=${encodeURIComponent(roomId)}`;
+const rejoinStorageKey = (roomId) => `wowie.trivia.rejoin.${roomId}`;
 
 const setMessage = (element, message = '', tone = '') => {
     element.textContent = message;
@@ -79,6 +84,34 @@ const linkUrlFromToken = (token) => {
     const url = new URL('/trivia/', window.location.origin);
     url.searchParams.set('join', token);
     return url.toString();
+};
+
+const persistRejoinLink = (roomId, url) => {
+    if (!roomId || !url) {
+        return;
+    }
+    try {
+        window.localStorage.setItem(rejoinStorageKey(roomId), url);
+    } catch {
+        // The link remains visible for manual copy when storage is unavailable.
+    }
+};
+
+const showRejoinLink = (link, fallbackRoomId = '') => {
+    const url = typeof link?.url === 'string' ? new URL(link.url, window.location.origin).toString() : '';
+    const roomId = typeof link?.room_public_id === 'string' && link.room_public_id !== ''
+        ? link.room_public_id
+        : fallbackRoomId;
+    if (url === '') {
+        return;
+    }
+
+    elements.rejoinUrl.value = url;
+    elements.copyRejoinButton.textContent = 'Copy rejoin';
+    elements.rejoinBox.hidden = false;
+    elements.openRejoinLink.href = url;
+    elements.openRejoinLink.hidden = false;
+    persistRejoinLink(roomId, url);
 };
 
 const copyWithFallback = async (text) => {
@@ -264,7 +297,7 @@ const renderRoomList = (rooms) => {
     if (rooms.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'lede trivia-state-message';
-        empty.textContent = 'No browser-tied trivia rooms yet.';
+        empty.textContent = 'No saved trivia rooms yet. Create a room or open a rejoin link.';
         elements.roomList.append(empty);
         return;
     }
@@ -323,10 +356,11 @@ const handleCreateRoom = async (event) => {
             createdLinks.push(await createJoinLink(room.id, {}));
         }
         showJoinLink(linkUrlFromApiLink(createdLinks[0]), room.id);
+        showRejoinLink(room?.rejoin_link, room.id);
         showInviteLinks(createdLinks, room);
         renderCurrentRoom(room);
         scheduleRoomPolling();
-        setMessage(elements.createMessage, 'Room created. Copy one invite link for each remaining seat.', 'success');
+        setMessage(elements.createMessage, 'Room created. Copy your rejoin link and one invite link for each remaining seat.', 'success');
         await refreshRooms();
     } catch (error) {
         setMessage(elements.createMessage, errorMessage(error, 'The trivia room could not be created.'), 'error');
@@ -351,6 +385,24 @@ const handleCopy = async () => {
     }
 };
 
+const handleCopyRejoin = async () => {
+    const value = elements.rejoinUrl.value;
+    if (value === '') {
+        setMessage(elements.createMessage, 'Create, claim, or restore a room before copying a rejoin link.', 'error');
+        return;
+    }
+
+    try {
+        await copyWithFallback(value);
+        elements.copyRejoinButton.textContent = 'Copied';
+        setMessage(elements.createMessage, 'Rejoin link copied.', 'success');
+    } catch (error) {
+        elements.rejoinUrl.focus({ preventScroll: true });
+        elements.rejoinUrl.select();
+        setMessage(elements.createMessage, 'Copy failed. Select the rejoin link and copy it manually.', 'error');
+    }
+};
+
 const handleStart = async () => {
     if (!state.currentRoom?.id) {
         return;
@@ -371,21 +423,23 @@ const handleStart = async () => {
 
 const claimJoinToken = async () => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('join') || params.get('claim') || params.get('token') || '';
+    const rejoinToken = params.get('rejoin') || '';
+    const token = rejoinToken || params.get('join') || params.get('claim') || params.get('token') || '';
     if (token === '') {
         return;
     }
 
     elements.joinMessage.hidden = false;
     elements.joinMessage.dataset.tone = 'neutral';
-    elements.joinMessage.textContent = 'Claiming trivia invite...';
+    elements.joinMessage.textContent = rejoinToken ? 'Restoring trivia seat...' : 'Claiming trivia invite...';
 
     try {
-        const room = await claimLink(token);
+        const room = rejoinToken ? await rejoinRoom(rejoinToken) : await claimLink(token);
+        showRejoinLink(room?.rejoin_link, room.id);
         elements.joinMessage.dataset.tone = 'success';
         elements.joinMessage.textContent = room.status === 'finished'
-            ? 'You joined the room, but this trivia game has already finished.'
-            : 'Seat claimed. Opening the live trivia room...';
+            ? 'Seat restored for a finished trivia game.'
+            : (rejoinToken ? 'Seat restored. Opening the live trivia room...' : 'Seat claimed. Opening the live trivia room...');
         renderCurrentRoom(room);
         scheduleRoomPolling();
         await refreshRooms();
@@ -393,12 +447,13 @@ const claimJoinToken = async () => {
         window.setTimeout(() => window.location.assign(roomHref(room.id)), 700);
     } catch (error) {
         elements.joinMessage.dataset.tone = 'error';
-        elements.joinMessage.textContent = errorMessage(error, 'This trivia invite is invalid, expired, or the room is full.');
+        elements.joinMessage.textContent = errorMessage(error, rejoinToken ? 'This trivia rejoin link could not be restored.' : 'This trivia invite is invalid, expired, or the room is full.');
     }
 };
 
 elements.form.addEventListener('submit', handleCreateRoom);
 elements.copyButton.addEventListener('click', handleCopy);
+elements.copyRejoinButton.addEventListener('click', handleCopyRejoin);
 elements.startButton.addEventListener('click', handleStart);
 
 await refreshRooms();

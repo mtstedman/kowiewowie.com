@@ -1,9 +1,9 @@
-<!-- schema-version: 8 -->
+<!-- schema-version: 9 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 8**. `migration-chain.json` is the ordered,
+current release pin is **version 9**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -25,11 +25,12 @@ per-file execution ledger.
 | 6 | `006_chess_opening_book.sql` | ECO opening labels and a transposition-aware graph of book positions and moves |
 | 7 | `007_trivia_games.sql` | Shared-link trivia rooms, seated players, prompts, timed rounds, answer records, eliminations, and winner state |
 | 8 | `008_trivia_question_bank.sql` | Persistent shared trivia question catalog used to seed default room prompts |
+| 9 | `009_durable_game_rejoin_links.sql` | Hashed per-seat chess and trivia recovery tokens for durable rejoin after browser identity loss |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 8 inventory
+## Current version 9 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -67,7 +68,9 @@ expiry and last-seen timestamps so stale guest identities can be cleaned up.
 `chess_game_players` assigns at most one white and one black seat. A seat can
 refer to either a registered user or a guest profile, and it always keeps a
 display-name snapshot so historical games remain readable if the identity is
-later removed.
+later removed. Each seated player can also carry one nullable recovery-token
+hash plus created/last-used timestamps; the raw URL-safe recovery token is shown
+only when minted or used and is never stored in PostgreSQL.
 
 Every game has a random `public_id` for a stable URL. Treat that ID as a public
 locator, not as authorization to make moves. `chess_game_links` stores only the
@@ -135,6 +138,9 @@ same room.
 display-name snapshots, active/eliminated/left status, and the round that
 eliminated a player. A user or guest profile can occupy only one seat per room,
 so possession of a shared link cannot impersonate a different seated player.
+Each seated player can also carry one nullable recovery-token hash plus
+created/last-used timestamps; the raw URL-safe recovery token is shown only when
+minted or used and is never stored in PostgreSQL.
 
 `trivia_room_links` stores only SHA-256 hashes of raw URL-safe join tokens,
 optional expiry/revocation timestamps, and the host seat that created each link.

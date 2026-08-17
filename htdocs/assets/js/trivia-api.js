@@ -107,6 +107,14 @@ export const claimLink = (token) => requestTrivia('/links/claim', {
     body: { token },
 });
 
+export const rejoinRoom = (token, roomId = '') => {
+    const body = roomId === '' ? { token } : { token, room_id: roomId };
+    return requestTrivia(roomId === '' ? '/rejoin' : `/rooms/${encodeURIComponent(roomId)}/rejoin`, {
+        method: 'POST',
+        body,
+    });
+};
+
 export const startRoom = (roomId) => requestTrivia(`/rooms/${encodeURIComponent(roomId)}/start`, {
     method: 'POST',
 });
