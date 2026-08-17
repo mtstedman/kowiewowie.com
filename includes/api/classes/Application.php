@@ -16,6 +16,7 @@ use Wowie\Api\Content\ContentRepository;
 use Wowie\Api\Content\ScryfallClient;
 use Wowie\Api\Http\Request;
 use Wowie\Api\Http\Response;
+use Wowie\Api\OpenDeck\OpenDeckSchedulerRepository;
 use Wowie\Api\Trivia\TriviaIdentityService;
 use Wowie\Api\Trivia\TriviaRepository;
 
@@ -29,6 +30,7 @@ final class Application
     private readonly ChessIdentityService $chessGuests;
     private readonly TriviaIdentityService $triviaGuests;
     private readonly TriviaRepository $trivia;
+    private readonly OpenDeckSchedulerRepository $openDeck;
     /** @var array<string, string> */
     private array $chessIdentityResponseHeaders = [];
 
@@ -44,6 +46,7 @@ final class Application
         $this->chessGuests = new ChessIdentityService($pdo);
         $this->triviaGuests = new TriviaIdentityService($pdo);
         $this->trivia = new TriviaRepository($pdo);
+        $this->openDeck = new OpenDeckSchedulerRepository($pdo);
     }
 
     public function handle(Request $request): Response
@@ -99,7 +102,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/trivia/rooms'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/trivia/rooms', '/v1/open-deck/slots'],
             ]);
         }
 
@@ -167,6 +170,11 @@ final class Application
         $triviaResponse = $this->dispatchTrivia($request);
         if ($triviaResponse !== null) {
             return $triviaResponse;
+        }
+
+        $openDeckResponse = $this->dispatchOpenDeck($request);
+        if ($openDeckResponse !== null) {
+            return $openDeckResponse;
         }
 
         $contentRoute = $this->contentRoute($request->path);
@@ -393,6 +401,83 @@ final class Application
                 ], 201), $identity);
             }
             throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess invitation links.');
+        }
+
+        return null;
+    }
+
+    private function dispatchOpenDeck(Request $request): ?Response
+    {
+        if ($request->path === '/v1/open-deck/slots') {
+            if ($request->method === 'GET') {
+                $limit = isset($request->query['limit']) ? (int) $request->query['limit'] : 100;
+                $offset = isset($request->query['offset']) ? (int) $request->query['offset'] : 0;
+                $slots = $this->openDeck->listSlots($limit, $offset);
+                return Response::json([
+                    'data' => $slots,
+                    'meta' => [
+                        'limit' => max(1, min(100, $limit)),
+                        'offset' => max(0, $offset),
+                        'count' => count($slots),
+                    ],
+                ]);
+            }
+            if ($request->method === 'POST') {
+                return Response::json([
+                    'data' => $this->openDeck->createSlot($request->json()),
+                ], 201);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for open-deck slots.');
+        }
+
+        if (preg_match('#^/v1/open-deck/slots/([A-Fa-f0-9-]{36})$#', $request->path, $matches)) {
+            if ($request->method === 'GET') {
+                return Response::json([
+                    'data' => $this->openDeck->findSlot($matches[1]),
+                ]);
+            }
+            if ($request->method === 'PATCH') {
+                return Response::json([
+                    'data' => $this->openDeck->updateSlot($matches[1], $request->json()),
+                ]);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for this open-deck slot.');
+        }
+
+        if (preg_match('#^/v1/open-deck/slots/([A-Fa-f0-9-]{36})/nominations$#', $request->path, $matches)) {
+            if ($request->method === 'POST') {
+                return Response::json([
+                    'data' => $this->openDeck->nominateSet($matches[1], $request->json()),
+                ], 201);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for open-deck nominations.');
+        }
+
+        if (preg_match('#^/v1/open-deck/slots/([A-Fa-f0-9-]{36})/votes$#', $request->path, $matches)) {
+            if ($request->method === 'POST') {
+                return Response::json([
+                    'data' => $this->openDeck->castFillVote($matches[1], $request->json()),
+                ], 201);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for open-deck fill votes.');
+        }
+
+        if (preg_match('#^/v1/open-deck/slots/([A-Fa-f0-9-]{36})/resolve$#', $request->path, $matches)) {
+            if ($request->method === 'POST') {
+                return Response::json([
+                    'data' => $this->openDeck->resolveSlot($matches[1]),
+                ]);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for open-deck slot resolution.');
+        }
+
+        if (preg_match('#^/v1/open-deck/slots/([A-Fa-f0-9-]{36})/eviction-votes$#', $request->path, $matches)) {
+            if ($request->method === 'POST') {
+                return Response::json([
+                    'data' => $this->openDeck->castEvictionVote($matches[1], $request->json()),
+                ], 201);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for open-deck eviction votes.');
         }
 
         return null;

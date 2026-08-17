@@ -81,6 +81,15 @@
           "sha256": "0ea34769a910eb92210024f1d1e426643235fdc104599ed338485a08ce979561"
         }
       ]
+    },
+    {
+      "version": 10,
+      "updates": [
+        {
+          "file": "updates/010_open_deck_scheduler.sql",
+          "sha256": "4fafbc0728e85d8e9394a0f36dc15689be11854dc0ac1b14c32c8d7cfe19f4f7"
+        }
+      ]
     }
   ]
 }

@@ -1,9 +1,9 @@
-<!-- schema-version: 9 -->
+<!-- schema-version: 10 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 9**. `migration-chain.json` is the ordered,
+current release pin is **version 10**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -26,11 +26,12 @@ per-file execution ledger.
 | 7 | `007_trivia_games.sql` | Shared-link trivia rooms, seated players, prompts, timed rounds, answer records, eliminations, and winner state |
 | 8 | `008_trivia_question_bank.sql` | Persistent shared trivia question catalog used to seed default room prompts |
 | 9 | `009_durable_game_rejoin_links.sql` | Hashed per-seat chess and trivia recovery tokens for durable rejoin after browser identity loss |
+| 10 | `010_open_deck_scheduler.sql` | Open-deck time slots, set nominations, fill votes, and eviction votes |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 9 inventory
+## Current version 10 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -45,6 +46,8 @@ their full basenames are already stored in production's migration ledger.
 - Trivia: `trivia_rooms`, `trivia_players`, `trivia_room_links`,
   `trivia_link_claims`, `trivia_question_catalog`, `trivia_prompts`,
   `trivia_rounds`, and `trivia_answers`
+- Open deck: `open_deck_slots`, `open_deck_set_nominations`,
+  `open_deck_fill_votes`, and `open_deck_eviction_votes`
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -173,6 +176,31 @@ Resolving a round closes missing answers, updates eliminations, and finishes the
 game when zero or one active player remains; otherwise the host can advance to
 the next persisted prompt. Exhausting prompts finishes the room with the
 remaining active player as winner only if exactly one remains.
+
+## Open-deck scheduler
+
+The open-deck scheduler is a persisted voting subsystem for assigning set names
+to public time slots. `open_deck_slots` stores the scheduled `start_at` and
+`end_at`, lifecycle state (`open`, `filled`, or `closed`), the current filled
+nomination when one has been resolved, and the deterministic eviction threshold.
+Version 10 uses a conservative threshold of **3 eviction votes** against the
+currently filled set before it is evicted.
+
+`open_deck_set_nominations` stores one normalized set nomination per slot.
+Nominations remain durable when they lose, fill a slot, or are later evicted;
+the unique `(slot_id, lower(set_name))` index prevents duplicate set names in the
+same slot. `open_deck_fill_votes` records one vote per voter identity hash and
+nominated set, so a voter cannot vote twice for the same target. The application
+resolves a filled slot by choosing the eligible nomination with the most fill
+votes, breaking ties by earliest nomination creation time and then UUID.
+
+`open_deck_eviction_votes` records one eviction vote per voter identity hash and
+currently filled nomination. When a filled set reaches the threshold, the
+application marks that nomination `evicted` without deleting its votes, then
+fills the slot with the next eligible vote winner if one exists. If no eligible
+winner has fill votes, the slot returns to `open` with all nomination and vote
+history preserved. Closed slots reject nominations, fill votes, resolution, and
+eviction votes until reopened through the scheduler API.
 
 ## Chess opening book
 

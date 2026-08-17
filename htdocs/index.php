@@ -29,7 +29,7 @@ $year = gmdate('Y');
 $pageTitle = ($isNotFound ? 'Page not found - ' : '') . 'wowiekowie.com';
 $metaDescription = $isNotFound
     ? 'A small detour on wowiekowie.com.'
-    : 'A playful personal site for recipes, decks, games, music, videos, kaomoji, and experiments.';
+    : 'A playful personal site for recipes, decks, open-deck scheduling, games, music, videos, kaomoji, and experiments.';
 require __DIR__ . '/partials/head.php';
 ?>
 <body>
@@ -49,7 +49,7 @@ require __DIR__ . '/partials/head.php';
                     <p class="eyebrow">Welcome to the countertop laboratory</p>
                     <h1 id="home-title">wowiekowie.com keeps the buttons fed.</h1>
                     <p class="lede">
-                        Recipes, games, trivia rooms, decks, music, videos, dongs, and tiny experiments,
+                        Recipes, games, trivia rooms, decks, open-deck scheduling, music, videos, dongs, and tiny experiments,
                         all stacked like snacks in a very opinionated drawer.
                     </p>
                     <p class="aside" data-silly-output>Current mood: sorting ideas by crunch level.</p>
@@ -57,6 +57,7 @@ require __DIR__ . '/partials/head.php';
                         <a class="button" href="/recipes/">Open the recipe drawer <span aria-hidden="true">-&gt;</span></a>
                         <button class="button" type="button" data-silly-button>Shuffle the tiny chaos</button>
                         <a class="text-link" href="/decks/">Decks</a>
+                        <a class="text-link" href="/open-deck/">Open Deck</a>
                         <a class="text-link" href="/games/">Games</a>
                         <a class="text-link" href="/trivia/">Trivia</a>
                         <a class="text-link" href="/music/">Music</a>
@@ -85,6 +86,11 @@ require __DIR__ . '/partials/head.php';
                         </article>
                         <article>
                             <span class="feature-number">03</span>
+                            <h3>Open Deck</h3>
+                            <p>Public time slots where nominated sets climb by vote and filled picks can face eviction votes.</p>
+                        </article>
+                        <article>
+                            <span class="feature-number">04</span>
                             <h3>Games, trivia, music, videos</h3>
                             <p>Playable bits, shared-link trivia rooms, sound bookmarks, watch pages, and side quests from the rest of the desk.</p>
                         </article>

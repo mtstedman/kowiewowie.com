@@ -1686,3 +1686,307 @@ footer {
     min-height: 6.25rem;
     text-align: center;
 }
+
+.open-deck-hero {
+    margin-bottom: 1rem;
+}
+
+.open-deck-surface,
+.open-deck-slot,
+.open-deck-empty-state,
+.open-deck-error-state {
+    --glass-mx: 50%;
+    --glass-my: 50%;
+    --glass-shimmer-alpha: 0;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid var(--glass-panel-border);
+    background:
+        linear-gradient(180deg, var(--glass-panel-bg-strong), var(--glass-panel-bg)),
+        var(--surface-sheen-soft);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    box-shadow:
+        0 20px 45px -28px var(--glass-panel-shadow),
+        inset 0 1px 0 var(--surface-highlight);
+}
+
+.open-deck-surface::after,
+.open-deck-slot::after,
+.open-deck-empty-state::after,
+.open-deck-error-state::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: var(--glass-shimmer-alpha);
+    background:
+        radial-gradient(circle at var(--glass-mx) var(--glass-my), var(--glass-panel-highlight) 0, var(--surface-highlight) 16%, var(--glass-panel-falloff) 42%),
+        linear-gradient(135deg, var(--surface-edge), rgba(0, 245, 255, 0) 42%);
+    transition: opacity 140ms ease;
+}
+
+.open-deck-surface > *,
+.open-deck-slot > *,
+.open-deck-empty-state > *,
+.open-deck-error-state > * {
+    position: relative;
+    z-index: 1;
+}
+
+.open-deck-surface {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1rem, 2.6vw, 1.5rem);
+    border-radius: 8px;
+}
+
+.open-deck-toolbar {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.open-deck-section-heading {
+    margin-bottom: 0;
+}
+
+.open-deck-refresh {
+    flex: 0 0 auto;
+}
+
+.open-deck-status {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background: rgba(0, 245, 255, 0.055);
+    color: var(--ink-soft);
+    font-weight: 800;
+}
+
+.open-deck-status[data-tone="success"] {
+    border-color: rgba(249, 248, 113, 0.42);
+    color: var(--accent-warm);
+}
+
+.open-deck-status[data-tone="error"] {
+    border-color: rgba(255, 43, 214, 0.54);
+    color: #ffc5f4;
+}
+
+.open-deck-status[hidden] {
+    display: none;
+}
+
+.open-deck-slots {
+    display: grid;
+    gap: 1rem;
+}
+
+.open-deck-slot {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+    padding: clamp(1rem, 2.4vw, 1.35rem);
+    border-radius: 8px;
+}
+
+.open-deck-slot-header,
+.open-deck-nomination,
+.open-deck-inline-form {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.open-deck-slot-header {
+    justify-content: space-between;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--surface-edge);
+}
+
+.open-deck-slot-header > *,
+.open-deck-nomination > *,
+.open-deck-inline-form > * {
+    min-width: 0;
+}
+
+.open-deck-slot-time,
+.open-deck-slot-title,
+.open-deck-winner-label,
+.open-deck-winner-name,
+.open-deck-muted,
+.open-deck-form-title,
+.open-deck-list-title,
+.open-deck-nomination-title,
+.open-deck-empty,
+.open-deck-empty-state p,
+.open-deck-error-state p {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.open-deck-slot-time,
+.open-deck-winner-label,
+.open-deck-field-label {
+    color: var(--accent-strong);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.open-deck-slot-title {
+    font-size: var(--step-2);
+}
+
+.open-deck-state-pill {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 8px;
+    background: rgba(0, 245, 255, 0.08);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.open-deck-slot.is-filled .open-deck-state-pill {
+    border-color: rgba(249, 248, 113, 0.52);
+    color: var(--accent-warm);
+}
+
+.open-deck-slot.is-closed .open-deck-state-pill,
+.open-deck-slot.is-evicted .open-deck-state-pill {
+    border-color: rgba(255, 43, 214, 0.48);
+    color: #ffc5f4;
+}
+
+.open-deck-winner {
+    display: grid;
+    gap: 0.35rem;
+    padding: 1rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background: rgba(0, 245, 255, 0.055);
+}
+
+.open-deck-winner-name {
+    font-size: var(--step-1);
+}
+
+.open-deck-muted,
+.open-deck-empty {
+    color: var(--muted);
+}
+
+.open-deck-nominations {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.open-deck-nomination-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.open-deck-nomination {
+    justify-content: space-between;
+    padding: 0.85rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background: rgba(5, 7, 13, 0.44);
+}
+
+.open-deck-nomination.is-filled {
+    border-color: rgba(249, 248, 113, 0.44);
+}
+
+.open-deck-nomination.is-evicted {
+    border-color: rgba(255, 43, 214, 0.46);
+    opacity: 0.82;
+}
+
+.open-deck-nomination-copy {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.open-deck-form {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background: rgba(7, 18, 32, 0.58);
+}
+
+.open-deck-form label {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.open-deck-form input,
+.open-deck-inline-form input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background: rgba(5, 7, 13, 0.82);
+    color: var(--ink);
+    font: inherit;
+}
+
+.open-deck-form input::placeholder,
+.open-deck-inline-form input::placeholder {
+    color: rgba(212, 233, 247, 0.62);
+}
+
+.open-deck-form input:focus,
+.open-deck-inline-form input:focus {
+    outline: 2px solid var(--accent-warm);
+    outline-offset: 2px;
+}
+
+.open-deck-inline-form {
+    flex: 0 1 20rem;
+    justify-content: flex-end;
+}
+
+.open-deck-small-button {
+    min-height: 44px;
+    padding: 0.7rem 0.9rem;
+}
+
+.open-deck-empty-state,
+.open-deck-error-state {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1.25rem;
+    border-radius: 8px;
+}
+
+@media (max-width: 760px) {
+    .open-deck-toolbar,
+    .open-deck-slot-header,
+    .open-deck-nomination,
+    .open-deck-inline-form {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .open-deck-refresh,
+    .open-deck-state-pill,
+    .open-deck-inline-form,
+    .open-deck-inline-form .button {
+        width: 100%;
+    }
+}

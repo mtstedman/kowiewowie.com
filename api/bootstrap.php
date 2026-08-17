@@ -10,6 +10,7 @@ spl_autoload_register(static function (string $class): void {
         'Wowie\\Api\\Database\\' => __DIR__ . '/../includes/database/classes/',
         'Wowie\\Api\\Chess\\' => __DIR__ . '/../includes/chess/classes/',
         'Wowie\\Api\\Trivia\\' => __DIR__ . '/../includes/trivia/classes/',
+        'Wowie\\Api\\OpenDeck\\' => __DIR__ . '/../includes/open_deck/classes/',
         'Wowie\\Api\\' => __DIR__ . '/../includes/api/classes/',
     ];
 

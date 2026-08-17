@@ -5,6 +5,7 @@ declare(strict_types=1);
 $publicNavItems = [
     'recipes' => ['href' => '/recipes/', 'label' => 'Recipes'],
     'decks' => ['href' => '/decks/', 'label' => 'Decks'],
+    'open-deck' => ['href' => '/open-deck/', 'label' => 'Open Deck'],
     'games' => ['href' => '/games/', 'label' => 'Games'],
     'risk' => ['href' => '/risk/', 'label' => 'Risk'],
     'chess' => ['href' => '/chess/', 'label' => 'Chess'],
