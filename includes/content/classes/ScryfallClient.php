@@ -9,6 +9,8 @@ use Wowie\Api\ApiException;
 final class ScryfallClient
 {
     private const SEARCH_ENDPOINT = 'https://api.scryfall.com/cards/search';
+    private const MAX_SEARCH_PAGES = 5;
+    private const REQUEST_INTERVAL_MICROSECONDS = 125000;
 
     /**
      * @return list<array{
@@ -24,15 +26,38 @@ final class ScryfallClient
      */
     public function search(string $query): array
     {
-        $result = $this->requestJson(self::SEARCH_ENDPOINT . '?' . http_build_query([
+        $url = self::SEARCH_ENDPOINT . '?' . http_build_query([
             'q' => $query,
             'unique' => 'prints',
             'order' => 'released',
-        ], '', '&', PHP_QUERY_RFC3986));
+        ], '', '&', PHP_QUERY_RFC3986);
 
-        $cards = $result['data'] ?? null;
-        if (!is_array($cards)) {
-            throw new ApiException(502, 'scryfall_invalid_response', 'The card search service returned an invalid response.');
+        $cards = [];
+        for ($page = 0; $page < self::MAX_SEARCH_PAGES; $page++) {
+            if ($page > 0) {
+                usleep(self::REQUEST_INTERVAL_MICROSECONDS);
+            }
+
+            $result = $this->requestJson($url);
+            $pageCards = $result['data'] ?? null;
+            if (!is_array($pageCards)) {
+                throw new ApiException(502, 'scryfall_invalid_response', 'The card search service returned an invalid response.');
+            }
+
+            foreach ($pageCards as $card) {
+                $cards[] = $card;
+            }
+
+            if (($result['has_more'] ?? false) !== true) {
+                break;
+            }
+
+            $nextPage = $this->stringOrNull($result['next_page'] ?? null);
+            if ($nextPage === null) {
+                break;
+            }
+
+            $url = $nextPage;
         }
 
         $normalized = [];
