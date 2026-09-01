@@ -156,6 +156,48 @@ final class TriviaRepository
      * @param array<string, mixed> $identity
      * @return array<string, mixed>
      */
+    public function replayRoom(string $publicId, array $input, array $identity): array
+    {
+        $roomInput = null;
+
+        $this->pdo->beginTransaction();
+        try {
+            $room = $this->loadRoomByPublicId($publicId, true);
+            $players = $this->loadPlayersForRoom((string) $room['id'], true);
+            $this->assertHost($room, $players, $identity);
+            if ((string) $room['status'] !== 'finished') {
+                throw new ApiException(409, 'room_not_finished', 'Only a finished trivia room can be replayed.');
+            }
+
+            $roomInput = [
+                'max_players' => (int) $room['max_players'],
+                'answer_window_seconds' => (int) $room['answer_window_seconds'],
+                'prompts' => $this->loadPromptInputsForRoom((string) $room['id']),
+            ];
+            if (array_key_exists('link', $input)) {
+                $roomInput['link'] = $input['link'];
+            }
+
+            $this->pdo->commit();
+        } catch (Throwable $error) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        if ($roomInput === null) {
+            throw new \RuntimeException('The trivia replay room input could not be prepared.');
+        }
+
+        return $this->createRoom($roomInput, $identity);
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @param array<string, mixed> $identity
+     * @return array<string, mixed>
+     */
     public function createLink(string $publicId, array $input, array $identity): array
     {
         $this->pdo->beginTransaction();
@@ -795,6 +837,34 @@ final class TriviaRepository
         }
     }
 
+    /** @return list<array<string, mixed>> */
+    private function loadPromptInputsForRoom(string $roomId): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT question, correct_answer, choices, explanation
+            FROM trivia_prompts
+            WHERE room_id = :room_id
+            ORDER BY prompt_order ASC
+        SQL);
+        $statement->execute(['room_id' => $roomId]);
+
+        $prompts = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $prompt) {
+            $choices = json_decode((string) ($prompt['choices'] ?? ''), true);
+            if (!is_array($choices) || !array_is_list($choices)) {
+                throw new ApiException(409, 'prompt_malformed', 'A trivia prompt in that room is malformed and cannot be replayed.');
+            }
+            $prompts[] = [
+                'question' => (string) $prompt['question'],
+                'correct_answer' => (string) $prompt['correct_answer'],
+                'choices' => array_values(array_map(static fn (mixed $choice): string => (string) $choice, $choices)),
+                'explanation' => $prompt['explanation'] !== null ? (string) $prompt['explanation'] : null,
+            ];
+        }
+
+        return $prompts;
+    }
+
     /** @param array<string, mixed> $prompt */
     private function insertPromptAtOrder(string $roomId, array $prompt, int $promptOrder): void
     {
@@ -1169,6 +1239,10 @@ final class TriviaRepository
         $viewerAnswer = $round !== null && $viewerSeat !== null
             ? $this->playerAnswerForRound((string) $round['id'], (string) $viewerSeat['id'])
             : null;
+        $viewerRoundEligible = $round !== null && $viewerSeat !== null && (
+            (string) $viewerSeat['status'] === 'active'
+            || (string) ($viewerSeat['eliminated_round_id'] ?? '') === (string) $round['id']
+        );
 
         return [
             'id' => (string) $room['public_id'],
@@ -1184,7 +1258,7 @@ final class TriviaRepository
             'created_at' => (string) $room['created_at'],
             'updated_at' => (string) $room['updated_at'],
             'players' => array_map(fn (array $player): array => $this->presentPlayer($player, $identity), $players),
-            'round' => $round !== null ? $this->presentRound($round, (string) $room['status'], $answerCounts, $viewerAnswer) : null,
+            'round' => $round !== null ? $this->presentRound($round, (string) $room['status'], $answerCounts, $viewerAnswer, $viewerRoundEligible) : null,
             'viewer' => [
                 'user_id' => isset($identity['user']['id']) ? (string) $identity['user']['id'] : null,
                 'guest_profile_id' => isset($identity['guest_profile']['id']) ? (string) $identity['guest_profile']['id'] : null,
@@ -1214,11 +1288,12 @@ final class TriviaRepository
         ];
     }
 
-    /** @return array{answered: bool, answer_text: ?string} */
+    /** @return array{answered: bool, answer_text: ?string, is_correct: ?bool} */
     private function playerAnswerForRound(string $roundId, string $playerId): array
     {
         $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT answer_text
+            SELECT answer_text,
+                   CASE WHEN is_correct THEN 1 ELSE 0 END AS is_correct
             FROM trivia_answers
             WHERE round_id = :round_id
               AND player_id = :player_id
@@ -1233,22 +1308,34 @@ final class TriviaRepository
         return [
             'answered' => is_array($row),
             'answer_text' => is_array($row) ? (string) $row['answer_text'] : null,
+            'is_correct' => is_array($row) ? (int) $row['is_correct'] === 1 : null,
         ];
     }
 
     /**
      * @param array<string, mixed> $round
      * @param array{submitted: int, correct: int} $answerCounts
-     * @param array{answered: bool, answer_text: ?string}|null $viewerAnswer
+     * @param array{answered: bool, answer_text: ?string, is_correct: ?bool}|null $viewerAnswer
      * @return array<string, mixed>
      */
-    private function presentRound(array $round, string $roomStatus, array $answerCounts, ?array $viewerAnswer): array
+    private function presentRound(array $round, string $roomStatus, array $answerCounts, ?array $viewerAnswer, bool $viewerRoundEligible): array
     {
         $choices = json_decode((string) $round['choices'], true);
         if (!is_array($choices)) {
             $choices = [];
         }
         $resolved = (string) $round['status'] === 'resolved' || $roomStatus === 'finished';
+        $viewerAnswerPayload = [
+            'answered' => (bool) ($viewerAnswer['answered'] ?? false),
+            'answer_text' => $viewerAnswer['answer_text'] ?? null,
+        ];
+        if ($resolved && $viewerRoundEligible) {
+            $isCorrect = $viewerAnswerPayload['answered'] ? (bool) ($viewerAnswer['is_correct'] ?? false) : false;
+            $viewerAnswerPayload['is_correct'] = $isCorrect;
+            $viewerAnswerPayload['missed_answer_window'] = !$viewerAnswerPayload['answered'];
+            $viewerAnswerPayload['mini_game_eligible'] = !$isCorrect;
+        }
+
         $payload = [
             'id' => (string) $round['id'],
             'round_number' => (int) $round['round_number'],
@@ -1261,8 +1348,8 @@ final class TriviaRepository
                 'question' => (string) $round['question'],
                 'choices' => array_values(array_map(static fn (mixed $choice): string => (string) $choice, $choices)),
             ],
-            'answers' => $answerCounts,
-            'viewer_answer' => $viewerAnswer ?? ['answered' => false, 'answer_text' => null],
+            'answers' => $resolved ? $answerCounts : ['submitted' => $answerCounts['submitted'], 'correct' => null],
+            'viewer_answer' => $viewerAnswerPayload,
         ];
         if ($resolved) {
             $payload['prompt']['correct_answer'] = (string) $round['correct_answer'];

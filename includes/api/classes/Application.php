@@ -540,6 +540,16 @@ final class Application
             ]), $identity);
         }
 
+        if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})/replay$#', $request->path, $matches)) {
+            $identity = $this->resolveTriviaIdentity($request);
+            if ($request->method === 'POST') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->trivia->replayRoom($matches[1], $request->json(), $identity),
+                ], 201), $identity);
+            }
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for trivia room replays.');
+        }
+
         if (preg_match('#^/v1/trivia/rooms/([A-Fa-f0-9-]{36})$#', $request->path, $matches)) {
             $identity = $this->resolveTriviaIdentity($request);
             if ($request->method === 'GET') {
