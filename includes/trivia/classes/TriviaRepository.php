@@ -10,6 +10,16 @@ use Wowie\Api\ApiException;
 
 final class TriviaRepository
 {
+    private const PHASE_TRIVIA = 'trivia';
+    private const PHASE_KILLING_FLOOR = 'killing_floor';
+    private const PHASE_GHOST_RACE = 'ghost_race';
+    private const MINI_GAME_KEY_LOCK = 'key_lock';
+    private const MINI_GAME_MEMORY_MATCH = 'memory_match';
+    private const KEY_LOCK_IMAGE_URL = '/assets/img/trivia/killing-floor-keys.png';
+    private const MEMORY_IMAGE_URL = '/assets/img/trivia/killing-floor-memory.png';
+    private const RACE_GOAL = 12;
+    private const RACE_BODY_START = 4;
+
     private readonly TriviaQuestionCatalog $questionCatalog;
 
     public function __construct(private readonly PDO $pdo)
@@ -435,17 +445,10 @@ final class TriviaRepository
                 }
                 $this->resolveRound($round);
                 $players = $this->loadPlayersForRoom((string) $room['id'], true);
-                if ($this->finishIfResolved($room, $players, 'elimination')) {
-                    $this->pdo->commit();
-                    return $this->findRoom($publicId, $identity);
-                }
-                if ($action === 'resolve') {
-                    $this->pdo->commit();
-                    return $this->findRoom($publicId, $identity);
-                }
+                $this->continueAfterResolvedRound($room, $players, $round, $action === 'resolve');
+            } elseif ($action === 'advance') {
+                $this->continueAfterResolvedRound($room, $players, $round, false);
             }
-
-            $this->openNextRoundOrFinish($room, $players, $round);
 
             $this->pdo->commit();
         } catch (Throwable $error) {
@@ -464,12 +467,6 @@ final class TriviaRepository
      */
     public function submitAnswer(string $publicId, array $input, array $identity): array
     {
-        $answer = trim((string) ($input['answer'] ?? ''));
-        if ($answer === '' || mb_strlen($answer) > 200) {
-            throw new ApiException(422, 'validation_error', 'answer must contain between 1 and 200 characters.', [
-                'answer' => 'Provide the selected answer text.',
-            ]);
-        }
         $clientAnswerId = $input['client_answer_id'] ?? null;
         if ($clientAnswerId !== null) {
             $clientAnswerId = $this->normalizeUuid((string) $clientAnswerId, 'client_answer_id');
@@ -489,10 +486,6 @@ final class TriviaRepository
             if ($seat === null) {
                 throw new ApiException(403, 'seat_required', 'Only a seated trivia player can submit answers.');
             }
-            if ((string) $seat['status'] !== 'active') {
-                throw new ApiException(409, 'player_eliminated', 'Eliminated trivia players cannot submit answers.');
-            }
-
             $round = $this->loadCurrentRound((string) $room['id'], true);
             if ($round === null || (string) $round['status'] !== 'answering') {
                 throw new ApiException(409, 'answer_window_closed', 'There is no open trivia answer window.');
@@ -500,6 +493,7 @@ final class TriviaRepository
             if (strtotime((string) $round['closes_at']) <= time()) {
                 throw new ApiException(409, 'answer_window_closed', 'The current trivia answer window has closed.');
             }
+            $this->assertRoundAnswerEligible($round, $seat, $players);
             if ($this->hasAnswer((string) $round['id'], (string) $seat['id'])) {
                 throw new ApiException(409, 'duplicate_answer', 'That player has already answered this trivia round.');
             }
@@ -507,18 +501,20 @@ final class TriviaRepository
                 throw new ApiException(409, 'duplicate_answer', 'That client_answer_id has already been used in this trivia room.');
             }
 
-            $isCorrect = $this->normalizeAnswer($answer) === $this->normalizeAnswer((string) $round['correct_answer']);
+            $normalized = $this->normalizeRoundAnswerInput($round, $input);
             $answerStatement = $this->pdo->prepare(<<<'SQL'
-                INSERT INTO trivia_answers (room_id, round_id, player_id, client_answer_id, answer_text, is_correct)
-                VALUES (:room_id, :round_id, :player_id, COALESCE(CAST(:client_answer_id AS uuid), gen_random_uuid()), :answer_text, :is_correct)
+                INSERT INTO trivia_answers (room_id, round_id, player_id, client_answer_id, answer_text, answer_payload, is_correct, score)
+                VALUES (:room_id, :round_id, :player_id, COALESCE(CAST(:client_answer_id AS uuid), gen_random_uuid()), :answer_text, CAST(:answer_payload AS jsonb), :is_correct, :score)
             SQL);
             $answerStatement->execute([
                 'room_id' => $room['id'],
                 'round_id' => $round['id'],
                 'player_id' => $seat['id'],
                 'client_answer_id' => $clientAnswerId,
-                'answer_text' => $answer,
-                'is_correct' => $isCorrect,
+                'answer_text' => $normalized['answer_text'],
+                'answer_payload' => json_encode($normalized['answer_payload'], JSON_THROW_ON_ERROR),
+                'is_correct' => $normalized['is_correct'],
+                'score' => $normalized['score'],
             ]);
 
             $touchStatement = $this->pdo->prepare(<<<'SQL'
@@ -531,9 +527,7 @@ final class TriviaRepository
             if ($this->allEligiblePlayersAnswered($round)) {
                 $this->resolveRound($round);
                 $players = $this->loadPlayersForRoom((string) $room['id'], true);
-                if (!$this->finishIfResolved($room, $players, 'elimination')) {
-                    $this->openNextRoundOrFinish($room, $players, $round);
-                }
+                $this->continueAfterResolvedRound($room, $players, $round, false);
             } else {
                 $activityStatement = $this->pdo->prepare(<<<'SQL'
                     UPDATE trivia_rooms
@@ -554,7 +548,6 @@ final class TriviaRepository
         return $this->findRoom($publicId, $identity);
     }
 
-    /** @param array<string, mixed> $room */
     private function assertRoomMutable(array $room, string $action): void
     {
         if ((string) $room['status'] === 'finished') {
@@ -569,7 +562,9 @@ final class TriviaRepository
         $statement = $this->pdo->prepare((<<<'SQL'
             SELECT id, public_id, status, max_players, answer_window_seconds, host_player_id,
                    current_round_number, winner_player_id, termination, started_at, finished_at,
-                   last_activity_at, created_at, updated_at
+                   last_activity_at, created_at, updated_at,
+                   COALESCE(phase, 'trivia') AS phase, body_holder_player_id,
+                   COALESCE(race_goal, 12) AS race_goal, COALESCE(race_state, '{}'::jsonb) AS race_state
             FROM trivia_rooms
             WHERE public_id = :public_id
             LIMIT 1
@@ -615,7 +610,9 @@ final class TriviaRepository
     {
         $statement = $this->pdo->prepare(<<<'SQL'
             SELECT id, room_id, seat_number, role, user_id, guest_profile_id, display_name,
-                   status, eliminated_round_id, joined_at, last_seen_at
+                   status, eliminated_round_id, joined_at, last_seen_at,
+                   COALESCE(is_ghost, false) AS is_ghost, ghosted_round_id,
+                   COALESCE(race_position, 0) AS race_position
             FROM trivia_players
             WHERE room_id = :room_id
             ORDER BY seat_number ASC
@@ -630,8 +627,15 @@ final class TriviaRepository
     {
         $statement = $this->pdo->prepare(<<<'SQL'
             SELECT r.id, r.room_id, r.round_number, r.prompt_id, r.status, r.answer_window_seconds,
-                   r.opened_at, r.closes_at, r.resolved_at, p.question, p.correct_answer,
-                   p.choices, p.explanation
+                   r.opened_at, r.closes_at, r.resolved_at,
+                   COALESCE(r.round_type, 'trivia') AS round_type, COALESCE(r.phase, 'trivia') AS phase,
+                   COALESCE(r.prompt_payload, '{}'::jsonb) AS prompt_payload,
+                   COALESCE(r.answer_shape, '{"type":"single_choice"}'::jsonb) AS answer_shape,
+                   r.image_url, r.minigame_type, COALESCE(r.minigame_payload, '{}'::jsonb) AS minigame_payload,
+                   COALESCE(r.minigame_results, '{}'::jsonb) AS minigame_results,
+                   COALESCE(r.eligible_player_ids, '{}'::uuid[]) AS eligible_player_ids,
+                   r.body_holder_player_id, r.race_goal, COALESCE(r.race_positions, '{}'::jsonb) AS race_positions,
+                   p.question, p.correct_answer, p.choices, p.explanation
             FROM trivia_rounds r
             JOIN trivia_prompts p ON p.id = r.prompt_id
             WHERE r.room_id = :room_id
@@ -651,7 +655,8 @@ final class TriviaRepository
             INSERT INTO trivia_players (room_id, seat_number, role, user_id, guest_profile_id, display_name)
             VALUES (:room_id, :seat_number, :role, :user_id, :guest_profile_id, :display_name)
             RETURNING id, room_id, seat_number, role, user_id, guest_profile_id, display_name,
-                      status, eliminated_round_id, joined_at, last_seen_at
+                      status, eliminated_round_id, joined_at, last_seen_at,
+                      is_ghost, ghosted_round_id, race_position
         SQL);
         $statement->execute([
             'room_id' => $roomId,
@@ -841,7 +846,9 @@ final class TriviaRepository
     private function loadPromptInputsForRoom(string $roomId): array
     {
         $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT question, correct_answer, choices, explanation
+            SELECT question, correct_answer, choices, explanation,
+                   COALESCE(answer_shape, '{"type":"single_choice"}'::jsonb) AS answer_shape,
+                   image_url
             FROM trivia_prompts
             WHERE room_id = :room_id
             ORDER BY prompt_order ASC
@@ -859,6 +866,8 @@ final class TriviaRepository
                 'correct_answer' => (string) $prompt['correct_answer'],
                 'choices' => array_values(array_map(static fn (mixed $choice): string => (string) $choice, $choices)),
                 'explanation' => $prompt['explanation'] !== null ? (string) $prompt['explanation'] : null,
+                'answer_shape' => $this->decodeJsonObject($prompt['answer_shape'] ?? null),
+                'image_url' => $prompt['image_url'] !== null ? (string) $prompt['image_url'] : null,
             ];
         }
 
@@ -869,8 +878,8 @@ final class TriviaRepository
     private function insertPromptAtOrder(string $roomId, array $prompt, int $promptOrder): void
     {
         $statement = $this->pdo->prepare(<<<'SQL'
-            INSERT INTO trivia_prompts (room_id, prompt_order, question, correct_answer, choices, explanation)
-            VALUES (:room_id, :prompt_order, :question, :correct_answer, CAST(:choices AS jsonb), :explanation)
+            INSERT INTO trivia_prompts (room_id, prompt_order, question, correct_answer, choices, explanation, answer_shape, image_url)
+            VALUES (:room_id, :prompt_order, :question, :correct_answer, CAST(:choices AS jsonb), :explanation, CAST(:answer_shape AS jsonb), :image_url)
         SQL);
         $statement->execute([
             'room_id' => $roomId,
@@ -879,6 +888,8 @@ final class TriviaRepository
             'correct_answer' => $prompt['correct_answer'],
             'choices' => json_encode($prompt['choices'], JSON_THROW_ON_ERROR),
             'explanation' => $prompt['explanation'] ?? null,
+            'answer_shape' => json_encode($prompt['answer_shape'] ?? ['type' => 'single_choice'], JSON_THROW_ON_ERROR),
+            'image_url' => $prompt['image_url'] ?? null,
         ]);
     }
 
@@ -930,10 +941,13 @@ final class TriviaRepository
     }
 
     /** @param array<string, mixed> $room */
-    private function openRound(array $room, int $roundNumber): void
+    private function openRound(array $room, int $roundNumber, ?int $promptOrder = null): void
     {
+        $promptOrder ??= $roundNumber;
         $promptStatement = $this->pdo->prepare(<<<'SQL'
-            SELECT id, question, correct_answer, choices
+            SELECT id, question, correct_answer, choices,
+                   COALESCE(answer_shape, '{"type":"single_choice"}'::jsonb) AS answer_shape,
+                   image_url
             FROM trivia_prompts
             WHERE room_id = :room_id
               AND prompt_order = :prompt_order
@@ -941,7 +955,7 @@ final class TriviaRepository
         SQL);
         $promptStatement->execute([
             'room_id' => $room['id'],
-            'prompt_order' => $roundNumber,
+            'prompt_order' => $promptOrder,
         ]);
         $prompt = $promptStatement->fetch(PDO::FETCH_ASSOC);
         if (!is_array($prompt)) {
@@ -962,13 +976,17 @@ final class TriviaRepository
         }
 
         $statement = $this->pdo->prepare(<<<'SQL'
-            INSERT INTO trivia_rounds (room_id, round_number, prompt_id, answer_window_seconds, closes_at)
+            INSERT INTO trivia_rounds (room_id, round_number, prompt_id, answer_window_seconds, closes_at, round_type, phase, answer_shape, image_url)
             VALUES (
                 :room_id,
                 :round_number,
                 :prompt_id,
                 :answer_window_seconds,
-                now() + (CAST(:answer_window_seconds AS integer) * interval '1 second')
+                now() + (CAST(:answer_window_seconds AS integer) * interval '1 second'),
+                'trivia',
+                'trivia',
+                CAST(:answer_shape AS jsonb),
+                :image_url
             )
         SQL);
         $statement->execute([
@@ -976,58 +994,34 @@ final class TriviaRepository
             'round_number' => $roundNumber,
             'prompt_id' => (string) $prompt['id'],
             'answer_window_seconds' => (int) $room['answer_window_seconds'],
+            'answer_shape' => (string) ($prompt['answer_shape'] ?? '{"type":"single_choice"}'),
+            'image_url' => $prompt['image_url'] !== null ? (string) $prompt['image_url'] : null,
         ]);
+
+        $phaseStatement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_rooms
+            SET phase = 'trivia',
+                last_activity_at = now(),
+                updated_at = now()
+            WHERE id = :id
+        SQL);
+        $phaseStatement->execute(['id' => $room['id']]);
     }
 
     /** @param array<string, mixed> $round */
     private function resolveRound(array $round): void
     {
-        if ((int) $round['round_number'] > 1) {
-            $eliminateStatement = $this->pdo->prepare(<<<'SQL'
-                UPDATE trivia_players p
-                SET status = 'eliminated',
-                    eliminated_round_id = :round_id,
-                    last_seen_at = now()
-                WHERE p.room_id = :room_id
-                  AND p.status = 'active'
-                  AND (
-                      NOT EXISTS (
-                          SELECT 1
-                          FROM trivia_answers a
-                          WHERE a.round_id = :round_id
-                            AND a.player_id = p.id
-                            AND a.is_correct
-                      )
-                      OR (
-                          :round_number = 2
-                          AND EXISTS (
-                              SELECT 1
-                              FROM trivia_rounds first_round
-                              WHERE first_round.room_id = p.room_id
-                                AND first_round.round_number = 1
-                                AND first_round.status = 'resolved'
-                                AND NOT EXISTS (
-                                    SELECT 1
-                                    FROM trivia_answers first_answer
-                                    WHERE first_answer.round_id = first_round.id
-                                      AND first_answer.player_id = p.id
-                                      AND first_answer.is_correct
-                                )
-                          )
-                      )
-                  )
-            SQL);
-            $eliminateStatement->execute([
-                'round_id' => $round['id'],
-                'room_id' => $round['room_id'],
-                'round_number' => (int) $round['round_number'],
-            ]);
+        $roundType = (string) ($round['round_type'] ?? self::PHASE_TRIVIA);
+        if ($roundType === self::PHASE_KILLING_FLOOR) {
+            $this->resolveKillingFloorRound($round);
+        } elseif ($roundType === self::PHASE_GHOST_RACE) {
+            $this->resolveRaceRound($round);
         }
 
         $roundStatement = $this->pdo->prepare(<<<'SQL'
             UPDATE trivia_rounds
             SET status = 'resolved',
-                resolved_at = now()
+                resolved_at = COALESCE(resolved_at, now())
             WHERE id = :id
         SQL);
         $roundStatement->execute(['id' => $round['id']]);
@@ -1089,15 +1083,16 @@ final class TriviaRepository
     private function openNextRoundOrFinish(array $room, array $players, array $round): void
     {
         $nextRound = ((int) $round['round_number']) + 1;
-        if (!$this->promptExists((string) $room['id'], $nextRound)) {
-            $this->ensurePromptSupplyAvailable($room, $nextRound);
+        $promptOrder = $this->nextQuestionPromptOrder((string) $room['id']);
+        if (!$this->promptExists((string) $room['id'], $promptOrder)) {
+            $this->ensurePromptSupplyAvailable($room, $promptOrder);
         }
-        if (!$this->promptExists((string) $room['id'], $nextRound)) {
+        if (!$this->promptExists((string) $room['id'], $promptOrder)) {
             $this->finishRoom($room, $players, 'prompts_exhausted');
             return;
         }
 
-        $this->openRound($room, $nextRound);
+        $this->openRound($room, $nextRound, $promptOrder);
         $statement = $this->pdo->prepare(<<<'SQL'
             UPDATE trivia_rooms
             SET current_round_number = :round_number,
@@ -1111,28 +1106,417 @@ final class TriviaRepository
         ]);
     }
 
-    private function allEligiblePlayersAnswered(array $round): bool
+    /**
+     * @param array<string, mixed> $room
+     * @param list<array<string, mixed>> $players
+     * @param array<string, mixed> $round
+     */
+    private function continueAfterResolvedRound(array $room, array $players, array $round, bool $resolveOnly): void
+    {
+        $freshRoom = $this->loadRoomByPublicId((string) $room['public_id'], true);
+        if ((string) $freshRoom['status'] === 'finished' || $resolveOnly) {
+            return;
+        }
+
+        $roundType = (string) ($round['round_type'] ?? self::PHASE_TRIVIA);
+        if ($roundType === self::PHASE_TRIVIA) {
+            $wrongLivingIds = $this->wrongLivingPlayerIdsForRound($round);
+            if ($this->activePlayerCount($players) <= 1) {
+                $this->openRaceOrFinish($freshRoom, $players, $round);
+                return;
+            }
+            if ($wrongLivingIds !== []) {
+                $this->openKillingFloorRound($freshRoom, $round, $wrongLivingIds);
+                return;
+            }
+            $this->openNextRoundOrFinish($freshRoom, $players, $round);
+            return;
+        }
+
+        if ($roundType === self::PHASE_KILLING_FLOOR) {
+            if ($this->activePlayerCount($players) <= 1) {
+                $this->openRaceOrFinish($freshRoom, $players, $round);
+                return;
+            }
+            $this->openNextRoundOrFinish($freshRoom, $players, $round);
+            return;
+        }
+
+        if ($roundType === self::PHASE_GHOST_RACE) {
+            $this->openRaceOrFinish($freshRoom, $players, $round);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $room
+     * @param list<array<string, mixed>> $players
+     * @param array<string, mixed> $round
+     */
+    private function openRaceOrFinish(array $room, array $players, array $round): void
+    {
+        if (!$this->hasGhostPlayer($players)) {
+            $this->finishRoom($room, $players, 'last_player_standing');
+            return;
+        }
+        $this->openRaceRound($room, $players, $round);
+    }
+
+    /** @param array<string, mixed> $round */
+    private function wrongLivingPlayerIdsForRound(array $round): array
     {
         $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT CASE WHEN NOT EXISTS (
-                SELECT 1
-                FROM trivia_players p
-                WHERE p.room_id = :room_id
-                  AND p.status = 'active'
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM trivia_answers a
-                      WHERE a.round_id = :round_id
-                        AND a.player_id = p.id
-                  )
-            ) THEN 1 ELSE 0 END
+            SELECT p.id
+            FROM trivia_players p
+            WHERE p.room_id = :room_id
+              AND p.status = 'active'
+              AND COALESCE(p.is_ghost, false) = false
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM trivia_answers a
+                  WHERE a.round_id = :round_id
+                    AND a.player_id = p.id
+                    AND a.is_correct
+              )
+            ORDER BY p.seat_number ASC
         SQL);
         $statement->execute([
             'room_id' => $round['room_id'],
             'round_id' => $round['id'],
         ]);
 
-        return (int) $statement->fetchColumn() === 1;
+        return array_values(array_map(static fn (mixed $id): string => (string) $id, $statement->fetchAll(PDO::FETCH_COLUMN) ?: []));
+    }
+
+    /**
+     * @param array<string, mixed> $room
+     * @param array<string, mixed> $sourceRound
+     * @param list<string> $eligiblePlayerIds
+     */
+    private function openKillingFloorRound(array $room, array $sourceRound, array $eligiblePlayerIds): void
+    {
+        $roundNumber = ((int) $sourceRound['round_number']) + 1;
+        $miniGameType = ((int) $sourceRound['round_number']) % 2 === 0 ? self::MINI_GAME_MEMORY_MATCH : self::MINI_GAME_KEY_LOCK;
+        $payload = $miniGameType === self::MINI_GAME_KEY_LOCK
+            ? $this->keyLockPayload((string) $sourceRound['id'])
+            : $this->memoryMatchPayload((string) $sourceRound['id']);
+        $imageUrl = $miniGameType === self::MINI_GAME_KEY_LOCK ? self::KEY_LOCK_IMAGE_URL : self::MEMORY_IMAGE_URL;
+        $answerShape = $miniGameType === self::MINI_GAME_KEY_LOCK
+            ? ['type' => 'single_choice']
+            : ['type' => 'multi_select'];
+
+        $statement = $this->pdo->prepare(<<<'SQL'
+            INSERT INTO trivia_rounds (room_id, round_number, prompt_id, status, answer_window_seconds, closes_at,
+                                       round_type, phase, prompt_payload, answer_shape, image_url, minigame_type,
+                                       minigame_payload, eligible_player_ids)
+            VALUES (:room_id, :round_number, :prompt_id, 'answering', :answer_window_seconds,
+                    now() + (CAST(:answer_window_seconds AS integer) * interval '1 second'), 'killing_floor', 'killing_floor',
+                    CAST(:prompt_payload AS jsonb), CAST(:answer_shape AS jsonb), :image_url, :minigame_type,
+                    CAST(:minigame_payload AS jsonb), CAST(:eligible_player_ids AS uuid[]))
+        SQL);
+        $statement->execute([
+            'room_id' => $room['id'],
+            'round_number' => $roundNumber,
+            'prompt_id' => $sourceRound['prompt_id'],
+            'answer_window_seconds' => max(10, min(30, (int) $room['answer_window_seconds'])),
+            'prompt_payload' => json_encode([
+                'title' => $miniGameType === self::MINI_GAME_KEY_LOCK ? 'Keyring Trial' : 'Memory Grid',
+                'instructions' => $miniGameType === self::MINI_GAME_KEY_LOCK
+                    ? 'Choose one key before the lock snaps shut.'
+                    : 'Select every symbol you remember from the flash.',
+            ], JSON_THROW_ON_ERROR),
+            'answer_shape' => json_encode($answerShape, JSON_THROW_ON_ERROR),
+            'image_url' => $imageUrl,
+            'minigame_type' => $miniGameType,
+            'minigame_payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+            'eligible_player_ids' => $this->postgresUuidArray($eligiblePlayerIds),
+        ]);
+
+        $roomStatement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_rooms
+            SET phase = 'killing_floor',
+                current_round_number = :round_number,
+                last_activity_at = now(),
+                updated_at = now()
+            WHERE id = :id
+        SQL);
+        $roomStatement->execute([
+            'round_number' => $roundNumber,
+            'id' => $room['id'],
+        ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function keyLockPayload(string $roundId): array
+    {
+        $keys = ['Brass Key', 'Glass Key', 'Moon Key', 'Rust Key'];
+        $winner = $keys[abs(crc32($roundId)) % count($keys)];
+
+        return [
+            'type' => self::MINI_GAME_KEY_LOCK,
+            'choices' => $keys,
+            'correct_key' => $winner,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function memoryMatchPayload(string $roundId): array
+    {
+        $symbols = ['Candle', 'Mirror', 'Bell', 'Mask', 'Thread', 'Coin'];
+        $start = abs(crc32($roundId)) % count($symbols);
+        $correct = [$symbols[$start], $symbols[($start + 2) % count($symbols)], $symbols[($start + 4) % count($symbols)]];
+
+        return [
+            'type' => self::MINI_GAME_MEMORY_MATCH,
+            'choices' => $symbols,
+            'correct_choices' => $correct,
+        ];
+    }
+
+    /** @param array<string, mixed> $round */
+    private function resolveKillingFloorRound(array $round): void
+    {
+        $eligibleIds = $this->parsePostgresUuidArray($round['eligible_player_ids'] ?? []);
+        if ($eligibleIds === []) {
+            return;
+        }
+
+        $players = $this->loadPlayersForRoom((string) $round['room_id'], true);
+        $livingIds = [];
+        foreach ($players as $player) {
+            if ((string) $player['status'] === 'active' && !$this->pgBool($player['is_ghost'] ?? false)) {
+                $livingIds[] = (string) $player['id'];
+            }
+        }
+
+        $correctIds = $this->correctAnswerPlayerIds((string) $round['id']);
+        $loserIds = array_values(array_filter(
+            $eligibleIds,
+            static fn (string $playerId): bool => !in_array($playerId, $correctIds, true)
+        ));
+        $sparedId = null;
+        if (count(array_intersect($livingIds, $loserIds)) >= count($livingIds) && $loserIds !== []) {
+            $sparedId = $loserIds[0];
+            $loserIds = array_values(array_filter($loserIds, static fn (string $playerId): bool => $playerId !== $sparedId));
+        }
+
+        if ($loserIds !== []) {
+            $statement = $this->pdo->prepare(<<<'SQL'
+                UPDATE trivia_players
+                SET status = 'eliminated',
+                    is_ghost = true,
+                    eliminated_round_id = :round_id,
+                    ghosted_round_id = :round_id,
+                    last_seen_at = now()
+                WHERE room_id = :room_id
+                  AND id = ANY(CAST(:player_ids AS uuid[]))
+                  AND status = 'active'
+            SQL);
+            $statement->execute([
+                'round_id' => $round['id'],
+                'room_id' => $round['room_id'],
+                'player_ids' => $this->postgresUuidArray($loserIds),
+            ]);
+        }
+
+        $resultStatement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_rounds
+            SET minigame_results = CAST(:results AS jsonb)
+            WHERE id = :id
+        SQL);
+        $resultStatement->execute([
+            'id' => $round['id'],
+            'results' => json_encode([
+                'survivor_player_ids' => array_values(array_intersect($eligibleIds, $correctIds)),
+                'ghosted_player_ids' => $loserIds,
+                'spared_player_id' => $sparedId,
+            ], JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $room
+     * @param list<array<string, mixed>> $players
+     * @param array<string, mixed> $sourceRound
+     */
+    private function openRaceRound(array $room, array $players, array $sourceRound): void
+    {
+        $bodyHolderId = $this->bodyHolderId($room, $players);
+        if ($bodyHolderId === null) {
+            $this->finishRoom($room, $players, 'no_body_holder');
+            return;
+        }
+
+        $roundNumber = ((int) $sourceRound['round_number']) + 1;
+        $promptOrder = $this->nextQuestionPromptOrder((string) $room['id']);
+        if (!$this->promptExists((string) $room['id'], $promptOrder)) {
+            $this->ensurePromptSupplyAvailable($room, $promptOrder);
+        }
+        if (!$this->promptExists((string) $room['id'], $promptOrder)) {
+            $this->finishRoomWithWinner($room, $bodyHolderId, 'prompts_exhausted');
+            return;
+        }
+
+        $prompt = $this->loadPromptForOrder((string) $room['id'], $promptOrder);
+        $payload = $this->racePayloadForPrompt($prompt);
+        $eligibleIds = $this->raceEligiblePlayerIds($players, $bodyHolderId);
+        if ($eligibleIds === []) {
+            $this->finishRoomWithWinner($room, $bodyHolderId, 'escape_race');
+            return;
+        }
+
+        $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_players
+            SET race_position = GREATEST(race_position, :start)
+            WHERE id = :id
+        SQL)->execute([
+            'start' => self::RACE_BODY_START,
+            'id' => $bodyHolderId,
+        ]);
+
+        $positions = $this->racePositionsForPlayers($players, $bodyHolderId);
+        $statement = $this->pdo->prepare(<<<'SQL'
+            INSERT INTO trivia_rounds (room_id, round_number, prompt_id, status, answer_window_seconds, closes_at,
+                                       round_type, phase, prompt_payload, answer_shape, eligible_player_ids,
+                                       body_holder_player_id, race_goal, race_positions)
+            VALUES (:room_id, :round_number, :prompt_id, 'answering', :answer_window_seconds,
+                    now() + (CAST(:answer_window_seconds AS integer) * interval '1 second'), 'ghost_race', 'ghost_race',
+                    CAST(:prompt_payload AS jsonb), '{"type":"multi_select"}'::jsonb, CAST(:eligible_player_ids AS uuid[]),
+                    :body_holder_player_id, :race_goal, CAST(:race_positions AS jsonb))
+        SQL);
+        $statement->execute([
+            'room_id' => $room['id'],
+            'round_number' => $roundNumber,
+            'prompt_id' => (string) $prompt['id'],
+            'answer_window_seconds' => (int) $room['answer_window_seconds'],
+            'prompt_payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+            'eligible_player_ids' => $this->postgresUuidArray($eligibleIds),
+            'body_holder_player_id' => $bodyHolderId,
+            'race_goal' => self::RACE_GOAL,
+            'race_positions' => json_encode($positions, JSON_THROW_ON_ERROR),
+        ]);
+
+        $roomStatement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_rooms
+            SET phase = 'ghost_race',
+                current_round_number = :round_number,
+                body_holder_player_id = :body_holder_player_id,
+                race_goal = :race_goal,
+                race_state = CAST(:race_state AS jsonb),
+                last_activity_at = now(),
+                updated_at = now()
+            WHERE id = :id
+        SQL);
+        $roomStatement->execute([
+            'round_number' => $roundNumber,
+            'body_holder_player_id' => $bodyHolderId,
+            'race_goal' => self::RACE_GOAL,
+            'race_state' => json_encode(['positions' => $positions], JSON_THROW_ON_ERROR),
+            'id' => $room['id'],
+        ]);
+    }
+
+    /** @param array<string, mixed> $round */
+    private function resolveRaceRound(array $round): void
+    {
+        $players = $this->loadPlayersForRoom((string) $round['room_id'], true);
+        $bodyHolderId = (string) ($round['body_holder_player_id'] ?? '');
+        if ($bodyHolderId === '') {
+            $bodyHolderId = $this->bodyHolderId(['body_holder_player_id' => null], $players) ?? '';
+        }
+        if ($bodyHolderId === '') {
+            return;
+        }
+
+        $scores = $this->answerScoresForRound((string) $round['id']);
+        $positions = $this->racePositionsForPlayers($players, $bodyHolderId);
+        foreach ($this->raceEligiblePlayerIds($players, $bodyHolderId) as $playerId) {
+            $positions[$playerId] = ($positions[$playerId] ?? 0) + ($scores[$playerId] ?? 0);
+            $this->pdo->prepare(<<<'SQL'
+                UPDATE trivia_players
+                SET race_position = :race_position,
+                    last_seen_at = now()
+                WHERE id = :id
+            SQL)->execute([
+                'race_position' => $positions[$playerId],
+                'id' => $playerId,
+            ]);
+        }
+
+        $caughtBy = $this->catchingGhostId($players, $positions, $bodyHolderId);
+        if ($caughtBy !== null) {
+            $this->transferBody($bodyHolderId, $caughtBy, (string) $round['room_id'], (string) $round['id']);
+            $bodyHolderId = $caughtBy;
+        }
+
+        $resultStatement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_rounds
+            SET race_positions = CAST(:race_positions AS jsonb),
+                minigame_results = CAST(:results AS jsonb),
+                body_holder_player_id = :body_holder_player_id
+            WHERE id = :id
+        SQL);
+        $resultStatement->execute([
+            'race_positions' => json_encode($positions, JSON_THROW_ON_ERROR),
+            'results' => json_encode([
+                'scores' => $scores,
+                'body_holder_player_id' => $bodyHolderId,
+                'caught_by_player_id' => $caughtBy,
+            ], JSON_THROW_ON_ERROR),
+            'body_holder_player_id' => $bodyHolderId,
+            'id' => $round['id'],
+        ]);
+
+        if (($positions[$bodyHolderId] ?? 0) >= (int) ($round['race_goal'] ?? self::RACE_GOAL)) {
+            $this->finishRoomWithWinner(['id' => $round['room_id']], $bodyHolderId, 'escape_race');
+            return;
+        }
+
+        $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_rooms
+            SET body_holder_player_id = :body_holder_player_id,
+                race_state = CAST(:race_state AS jsonb),
+                last_activity_at = now(),
+                updated_at = now()
+            WHERE id = :id
+        SQL)->execute([
+            'body_holder_player_id' => $bodyHolderId,
+            'race_state' => json_encode(['positions' => $positions], JSON_THROW_ON_ERROR),
+            'id' => $round['room_id'],
+        ]);
+    }
+
+    private function allEligiblePlayersAnswered(array $round): bool
+    {
+        $eligibleIds = $this->eligiblePlayerIdsForRound($round, $this->loadPlayersForRoom((string) $round['room_id']));
+        if ($eligibleIds === []) {
+            return true;
+        }
+
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT count(DISTINCT player_id)
+            FROM trivia_answers
+            WHERE round_id = :round_id
+              AND player_id = ANY(CAST(:eligible_player_ids AS uuid[]))
+        SQL);
+        $statement->execute([
+            'round_id' => $round['id'],
+            'eligible_player_ids' => $this->postgresUuidArray($eligibleIds),
+        ]);
+
+        return (int) $statement->fetchColumn() >= count($eligibleIds);
+    }
+
+    private function nextQuestionPromptOrder(string $roomId): int
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT count(*) + 1
+            FROM trivia_rounds
+            WHERE room_id = :room_id
+              AND COALESCE(round_type, 'trivia') IN ('trivia', 'ghost_race')
+        SQL);
+        $statement->execute(['room_id' => $roomId]);
+
+        return max(1, (int) $statement->fetchColumn());
     }
 
     private function promptExists(string $roomId, int $roundNumber): bool
@@ -1239,19 +1623,22 @@ final class TriviaRepository
         $viewerAnswer = $round !== null && $viewerSeat !== null
             ? $this->playerAnswerForRound((string) $round['id'], (string) $viewerSeat['id'])
             : null;
-        $viewerRoundEligible = $round !== null && $viewerSeat !== null && (
-            (string) $viewerSeat['status'] === 'active'
-            || (string) ($viewerSeat['eliminated_round_id'] ?? '') === (string) $round['id']
-        );
+        $viewerRoundEligible = $round !== null && $viewerSeat !== null
+            && in_array((string) $viewerSeat['id'], $this->eligiblePlayerIdsForRound($round, $players), true);
+        $raceState = $this->decodeJsonObject($room['race_state'] ?? null);
 
         return [
             'id' => (string) $room['public_id'],
             'status' => (string) $room['status'],
+            'phase' => (string) ($room['phase'] ?? self::PHASE_TRIVIA),
             'max_players' => (int) $room['max_players'],
             'answer_window_seconds' => (int) $room['answer_window_seconds'],
             'current_round_number' => (int) $room['current_round_number'],
             'termination' => $room['termination'] !== null ? (string) $room['termination'] : null,
             'winner_player_id' => $room['winner_player_id'] !== null ? (string) $room['winner_player_id'] : null,
+            'body_holder_player_id' => $room['body_holder_player_id'] !== null ? (string) $room['body_holder_player_id'] : null,
+            'race_goal' => (int) ($room['race_goal'] ?? self::RACE_GOAL),
+            'race_state' => $raceState,
             'started_at' => $room['started_at'] !== null ? (string) $room['started_at'] : null,
             'finished_at' => $room['finished_at'] !== null ? (string) $room['finished_at'] : null,
             'last_activity_at' => (string) $room['last_activity_at'],
@@ -1266,6 +1653,8 @@ final class TriviaRepository
                 'seat_number' => $viewerSeat !== null ? (int) $viewerSeat['seat_number'] : null,
                 'is_host' => $viewerSeat !== null && (string) $room['host_player_id'] === (string) $viewerSeat['id'],
                 'is_active' => $viewerSeat !== null && (string) $viewerSeat['status'] === 'active',
+                'is_ghost' => $viewerSeat !== null && $this->pgBool($viewerSeat['is_ghost'] ?? false),
+                'can_answer_round' => $viewerRoundEligible,
             ],
         ];
     }
@@ -1288,11 +1677,11 @@ final class TriviaRepository
         ];
     }
 
-    /** @return array{answered: bool, answer_text: ?string, is_correct: ?bool} */
+    /** @return array{answered: bool, answer_text: ?string, answer_payload: array<string, mixed>, is_correct: ?bool, score: int} */
     private function playerAnswerForRound(string $roundId, string $playerId): array
     {
         $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT answer_text,
+            SELECT answer_text, answer_payload, score,
                    CASE WHEN is_correct THEN 1 ELSE 0 END AS is_correct
             FROM trivia_answers
             WHERE round_id = :round_id
@@ -1308,14 +1697,16 @@ final class TriviaRepository
         return [
             'answered' => is_array($row),
             'answer_text' => is_array($row) ? (string) $row['answer_text'] : null,
+            'answer_payload' => is_array($row) ? $this->decodeJsonObject($row['answer_payload'] ?? null) : [],
             'is_correct' => is_array($row) ? (int) $row['is_correct'] === 1 : null,
+            'score' => is_array($row) ? (int) ($row['score'] ?? 0) : 0,
         ];
     }
 
     /**
      * @param array<string, mixed> $round
      * @param array{submitted: int, correct: int} $answerCounts
-     * @param array{answered: bool, answer_text: ?string, is_correct: ?bool}|null $viewerAnswer
+     * @param array{answered: bool, answer_text: ?string, answer_payload: array<string, mixed>, is_correct: ?bool, score: int}|null $viewerAnswer
      * @return array<string, mixed>
      */
     private function presentRound(array $round, string $roomStatus, array $answerCounts, ?array $viewerAnswer, bool $viewerRoundEligible): array
@@ -1325,33 +1716,69 @@ final class TriviaRepository
             $choices = [];
         }
         $resolved = (string) $round['status'] === 'resolved' || $roomStatus === 'finished';
+        $roundType = (string) ($round['round_type'] ?? self::PHASE_TRIVIA);
+        $promptPayload = $this->decodeJsonObject($round['prompt_payload'] ?? null);
+        $minigamePayload = $this->decodeJsonObject($round['minigame_payload'] ?? null);
+        $minigameResults = $this->decodeJsonObject($round['minigame_results'] ?? null);
+        if (!$resolved) {
+            unset($minigamePayload['correct_key'], $minigamePayload['correct_choices']);
+        }
+        $raceItems = $promptPayload['items'] ?? [];
+        if (!is_array($raceItems) || !array_is_list($raceItems)) {
+            $raceItems = [];
+        }
+        $raceChoices = array_values(array_map(
+            static fn (array $item): string => (string) ($item['label'] ?? ''),
+            array_filter($raceItems, 'is_array')
+        ));
         $viewerAnswerPayload = [
             'answered' => (bool) ($viewerAnswer['answered'] ?? false),
             'answer_text' => $viewerAnswer['answer_text'] ?? null,
+            'answer_payload' => $viewerAnswer['answer_payload'] ?? [],
+            'score' => (int) ($viewerAnswer['score'] ?? 0),
         ];
         if ($resolved && $viewerRoundEligible) {
             $isCorrect = $viewerAnswerPayload['answered'] ? (bool) ($viewerAnswer['is_correct'] ?? false) : false;
             $viewerAnswerPayload['is_correct'] = $isCorrect;
             $viewerAnswerPayload['missed_answer_window'] = !$viewerAnswerPayload['answered'];
-            $viewerAnswerPayload['mini_game_eligible'] = !$isCorrect;
+            $viewerAnswerPayload['mini_game_eligible'] = $roundType === self::PHASE_TRIVIA && !$isCorrect;
         }
 
         $payload = [
             'id' => (string) $round['id'],
             'round_number' => (int) $round['round_number'],
+            'round_type' => $roundType,
+            'phase' => (string) ($round['phase'] ?? self::PHASE_TRIVIA),
             'status' => (string) $round['status'],
             'answer_window_seconds' => (int) $round['answer_window_seconds'],
             'opened_at' => (string) $round['opened_at'],
             'closes_at' => (string) $round['closes_at'],
             'resolved_at' => $round['resolved_at'] !== null ? (string) $round['resolved_at'] : null,
+            'answer_shape' => $this->decodeJsonObject($round['answer_shape'] ?? null),
+            'image_url' => $round['image_url'] !== null ? (string) $round['image_url'] : null,
+            'eligible_player_ids' => $this->parsePostgresUuidArray($round['eligible_player_ids'] ?? []),
+            'body_holder_player_id' => $round['body_holder_player_id'] !== null ? (string) $round['body_holder_player_id'] : null,
+            'race_goal' => $round['race_goal'] !== null ? (int) $round['race_goal'] : null,
+            'race_positions' => $this->decodeJsonObject($round['race_positions'] ?? null),
+            'prompt_payload' => $promptPayload,
+            'minigame' => $roundType === self::PHASE_KILLING_FLOOR ? [
+                'type' => $round['minigame_type'] !== null ? (string) $round['minigame_type'] : null,
+                'payload' => $minigamePayload,
+                'results' => $resolved ? $minigameResults : [],
+            ] : null,
             'prompt' => [
-                'question' => (string) $round['question'],
-                'choices' => array_values(array_map(static fn (mixed $choice): string => (string) $choice, $choices)),
+                'question' => $roundType === self::PHASE_GHOST_RACE
+                    ? (string) ($promptPayload['category'] ?? $round['question'])
+                    : (string) $round['question'],
+                'choices' => $roundType === self::PHASE_GHOST_RACE
+                    ? $raceChoices
+                    : array_values(array_map(static fn (mixed $choice): string => (string) $choice, $choices)),
             ],
             'answers' => $resolved ? $answerCounts : ['submitted' => $answerCounts['submitted'], 'correct' => null],
             'viewer_answer' => $viewerAnswerPayload,
+            'viewer_eligible' => $viewerRoundEligible,
         ];
-        if ($resolved) {
+        if ($resolved && $roundType === self::PHASE_TRIVIA) {
             $payload['prompt']['correct_answer'] = (string) $round['correct_answer'];
             $payload['prompt']['explanation'] = $round['explanation'] !== null ? (string) $round['explanation'] : null;
         }
@@ -1374,7 +1801,10 @@ final class TriviaRepository
             'user_id' => $player['user_id'] !== null ? (string) $player['user_id'] : null,
             'guest_profile_id' => $player['guest_profile_id'] !== null ? (string) $player['guest_profile_id'] : null,
             'status' => (string) $player['status'],
+            'is_ghost' => $this->pgBool($player['is_ghost'] ?? false),
             'eliminated_round_id' => $player['eliminated_round_id'] !== null ? (string) $player['eliminated_round_id'] : null,
+            'ghosted_round_id' => $player['ghosted_round_id'] !== null ? (string) $player['ghosted_round_id'] : null,
+            'race_position' => (int) ($player['race_position'] ?? 0),
             'joined_at' => (string) $player['joined_at'],
             'last_seen_at' => (string) $player['last_seen_at'],
             'viewer_controls_player' => $this->identityOwnsSeat($player, $identity),
@@ -1553,11 +1983,39 @@ final class TriviaRepository
             throw new ApiException(422, 'validation_error', 'Each prompt must provide at least two answer choices.');
         }
 
+        $answerShape = $value['answer_shape'] ?? ['type' => 'single_choice'];
+        if (!is_array($answerShape)) {
+            throw new ApiException(422, 'validation_error', 'Prompt answer_shape must be an object when provided.');
+        }
+        $answerShapeType = trim((string) ($answerShape['type'] ?? 'single_choice'));
+        if (!in_array($answerShapeType, ['single_choice', 'multi_select'], true)) {
+            throw new ApiException(422, 'validation_error', 'Prompt answer_shape.type must be single_choice or multi_select.');
+        }
+        $answerShape['type'] = $answerShapeType;
+        if (isset($value['correct_answers'])) {
+            if (!is_array($value['correct_answers']) || !array_is_list($value['correct_answers'])) {
+                throw new ApiException(422, 'validation_error', 'Prompt correct_answers must be a list of answer strings.');
+            }
+            $answerShape['correct_answers'] = array_values(array_filter(
+                array_map(static fn (mixed $answer): string => trim((string) $answer), $value['correct_answers']),
+                static fn (string $answer): bool => $answer !== ''
+            ));
+        }
+        $imageUrl = isset($value['image_url']) ? trim((string) $value['image_url']) : null;
+        if ($imageUrl === '') {
+            $imageUrl = null;
+        }
+        if ($imageUrl !== null && mb_strlen($imageUrl) > 300) {
+            throw new ApiException(422, 'validation_error', 'Prompt image_url must contain 300 characters or fewer.');
+        }
+
         return [
             'question' => $question,
             'correct_answer' => $correctAnswer,
             'choices' => $choices,
             'explanation' => isset($value['explanation']) ? trim((string) $value['explanation']) : null,
+            'answer_shape' => $answerShape,
+            'image_url' => $imageUrl,
         ];
     }
 
@@ -1599,6 +2057,494 @@ final class TriviaRepository
         }
 
         return $value;
+    }
+
+    /** @return array<string, mixed> */
+    private function loadPromptForOrder(string $roomId, int $promptOrder): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT id, question, correct_answer, choices,
+                   COALESCE(answer_shape, '{"type":"single_choice"}'::jsonb) AS answer_shape,
+                   image_url
+            FROM trivia_prompts
+            WHERE room_id = :room_id
+              AND prompt_order = :prompt_order
+            LIMIT 1
+        SQL);
+        $statement->execute([
+            'room_id' => $roomId,
+            'prompt_order' => $promptOrder,
+        ]);
+        $prompt = $statement->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($prompt)) {
+            throw new ApiException(409, 'prompt_unavailable', 'There is no trivia prompt available for that round.');
+        }
+
+        return $prompt;
+    }
+
+    /** @param list<array<string, mixed>> $players */
+    private function hasGhostPlayer(array $players): bool
+    {
+        foreach ($players as $player) {
+            if ($this->pgBool($player['is_ghost'] ?? false) && (string) $player['status'] !== 'left') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return list<string> */
+    private function correctAnswerPlayerIds(string $roundId): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT player_id
+            FROM trivia_answers
+            WHERE round_id = :round_id
+              AND is_correct
+            ORDER BY submitted_at ASC
+        SQL);
+        $statement->execute(['round_id' => $roundId]);
+
+        return array_values(array_map(static fn (mixed $id): string => (string) $id, $statement->fetchAll(PDO::FETCH_COLUMN) ?: []));
+    }
+
+    /** @return array<string, int> */
+    private function answerScoresForRound(string $roundId): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT player_id, score
+            FROM trivia_answers
+            WHERE round_id = :round_id
+        SQL);
+        $statement->execute(['round_id' => $roundId]);
+
+        $scores = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $scores[(string) $row['player_id']] = (int) $row['score'];
+        }
+
+        return $scores;
+    }
+
+    /**
+     * @param array<string, mixed> $room
+     * @param list<array<string, mixed>> $players
+     */
+    private function bodyHolderId(array $room, array $players): ?string
+    {
+        $stored = $room['body_holder_player_id'] ?? null;
+        if ($stored !== null && (string) $stored !== '') {
+            return (string) $stored;
+        }
+        foreach ($players as $player) {
+            if ((string) $player['status'] === 'active' && !$this->pgBool($player['is_ghost'] ?? false)) {
+                return (string) $player['id'];
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $prompt */
+    private function racePayloadForPrompt(array $prompt): array
+    {
+        $choices = json_decode((string) ($prompt['choices'] ?? '[]'), true);
+        if (!is_array($choices) || !array_is_list($choices)) {
+            $choices = [];
+        }
+        $answerShape = $this->decodeJsonObject($prompt['answer_shape'] ?? null);
+        $correctAnswers = $answerShape['correct_answers'] ?? [(string) $prompt['correct_answer']];
+        if (!is_array($correctAnswers) || !array_is_list($correctAnswers)) {
+            $correctAnswers = [(string) $prompt['correct_answer']];
+        }
+        $correctAnswers = array_map(fn (mixed $answer): string => $this->normalizeAnswer((string) $answer), $correctAnswers);
+
+        $items = [];
+        foreach ($choices as $choice) {
+            $label = trim((string) $choice);
+            if ($label === '') {
+                continue;
+            }
+            $items[] = [
+                'label' => $label,
+                'correct' => in_array($this->normalizeAnswer($label), $correctAnswers, true),
+            ];
+        }
+
+        return [
+            'category' => (string) $prompt['question'],
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $players
+     * @return list<string>
+     */
+    private function raceEligiblePlayerIds(array $players, string $bodyHolderId): array
+    {
+        $ids = [];
+        foreach ($players as $player) {
+            if ((string) $player['status'] === 'left') {
+                continue;
+            }
+            if ((string) $player['id'] === $bodyHolderId || $this->pgBool($player['is_ghost'] ?? false)) {
+                $ids[] = (string) $player['id'];
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $players
+     * @return array<string, int>
+     */
+    private function racePositionsForPlayers(array $players, string $bodyHolderId): array
+    {
+        $positions = [];
+        foreach ($players as $player) {
+            if ((string) $player['status'] === 'left') {
+                continue;
+            }
+            $position = max(0, (int) ($player['race_position'] ?? 0));
+            if ((string) $player['id'] === $bodyHolderId) {
+                $position = max($position, self::RACE_BODY_START);
+            }
+            $positions[(string) $player['id']] = $position;
+        }
+
+        return $positions;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $players
+     * @param array<string, int> $positions
+     */
+    private function catchingGhostId(array $players, array $positions, string $bodyHolderId): ?string
+    {
+        $bodyPosition = $positions[$bodyHolderId] ?? 0;
+        $catcher = null;
+        $catcherPosition = $bodyPosition;
+        foreach ($players as $player) {
+            $playerId = (string) $player['id'];
+            if ($playerId === $bodyHolderId || !$this->pgBool($player['is_ghost'] ?? false)) {
+                continue;
+            }
+            $position = $positions[$playerId] ?? 0;
+            if ($position >= $bodyPosition && $position >= $catcherPosition) {
+                $catcher = $playerId;
+                $catcherPosition = $position;
+            }
+        }
+
+        return $catcher;
+    }
+
+    private function transferBody(string $oldBodyHolderId, string $newBodyHolderId, string $roomId, string $roundId): void
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            WITH body AS (
+                SELECT CAST(:new_body_holder_id AS uuid) AS new_body_holder_id,
+                       CAST(:round_id AS uuid) AS round_id
+            )
+            UPDATE trivia_players p
+            SET status = CASE WHEN p.id = body.new_body_holder_id THEN 'active' ELSE 'eliminated' END,
+                is_ghost = CASE WHEN p.id = body.new_body_holder_id THEN false ELSE true END,
+                eliminated_round_id = CASE WHEN p.id = body.new_body_holder_id THEN p.eliminated_round_id ELSE body.round_id END,
+                ghosted_round_id = CASE WHEN p.id = body.new_body_holder_id THEN p.ghosted_round_id ELSE body.round_id END,
+                last_seen_at = now()
+            FROM body
+            WHERE p.room_id = :room_id
+              AND p.id = ANY(CAST(:player_ids AS uuid[]))
+        SQL);
+        $statement->execute([
+            'new_body_holder_id' => $newBodyHolderId,
+            'round_id' => $roundId,
+            'room_id' => $roomId,
+            'player_ids' => $this->postgresUuidArray([$oldBodyHolderId, $newBodyHolderId]),
+        ]);
+    }
+
+    private function finishRoomWithWinner(array $room, string $winnerPlayerId, string $termination): void
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_rooms
+            SET status = 'finished',
+                phase = 'ghost_race',
+                winner_player_id = CAST(:winner_player_id AS uuid),
+                body_holder_player_id = CAST(:body_holder_player_id AS uuid),
+                termination = :termination,
+                finished_at = COALESCE(finished_at, now()),
+                last_activity_at = now(),
+                updated_at = now()
+            WHERE id = :id
+        SQL);
+        $statement->execute([
+            'winner_player_id' => $winnerPlayerId,
+            'body_holder_player_id' => $winnerPlayerId,
+            'termination' => $termination,
+            'id' => $room['id'],
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $round
+     * @param array<string, mixed> $seat
+     * @param list<array<string, mixed>> $players
+     */
+    private function assertRoundAnswerEligible(array $round, array $seat, array $players): void
+    {
+        if ((string) $seat['status'] === 'left') {
+            throw new ApiException(409, 'player_left', 'Players who left this trivia game cannot submit answers.');
+        }
+        $playerId = (string) $seat['id'];
+        if (!in_array($playerId, $this->eligiblePlayerIdsForRound($round, $players), true)) {
+            throw new ApiException(409, 'player_ineligible', 'That player is not eligible to answer in this phase.');
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $round
+     * @param list<array<string, mixed>> $players
+     * @return list<string>
+     */
+    private function eligiblePlayerIdsForRound(array $round, array $players): array
+    {
+        $roundType = (string) ($round['round_type'] ?? self::PHASE_TRIVIA);
+        if ($roundType === self::PHASE_KILLING_FLOOR) {
+            return array_values(array_filter(
+                $this->parsePostgresUuidArray($round['eligible_player_ids'] ?? []),
+                fn (string $playerId): bool => $this->playerIsActiveLiving($players, $playerId)
+            ));
+        }
+        if ($roundType === self::PHASE_GHOST_RACE) {
+            $bodyHolderId = (string) ($round['body_holder_player_id'] ?? '');
+            return $bodyHolderId !== '' ? $this->raceEligiblePlayerIds($players, $bodyHolderId) : [];
+        }
+
+        $ids = [];
+        foreach ($players as $player) {
+            if ((string) $player['status'] === 'active' || $this->pgBool($player['is_ghost'] ?? false)) {
+                $ids[] = (string) $player['id'];
+            }
+        }
+
+        return $ids;
+    }
+
+    /** @param list<array<string, mixed>> $players */
+    private function playerIsActiveLiving(array $players, string $playerId): bool
+    {
+        foreach ($players as $player) {
+            if ((string) $player['id'] === $playerId) {
+                return (string) $player['status'] === 'active' && !$this->pgBool($player['is_ghost'] ?? false);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $round
+     * @param array<string, mixed> $input
+     * @return array{answer_text: string, answer_payload: array<string, mixed>, is_correct: bool, score: int}
+     */
+    private function normalizeRoundAnswerInput(array $round, array $input): array
+    {
+        $roundType = (string) ($round['round_type'] ?? self::PHASE_TRIVIA);
+        if ($roundType === self::PHASE_KILLING_FLOOR) {
+            return $this->normalizeKillingFloorAnswer($round, $input);
+        }
+        if ($roundType === self::PHASE_GHOST_RACE) {
+            return $this->normalizeRaceAnswer($round, $input);
+        }
+
+        $payload = $this->decodeJsonObject($input['answer_payload'] ?? null);
+        $answer = trim((string) ($input['answer'] ?? $payload['answer'] ?? ''));
+        if ($answer === '' || mb_strlen($answer) > 200) {
+            throw new ApiException(422, 'validation_error', 'answer must contain between 1 and 200 characters.', [
+                'answer' => 'Provide the selected answer text.',
+            ]);
+        }
+        $isCorrect = $this->normalizeAnswer($answer) === $this->normalizeAnswer((string) $round['correct_answer']);
+
+        return [
+            'answer_text' => $answer,
+            'answer_payload' => ['answer' => $answer],
+            'is_correct' => $isCorrect,
+            'score' => $isCorrect ? 1 : 0,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $round
+     * @param array<string, mixed> $input
+     * @return array{answer_text: string, answer_payload: array<string, mixed>, is_correct: bool, score: int}
+     */
+    private function normalizeKillingFloorAnswer(array $round, array $input): array
+    {
+        $payload = $this->decodeJsonObject($round['minigame_payload'] ?? null);
+        if ((string) ($round['minigame_type'] ?? '') === self::MINI_GAME_MEMORY_MATCH) {
+            $selected = $this->normalizeSelectedAnswers($input);
+            $correct = $this->normalizeStringSet($payload['correct_choices'] ?? []);
+            $selectedSet = $this->normalizeStringSet($selected);
+            $isCorrect = $selectedSet === $correct;
+
+            return [
+                'answer_text' => $this->answerTextFromSelection($selected),
+                'answer_payload' => ['selected' => $selected],
+                'is_correct' => $isCorrect,
+                'score' => $isCorrect ? 1 : 0,
+            ];
+        }
+
+        $answerPayload = $this->decodeJsonObject($input['answer_payload'] ?? null);
+        $answer = trim((string) ($input['answer'] ?? $answerPayload['answer'] ?? ''));
+        if ($answer === '' || mb_strlen($answer) > 200) {
+            throw new ApiException(422, 'validation_error', 'answer must contain between 1 and 200 characters.', [
+                'answer' => 'Choose one key.',
+            ]);
+        }
+        $isCorrect = $this->normalizeAnswer($answer) === $this->normalizeAnswer((string) ($payload['correct_key'] ?? ''));
+
+        return [
+            'answer_text' => $answer,
+            'answer_payload' => ['answer' => $answer],
+            'is_correct' => $isCorrect,
+            'score' => $isCorrect ? 1 : 0,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $round
+     * @param array<string, mixed> $input
+     * @return array{answer_text: string, answer_payload: array<string, mixed>, is_correct: bool, score: int}
+     */
+    private function normalizeRaceAnswer(array $round, array $input): array
+    {
+        $selected = $this->normalizeSelectedAnswers($input);
+        $payload = $this->decodeJsonObject($round['prompt_payload'] ?? null);
+        $items = $payload['items'] ?? [];
+        if (!is_array($items) || !array_is_list($items)) {
+            throw new ApiException(409, 'prompt_malformed', 'The race prompt is malformed and cannot be answered.');
+        }
+        $selectedSet = $this->normalizeStringSet($selected);
+        $score = 0;
+        $possible = 0;
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $label = (string) ($item['label'] ?? '');
+            if ($label === '') {
+                continue;
+            }
+            $possible++;
+            $isSelected = in_array($this->normalizeAnswer($label), $selectedSet, true);
+            if ($isSelected === $this->pgBool($item['correct'] ?? false)) {
+                $score++;
+            }
+        }
+
+        return [
+            'answer_text' => $this->answerTextFromSelection($selected),
+            'answer_payload' => ['selected' => $selected],
+            'is_correct' => $possible > 0 && $score === $possible,
+            'score' => $score,
+        ];
+    }
+
+    /** @return list<string> */
+    private function normalizeSelectedAnswers(array $input): array
+    {
+        $payload = $this->decodeJsonObject($input['answer_payload'] ?? null);
+        $selected = $payload['selected'] ?? $input['selected'] ?? null;
+        if (!is_array($selected) || !array_is_list($selected)) {
+            throw new ApiException(422, 'validation_error', 'selected must be a list of answer strings.', [
+                'selected' => 'Choose zero or more options.',
+            ]);
+        }
+
+        return array_values(array_filter(
+            array_map(static fn (mixed $choice): string => trim((string) $choice), $selected),
+            static fn (string $choice): bool => $choice !== ''
+        ));
+    }
+
+    /** @param list<string> $selected */
+    private function answerTextFromSelection(array $selected): string
+    {
+        $answerText = implode(', ', $selected);
+        if ($answerText === '') {
+            return '(none)';
+        }
+        if (mb_strlen($answerText) > 200) {
+            throw new ApiException(422, 'validation_error', 'selected answers must fit within 200 characters.');
+        }
+
+        return $answerText;
+    }
+
+    /** @return list<string> */
+    private function normalizeStringSet(mixed $values): array
+    {
+        if (!is_array($values) || !array_is_list($values)) {
+            return [];
+        }
+        $normalized = array_values(array_unique(array_map(fn (mixed $value): string => $this->normalizeAnswer((string) $value), $values)));
+        sort($normalized);
+
+        return $normalized;
+    }
+
+    /** @return array<string, mixed> */
+    private function decodeJsonObject(mixed $value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+        try {
+            $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /** @return list<string> */
+    private function parsePostgresUuidArray(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_map(static fn (mixed $id): string => (string) $id, $value));
+        }
+        $text = trim((string) $value, '{}');
+        if ($text === '') {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(static fn (string $id): string => trim($id, '" '), explode(',', $text))));
+    }
+
+    /** @param list<string> $ids */
+    private function postgresUuidArray(array $ids): string
+    {
+        if ($ids === []) {
+            return '{}';
+        }
+
+        return '{' . implode(',', array_map(static fn (string $id): string => '"' . $id . '"', $ids)) . '}';
+    }
+
+    private function pgBool(mixed $value): bool
+    {
+        return $value === true || $value === 1 || $value === '1' || $value === 't' || $value === 'true';
     }
 
     private function normalizeRecoveryToken(string $value): string
