@@ -731,6 +731,34 @@ h3 {
     box-shadow: inset 0 1px 0 var(--surface-sheen-soft);
 }
 
+.games-hub {
+    gap: clamp(1.25rem, 3vw, 2rem);
+}
+
+.games-curated {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.games-feature-card {
+    display: grid;
+    align-content: start;
+    gap: 0.8rem;
+    min-height: 17rem;
+}
+
+.games-feature-card h3 {
+    margin: clamp(1rem, 3vw, 1.7rem) 0 0;
+}
+
+.games-feature-card .text-link {
+    align-self: end;
+    margin-top: auto;
+}
+
+.games-content-heading {
+    margin-top: clamp(0.5rem, 2vw, 1rem);
+}
+
 .recipe-card {
     display: grid;
     align-content: start;

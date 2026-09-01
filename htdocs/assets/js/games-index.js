@@ -47,7 +47,7 @@
     };
 
     const createSummary = (count) => {
-        const countLabel = count === 1 ? '1 game ready' : `${count} games ready`;
+        const countLabel = count === 1 ? '1 guide ready' : `${count} guides ready`;
         const section = document.createElement('section');
         section.className = 'content-summary';
 
@@ -68,11 +68,11 @@
         container.replaceChildren();
 
         if (safeGames.length === 0) {
-            renderState('No games yet', 'The game shelf is waiting for its first box of table notes.', 'empty');
+            renderState('No guides yet', 'The game shelf is waiting for its first box of table notes.', 'empty');
             return;
         }
 
-        setStatus(safeGames.length === 1 ? '1 game loaded.' : `${safeGames.length} games loaded.`);
+        setStatus(safeGames.length === 1 ? '1 guide loaded.' : `${safeGames.length} guides loaded.`);
         container.append(createSummary(safeGames.length));
 
         const grid = document.createElement('div');

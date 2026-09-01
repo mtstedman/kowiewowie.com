@@ -7,12 +7,15 @@ $publicNavItems = [
     'decks' => ['href' => '/decks/', 'label' => 'Decks'],
     'open-deck' => ['href' => '/open-deck/', 'label' => 'Open Deck'],
     'games' => ['href' => '/games/', 'label' => 'Games'],
-    'risk' => ['href' => '/risk/', 'label' => 'Risk'],
-    'chess' => ['href' => '/chess/', 'label' => 'Chess'],
-    'trivia' => ['href' => '/trivia/', 'label' => 'Trivia'],
     'music' => ['href' => '/music/', 'label' => 'Music'],
     'videos' => ['href' => '/videos/', 'label' => 'Videos'],
     'dongs' => ['href' => '/dongs/', 'label' => 'Dongs'],
+];
+
+$publicSectionAliases = [
+    'risk' => 'games',
+    'chess' => 'games',
+    'trivia' => 'games',
 ];
 
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
@@ -20,9 +23,10 @@ $currentPublicSection = null;
 
 if (is_string($requestPath) && $requestPath !== '' && $requestPath !== '/') {
     $firstPathSegment = explode('/', trim($requestPath, '/'))[0] ?? '';
+    $matchedPublicSection = $publicSectionAliases[$firstPathSegment] ?? $firstPathSegment;
 
-    if (array_key_exists($firstPathSegment, $publicNavItems)) {
-        $currentPublicSection = $firstPathSegment;
+    if (array_key_exists($matchedPublicSection, $publicNavItems)) {
+        $currentPublicSection = $matchedPublicSection;
     }
 }
 ?>
