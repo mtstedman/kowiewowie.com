@@ -15,8 +15,14 @@ final class TriviaRepository
     private const PHASE_GHOST_RACE = 'ghost_race';
     private const MINI_GAME_KEY_LOCK = 'key_lock';
     private const MINI_GAME_MEMORY_MATCH = 'memory_match';
+    private const MINI_GAME_POISON_CHALICES = 'poison_chalices';
+    private const MINI_GAME_SWORD_BOXES = 'sword_boxes';
+    private const MINI_GAME_CRYPT_RUNES = 'crypt_runes';
     private const KEY_LOCK_IMAGE_URL = '/assets/img/trivia/killing-floor-keys.png';
     private const MEMORY_IMAGE_URL = '/assets/img/trivia/killing-floor-memory.png';
+    private const POISON_CHALICES_IMAGE_URL = '/assets/img/trivia/killing-floor-poison-chalices.png';
+    private const SWORD_BOXES_IMAGE_URL = '/assets/img/trivia/killing-floor-sword-boxes.png';
+    private const CRYPT_RUNES_IMAGE_URL = '/assets/img/trivia/killing-floor-crypt-runes.png';
     private const RACE_GOAL = 12;
     private const RACE_BODY_START = 4;
 
@@ -1197,13 +1203,7 @@ final class TriviaRepository
     {
         $roundNumber = ((int) $sourceRound['round_number']) + 1;
         $miniGameType = $this->nextKillingFloorMiniGameType((string) $room['id']);
-        $payload = $miniGameType === self::MINI_GAME_KEY_LOCK
-            ? $this->keyLockPayload((string) $sourceRound['id'])
-            : $this->memoryMatchPayload((string) $sourceRound['id']);
-        $imageUrl = $miniGameType === self::MINI_GAME_KEY_LOCK ? self::KEY_LOCK_IMAGE_URL : self::MEMORY_IMAGE_URL;
-        $answerShape = $miniGameType === self::MINI_GAME_KEY_LOCK
-            ? ['type' => 'single_choice']
-            : ['type' => 'multi_select'];
+        $miniGame = $this->killingFloorMiniGame($miniGameType, (string) $sourceRound['id']);
 
         $statement = $this->pdo->prepare(<<<'SQL'
             INSERT INTO trivia_rounds (room_id, round_number, prompt_id, status, answer_window_seconds, closes_at,
@@ -1220,15 +1220,13 @@ final class TriviaRepository
             'prompt_id' => $sourceRound['prompt_id'],
             'answer_window_seconds' => max(10, min(30, (int) $room['answer_window_seconds'])),
             'prompt_payload' => json_encode([
-                'title' => $miniGameType === self::MINI_GAME_KEY_LOCK ? 'Keyring Trial' : 'Memory Grid',
-                'instructions' => $miniGameType === self::MINI_GAME_KEY_LOCK
-                    ? 'Choose one key before the lock snaps shut.'
-                    : 'Select every symbol you remember from the flash.',
+                'title' => $miniGame['title'],
+                'instructions' => $miniGame['instructions'],
             ], JSON_THROW_ON_ERROR),
-            'answer_shape' => json_encode($answerShape, JSON_THROW_ON_ERROR),
-            'image_url' => $imageUrl,
+            'answer_shape' => json_encode($miniGame['answer_shape'], JSON_THROW_ON_ERROR),
+            'image_url' => $miniGame['image_url'],
             'minigame_type' => $miniGameType,
-            'minigame_payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+            'minigame_payload' => json_encode($miniGame['payload'], JSON_THROW_ON_ERROR),
             'eligible_player_ids' => $this->postgresUuidArray($eligiblePlayerIds),
         ]);
 
@@ -1255,10 +1253,59 @@ final class TriviaRepository
               AND COALESCE(round_type, 'trivia') = 'killing_floor'
         SQL);
         $statement->execute(['room_id' => $roomId]);
+        $rotation = [
+            self::MINI_GAME_KEY_LOCK,
+            self::MINI_GAME_MEMORY_MATCH,
+            self::MINI_GAME_POISON_CHALICES,
+            self::MINI_GAME_SWORD_BOXES,
+            self::MINI_GAME_CRYPT_RUNES,
+        ];
 
-        return (int) $statement->fetchColumn() % 2 === 0
-            ? self::MINI_GAME_KEY_LOCK
-            : self::MINI_GAME_MEMORY_MATCH;
+        return $rotation[(int) $statement->fetchColumn() % count($rotation)];
+    }
+
+    /**
+     * @return array{answer_shape: array<string, string>, image_url: string, instructions: string, payload: array<string, mixed>, title: string}
+     */
+    private function killingFloorMiniGame(string $miniGameType, string $roundId): array
+    {
+        return match ($miniGameType) {
+            self::MINI_GAME_KEY_LOCK => [
+                'title' => 'Keyring Trial',
+                'instructions' => 'Choose one key before the lock snaps shut.',
+                'answer_shape' => ['type' => 'single_choice'],
+                'image_url' => self::KEY_LOCK_IMAGE_URL,
+                'payload' => $this->keyLockPayload($roundId),
+            ],
+            self::MINI_GAME_MEMORY_MATCH => [
+                'title' => 'Memory Grid',
+                'instructions' => 'Select every symbol you remember from the flash.',
+                'answer_shape' => ['type' => 'multi_select'],
+                'image_url' => self::MEMORY_IMAGE_URL,
+                'payload' => $this->memoryMatchPayload($roundId),
+            ],
+            self::MINI_GAME_POISON_CHALICES => [
+                'title' => 'Poison Chalices',
+                'instructions' => 'Choose the one chalice that is safe to drink.',
+                'answer_shape' => ['type' => 'single_choice'],
+                'image_url' => self::POISON_CHALICES_IMAGE_URL,
+                'payload' => $this->poisonChalicesPayload($roundId),
+            ],
+            self::MINI_GAME_SWORD_BOXES => [
+                'title' => 'Sword Boxes',
+                'instructions' => 'Choose the one box that holds a harmless blade.',
+                'answer_shape' => ['type' => 'single_choice'],
+                'image_url' => self::SWORD_BOXES_IMAGE_URL,
+                'payload' => $this->swordBoxesPayload($roundId),
+            ],
+            self::MINI_GAME_CRYPT_RUNES => [
+                'title' => 'Crypt Runes',
+                'instructions' => 'Select every rune in the safe pattern.',
+                'answer_shape' => ['type' => 'multi_select'],
+                'image_url' => self::CRYPT_RUNES_IMAGE_URL,
+                'payload' => $this->cryptRunesPayload($roundId),
+            ],
+        };
     }
 
     /** @return array<string, mixed> */
@@ -1285,6 +1332,49 @@ final class TriviaRepository
             'type' => self::MINI_GAME_MEMORY_MATCH,
             'choices' => $symbols,
             'correct_choices' => $correct,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function poisonChalicesPayload(string $roundId): array
+    {
+        $chalices = ['Amber Chalice', 'Ivory Chalice', 'Onyx Chalice', 'Verdigris Chalice'];
+        $safeChalice = $chalices[abs(crc32($roundId)) % count($chalices)];
+
+        return [
+            'type' => self::MINI_GAME_POISON_CHALICES,
+            'choices' => $chalices,
+            'correct_key' => $safeChalice,
+            'result_description' => sprintf('The %s was the only safe chalice.', $safeChalice),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function swordBoxesPayload(string $roundId): array
+    {
+        $boxes = ['Ashen Box', 'Ivory Box', 'Obsidian Box', 'Rosewood Box'];
+        $safeBox = $boxes[abs(crc32($roundId)) % count($boxes)];
+
+        return [
+            'type' => self::MINI_GAME_SWORD_BOXES,
+            'choices' => $boxes,
+            'correct_key' => $safeBox,
+            'result_description' => sprintf('The %s held the harmless blade.', $safeBox),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function cryptRunesPayload(string $roundId): array
+    {
+        $runes = ['Ash Rune', 'Crown Rune', 'Eye Rune', 'Moon Rune', 'Star Rune', 'Thorn Rune'];
+        $start = abs(crc32($roundId)) % count($runes);
+        $safePattern = [$runes[$start], $runes[($start + 2) % count($runes)], $runes[($start + 4) % count($runes)]];
+
+        return [
+            'type' => self::MINI_GAME_CRYPT_RUNES,
+            'choices' => $runes,
+            'correct_choices' => $safePattern,
+            'result_description' => sprintf('The safe rune pattern was %s.', implode(', ', $safePattern)),
         ];
     }
 
@@ -1334,6 +1424,16 @@ final class TriviaRepository
             ]);
         }
 
+        $results = [
+            'survivor_player_ids' => array_values(array_intersect($eligibleIds, $correctIds)),
+            'ghosted_player_ids' => $loserIds,
+            'spared_player_id' => $sparedId,
+        ];
+        $payload = $this->decodeJsonObject($round['minigame_payload'] ?? null);
+        if (isset($payload['result_description'])) {
+            $results['result_description'] = (string) $payload['result_description'];
+        }
+
         $resultStatement = $this->pdo->prepare(<<<'SQL'
             UPDATE trivia_rounds
             SET minigame_results = CAST(:results AS jsonb)
@@ -1341,11 +1441,7 @@ final class TriviaRepository
         SQL);
         $resultStatement->execute([
             'id' => $round['id'],
-            'results' => json_encode([
-                'survivor_player_ids' => array_values(array_intersect($eligibleIds, $correctIds)),
-                'ghosted_player_ids' => $loserIds,
-                'spared_player_id' => $sparedId,
-            ], JSON_THROW_ON_ERROR),
+            'results' => json_encode($results, JSON_THROW_ON_ERROR),
         ]);
     }
 
@@ -1749,7 +1845,7 @@ final class TriviaRepository
             ));
         }
         if (!$resolved) {
-            unset($minigamePayload['correct_key'], $minigamePayload['correct_choices']);
+            unset($minigamePayload['correct_key'], $minigamePayload['correct_choices'], $minigamePayload['result_description']);
             unset($answerShape['correct_answers']);
         }
         $raceItems = $promptPayload['items'] ?? [];
@@ -2371,7 +2467,7 @@ final class TriviaRepository
     private function normalizeKillingFloorAnswer(array $round, array $input): array
     {
         $payload = $this->decodeJsonObject($round['minigame_payload'] ?? null);
-        if ((string) ($round['minigame_type'] ?? '') === self::MINI_GAME_MEMORY_MATCH) {
+        if (in_array((string) ($round['minigame_type'] ?? ''), [self::MINI_GAME_MEMORY_MATCH, self::MINI_GAME_CRYPT_RUNES], true)) {
             $selected = $this->normalizeSelectedAnswers($input);
             $correct = $this->normalizeStringSet($payload['correct_choices'] ?? []);
             $selectedSet = $this->normalizeStringSet($selected);
