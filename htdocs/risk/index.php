@@ -6,6 +6,18 @@ $year = gmdate('Y');
 $pageTitle = 'Risk - wowiekowie.com';
 $metaDescription = 'Play a polished browser-only Risk strategy game on wowiekowie.com.';
 $pageStyles = ['/assets/css/risk.css'];
+$dongerCatalog = require dirname(__DIR__) . '/dongs/dongers.php';
+$riskAvatarCatalog = array_map(
+    static fn (array $donger): array => [
+        'name' => $donger['name'],
+        'text' => $donger['text'],
+    ],
+    $dongerCatalog
+);
+$riskAvatarCatalogJson = json_encode(
+    $riskAvatarCatalog,
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+);
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
 <body>
@@ -32,9 +44,21 @@ $pageStyles = ['/assets/css/risk.css'];
                         </div>
                     </div>
 
-                    <div class="risk-scoreboard" aria-label="Territory counts">
-                        <span><strong id="risk-human-count">0</strong> Player</span>
-                        <span><strong id="risk-ai-count">0</strong> Browser</span>
+                    <div class="risk-scoreboard" aria-label="Territory counts and player avatars">
+                        <span class="risk-scoreboard-side">
+                            <strong id="risk-human-count">0</strong> Player
+                            <span class="risk-scoreboard-avatar">
+                                <span class="risk-scoreboard-avatar-name">Avatar: <span id="risk-human-avatar-name">Assigned when a game starts</span></span>
+                                <span id="risk-human-avatar-face" class="risk-scoreboard-avatar-face" aria-label="Player avatar face">—</span>
+                            </span>
+                        </span>
+                        <span class="risk-scoreboard-side">
+                            <strong id="risk-ai-count">0</strong> Browser
+                            <span class="risk-scoreboard-avatar">
+                                <span class="risk-scoreboard-avatar-name">Avatar: <span id="risk-ai-avatar-name">Assigned when a game starts</span></span>
+                                <span id="risk-ai-avatar-face" class="risk-scoreboard-avatar-face" aria-label="Browser avatar face">—</span>
+                            </span>
+                        </span>
                         <span><strong id="risk-reinforcements-value">0</strong> Reinforcements</span>
                     </div>
 
@@ -74,6 +98,7 @@ $pageStyles = ['/assets/css/risk.css'];
         <?php include dirname(__DIR__) . '/partials/footer.php'; ?>
     </div>
 
+    <script id="risk-avatar-catalog" type="application/json"><?= $riskAvatarCatalogJson ?></script>
     <script type="module" src="/assets/js/risk-game.js?v=<?= @filemtime(dirname(__DIR__) . '/assets/js/risk-game.js') ?: time() ?>"></script>
 </body>
 </html>
