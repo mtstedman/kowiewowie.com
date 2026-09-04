@@ -76,4 +76,22 @@ return [
     ['name' => 'Midnight Bean', 'text' => '^(• 3 •)^', 'category' => 'Beans'],
     ['name' => 'Snack Bean Squeak', 'text' => '<(◔ 3 ◔)>', 'category' => 'Beans'],
     ['name' => 'Bean Side Glance', 'text' => '^(¬ 3 ¬)^', 'category' => 'Beans'],
+
+    ['name' => 'Confused Tilt', 'text' => '(´・ω・`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Blank Stare', 'text' => '(´−ω−`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Lost Soul', 'text' => '(´・_・`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Sweat Drop Worry', 'text' => '(´；ω；`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Question Mark Face', 'text' => '(´・ ▽ ・`)', 'category' => 'Confusion/Awkward'],
+
+    ['name' => 'Salute Ready', 'text' => '(๑•́ ▽ •̀๑)', 'category' => 'Actions/Gestures'],
+    ['name' => 'Facepalm Moment', 'text' => '(´；ρ；`)', 'category' => 'Actions/Gestures'],
+    ['name' => 'Tippy Toes Sneak', 'text' => '(´▽｀)', 'category' => 'Actions/Gestures'],
+    ['name' => 'Thumbs Up Cheer', 'text' => '(๑•́ ω •̀๑)و', 'category' => 'Actions/Gestures'],
+    ['name' => 'Crawling Advance', 'text' => 'ヾ(•ω•`)o', 'category' => 'Actions/Gestures'],
+    ['name' => 'Confident Nod', 'text' => '(๑•́ω•̀๑)و', 'category' => 'Actions/Gestures'],
+    ['name' => 'Pray Hands', 'text' => '(´；ω；`)ﾉ', 'category' => 'Actions/Gestures'],
+
+    ['name' => 'Ultra Wink', 'text' => '( ͡ ͜ʖ ͡ )', 'category' => 'Classic Faces'],
+    ['name' => 'Awkward Chuckle', 'text' => '(´Д`)ﾊﾊ…', 'category' => 'Classic Faces'],
+    ['name' => 'Derp Mode', 'text' => 'ヽ(´ー`)ノ', 'category' => 'Classic Faces'],
 ];
