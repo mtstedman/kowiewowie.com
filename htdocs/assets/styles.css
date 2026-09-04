@@ -473,6 +473,52 @@ footer {
     text-shadow: 0 0 18px rgba(249, 248, 113, 0.5);
 }
 
+.games-subnav {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1 0 100%;
+    justify-content: center;
+    padding: 0.5rem 0 0;
+    border-top: 1px solid var(--surface-edge);
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.games-subnav a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: max-content;
+    min-height: 44px;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--surface-edge);
+    background: var(--surface-fill-subtle);
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), color var(--motion-fast), transform var(--motion-fast);
+}
+
+.games-subnav a:hover,
+.games-subnav a:focus-visible {
+    border-color: var(--accent);
+    background: rgba(0, 245, 255, 0.12);
+    color: var(--accent);
+    box-shadow: 0 0 18px var(--glow);
+    transform: translateY(-1px);
+}
+
+.games-subnav a[aria-current="page"] {
+    border-color: var(--accent-warm);
+    background: linear-gradient(135deg, rgba(249, 248, 113, 0.18), rgba(0, 245, 255, 0.14));
+    color: var(--accent-warm);
+    box-shadow: inset 0 -2px 0 var(--accent-warm);
+}
+
 .status {
     display: inline-flex;
     align-items: center;
@@ -1025,6 +1071,10 @@ footer {
         padding-inline: 0.5rem;
     }
 
+    .games-subnav {
+        justify-content: flex-start;
+    }
+
     .status {
         display: none;
     }
@@ -1122,6 +1172,8 @@ footer {
     .wordmark:focus-visible .wordmark-mark,
     .site-nav a:hover,
     .site-nav a:focus-visible,
+    .games-subnav a:hover,
+    .games-subnav a:focus-visible,
     .button:hover,
     .button:focus-visible,
     .feature-grid article:hover,
