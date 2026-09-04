@@ -11,7 +11,7 @@ export const roundType = (room) => {
 
 export const minigameType = (room) => {
     const value = String(room?.round?.minigame?.type || '');
-    return ['key_lock', 'memory_match'].includes(value) ? value : '';
+    return ['key_lock', 'memory_match', 'poison_chalices', 'sword_boxes', 'crypt_runes'].includes(value) ? value : '';
 };
 
 export const selectionMode = (room) => {
@@ -69,7 +69,7 @@ export const correctAnswersForRound = (room) => {
         return [];
     }
     if (roundType(room) === 'killing_floor') {
-        if (minigameType(room) === 'memory_match') {
+        if (['memory_match', 'crypt_runes'].includes(minigameType(room))) {
             return stringList(round.minigame?.payload?.correct_choices);
         }
         return stringList([round.minigame?.payload?.correct_key]);
@@ -117,6 +117,36 @@ export const phasePresentation = (room) => {
             instructions: String(room?.round?.prompt_payload?.instructions || 'Select every symbol you remember before the lights go out.'),
             image: `${SCENE_ROOT}/killing-floor-memory.png`,
             alt: 'A skeleton conducting a magical memory game made of framed spooky symbols.',
+        };
+    }
+    if (type === 'killing_floor' && minigame === 'poison_chalices') {
+        return {
+            key: 'poison_chalices',
+            label: 'The Killing Floor',
+            title: 'Poison Chalices',
+            instructions: String(room?.round?.prompt_payload?.instructions || 'Choose the one chalice that is safe to drink.'),
+            image: `${SCENE_ROOT}/killing-floor-chalices.png`,
+            alt: 'A glowing safe chalice among poisoned goblets in a haunted crypt.',
+        };
+    }
+    if (type === 'killing_floor' && minigame === 'sword_boxes') {
+        return {
+            key: 'sword_boxes',
+            label: 'The Killing Floor',
+            title: 'Sword Boxes',
+            instructions: String(room?.round?.prompt_payload?.instructions || 'Choose the one box that holds a harmless blade.'),
+            image: `${SCENE_ROOT}/killing-floor-sword-boxes.png`,
+            alt: 'A set of ominous boxes concealing swords in a candlelit trap room.',
+        };
+    }
+    if (type === 'killing_floor' && minigame === 'crypt_runes') {
+        return {
+            key: 'crypt_runes',
+            label: 'The Killing Floor',
+            title: 'Crypt Runes',
+            instructions: String(room?.round?.prompt_payload?.instructions || 'Select every rune in the safe pattern.'),
+            image: `${SCENE_ROOT}/killing-floor-crypt-runes.png`,
+            alt: 'Ancient glowing runes arranged in a safe pattern on a crypt wall.',
         };
     }
     if (type === 'killing_floor') {
