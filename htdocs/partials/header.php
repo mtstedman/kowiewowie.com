@@ -18,8 +18,16 @@ $publicSectionAliases = [
     'trivia' => 'games',
 ];
 
+$gameSubNavItems = [
+    'games' => ['href' => '/games/', 'label' => 'Overview'],
+    'chess' => ['href' => '/chess/', 'label' => 'Chess'],
+    'trivia' => ['href' => '/trivia/', 'label' => 'Murder Trivia Party'],
+    'risk' => ['href' => '/risk/', 'label' => 'Risk'],
+];
+
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $currentPublicSection = null;
+$currentGameSubsection = null;
 
 if (is_string($requestPath) && $requestPath !== '' && $requestPath !== '/') {
     $firstPathSegment = explode('/', trim($requestPath, '/'))[0] ?? '';
@@ -27,6 +35,10 @@ if (is_string($requestPath) && $requestPath !== '' && $requestPath !== '/') {
 
     if (array_key_exists($matchedPublicSection, $publicNavItems)) {
         $currentPublicSection = $matchedPublicSection;
+    }
+
+    if (array_key_exists($firstPathSegment, $gameSubNavItems)) {
+        $currentGameSubsection = $firstPathSegment;
     }
 }
 ?>
@@ -42,5 +54,12 @@ if (is_string($requestPath) && $requestPath !== '' && $requestPath !== '/') {
         <?php endforeach; ?>
     </nav>
     <span class="status"><span class="status-dot" aria-hidden="true"></span>site awake</span>
+    <?php if ($currentPublicSection === 'games'): ?>
+        <nav class="games-subnav" aria-label="Games navigation">
+            <?php foreach ($gameSubNavItems as $sectionKey => $navItem): ?>
+                <a href="<?= htmlspecialchars($navItem['href'], ENT_QUOTES, 'UTF-8') ?>"<?= $currentGameSubsection === $sectionKey ? ' aria-current="page"' : '' ?>><?= htmlspecialchars($navItem['label'], ENT_QUOTES, 'UTF-8') ?></a>
+            <?php endforeach; ?>
+        </nav>
+    <?php endif; ?>
 </header>
 <span id="main-content" class="skip-target" tabindex="-1"></span>
