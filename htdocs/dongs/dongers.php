@@ -11,6 +11,8 @@ return [
     ['name' => 'Tiny Shock', 'text' => '(☉_☉)', 'category' => 'Classic Faces'],
     ['name' => 'Pleading Stare', 'text' => '(ಥ﹏ಥ)', 'category' => 'Classic Faces'],
     ['name' => 'Sleepy Blink', 'text' => '(-_-) zzz', 'category' => 'Classic Faces'],
+    ['name' => 'Deadpan Stare', 'text' => '(・_・)', 'category' => 'Classic Faces'],
+    ['name' => 'Curious Tilt', 'text' => '(・・?)', 'category' => 'Classic Faces'],
 
     ['name' => 'Happy Beam', 'text' => '(＾▽＾)', 'category' => 'Happy and Hype'],
     ['name' => 'Joy Spark', 'text' => '(*^▽^*)', 'category' => 'Happy and Hype'],
@@ -18,12 +20,16 @@ return [
     ['name' => 'Excited Squeal', 'text' => 'Ｏ(≧▽≦)Ｏ', 'category' => 'Happy and Hype'],
     ['name' => 'Radiant Smile', 'text' => '(o^▽^o)', 'category' => 'Happy and Hype'],
     ['name' => 'Party Pop', 'text' => '＼(≧▽≦)／', 'category' => 'Happy and Hype'],
+    ['name' => 'Cheer Burst', 'text' => '(★^O^★)', 'category' => 'Happy and Hype'],
+    ['name' => 'Wide Grin', 'text' => '(≧◡≦)', 'category' => 'Happy and Hype'],
 
     ['name' => 'Meltdown Tears', 'text' => '(T_T)', 'category' => 'Sad Hours'],
     ['name' => 'Dramatic Cry', 'text' => '(;﹏;)', 'category' => 'Sad Hours'],
     ['name' => 'Rain Cloud', 'text' => '(｡•́︿•̀｡)', 'category' => 'Sad Hours'],
     ['name' => 'Heartbreak Sigh', 'text' => '(╥﹏╥)', 'category' => 'Sad Hours'],
     ['name' => 'Quiet Deflate', 'text' => '(︶︹︺)', 'category' => 'Sad Hours'],
+    ['name' => 'Silent Sob', 'text' => '(个_个)', 'category' => 'Sad Hours'],
+    ['name' => 'Lonely Drift', 'text' => '(´-`)', 'category' => 'Sad Hours'],
 
     ['name' => 'Battle Ready', 'text' => 'ლ(ಠ益ಠლ)', 'category' => 'Angry and Intense'],
     ['name' => 'Squared Up', 'text' => '(ง •̀_•́)ง', 'category' => 'Angry and Intense'],
@@ -31,6 +37,8 @@ return [
     ['name' => 'Glare Mode', 'text' => '(╬ Ò﹏Ó)', 'category' => 'Angry and Intense'],
     ['name' => 'Steam Ears', 'text' => '٩(╬ʘ益ʘ╬)۶', 'category' => 'Angry and Intense'],
     ['name' => 'Goblin Threat', 'text' => '(ಠ益ಠ)', 'category' => 'Angry and Intense'],
+    ['name' => 'Loud Objection', 'text' => '(#`Д´)', 'category' => 'Angry and Intense'],
+    ['name' => 'Grumble Mode', 'text' => '(￣ヘ￣#)', 'category' => 'Angry and Intense'],
 
     ['name' => 'Full Shrug', 'text' => '¯\\_(ツ)_/¯', 'category' => 'Shrugs and Chaos'],
     ['name' => 'Jazz Hands Chaos', 'text' => 'ヽ༼ຈل͜ຈ༽ﾉ', 'category' => 'Shrugs and Chaos'],
@@ -38,12 +46,16 @@ return [
     ['name' => 'Panic Scatter', 'text' => 'ヽ(゜Q。)ノ？', 'category' => 'Shrugs and Chaos'],
     ['name' => 'Confused Orbit', 'text' => '◎[▪‿▪]◎', 'category' => 'Shrugs and Chaos'],
     ['name' => 'Who Knows', 'text' => '┐(￣ヘ￣)┌', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Static Noise', 'text' => '(⊙﹏⊙)', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Dizzy Spin', 'text' => '(@_@)', 'category' => 'Shrugs and Chaos'],
 
     ['name' => 'Table Respecter', 'text' => '┬─┬ノ( º _ ºノ)', 'category' => 'Table Drama'],
     ['name' => 'Table Flipper', 'text' => '(╯°□°）╯︵ ┻━┻', 'category' => 'Table Drama'],
     ['name' => 'Rage Flipper', 'text' => '(ノಠ益ಠ)ノ彡┻━┻', 'category' => 'Table Drama'],
     ['name' => 'Double Flip', 'text' => '┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻', 'category' => 'Table Drama'],
     ['name' => 'Desk Slam', 'text' => '(╯°□°)╯︵ ʞooqǝɔɐɟ', 'category' => 'Table Drama'],
+    ['name' => 'Table Setter', 'text' => '┳━┳ ノ( ゜-゜ノ)', 'category' => 'Table Drama'],
+    ['name' => 'Flip Everything', 'text' => '(ノ°Д°）ノ︵ ┻━┻', 'category' => 'Table Drama'],
 
     ['name' => 'Flex Appeal', 'text' => 'ᕦ(ò_óˇ)ᕤ', 'category' => 'Victory Laps'],
     ['name' => 'Speed Walk', 'text' => 'ᕕ( ᐛ )ᕗ', 'category' => 'Victory Laps'],
@@ -53,6 +65,8 @@ return [
     ['name' => 'Party Burst', 'text' => '(ﾉ≧∀≦)ﾉ', 'category' => 'Victory Laps'],
     ['name' => 'Winner Energy', 'text' => 'Ꮚ˘ ꈊ ˘ Ꮚ', 'category' => 'Victory Laps'],
     ['name' => 'Mission Accomplished', 'text' => 'ヽ(^o^)丿', 'category' => 'Victory Laps'],
+    ['name' => 'Champion Pose', 'text' => '٩(◕‿◕)۶', 'category' => 'Victory Laps'],
+    ['name' => 'Clean Sweep', 'text' => '(＾◇＾)／', 'category' => 'Victory Laps'],
 
     ['name' => 'Bear Hello', 'text' => 'ʕ•ᴥ•ʔ', 'category' => 'Soft and Sweet'],
     ['name' => 'Incoming Hug', 'text' => '(づ｡◕‿‿◕｡)づ', 'category' => 'Soft and Sweet'],
@@ -62,6 +76,8 @@ return [
     ['name' => 'Gentle Stardust', 'text' => '(੭ˊᵕˋ)੭* ੈ✩‧₊˚', 'category' => 'Soft and Sweet'],
     ['name' => 'Blushing Peek', 'text' => '(⁄ ⁄•⁄ω⁄•⁄ ⁄)', 'category' => 'Soft and Sweet'],
     ['name' => 'Tiny Love', 'text' => '(♡˙︶˙♡)', 'category' => 'Soft and Sweet'],
+    ['name' => 'Kitty Nap', 'text' => '(=^･ω･^=)', 'category' => 'Soft and Sweet'],
+    ['name' => 'Flower Gift', 'text' => '(´• ω •`)ﾉ', 'category' => 'Soft and Sweet'],
 
     ['name' => 'Finger Guns Deluxe', 'text' => '(☞ ͡° ͜ʖ ͡°)☞', 'category' => 'Goblin Energy'],
     ['name' => 'Scheming Face', 'text' => '( ͠° ͟ʖ ͡°)', 'category' => 'Goblin Energy'],
@@ -69,6 +85,8 @@ return [
     ['name' => 'Mischief Gremlin', 'text' => 'ψ(｀∇´)ψ', 'category' => 'Goblin Energy'],
     ['name' => 'Sneaky Plot', 'text' => '(¬‿¬)', 'category' => 'Goblin Energy'],
     ['name' => 'Chaos Smile', 'text' => '¯\\(°_o)/¯', 'category' => 'Goblin Energy'],
+    ['name' => 'Lurking Goblin', 'text' => 'ᕕ( ͡° ͜ʖ ͡°)ᕗ', 'category' => 'Goblin Energy'],
+    ['name' => 'Smug Gremlin', 'text' => '( ͡~ ͜ʖ ͡°)', 'category' => 'Goblin Energy'],
 
     ['name' => 'Furby Bean Stare', 'text' => '^(◕ 3 ◕)^', 'category' => 'Beans'],
     ['name' => 'Bean Blink', 'text' => '^(⌒ 3 ⌒)^', 'category' => 'Beans'],
@@ -76,4 +94,6 @@ return [
     ['name' => 'Midnight Bean', 'text' => '^(• 3 •)^', 'category' => 'Beans'],
     ['name' => 'Snack Bean Squeak', 'text' => '<(◔ 3 ◔)>', 'category' => 'Beans'],
     ['name' => 'Bean Side Glance', 'text' => '^(¬ 3 ¬)^', 'category' => 'Beans'],
+    ['name' => 'Sunny Bean', 'text' => '^(☆ 3 ☆)^', 'category' => 'Beans'],
+    ['name' => 'Sleepy Bean', 'text' => '<(- 3 -)>', 'category' => 'Beans'],
 ];
