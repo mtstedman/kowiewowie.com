@@ -1,9 +1,9 @@
-<!-- schema-version: 11 -->
+<!-- schema-version: 12 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 11**. `migration-chain.json` is the ordered,
+current release pin is **version 12**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -28,11 +28,12 @@ per-file execution ledger.
 | 9 | `009_durable_game_rejoin_links.sql` | Hashed per-seat chess and trivia recovery tokens for durable rejoin after browser identity loss |
 | 10 | `010_open_deck_scheduler.sql` | Open-deck time slots, set nominations, fill votes, and eviction votes |
 | 11 | `011_trivia_murder_party.sql` | Killing-floor minigames, ghosts, multi-select prompts, and the final body race |
+| 12 | `012_trivia_mini_games.sql` | Expanded Killing Floor trials with poison chalices, sword boxes, and crypt runes |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 11 inventory
+## Current version 12 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -46,7 +47,8 @@ their full basenames are already stored in production's migration ledger.
   and `chess_games.pending_takeback_requested_at` persist pending takeback offers
 - Trivia: `trivia_rooms`, `trivia_players`, `trivia_room_links`,
   `trivia_link_claims`, `trivia_question_catalog`, `trivia_prompts`,
-  `trivia_rounds`, and `trivia_answers`
+  `trivia_rounds` (including key lock, memory match, poison chalices, sword
+  boxes, and crypt runes Killing Floor trials), and `trivia_answers`
 - Open deck: `open_deck_slots`, `open_deck_set_nominations`,
   `open_deck_fill_votes`, and `open_deck_eviction_votes`
 - Migration metadata: `schema_migrations` and `database_schema_version`
@@ -169,8 +171,8 @@ timed answer window with `opened_at`, `closes_at`, and resolved state.
 `trivia_answers` records one answer per player per round, structured selections,
 a per-room client idempotency UUID, correctness, score, and submission timestamp.
 The application rejects duplicate or late answers. Wrong living players descend
-to a key-lock or memory trial; failed players become ghosts and remain eligible
-for later trivia.
+to a Killing Floor trial—key lock, memory match, poison chalices, sword boxes,
+or crypt runes; failed players become ghosts and remain eligible for later trivia.
 
 Creating a room is one transaction: insert the room, seat the host, attach the
 host to the room, persist caller-supplied prompts or copy active default prompts

@@ -81,7 +81,7 @@ try {
     $pdo->exec("SET search_path TO {$quotedSchema}, public");
 
     $minted = (new SchemaVersionMinter($pdo, $projectRoot . '/docs/postgres'))->mint();
-    murderTriviaAssert($minted['from'] === 0 && $minted['to'] === 11, 'The isolated database did not migrate from version 0 to 11.');
+    murderTriviaAssert($minted['from'] === 0 && $minted['to'] === 12, 'The isolated database did not migrate from version 0 to 12.');
     $seededQuestions = seedTriviaQuestions($pdo, $projectRoot . '/database/data/trivia-questions.json');
     murderTriviaAssert($seededQuestions === 160, 'The isolated catalog did not seed all 160 questions.');
 
@@ -128,58 +128,83 @@ try {
         murderTriviaAssert($nextQuestion['phase'] === 'trivia', "A fully correct question {$questionNumber} opened the wrong phase.");
     }
 
+    $killingFloorTypes = [
+        'key_lock' => 'single_choice',
+        'memory_match' => 'multi_select',
+        'poison_chalices' => 'single_choice',
+        'sword_boxes' => 'single_choice',
+        'crypt_runes' => 'multi_select',
+    ];
+
+    foreach ($killingFloorTypes as $expectedType => $expectedAnswerShape) {
+        $triviaRound = murderTriviaCurrentRound($pdo, $publicId);
+        $correctSelection = murderTriviaCorrectSelection($triviaRound);
+        $triviaAnswerShape = json_decode((string) $triviaRound['answer_shape'], true, 512, JSON_THROW_ON_ERROR);
+        $triviaIsMulti = ($triviaAnswerShape['type'] ?? null) === 'multi_select';
+        $choices = json_decode((string) $triviaRound['choices'], true, 512, JSON_THROW_ON_ERROR);
+        $wrongSelection = array_values(array_filter(array_map('strval', $choices), static fn (string $choice): bool => !in_array($choice, $correctSelection, true)));
+        murderTriviaAssert($wrongSelection !== [], "The trivia prompt before {$expectedType} did not have a usable wrong answer.");
+
+        $afterHostAnswer = $repository->submitAnswer($publicId, murderTriviaAnswerPayload([$wrongSelection[0]], $triviaIsMulti), $hostIdentity);
+        murderTriviaAssert($afterHostAnswer['round']['status'] === 'answering', "The trivia prompt before {$expectedType} resolved before every eligible player answered.");
+        $afterGuestAnswer = $repository->submitAnswer($publicId, murderTriviaAnswerPayload($correctSelection, $triviaIsMulti), $guestIdentity);
+        murderTriviaAssert($afterGuestAnswer['round']['status'] === 'resolved', "The trivia prompt before {$expectedType} did not resolve after every answer.");
+
+        $killingFloor = $repository->advanceRound($publicId, ['action' => 'advance'], $hostIdentity);
+        murderTriviaAssert($killingFloor['phase'] === 'killing_floor', "A wrong living player was not sent to the {$expectedType} Killing Floor trial.");
+        murderTriviaAssert($killingFloor['round']['minigame']['type'] === $expectedType, "The Killing Floor rotation did not open {$expectedType}.");
+        murderTriviaAssert(($killingFloor['round']['answer_shape']['type'] ?? null) === $expectedAnswerShape, "The {$expectedType} answer shape was incorrect.");
+        if ($expectedType === 'key_lock') {
+            murderTriviaAssert(!isset($killingFloor['round']['minigame']['payload']['correct_key']), 'The open key lock leaked its correct key.');
+        }
+        if (in_array($expectedType, ['poison_chalices', 'sword_boxes'], true)) {
+            murderTriviaAssert(($killingFloor['round']['answer_shape']['type'] ?? null) === 'single_choice', "The {$expectedType} trial did not require one choice.");
+        }
+        if ($expectedType === 'crypt_runes') {
+            murderTriviaAssert(($killingFloor['round']['answer_shape']['type'] ?? null) === 'multi_select', 'The crypt runes trial did not require multiple selections.');
+        }
+
+        $killingRound = murderTriviaCurrentRound($pdo, $publicId);
+        $minigamePayload = json_decode((string) $killingRound['minigame_payload'], true, 512, JSON_THROW_ON_ERROR);
+        if ($expectedAnswerShape === 'multi_select') {
+            $correctSelection = array_values(array_map('strval', $minigamePayload['correct_choices'] ?? []));
+            murderTriviaAssert(count($correctSelection) > 1, "The {$expectedType} trial did not have a usable correct pattern.");
+            $killingResult = $repository->submitAnswer($publicId, murderTriviaAnswerPayload($correctSelection, true), $hostIdentity);
+        } else {
+            $correctAnswer = (string) ($minigamePayload['correct_key'] ?? '');
+            murderTriviaAssert($correctAnswer !== '', "The {$expectedType} trial did not have a correct choice.");
+            $killingResult = $repository->submitAnswer($publicId, murderTriviaAnswerPayload([$correctAnswer]), $hostIdentity);
+        }
+        murderTriviaAssert($killingResult['round']['status'] === 'resolved', "The {$expectedType} Killing Floor trial did not resolve after its only eligible player answered.");
+        murderTriviaAssert(count(array_filter($killingResult['players'], static fn (array $player): bool => $player['is_ghost'] === true)) === 0, "A correct {$expectedType} answer incorrectly created a ghost.");
+
+        $nextTrivia = $repository->advanceRound($publicId, ['action' => 'advance'], $hostIdentity);
+        murderTriviaAssert($nextTrivia['phase'] === 'trivia', "Surviving the {$expectedType} Killing Floor trial did not return upstairs.");
+    }
+
     $triviaRound = murderTriviaCurrentRound($pdo, $publicId);
     $correctSelection = murderTriviaCorrectSelection($triviaRound);
     $triviaAnswerShape = json_decode((string) $triviaRound['answer_shape'], true, 512, JSON_THROW_ON_ERROR);
     $triviaIsMulti = ($triviaAnswerShape['type'] ?? null) === 'multi_select';
     $choices = json_decode((string) $triviaRound['choices'], true, 512, JSON_THROW_ON_ERROR);
     $wrongSelection = array_values(array_filter(array_map('strval', $choices), static fn (string $choice): bool => !in_array($choice, $correctSelection, true)));
-    murderTriviaAssert($wrongSelection !== [], 'The first prompt did not have a usable wrong answer.');
-
-    $afterHostAnswer = $repository->submitAnswer($publicId, murderTriviaAnswerPayload([$wrongSelection[0]], $triviaIsMulti), $hostIdentity);
-    murderTriviaAssert($afterHostAnswer['round']['status'] === 'answering', 'The third trivia round resolved before every eligible player answered.');
-    $afterGuestAnswer = $repository->submitAnswer($publicId, murderTriviaAnswerPayload($correctSelection, $triviaIsMulti), $guestIdentity);
-    murderTriviaAssert($afterGuestAnswer['round']['status'] === 'resolved', 'The trivia round did not resolve after every answer.');
-    murderTriviaAssert($afterGuestAnswer['phase'] === 'trivia', 'The game skipped the trivia result screen.');
-
-    $killingFloor = $repository->advanceRound($publicId, ['action' => 'advance'], $hostIdentity);
-    murderTriviaAssert($killingFloor['phase'] === 'killing_floor', 'A wrong living player was not sent to the Killing Floor.');
-    murderTriviaAssert($killingFloor['round']['minigame']['type'] === 'key_lock', 'The first Killing Floor trial was not the key lock.');
-    murderTriviaAssert(!isset($killingFloor['round']['minigame']['payload']['correct_key']), 'The open key lock leaked its correct key.');
-
-    $killingRound = murderTriviaCurrentRound($pdo, $publicId);
-    $minigamePayload = json_decode((string) $killingRound['minigame_payload'], true, 512, JSON_THROW_ON_ERROR);
-    $correctKey = (string) ($minigamePayload['correct_key'] ?? '');
-    murderTriviaAssert($correctKey !== '', 'The key lock did not have a correct key.');
-    $killingResult = $repository->submitAnswer($publicId, murderTriviaAnswerPayload([$correctKey]), $hostIdentity);
-    murderTriviaAssert($killingResult['round']['status'] === 'resolved', 'The Killing Floor did not resolve after its only eligible player answered.');
-    murderTriviaAssert(count(array_filter($killingResult['players'], static fn (array $player): bool => $player['is_ghost'] === true)) === 0, 'A correct key-lock answer incorrectly created a ghost.');
-
-    $nextTrivia = $repository->advanceRound($publicId, ['action' => 'advance'], $hostIdentity);
-    murderTriviaAssert($nextTrivia['phase'] === 'trivia', 'Surviving the first Killing Floor did not return upstairs.');
-
-    $triviaRound = murderTriviaCurrentRound($pdo, $publicId);
-    $correctSelection = murderTriviaCorrectSelection($triviaRound);
-    $triviaAnswerShape = json_decode((string) $triviaRound['answer_shape'], true, 512, JSON_THROW_ON_ERROR);
-    $triviaIsMulti = ($triviaAnswerShape['type'] ?? null) === 'multi_select';
-    $choices = json_decode((string) $triviaRound['choices'], true, 512, JSON_THROW_ON_ERROR);
-    $wrongSelection = array_values(array_filter(array_map('strval', $choices), static fn (string $choice): bool => !in_array($choice, $correctSelection, true)));
-    murderTriviaAssert($wrongSelection !== [], 'The fourth prompt did not have a usable wrong answer.');
+    murderTriviaAssert($wrongSelection !== [], 'The final trivia prompt did not have a usable wrong answer.');
     $repository->submitAnswer($publicId, murderTriviaAnswerPayload([$wrongSelection[0]], $triviaIsMulti), $hostIdentity);
     $repository->submitAnswer($publicId, murderTriviaAnswerPayload($correctSelection, $triviaIsMulti), $guestIdentity);
 
-    $memoryFloor = $repository->advanceRound($publicId, ['action' => 'advance'], $hostIdentity);
-    murderTriviaAssert($memoryFloor['phase'] === 'killing_floor', 'A second wrong living answer skipped the Killing Floor.');
-    murderTriviaAssert($memoryFloor['round']['minigame']['type'] === 'memory_match', 'The second Killing Floor trial was not the memory game.');
+    $failureFloor = $repository->advanceRound($publicId, ['action' => 'advance'], $hostIdentity);
+    murderTriviaAssert($failureFloor['phase'] === 'killing_floor', 'The intentional later wrong answer skipped the Killing Floor.');
+    murderTriviaAssert($failureFloor['round']['minigame']['type'] === 'key_lock', 'The Killing Floor rotation did not return to key lock after five trials.');
 
-    $memoryRound = murderTriviaCurrentRound($pdo, $publicId);
-    $memoryPayload = json_decode((string) $memoryRound['minigame_payload'], true, 512, JSON_THROW_ON_ERROR);
-    $memoryCorrect = array_values(array_map('strval', $memoryPayload['correct_choices'] ?? []));
-    murderTriviaAssert(count($memoryCorrect) > 1, 'The memory game did not have a usable correct sequence.');
-    $killingResult = $repository->submitAnswer($publicId, murderTriviaAnswerPayload([$memoryCorrect[0]], true), $hostIdentity);
-    murderTriviaAssert($killingResult['round']['status'] === 'resolved', 'The memory game did not resolve after its eligible player answered.');
+    $failureRound = murderTriviaCurrentRound($pdo, $publicId);
+    $failurePayload = json_decode((string) $failureRound['minigame_payload'], true, 512, JSON_THROW_ON_ERROR);
+    $correctKey = (string) ($failurePayload['correct_key'] ?? '');
+    $wrongKey = array_values(array_filter(array_map('strval', $failurePayload['choices'] ?? []), static fn (string $choice): bool => $choice !== $correctKey));
+    murderTriviaAssert($wrongKey !== [], 'The final key lock did not have a usable wrong key.');
+    $killingResult = $repository->submitAnswer($publicId, murderTriviaAnswerPayload([$wrongKey[0]]), $hostIdentity);
+    murderTriviaAssert($killingResult['round']['status'] === 'resolved', 'The intentionally failed key lock did not resolve after its only eligible player answered.');
     $hostPlayer = array_values(array_filter($killingResult['players'], static fn (array $player): bool => $player['viewer_controls_player'] === true))[0] ?? null;
-    murderTriviaAssert(is_array($hostPlayer) && $hostPlayer['is_ghost'] === true, 'The failed memory game player did not become a ghost.');
+    murderTriviaAssert(is_array($hostPlayer) && $hostPlayer['is_ghost'] === true, 'The intentionally failed key-lock player did not become a ghost.');
 
     $race = $repository->advanceRound($publicId, ['action' => 'advance'], $hostIdentity);
     murderTriviaAssert($race['phase'] === 'ghost_race', 'The last survivor did not enter the ghost race.');

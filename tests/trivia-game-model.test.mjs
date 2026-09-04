@@ -4,6 +4,7 @@ import {
     answerPayloadForSelection,
     choicesForRound,
     correctAnswersForRound,
+    minigameType,
     phasePresentation,
     racePositionMap,
     savedSelection,
@@ -60,7 +61,81 @@ assert.deepEqual(answerPayloadForSelection(memoryRoom, ['Candle', 'Bell'], 'cccc
     answer_payload: { selected: ['Candle', 'Bell'] },
     client_answer_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
 });
+assert.equal(minigameType(memoryRoom), 'memory_match');
 assert.equal(phasePresentation(memoryRoom).key, 'memory_match');
+assert.equal(phasePresentation(memoryRoom).image, '/assets/img/trivia/killing-floor-memory.png');
+assert.deepEqual(correctAnswersForRound({
+    ...memoryRoom,
+    round: {
+        ...memoryRoom.round,
+        status: 'resolved',
+        minigame: {
+            ...memoryRoom.round.minigame,
+            payload: { ...memoryRoom.round.minigame.payload, correct_choices: ['Candle', 'Bell'] },
+        },
+    },
+}), ['Candle', 'Bell']);
+
+for (const { type, choices, correct, image } of [
+    { type: 'key_lock', choices: ['Rusty Key', 'Silver Key'], correct: 'Silver Key', image: 'killing-floor-keys.png' },
+    { type: 'poison_chalices', choices: ['Green Chalice', 'Gold Chalice'], correct: 'Gold Chalice', image: 'killing-floor-chalices.png' },
+    { type: 'sword_boxes', choices: ['Iron Box', 'Oak Box'], correct: 'Oak Box', image: 'killing-floor-sword-boxes.png' },
+]) {
+    const room = {
+        ...baseRoom,
+        phase: 'killing_floor',
+        round: {
+            ...baseRoom.round,
+            round_type: 'killing_floor',
+            minigame: { type, payload: { choices, correct_key: correct } },
+        },
+    };
+    assert.equal(minigameType(room), type);
+    assert.equal(selectionMode(room), 'single');
+    assert.deepEqual(choicesForRound(room), choices);
+    assert.deepEqual(answerPayloadForSelection(room, [correct], 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'), {
+        answer: correct,
+        answer_payload: { answer: correct },
+        client_answer_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    });
+    assert.equal(phasePresentation(room).key, type);
+    assert.equal(phasePresentation(room).image, `/assets/img/trivia/${image}`);
+    assert.deepEqual(correctAnswersForRound({
+        ...room,
+        round: { ...room.round, status: 'resolved' },
+    }), [correct]);
+}
+
+const cryptRunesRoom = {
+    ...baseRoom,
+    phase: 'killing_floor',
+    round: {
+        ...baseRoom.round,
+        round_type: 'killing_floor',
+        answer_shape: { type: 'multi_select' },
+        minigame: {
+            type: 'crypt_runes',
+            payload: {
+                choices: ['Moon Rune', 'Sun Rune', 'Star Rune', 'Skull Rune'],
+                correct_choices: ['Moon Rune', 'Star Rune'],
+            },
+        },
+    },
+};
+assert.equal(minigameType(cryptRunesRoom), 'crypt_runes');
+assert.equal(selectionMode(cryptRunesRoom), 'multiple');
+assert.deepEqual(choicesForRound(cryptRunesRoom), ['Moon Rune', 'Sun Rune', 'Star Rune', 'Skull Rune']);
+assert.deepEqual(answerPayloadForSelection(cryptRunesRoom, ['Moon Rune', 'Star Rune'], 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'), {
+    selected: ['Moon Rune', 'Star Rune'],
+    answer_payload: { selected: ['Moon Rune', 'Star Rune'] },
+    client_answer_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+});
+assert.equal(phasePresentation(cryptRunesRoom).key, 'crypt_runes');
+assert.equal(phasePresentation(cryptRunesRoom).image, '/assets/img/trivia/killing-floor-crypt-runes.png');
+assert.deepEqual(correctAnswersForRound({
+    ...cryptRunesRoom,
+    round: { ...cryptRunesRoom.round, status: 'resolved' },
+}), ['Moon Rune', 'Star Rune']);
 
 const raceRoom = {
     ...baseRoom,
@@ -106,6 +181,9 @@ for (const image of [
     'trivia-question-stage.png',
     'killing-floor-keys.png',
     'killing-floor-memory.png',
+    'killing-floor-chalices.png',
+    'killing-floor-sword-boxes.png',
+    'killing-floor-crypt-runes.png',
     'ghost-race-finale.png',
 ]) {
     await access(new URL(`../htdocs/assets/img/trivia/${image}`, import.meta.url));
