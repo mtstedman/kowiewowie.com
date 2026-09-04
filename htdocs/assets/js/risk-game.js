@@ -33,7 +33,15 @@
         phase: document.getElementById('risk-phase-value'),
         reinforcements: document.getElementById('risk-reinforcements-value'),
         humanCount: document.getElementById('risk-human-count'),
+        humanIdentity: document.getElementById('risk-human-identity'),
+        humanAvatar: document.getElementById('risk-human-avatar'),
+        humanAvatarFace: document.getElementById('risk-human-avatar-face'),
+        humanAvatarName: document.getElementById('risk-human-avatar-name'),
         aiCount: document.getElementById('risk-ai-count'),
+        aiIdentity: document.getElementById('risk-ai-identity'),
+        aiAvatar: document.getElementById('risk-ai-avatar'),
+        aiAvatarFace: document.getElementById('risk-ai-avatar-face'),
+        aiAvatarName: document.getElementById('risk-ai-avatar-name'),
         selection: document.getElementById('risk-territory-card'),
         log: document.getElementById('risk-log'),
         startButton: document.getElementById('risk-start-button'),
@@ -46,6 +54,43 @@
     if (Object.values(elements).some((element) => !element)) {
         return;
     }
+
+    const avatarCatalog = (() => {
+        const bootData = document.getElementById('risk-avatar-data');
+
+        if (!bootData) {
+            return [];
+        }
+
+        try {
+            const records = JSON.parse(bootData.textContent || '[]');
+            const seen = new Set();
+
+            if (!Array.isArray(records)) {
+                return [];
+            }
+
+            return records.reduce((avatars, record) => {
+                if (!record || typeof record !== 'object' || typeof record.name !== 'string' || typeof record.text !== 'string') {
+                    return avatars;
+                }
+
+                const name = record.name.trim();
+                const text = record.text.trim();
+                const key = JSON.stringify([name, text]);
+
+                if (!name || !text || seen.has(key)) {
+                    return avatars;
+                }
+
+                seen.add(key);
+                avatars.push({ name, text });
+                return avatars;
+            }, []);
+        } catch {
+            return [];
+        }
+    })();
 
     const ownerLabels = {
         human: 'Player',
@@ -72,7 +117,11 @@
         targetId: null,
         message: 'Start a new game to deploy armies.',
         log: [],
-        aiTimer: null
+        aiTimer: null,
+        avatars: {
+            human: null,
+            ai: null
+        }
     };
 
     const byId = (id) => state.territories.find((territory) => territory.id === id) || null;
@@ -158,8 +207,25 @@
         state.targetId = null;
     };
 
+    const assignAvatars = () => {
+        state.avatars.human = null;
+        state.avatars.ai = null;
+
+        if (avatarCatalog.length < 2) {
+            return;
+        }
+
+        const humanIndex = Math.floor(Math.random() * avatarCatalog.length);
+        const aiOffset = Math.floor(Math.random() * (avatarCatalog.length - 1));
+        const aiIndex = aiOffset >= humanIndex ? aiOffset + 1 : aiOffset;
+
+        state.avatars.human = avatarCatalog[humanIndex];
+        state.avatars.ai = avatarCatalog[aiIndex];
+    };
+
     const startGame = () => {
         clearAiTimer();
+        assignAvatars();
         state.active = true;
         state.territories = territoryDefinitions.map((territory, index) => ({
             ...territory,
@@ -719,6 +785,33 @@
         elements.endButton.disabled = !isHumanTurn || state.phase === 'reinforce';
     };
 
+    const renderIdentity = (owner) => {
+        const prefix = owner === 'human' ? 'human' : 'ai';
+        const identity = elements[`${prefix}Identity`];
+        const avatarNode = elements[`${prefix}Avatar`];
+        const faceNode = elements[`${prefix}AvatarFace`];
+        const nameNode = elements[`${prefix}AvatarName`];
+        const avatar = state.avatars[owner];
+        const territoryCount = ownedBy(owner).length;
+        const territoryLabel = territoryCount === 1 ? 'territory' : 'territories';
+        const label = avatar
+            ? `${ownerLabel(owner)}, ${avatar.name} avatar, ${territoryCount} ${territoryLabel}`
+            : `${ownerLabel(owner)}, ${territoryCount} ${territoryLabel}`;
+
+        identity.setAttribute('aria-label', label);
+
+        if (!avatar) {
+            faceNode.textContent = '';
+            nameNode.textContent = '';
+            avatarNode.hidden = true;
+            return;
+        }
+
+        faceNode.textContent = avatar.text;
+        nameNode.textContent = avatar.name;
+        avatarNode.hidden = false;
+    };
+
     const renderSummary = () => {
         elements.turn.textContent = String(state.turn);
         elements.phase.textContent = state.current === 'ai' && state.phase !== 'gameover'
@@ -727,6 +820,8 @@
         elements.reinforcements.textContent = String(state.reinforcementRemaining);
         elements.humanCount.textContent = String(ownedBy('human').length);
         elements.aiCount.textContent = String(ownedBy('ai').length);
+        renderIdentity('human');
+        renderIdentity('ai');
         elements.status.textContent = state.message;
     };
 

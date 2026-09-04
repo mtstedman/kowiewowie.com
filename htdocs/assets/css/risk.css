@@ -80,8 +80,9 @@
     align-items: center;
 }
 
-.risk-turn-summary span,
-.risk-scoreboard span {
+.risk-turn-summary > span,
+.risk-identity,
+.risk-reinforcements {
     min-height: 36px;
     display: inline-flex;
     align-items: center;
@@ -98,7 +99,80 @@
 }
 
 .risk-scoreboard {
+    min-width: 0;
     margin-bottom: 1rem;
+    align-items: stretch;
+}
+
+.risk-identity {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 15rem;
+    align-items: stretch;
+    text-transform: none;
+    white-space: normal;
+}
+
+.risk-identity-count {
+    min-width: 1.6rem;
+    align-self: center;
+    color: var(--risk-ink);
+    font-size: 1rem;
+    text-align: center;
+}
+
+.risk-identity-details {
+    min-width: 0;
+    display: grid;
+    gap: 0.16rem;
+    align-content: center;
+}
+
+.risk-identity-role {
+    color: var(--risk-ink);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.risk-avatar {
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.18rem 0.45rem;
+    align-items: baseline;
+    line-height: 1.25;
+}
+
+.risk-avatar[hidden] {
+    display: none;
+}
+
+.risk-avatar-face,
+.risk-avatar-name {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.risk-avatar-face {
+    color: var(--accent-warm);
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    unicode-bidi: isolate;
+}
+
+.risk-avatar-name {
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    font-weight: 750;
+}
+
+.risk-reinforcements {
+    max-width: 100%;
 }
 
 .risk-map {
@@ -394,6 +468,10 @@
 @media (max-width: 700px) {
     .risk-panel-heading {
         display: grid;
+    }
+
+    .risk-identity {
+        flex-basis: 100%;
     }
 
     .risk-map {

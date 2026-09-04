@@ -6,6 +6,28 @@ $year = gmdate('Y');
 $pageTitle = 'Risk - wowiekowie.com';
 $metaDescription = 'Play a polished browser-only Risk strategy game on wowiekowie.com.';
 $pageStyles = ['/assets/css/risk.css'];
+
+$dongerCatalogPath = dirname(__DIR__) . '/dongs/dongers.php';
+$dongerCatalog = is_file($dongerCatalogPath) ? (require $dongerCatalogPath) : [];
+$riskAvatars = [];
+
+if (is_array($dongerCatalog)) {
+    foreach ($dongerCatalog as $donger) {
+        if (!is_array($donger) || !isset($donger['name'], $donger['text']) || !is_string($donger['name']) || !is_string($donger['text'])) {
+            continue;
+        }
+
+        $riskAvatars[] = [
+            'name' => $donger['name'],
+            'text' => $donger['text'],
+        ];
+    }
+}
+
+$riskAvatarBootData = json_encode(
+    $riskAvatars,
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE
+) ?: '[]';
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
 <body>
@@ -33,9 +55,27 @@ $pageStyles = ['/assets/css/risk.css'];
                     </div>
 
                     <div class="risk-scoreboard" aria-label="Territory counts">
-                        <span><strong id="risk-human-count">0</strong> Player</span>
-                        <span><strong id="risk-ai-count">0</strong> Browser</span>
-                        <span><strong id="risk-reinforcements-value">0</strong> Reinforcements</span>
+                        <div class="risk-identity" id="risk-human-identity" aria-label="Player, 0 territories">
+                            <strong class="risk-identity-count" id="risk-human-count">0</strong>
+                            <span class="risk-identity-details">
+                                <span class="risk-identity-role">Player</span>
+                                <span class="risk-avatar" id="risk-human-avatar" hidden>
+                                    <span class="risk-avatar-face" id="risk-human-avatar-face" aria-hidden="true"></span>
+                                    <span class="risk-avatar-name" id="risk-human-avatar-name"></span>
+                                </span>
+                            </span>
+                        </div>
+                        <div class="risk-identity" id="risk-ai-identity" aria-label="Browser, 0 territories">
+                            <strong class="risk-identity-count" id="risk-ai-count">0</strong>
+                            <span class="risk-identity-details">
+                                <span class="risk-identity-role">Browser</span>
+                                <span class="risk-avatar" id="risk-ai-avatar" hidden>
+                                    <span class="risk-avatar-face" id="risk-ai-avatar-face" aria-hidden="true"></span>
+                                    <span class="risk-avatar-name" id="risk-ai-avatar-name"></span>
+                                </span>
+                            </span>
+                        </div>
+                        <span class="risk-reinforcements"><strong id="risk-reinforcements-value">0</strong> Reinforcements</span>
                     </div>
 
                     <div id="risk-map" class="risk-map" role="group" aria-label="Risk territory map"></div>
@@ -74,6 +114,7 @@ $pageStyles = ['/assets/css/risk.css'];
         <?php include dirname(__DIR__) . '/partials/footer.php'; ?>
     </div>
 
+    <script type="application/json" id="risk-avatar-data"><?= $riskAvatarBootData ?></script>
     <script type="module" src="/assets/js/risk-game.js?v=<?= @filemtime(dirname(__DIR__) . '/assets/js/risk-game.js') ?: time() ?>"></script>
 </body>
 </html>
