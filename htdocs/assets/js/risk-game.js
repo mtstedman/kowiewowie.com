@@ -10,6 +10,24 @@
     const mapAsset = '/assets/img/risk-map.svg';
     const emblemAsset = '/assets/img/risk-emblems.svg';
     const svgNamespace = 'http://www.w3.org/2000/svg';
+    const avatarCatalogElement = document.getElementById('risk-avatar-catalog');
+    const avatarCatalog = (() => {
+        if (!avatarCatalogElement) {
+            return [];
+        }
+
+        try {
+            const catalog = JSON.parse(avatarCatalogElement.textContent);
+
+            return Array.isArray(catalog)
+                ? catalog.filter((avatar) => (
+                    typeof avatar?.name === 'string' && typeof avatar?.text === 'string'
+                ))
+                : [];
+        } catch {
+            return [];
+        }
+    })();
 
     const territoryDefinitions = [
         { id: 'northreach', name: 'North Reach', region: 'Frost Belt', neighbors: ['westwatch', 'ironpass', 'stormbay'], position: [36, 14], emblem: 'mountain' },
@@ -34,6 +52,10 @@
         reinforcements: document.getElementById('risk-reinforcements-value'),
         humanCount: document.getElementById('risk-human-count'),
         aiCount: document.getElementById('risk-ai-count'),
+        humanAvatarName: document.getElementById('risk-human-avatar-name'),
+        humanAvatarFace: document.getElementById('risk-human-avatar-face'),
+        aiAvatarName: document.getElementById('risk-ai-avatar-name'),
+        aiAvatarFace: document.getElementById('risk-ai-avatar-face'),
         selection: document.getElementById('risk-territory-card'),
         log: document.getElementById('risk-log'),
         startButton: document.getElementById('risk-start-button'),
@@ -72,6 +94,10 @@
         targetId: null,
         message: 'Start a new game to deploy armies.',
         log: [],
+        avatars: {
+            human: null,
+            ai: null
+        },
         aiTimer: null
     };
 
@@ -158,8 +184,27 @@
         state.targetId = null;
     };
 
+    const chooseAvatars = () => {
+        if (avatarCatalog.length < 2) {
+            return { human: null, ai: null };
+        }
+
+        const humanIndex = Math.floor(Math.random() * avatarCatalog.length);
+        let aiIndex = Math.floor(Math.random() * (avatarCatalog.length - 1));
+
+        if (aiIndex >= humanIndex) {
+            aiIndex += 1;
+        }
+
+        return {
+            human: avatarCatalog[humanIndex],
+            ai: avatarCatalog[aiIndex]
+        };
+    };
+
     const startGame = () => {
         clearAiTimer();
+        state.avatars = chooseAvatars();
         state.active = true;
         state.territories = territoryDefinitions.map((territory, index) => ({
             ...territory,
@@ -727,6 +772,10 @@
         elements.reinforcements.textContent = String(state.reinforcementRemaining);
         elements.humanCount.textContent = String(ownedBy('human').length);
         elements.aiCount.textContent = String(ownedBy('ai').length);
+        elements.humanAvatarName.textContent = state.avatars.human?.name || 'Assigned when a game starts';
+        elements.humanAvatarFace.textContent = state.avatars.human?.text || '—';
+        elements.aiAvatarName.textContent = state.avatars.ai?.name || 'Assigned when a game starts';
+        elements.aiAvatarFace.textContent = state.avatars.ai?.text || '—';
         elements.status.textContent = state.message;
     };
 

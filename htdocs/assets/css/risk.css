@@ -101,6 +101,37 @@
     margin-bottom: 1rem;
 }
 
+.risk-scoreboard-side {
+    min-width: 0;
+    flex-wrap: wrap;
+    white-space: normal;
+}
+
+.risk-scoreboard-avatar {
+    min-width: 0;
+    display: inline-flex;
+    flex: 1 1 10rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.35rem;
+    text-transform: none;
+    white-space: normal;
+}
+
+.risk-scoreboard .risk-scoreboard-avatar-name {
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.risk-scoreboard-avatar-face {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 1rem;
+    letter-spacing: 0;
+    line-height: 1.25;
+    text-transform: none;
+}
+
 .risk-map {
     position: relative;
     min-height: 540px;

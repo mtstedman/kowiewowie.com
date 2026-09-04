@@ -76,4 +76,72 @@ return [
     ['name' => 'Midnight Bean', 'text' => '^(• 3 •)^', 'category' => 'Beans'],
     ['name' => 'Snack Bean Squeak', 'text' => '<(◔ 3 ◔)>', 'category' => 'Beans'],
     ['name' => 'Bean Side Glance', 'text' => '^(¬ 3 ¬)^', 'category' => 'Beans'],
+
+    ['name' => 'Confused Tilt', 'text' => '(´・ω・`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Blank Stare', 'text' => '(´−ω−`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Lost Soul', 'text' => '(´・_・`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Sweat Drop Worry', 'text' => '(´；ω；`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Question Mark Face', 'text' => '(´・ ▽ ・`)', 'category' => 'Confusion/Awkward'],
+
+    ['name' => 'Salute Ready', 'text' => '(๑•́ ▽ •̀๑)', 'category' => 'Actions/Gestures'],
+    ['name' => 'Facepalm Moment', 'text' => '(´；ρ；`)', 'category' => 'Actions/Gestures'],
+    ['name' => 'Tippy Toes Sneak', 'text' => '(´▽｀)', 'category' => 'Actions/Gestures'],
+    ['name' => 'Thumbs Up Cheer', 'text' => '(๑•́ ω •̀๑)و', 'category' => 'Actions/Gestures'],
+    ['name' => 'Crawling Advance', 'text' => 'ヾ(•ω•`)o', 'category' => 'Actions/Gestures'],
+    ['name' => 'Confident Nod', 'text' => '(๑•́ω•̀๑)و', 'category' => 'Actions/Gestures'],
+    ['name' => 'Pray Hands', 'text' => '(´；ω；`)ﾉ', 'category' => 'Actions/Gestures'],
+
+    ['name' => 'Ultra Wink', 'text' => '( ͡ ͜ʖ ͡ )', 'category' => 'Classic Faces'],
+    ['name' => 'Awkward Chuckle', 'text' => '(´Д`)ﾊﾊ…', 'category' => 'Classic Faces'],
+    ['name' => 'Derp Mode', 'text' => 'ヽ(´ー`)ノ', 'category' => 'Classic Faces'],
+    ['name' => 'Meme Stare', 'text' => '(´︿`)', 'category' => 'Classic Faces'],
+    ['name' => 'Straight Face', 'text' => '(´・・`)', 'category' => 'Classic Faces'],
+
+    ['name' => 'Giddy Giggle', 'text' => '(´∇｀)', 'category' => 'Happy and Hype'],
+    ['name' => 'Sunshine Smile', 'text' => '(๑´ڡ`๑)', 'category' => 'Happy and Hype'],
+    ['name' => 'Twinkle Sparkle', 'text' => '(´▽｀)۶', 'category' => 'Happy and Hype'],
+
+    ['name' => 'Tiny Tears', 'text' => '(´；︿；`)', 'category' => 'Sad Hours'],
+    ['name' => 'Deep Sorrow', 'text' => '(´；；`)', 'category' => 'Sad Hours'],
+
+    ['name' => 'Fury Clench', 'text' => '(´益｀)', 'category' => 'Angry and Intense'],
+    ['name' => 'Icy Glare', 'text' => '(´；︵；`)', 'category' => 'Angry and Intense'],
+
+    ['name' => 'Uncertain Shrug', 'text' => '( ´・・)ノ', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Mind Blown', 'text' => 'ヽ(°〇°)ﾉ', 'category' => 'Shrugs and Chaos'],
+
+    ['name' => 'Victory Stride', 'text' => 'ε=ε=ε=(ノ≧∇≦)ノ', 'category' => 'Victory Laps'],
+    ['name' => 'Champion Fist', 'text' => '(๑•́ ▂•̀๑)', 'category' => 'Victory Laps'],
+    ['name' => 'Triumph Pump', 'text' => '(๑˃ᴗ˂)و', 'category' => 'Victory Laps'],
+
+    ['name' => 'Tender Embrace', 'text' => '(´｡• ᵕ •｡`)', 'category' => 'Soft and Sweet'],
+    ['name' => 'Gentle Nuzzle', 'text' => '(´・ᴗ・`)', 'category' => 'Soft and Sweet'],
+    ['name' => 'Warm Cuddle', 'text' => '(´｡✪ꇴ✪｡`)', 'category' => 'Soft and Sweet'],
+
+    ['name' => 'Mischievous Glee', 'text' => '(´∇｀)ﾉ', 'category' => 'Goblin Energy'],
+    ['name' => 'Sneaky Peek', 'text' => '(´・ω・`)っ', 'category' => 'Goblin Energy'],
+
+    ['name' => 'Spooked Bean', 'text' => '<(° 3 °)>', 'category' => 'Beans'],
+    ['name' => 'Bean Bounce', 'text' => '^(๑ 3 ๑)^', 'category' => 'Beans'],
+    ['name' => 'Happy Little Bean', 'text' => '^(´∀｀)^', 'category' => 'Beans'],
+
+    ['name' => 'Awkward Silence', 'text' => '(´・・`)..', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Perplexed Tilt', 'text' => '(´・ △ ・`)', 'category' => 'Confusion/Awkward'],
+
+    ['name' => 'Joyful Leap', 'text' => 'ヾ(๑•́ ▂•́)و✧', 'category' => 'Actions/Gestures'],
+    ['name' => 'Peaceful Rest', 'text' => '(´・ㅂ・`)', 'category' => 'Actions/Gestures'],
+    ['name' => 'Beckoning Call', 'text' => '(´・ω・`)ノ', 'category' => 'Actions/Gestures'],
+
+    ['name' => 'Heart Eyes', 'text' => '(´♡ω♡`)', 'category' => 'Love and Affection'],
+    ['name' => 'Lovestruck Swoon', 'text' => '(´∇｀〃)', 'category' => 'Love and Affection'],
+    ['name' => 'Cupid Blush', 'text' => '(´〇ω〇`)', 'category' => 'Love and Affection'],
+    ['name' => 'Sweet Serenade', 'text' => '(´♡‿♡`)', 'category' => 'Love and Affection'],
+
+    ['name' => 'Drowsy Yawn', 'text' => '( ´・ω・` )', 'category' => 'Sleepy and Tired'],
+    ['name' => 'Tired Flop', 'text' => '(´-ω-`)', 'category' => 'Sleepy and Tired'],
+    ['name' => 'Half Awake', 'text' => '(´・ 〰 ・`)', 'category' => 'Sleepy and Tired'],
+
+    ['name' => 'Evil Grin', 'text' => '(´╹◡╹ )و', 'category' => 'Devious/Sly'],
+    ['name' => 'Sinister Chuckle', 'text' => '(´∇｀)ゞ', 'category' => 'Devious/Sly'],
+    ['name' => 'Cunning Smile', 'text' => '(´・︿・`)', 'category' => 'Devious/Sly'],
 ];
