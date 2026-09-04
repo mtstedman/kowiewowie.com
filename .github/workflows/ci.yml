@@ -46,5 +46,11 @@ jobs:
       - name: Run public UX accessibility regressions
         run: php tests/public-ux-accessibility.php
 
+      - name: Run murder trivia regressions
+        run: |
+          php tests/trivia-question-catalog.php
+          php tests/trivia-presentation.php
+          node tests/trivia-game-model.test.mjs
+
       - name: Check deployment shell syntax
         run: bash -n deploy/deploy.sh .githooks/post-commit

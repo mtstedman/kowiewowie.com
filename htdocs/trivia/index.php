@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 $year = gmdate('Y');
-$pageTitle = 'Trivia - wowiekowie.com';
-$metaDescription = 'Create a shared-link elimination trivia room for 2 to 6 players on wowiekowie.com.';
+$pageTitle = 'Murder Trivia Party - wowiekowie.com';
+$metaDescription = 'Create a haunted shared-link trivia room with deadly minigames and a ghost-race finale.';
 $pageStyles = ['/assets/css/trivia.css'];
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
@@ -14,9 +14,12 @@ $pageStyles = ['/assets/css/trivia.css'];
 
         <main class="trivia-page" data-trivia-lobby>
             <section class="trivia-hero" aria-labelledby="trivia-title">
-                <p class="eyebrow">Trivia lobby</p>
-                <h1 id="trivia-title">Shared-link elimination trivia.</h1>
-                <p class="lede">Host a timed question room for 2 to 6 players, share the join link, and keep going until one survivor remains.</p>
+                <div class="trivia-hero-copy">
+                    <p class="eyebrow">Murder trivia party</p>
+                    <h1 id="trivia-title">Wrong answers have consequences.</h1>
+                    <p class="lede">Host a haunted question night for 2 to 6 players. Miss a question, survive the Killing Floor, then race the ghosts for the only body left.</p>
+                </div>
+                <img class="trivia-hero-art" src="/assets/img/trivia/murder-trivia-lobby.png" alt="Friendly ghosts and skeletons gathering around a glowing question mark in a haunted game room.">
             </section>
 
             <p class="trivia-alert" id="trivia-join-message" role="alert" hidden></p>
@@ -109,13 +112,14 @@ $pageStyles = ['/assets/css/trivia.css'];
                 <aside class="trivia-panel trivia-rules-panel" aria-labelledby="trivia-rules-title">
                     <div class="trivia-section-heading">
                         <p class="eyebrow">How it plays</p>
-                        <h2 id="trivia-rules-title">Last correct player standing</h2>
+                        <h2 id="trivia-rules-title">Escape with your life</h2>
                     </div>
                     <ul class="trivia-rule-list">
                         <li>Everyone sees the same timed prompt.</li>
-                        <li>Wrong answers eliminate a player immediately.</li>
-                        <li>Late answers do not count once the timer closes.</li>
-                        <li>The host resolves and opens rounds until a winner remains.</li>
+                        <li>Wrong living players descend to the Killing Floor.</li>
+                        <li>Survive the key lock or memory grid to stay alive.</li>
+                        <li>Eliminated players return as ghosts and keep answering.</li>
+                        <li>The final survivor races every ghost for the body.</li>
                     </ul>
                 </aside>
             </section>

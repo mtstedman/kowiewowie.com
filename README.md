@@ -20,6 +20,7 @@ includes/
 database/
   migrate.php                   Compatibility entry point for the DB minter
   seed.php                      Idempotent JSON-to-PostgreSQL import
+  seed-trivia.php               Focused trivia-catalog import used by deploys
   seed-chess-openings.php       Validated common-opening graph import
   data/chess-openings.tsv       Curated CC0 ECO/name/PGN starter catalog
   grant-role.php                User/editor/admin role management
@@ -30,6 +31,7 @@ docs/postgres/
   db-version-minter.php         Atomic schema update/version command
   SCHEMA.md                     Versioned schema documentation
 tests/api-smoke.php             Database and API integration checks
+tests/trivia-murder-game.php    Isolated full-game database playthrough
 ```
 
 PostgreSQL owns users, OAuth identities, rotating refresh tokens, recipes,
@@ -60,19 +62,24 @@ promotion suffix.
 
 Shared-link trivia rooms are a sibling live-game feature under `/v1/trivia/...`.
 They reuse the same browser guest identity cookie model, store 2-6 seated
-players, hash join-link tokens, persist prompts and timed answer windows, and
-eliminate players after wrong or missing answers. Trivia API routes are:
+players, hash join-link tokens, and persist prompts and timed answer windows.
+Wrong living players face a Killing Floor minigame, eliminated players continue
+as ghosts, and the last survivor enters a final race for the body. Trivia API
+routes are:
 
 ```text
 GET  /v1/trivia/rooms
 POST /v1/trivia/rooms
 POST /v1/trivia/links/claim
 POST /v1/trivia/links/<token>/claim
+POST /v1/trivia/rejoin
 GET  /v1/trivia/rooms/<uuid>
+POST /v1/trivia/rooms/<uuid>/rejoin
 POST /v1/trivia/rooms/<uuid>/links
 POST /v1/trivia/rooms/<uuid>/start
 POST /v1/trivia/rooms/<uuid>/rounds/advance
 POST /v1/trivia/rooms/<uuid>/answers
+POST /v1/trivia/rooms/<uuid>/replay
 ```
 
 Room creation returns a raw join token once. Later room mutations require the
@@ -110,7 +117,9 @@ php docs/postgres/db-version-minter.php --status
 
 The version minter and seed commands are idempotent. The legacy
 `database/migrate.php` command remains as an alias. Content seeding upserts by
-slug, including relational deck cards and guide sections. See
+slug, including relational deck cards and guide sections. Use
+`php database/seed-trivia.php` to refresh only the trivia catalog; normal
+deployments run that focused seed automatically. See
 [`docs/postgres/SCHEMA.md`](docs/postgres/SCHEMA.md) for the pinned version,
 complete update chain, and procedure for adding a schema version.
 
@@ -138,12 +147,15 @@ Run the integration checks against the configured PostgreSQL database:
 
 ```bash
 php tests/api-smoke.php
+php tests/trivia-murder-game.php
 ```
 
 The smoke test covers database health, seeded content, registration, login
 identity, JWT authentication, refresh-token rotation/reuse revocation, OAuth
 configuration gating, and editor-only content writes. It removes its temporary
-records when finished.
+records when finished. The Murder Trivia playthrough creates an isolated schema,
+applies the complete migration chain, exercises every game phase and replay, and
+drops the schema when finished.
 
 ## API surface
 

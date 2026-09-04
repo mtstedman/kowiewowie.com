@@ -5,6 +5,13 @@ declare(strict_types=1);
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $path = is_string($path) ? rtrim($path, '/') ?: '/' : '/';
 
+if (PHP_SAPI === 'cli-server' && $path !== '/') {
+    $documentPath = realpath(__DIR__ . '/' . ltrim(rawurldecode($path), '/'));
+    if ($documentPath !== false && str_starts_with($documentPath, __DIR__ . DIRECTORY_SEPARATOR)) {
+        return false;
+    }
+}
+
 if ($path === '/health') {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');

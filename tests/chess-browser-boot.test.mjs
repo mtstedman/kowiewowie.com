@@ -374,6 +374,10 @@ const buildLobbyDom = (document) => {
     appendElement(root, 'input', { id: 'chess-join-url' });
     appendElement(root, 'button', { id: 'chess-copy-link-button', type: 'button' });
     appendElement(root, 'a', { id: 'chess-open-game-link' });
+    appendElement(root, 'div', { id: 'chess-rejoin-box' });
+    appendElement(root, 'input', { id: 'chess-rejoin-url' });
+    appendElement(root, 'button', { id: 'chess-copy-rejoin-button', type: 'button' });
+    appendElement(root, 'a', { id: 'chess-open-rejoin-link' });
     const profile = appendElement(root, 'form', { id: 'chess-profile-form' });
     appendElement(profile, 'input', { id: 'chess-display-name' });
     appendElement(profile, 'button', { id: 'chess-save-name-button', type: 'submit' });

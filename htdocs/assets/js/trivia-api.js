@@ -119,6 +119,11 @@ export const startRoom = (roomId) => requestTrivia(`/rooms/${encodeURIComponent(
     method: 'POST',
 });
 
+export const replayRoom = (roomId, payload = {}) => requestTrivia(`/rooms/${encodeURIComponent(roomId)}/replay`, {
+    method: 'POST',
+    body: payload,
+});
+
 export const advanceRound = (roomId, payload = {}) => requestTrivia(`/rooms/${encodeURIComponent(roomId)}/rounds/advance`, {
     method: 'POST',
     body: payload,

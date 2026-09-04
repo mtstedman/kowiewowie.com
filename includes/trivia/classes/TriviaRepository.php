@@ -506,16 +506,15 @@ final class TriviaRepository
                 INSERT INTO trivia_answers (room_id, round_id, player_id, client_answer_id, answer_text, answer_payload, is_correct, score)
                 VALUES (:room_id, :round_id, :player_id, COALESCE(CAST(:client_answer_id AS uuid), gen_random_uuid()), :answer_text, CAST(:answer_payload AS jsonb), :is_correct, :score)
             SQL);
-            $answerStatement->execute([
-                'room_id' => $room['id'],
-                'round_id' => $round['id'],
-                'player_id' => $seat['id'],
-                'client_answer_id' => $clientAnswerId,
-                'answer_text' => $normalized['answer_text'],
-                'answer_payload' => json_encode($normalized['answer_payload'], JSON_THROW_ON_ERROR),
-                'is_correct' => $normalized['is_correct'],
-                'score' => $normalized['score'],
-            ]);
+            $answerStatement->bindValue(':room_id', $room['id'], PDO::PARAM_STR);
+            $answerStatement->bindValue(':round_id', $round['id'], PDO::PARAM_STR);
+            $answerStatement->bindValue(':player_id', $seat['id'], PDO::PARAM_STR);
+            $answerStatement->bindValue(':client_answer_id', $clientAnswerId, $clientAnswerId === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $answerStatement->bindValue(':answer_text', $normalized['answer_text'], PDO::PARAM_STR);
+            $answerStatement->bindValue(':answer_payload', json_encode($normalized['answer_payload'], JSON_THROW_ON_ERROR), PDO::PARAM_STR);
+            $answerStatement->bindValue(':is_correct', $normalized['is_correct'], PDO::PARAM_BOOL);
+            $answerStatement->bindValue(':score', $normalized['score'], PDO::PARAM_INT);
+            $answerStatement->execute();
 
             $touchStatement = $this->pdo->prepare(<<<'SQL'
                 UPDATE trivia_players
@@ -526,8 +525,6 @@ final class TriviaRepository
 
             if ($this->allEligiblePlayersAnswered($round)) {
                 $this->resolveRound($round);
-                $players = $this->loadPlayersForRoom((string) $room['id'], true);
-                $this->continueAfterResolvedRound($room, $players, $round, false);
             } else {
                 $activityStatement = $this->pdo->prepare(<<<'SQL'
                     UPDATE trivia_rooms
@@ -733,7 +730,7 @@ final class TriviaRepository
         if (count($prompts) < $minimumPrompts) {
             $repositoryPrompts = $this->loadRepositoryManagedPrompts();
             if (count($repositoryPrompts) >= $minimumPrompts) {
-                return array_slice($repositoryPrompts, 0, 100);
+                return array_slice($repositoryPrompts, 0, 500);
             }
         }
         if (count($prompts) === 0) {
@@ -755,11 +752,13 @@ final class TriviaRepository
     private function loadCatalogPrompts(): array
     {
         $statement = $this->pdo->query(<<<'SQL'
-            SELECT question, correct_answer, choices, explanation
+            SELECT question, correct_answer, choices, explanation,
+                   COALESCE(answer_shape, '{"type":"single_choice"}'::jsonb) AS answer_shape,
+                   image_url
             FROM trivia_question_catalog
             WHERE is_active
             ORDER BY display_order ASC, slug ASC
-            LIMIT 100
+            LIMIT 500
         SQL);
         if ($statement === false) {
             throw new \RuntimeException('The trivia question catalog could not be loaded.');
@@ -776,6 +775,8 @@ final class TriviaRepository
                 'correct_answer' => (string) ($row['correct_answer'] ?? ''),
                 'choices' => $choices,
                 'explanation' => $row['explanation'] !== null ? (string) $row['explanation'] : null,
+                'answer_shape' => $this->decodeJsonObject($row['answer_shape'] ?? null),
+                'image_url' => $row['image_url'] !== null ? (string) $row['image_url'] : null,
             ];
         }
 
@@ -1195,7 +1196,7 @@ final class TriviaRepository
     private function openKillingFloorRound(array $room, array $sourceRound, array $eligiblePlayerIds): void
     {
         $roundNumber = ((int) $sourceRound['round_number']) + 1;
-        $miniGameType = ((int) $sourceRound['round_number']) % 2 === 0 ? self::MINI_GAME_MEMORY_MATCH : self::MINI_GAME_KEY_LOCK;
+        $miniGameType = $this->nextKillingFloorMiniGameType((string) $room['id']);
         $payload = $miniGameType === self::MINI_GAME_KEY_LOCK
             ? $this->keyLockPayload((string) $sourceRound['id'])
             : $this->memoryMatchPayload((string) $sourceRound['id']);
@@ -1243,6 +1244,21 @@ final class TriviaRepository
             'round_number' => $roundNumber,
             'id' => $room['id'],
         ]);
+    }
+
+    private function nextKillingFloorMiniGameType(string $roomId): string
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT count(*)
+            FROM trivia_rounds
+            WHERE room_id = :room_id
+              AND COALESCE(round_type, 'trivia') = 'killing_floor'
+        SQL);
+        $statement->execute(['room_id' => $roomId]);
+
+        return (int) $statement->fetchColumn() % 2 === 0
+            ? self::MINI_GAME_KEY_LOCK
+            : self::MINI_GAME_MEMORY_MATCH;
     }
 
     /** @return array<string, mixed> */
@@ -1718,10 +1734,23 @@ final class TriviaRepository
         $resolved = (string) $round['status'] === 'resolved' || $roomStatus === 'finished';
         $roundType = (string) ($round['round_type'] ?? self::PHASE_TRIVIA);
         $promptPayload = $this->decodeJsonObject($round['prompt_payload'] ?? null);
+        $answerShape = $this->decodeJsonObject($round['answer_shape'] ?? null);
         $minigamePayload = $this->decodeJsonObject($round['minigame_payload'] ?? null);
         $minigameResults = $this->decodeJsonObject($round['minigame_results'] ?? null);
+        $minigamePreview = [];
+        if (!$resolved
+            && $roundType === self::PHASE_KILLING_FLOOR
+            && (string) ($round['minigame_type'] ?? '') === self::MINI_GAME_MEMORY_MATCH
+            && strtotime((string) $round['opened_at']) + 5 > time()
+        ) {
+            $minigamePreview = array_values(array_map(
+                static fn (mixed $choice): string => (string) $choice,
+                is_array($minigamePayload['correct_choices'] ?? null) ? $minigamePayload['correct_choices'] : [],
+            ));
+        }
         if (!$resolved) {
             unset($minigamePayload['correct_key'], $minigamePayload['correct_choices']);
+            unset($answerShape['correct_answers']);
         }
         $raceItems = $promptPayload['items'] ?? [];
         if (!is_array($raceItems) || !array_is_list($raceItems)) {
@@ -1731,6 +1760,18 @@ final class TriviaRepository
             static fn (array $item): string => (string) ($item['label'] ?? ''),
             array_filter($raceItems, 'is_array')
         ));
+        if (!$resolved && $roundType === self::PHASE_GHOST_RACE) {
+            $promptPayload['items'] = array_values(array_map(
+                static function (mixed $item): mixed {
+                    if (!is_array($item)) {
+                        return $item;
+                    }
+                    unset($item['correct']);
+                    return $item;
+                },
+                $raceItems,
+            ));
+        }
         $viewerAnswerPayload = [
             'answered' => (bool) ($viewerAnswer['answered'] ?? false),
             'answer_text' => $viewerAnswer['answer_text'] ?? null,
@@ -1754,7 +1795,7 @@ final class TriviaRepository
             'opened_at' => (string) $round['opened_at'],
             'closes_at' => (string) $round['closes_at'],
             'resolved_at' => $round['resolved_at'] !== null ? (string) $round['resolved_at'] : null,
-            'answer_shape' => $this->decodeJsonObject($round['answer_shape'] ?? null),
+            'answer_shape' => $answerShape,
             'image_url' => $round['image_url'] !== null ? (string) $round['image_url'] : null,
             'eligible_player_ids' => $this->parsePostgresUuidArray($round['eligible_player_ids'] ?? []),
             'body_holder_player_id' => $round['body_holder_player_id'] !== null ? (string) $round['body_holder_player_id'] : null,
@@ -1764,8 +1805,10 @@ final class TriviaRepository
             'minigame' => $roundType === self::PHASE_KILLING_FLOOR ? [
                 'type' => $round['minigame_type'] !== null ? (string) $round['minigame_type'] : null,
                 'payload' => $minigamePayload,
+                'preview' => $minigamePreview,
                 'results' => $resolved ? $minigameResults : [],
             ] : null,
+            'race_results' => $roundType === self::PHASE_GHOST_RACE && $resolved ? $minigameResults : [],
             'prompt' => [
                 'question' => $roundType === self::PHASE_GHOST_RACE
                     ? (string) ($promptPayload['category'] ?? $round['question'])
@@ -1942,81 +1985,7 @@ final class TriviaRepository
      */
     private function normalizePrompts(mixed $value, int $minimumPrompts = TriviaQuestionCatalog::MIN_PROMPTS): array
     {
-        if (!is_array($value) || !array_is_list($value)) {
-            throw new ApiException(422, 'validation_error', 'prompts must be a list of trivia prompt objects.');
-        }
-        $minimumPrompts = max(TriviaQuestionCatalog::MIN_PROMPTS, $minimumPrompts);
-        if (count($value) < $minimumPrompts) {
-            throw new ApiException(422, 'validation_error', sprintf(
-                'prompts must contain at least %d entries for the trivia game.',
-                $minimumPrompts,
-            ));
-        }
-
-        return array_map(fn (mixed $prompt): array => $this->normalizePrompt($prompt), $value);
-    }
-
-    /** @return array<string, mixed> */
-    private function normalizePrompt(mixed $value): array
-    {
-        if (!is_array($value)) {
-            throw new ApiException(422, 'validation_error', 'Each trivia prompt must be an object.');
-        }
-        $question = trim((string) ($value['question'] ?? ''));
-        $correctAnswer = trim((string) ($value['correct_answer'] ?? $value['answer'] ?? ''));
-        if ($question === '' || mb_strlen($question) > 300) {
-            throw new ApiException(422, 'validation_error', 'Each prompt question must contain 1 to 300 characters.');
-        }
-        if ($correctAnswer === '' || mb_strlen($correctAnswer) > 200) {
-            throw new ApiException(422, 'validation_error', 'Each prompt correct_answer must contain 1 to 200 characters.');
-        }
-        $choices = $value['choices'] ?? null;
-        if (!is_array($choices) || !array_is_list($choices)) {
-            throw new ApiException(422, 'validation_error', 'Prompt choices must be a list of answer strings.');
-        }
-        $choices = array_values(array_map(static fn (mixed $choice): string => trim((string) $choice), $choices));
-        $choices = array_values(array_filter($choices, static fn (string $choice): bool => $choice !== ''));
-        if (!in_array($correctAnswer, $choices, true)) {
-            $choices[] = $correctAnswer;
-        }
-        if (count($choices) < 2) {
-            throw new ApiException(422, 'validation_error', 'Each prompt must provide at least two answer choices.');
-        }
-
-        $answerShape = $value['answer_shape'] ?? ['type' => 'single_choice'];
-        if (!is_array($answerShape)) {
-            throw new ApiException(422, 'validation_error', 'Prompt answer_shape must be an object when provided.');
-        }
-        $answerShapeType = trim((string) ($answerShape['type'] ?? 'single_choice'));
-        if (!in_array($answerShapeType, ['single_choice', 'multi_select'], true)) {
-            throw new ApiException(422, 'validation_error', 'Prompt answer_shape.type must be single_choice or multi_select.');
-        }
-        $answerShape['type'] = $answerShapeType;
-        if (isset($value['correct_answers'])) {
-            if (!is_array($value['correct_answers']) || !array_is_list($value['correct_answers'])) {
-                throw new ApiException(422, 'validation_error', 'Prompt correct_answers must be a list of answer strings.');
-            }
-            $answerShape['correct_answers'] = array_values(array_filter(
-                array_map(static fn (mixed $answer): string => trim((string) $answer), $value['correct_answers']),
-                static fn (string $answer): bool => $answer !== ''
-            ));
-        }
-        $imageUrl = isset($value['image_url']) ? trim((string) $value['image_url']) : null;
-        if ($imageUrl === '') {
-            $imageUrl = null;
-        }
-        if ($imageUrl !== null && mb_strlen($imageUrl) > 300) {
-            throw new ApiException(422, 'validation_error', 'Prompt image_url must contain 300 characters or fewer.');
-        }
-
-        return [
-            'question' => $question,
-            'correct_answer' => $correctAnswer,
-            'choices' => $choices,
-            'explanation' => isset($value['explanation']) ? trim((string) $value['explanation']) : null,
-            'answer_shape' => $answerShape,
-            'image_url' => $imageUrl,
-        ];
+        return $this->questionCatalog->resolve($value, $minimumPrompts);
     }
 
     /** @return array{expires_in_seconds: ?int} */
@@ -2360,6 +2329,21 @@ final class TriviaRepository
         }
         if ($roundType === self::PHASE_GHOST_RACE) {
             return $this->normalizeRaceAnswer($round, $input);
+        }
+
+        $answerShape = $this->decodeJsonObject($round['answer_shape'] ?? null);
+        if ((string) ($answerShape['type'] ?? 'single_choice') === 'multi_select') {
+            $selected = $this->normalizeSelectedAnswers($input);
+            $correct = $this->normalizeStringSet($answerShape['correct_answers'] ?? [(string) $round['correct_answer']]);
+            $selectedSet = $this->normalizeStringSet($selected);
+            $isCorrect = $selectedSet === $correct;
+
+            return [
+                'answer_text' => $this->answerTextFromSelection($selected),
+                'answer_payload' => ['selected' => $selected],
+                'is_correct' => $isCorrect,
+                'score' => $isCorrect ? 1 : 0,
+            ];
         }
 
         $payload = $this->decodeJsonObject($input['answer_payload'] ?? null);

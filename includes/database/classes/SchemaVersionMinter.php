@@ -310,6 +310,7 @@ final class SchemaVersionMinter
         $versions = [];
         $expectedVersion = 1;
         $knownLedgerVersions = [];
+        $knownUpdateFiles = [];
         foreach ($manifest['versions'] as $entry) {
             if (!is_array($entry) || ($entry['version'] ?? null) !== $expectedVersion || !isset($entry['updates']) || !is_array($entry['updates']) || $entry['updates'] === []) {
                 throw new RuntimeException("Migration chain must define non-empty, consecutive version {$expectedVersion}.");
@@ -340,6 +341,7 @@ final class SchemaVersionMinter
                     throw new RuntimeException("Duplicate schema update ledger version: {$ledgerVersion}");
                 }
                 $knownLedgerVersions[$ledgerVersion] = true;
+                $knownUpdateFiles[$file] = true;
                 $updates[] = [
                     'file' => $file,
                     'path' => $path,
@@ -357,6 +359,22 @@ final class SchemaVersionMinter
                 $targetVersion,
                 count($versions),
             ));
+        }
+
+        $updatePaths = glob($root . '/updates/*.sql');
+        if ($updatePaths === false) {
+            throw new RuntimeException('Could not inspect docs/postgres/updates for untracked schema updates.');
+        }
+        $orphanedUpdates = [];
+        foreach ($updatePaths as $updatePath) {
+            $relativePath = 'updates/' . basename($updatePath);
+            if (!isset($knownUpdateFiles[$relativePath])) {
+                $orphanedUpdates[] = $relativePath;
+            }
+        }
+        if ($orphanedUpdates !== []) {
+            sort($orphanedUpdates);
+            throw new RuntimeException('Schema updates are missing from migration-chain.json: ' . implode(', ', $orphanedUpdates));
         }
 
         return ['targetVersion' => $targetVersion, 'versions' => $versions];

@@ -1,9 +1,9 @@
-<!-- schema-version: 10 -->
+<!-- schema-version: 11 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 10**. `migration-chain.json` is the ordered,
+current release pin is **version 11**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -27,11 +27,12 @@ per-file execution ledger.
 | 8 | `008_trivia_question_bank.sql` | Persistent shared trivia question catalog used to seed default room prompts |
 | 9 | `009_durable_game_rejoin_links.sql` | Hashed per-seat chess and trivia recovery tokens for durable rejoin after browser identity loss |
 | 10 | `010_open_deck_scheduler.sql` | Open-deck time slots, set nominations, fill votes, and eviction votes |
+| 11 | `011_trivia_murder_party.sql` | Killing-floor minigames, ghosts, multi-select prompts, and the final body race |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 10 inventory
+## Current version 11 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -155,27 +156,32 @@ seat's registered user or guest profile.
 `trivia_question_catalog` stores the shared, version-seeded prompt bank used
 when a new room is created without caller-supplied prompts. Its rows have stable
 slugs, display ordering, active flags, question text, correct answers, answer
-choices, and optional explanations. The idempotent starter catalog lives in
-`database/data/trivia-questions.json` and is imported by `php database/seed.php`.
+choices, answer shapes, optional artwork, and explanations. The idempotent
+160-question starter catalog lives in `database/data/trivia-questions.json` and
+is imported by `php database/seed.php`.
 
-`trivia_prompts` stores the ordered prompt text, correct answer, optional choice
-array, and post-resolution explanation for each room. Default catalog questions
+`trivia_prompts` stores the ordered prompt text, correct answer, choice array,
+single- or multi-select answer shape, optional artwork, and post-resolution
+explanation for each room. Default catalog questions
 are copied into these room-scoped rows at room creation, so gameplay still uses
 the persisted room-local prompt snapshot. `trivia_rounds` binds one prompt to a
 timed answer window with `opened_at`, `closes_at`, and resolved state.
-`trivia_answers` records one answer per player per round, a per-room client
-idempotency UUID, correctness, and submission timestamp. The application rejects
-duplicate or late answers, eliminates wrong-answer players immediately, and
-eliminates active players without an answer when the host resolves a round.
+`trivia_answers` records one answer per player per round, structured selections,
+a per-room client idempotency UUID, correctness, score, and submission timestamp.
+The application rejects duplicate or late answers. Wrong living players descend
+to a key-lock or memory trial; failed players become ghosts and remain eligible
+for later trivia.
 
 Creating a room is one transaction: insert the room, seat the host, attach the
 host to the room, persist caller-supplied prompts or copy active default prompts
 from `trivia_question_catalog`, and create the initial hashed join link. A host
 starts the game only after at least two seats are occupied, which opens round 1.
-Resolving a round closes missing answers, updates eliminations, and finishes the
-game when zero or one active player remains; otherwise the host can advance to
-the next persisted prompt. Exhausting prompts finishes the room with the
-remaining active player as winner only if exactly one remains.
+Resolving a round closes missing answers and pauses on a result reveal. The host
+then advances to a Killing Floor when living players answered incorrectly, back
+to trivia after the trial, or into the ghost race when only one living player
+remains. In the finale, correct classifications move the last body and every
+ghost along the escape track; a catching ghost steals the body, and the current
+body holder wins by reaching the goal.
 
 ## Open-deck scheduler
 

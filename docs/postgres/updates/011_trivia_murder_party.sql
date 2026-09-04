@@ -29,6 +29,12 @@ ALTER TABLE trivia_prompts
     ADD COLUMN image_url text
         CHECK (image_url IS NULL OR char_length(btrim(image_url)) BETWEEN 1 AND 300);
 
+ALTER TABLE trivia_question_catalog
+    ADD COLUMN answer_shape jsonb NOT NULL DEFAULT '{"type":"single_choice"}'::jsonb
+        CHECK (jsonb_typeof(answer_shape) = 'object'),
+    ADD COLUMN image_url text
+        CHECK (image_url IS NULL OR char_length(btrim(image_url)) BETWEEN 1 AND 300);
+
 ALTER TABLE trivia_rounds
     ADD COLUMN round_type text NOT NULL DEFAULT 'trivia'
         CHECK (round_type IN ('trivia', 'killing_floor', 'ghost_race')),

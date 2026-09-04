@@ -66,14 +66,25 @@ final class TriviaQuestionCatalog
             throw new ApiException(422, 'validation_error', 'Prompt answer_shape.type must be single_choice or multi_select.');
         }
         $answerShape['type'] = $answerShapeType;
-        if (isset($value['correct_answers'])) {
-            if (!is_array($value['correct_answers']) || !array_is_list($value['correct_answers'])) {
+        $correctAnswers = $value['correct_answers'] ?? $answerShape['correct_answers'] ?? null;
+        if ($correctAnswers !== null) {
+            if (!is_array($correctAnswers) || !array_is_list($correctAnswers)) {
                 throw new ApiException(422, 'validation_error', 'Prompt correct_answers must be a list of answer strings.');
             }
             $answerShape['correct_answers'] = array_values(array_filter(
-                array_map(static fn (mixed $answer): string => trim((string) $answer), $value['correct_answers']),
+                array_map(static fn (mixed $answer): string => trim((string) $answer), $correctAnswers),
                 static fn (string $answer): bool => $answer !== ''
             ));
+            if ($answerShape['correct_answers'] === []) {
+                throw new ApiException(422, 'validation_error', 'Prompt correct_answers must contain at least one answer.');
+            }
+            foreach ($answerShape['correct_answers'] as $answer) {
+                if (!in_array($answer, $choices, true)) {
+                    throw new ApiException(422, 'validation_error', 'Every correct_answers value must also appear in choices.');
+                }
+            }
+        } elseif ($answerShapeType === 'multi_select') {
+            $answerShape['correct_answers'] = [$correctAnswer];
         }
         $imageUrl = isset($value['image_url']) ? trim((string) $value['image_url']) : null;
         if ($imageUrl === '') {

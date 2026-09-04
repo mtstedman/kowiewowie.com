@@ -90,6 +90,15 @@
           "sha256": "4fafbc0728e85d8e9394a0f36dc15689be11854dc0ac1b14c32c8d7cfe19f4f7"
         }
       ]
+    },
+    {
+      "version": 11,
+      "updates": [
+        {
+          "file": "updates/011_trivia_murder_party.sql",
+          "sha256": "d471254699d2c405df609e79c36230cbc812af81f0a6c586173bd4393f11330b"
+        }
+      ]
     }
   ]
 }

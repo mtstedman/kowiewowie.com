@@ -10,7 +10,7 @@ use Wowie\Api\Trivia\TriviaQuestionCatalog;
 
 use function Wowie\Api\Content\slugify;
 
-require __DIR__ . '/../api/bootstrap.php';
+require_once __DIR__ . '/../api/bootstrap.php';
 
 /** @return list<array<string, mixed>> */
 function loadSeedFile(string $path): array
@@ -58,14 +58,16 @@ function seedTriviaQuestions(\PDO $pdo, string $path): int
     }
 
     $statement = $pdo->prepare(<<<'SQL'
-        INSERT INTO trivia_question_catalog (slug, display_order, question, correct_answer, choices, explanation, is_active)
-        VALUES (:slug, :display_order, :question, :correct_answer, CAST(:choices AS jsonb), :explanation, :is_active)
+        INSERT INTO trivia_question_catalog (slug, display_order, question, correct_answer, choices, explanation, answer_shape, image_url, is_active)
+        VALUES (:slug, :display_order, :question, :correct_answer, CAST(:choices AS jsonb), :explanation, CAST(:answer_shape AS jsonb), :image_url, :is_active)
         ON CONFLICT (slug) DO UPDATE
         SET display_order = EXCLUDED.display_order,
             question = EXCLUDED.question,
             correct_answer = EXCLUDED.correct_answer,
             choices = EXCLUDED.choices,
             explanation = EXCLUDED.explanation,
+            answer_shape = EXCLUDED.answer_shape,
+            image_url = EXCLUDED.image_url,
             is_active = EXCLUDED.is_active,
             updated_at = now()
     SQL);
@@ -81,12 +83,18 @@ function seedTriviaQuestions(\PDO $pdo, string $path): int
             'correct_answer' => $prompt['correct_answer'],
             'choices' => json_encode($prompt['choices'], JSON_THROW_ON_ERROR),
             'explanation' => $prompt['explanation'],
-            'is_active' => $preparedItem['is_active'],
+            'answer_shape' => json_encode($prompt['answer_shape'], JSON_THROW_ON_ERROR),
+            'image_url' => $prompt['image_url'],
+            'is_active' => $preparedItem['is_active'] ? 'true' : 'false',
         ]);
         $count++;
     }
 
     return $count;
+}
+
+if (realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) !== __FILE__) {
+    return;
 }
 
 $projectRoot = dirname(__DIR__);

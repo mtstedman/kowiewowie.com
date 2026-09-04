@@ -34,9 +34,9 @@ $metaDescription = 'Board games and per-game strategy notes from wowiekowie.com.
 
                     <article class="games-feature-card">
                         <span class="feature-number">Room game</span>
-                        <h3>Trivia</h3>
-                        <p>Host a shared-link elimination room for 2 to 6 players.</p>
-                        <a class="text-link" href="/trivia/" aria-label="Play Trivia">Play trivia <span aria-hidden="true">-&gt;</span></a>
+                        <h3>Murder Trivia Party</h3>
+                        <p>Answer together, face the Killing Floor, and race the ghosts for the final body.</p>
+                        <a class="text-link" href="/trivia/" aria-label="Play Murder Trivia Party">Play trivia <span aria-hidden="true">-&gt;</span></a>
                     </article>
 
                     <article class="games-feature-card">
