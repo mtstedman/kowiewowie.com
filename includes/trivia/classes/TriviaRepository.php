@@ -20,7 +20,7 @@ final class TriviaRepository
     private const MINI_GAME_CRYPT_RUNES = 'crypt_runes';
     private const KEY_LOCK_IMAGE_URL = '/assets/img/trivia/killing-floor-keys.png';
     private const MEMORY_IMAGE_URL = '/assets/img/trivia/killing-floor-memory.png';
-    private const POISON_CHALICES_IMAGE_URL = '/assets/img/trivia/killing-floor-poison-chalices.png';
+    private const POISON_CHALICES_IMAGE_URL = '/assets/img/trivia/killing-floor-chalices.png';
     private const SWORD_BOXES_IMAGE_URL = '/assets/img/trivia/killing-floor-sword-boxes.png';
     private const CRYPT_RUNES_IMAGE_URL = '/assets/img/trivia/killing-floor-crypt-runes.png';
     private const RACE_GOAL = 12;

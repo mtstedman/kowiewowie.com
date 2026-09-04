@@ -99,6 +99,15 @@
           "sha256": "d471254699d2c405df609e79c36230cbc812af81f0a6c586173bd4393f11330b"
         }
       ]
+    },
+    {
+      "version": 12,
+      "updates": [
+        {
+          "file": "updates/012_trivia_mini_games.sql",
+          "sha256": "4f14d54190976bd211f225273d3f7a561b799fdd33f58ac4ff383fffe82a8421"
+        }
+      ]
     }
   ]
 }
