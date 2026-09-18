@@ -23,7 +23,7 @@ $tarotScriptVersion = static function (string $href): string {
             <section class="tarot-hero" aria-labelledby="tarot-title">
                 <p class="eyebrow">Tarot table</p>
                 <h1 id="tarot-title">Tarot deck &amp; spreads</h1>
-                <p class="lede">Pick a spread, shuffle, and draw each card from a face-down fan, then turn them over one by one. Browse all 78 cards or trace what any card means in any position whenever you like.</p>
+                <p class="lede">Pick a spread, shuffle and cut the deck, and deal it face-down (or draw each card from a fan), then turn them over one by one. Browse all 78 cards or trace what any card means in any position whenever you like.</p>
             </section>
 
             <p id="tarot-load-error" class="tarot-panel tarot-load-error" role="alert" hidden>The tarot deck could not be loaded. Refresh the page to try again.</p>
@@ -49,7 +49,7 @@ $tarotScriptVersion = static function (string $href): string {
                         <p class="eyebrow">Setups</p>
                         <h2 id="tarot-spreads-title">Deal a spread</h2>
                     </div>
-                    <p class="tarot-panel-note">Shuffle to fan the deck out face-down, then pick a card for each glowing spot in order.</p>
+                    <p class="tarot-panel-note">Shuffle and cut the face-down deck as often as you like, then deal it into the spread. Prefer to choose? Switch to picking from a fan.</p>
                 </div>
 
                 <div class="tarot-spread-layout">
@@ -59,14 +59,43 @@ $tarotScriptVersion = static function (string $href): string {
                             <div id="tarot-spread-options" class="tarot-spread-options"></div>
                         </fieldset>
                         <p id="tarot-spread-description" class="tarot-spread-description"></p>
+                        <fieldset class="tarot-mode-picker">
+                            <legend>How to draw</legend>
+                            <div id="tarot-mode-options" class="tarot-mode-options">
+                                <label class="tarot-mode-option">
+                                    <input type="radio" name="tarot-deal-mode" value="shuffle" checked>
+                                    <span class="tarot-mode-option-text">
+                                        <strong>Shuffle &amp; cut</strong>
+                                        <span>Work the deck, then deal</span>
+                                    </span>
+                                </label>
+                                <label class="tarot-mode-option">
+                                    <input type="radio" name="tarot-deal-mode" value="fan">
+                                    <span class="tarot-mode-option-text">
+                                        <strong>Pick from a fan</strong>
+                                        <span>Choose each card yourself</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </fieldset>
                         <div class="tarot-actions">
                             <button class="tarot-button tarot-button-primary" type="button" id="tarot-deal-button">Shuffle &amp; deal</button>
                             <button class="tarot-button" type="button" id="tarot-reveal-all-button" disabled>Reveal all</button>
                         </div>
-                        <p id="tarot-deal-status" class="tarot-deal-status" role="status" aria-live="polite">Pick a spread, then shuffle to fan the deck out face-down.</p>
+                        <p id="tarot-deal-status" class="tarot-deal-status" role="status" aria-live="polite">Pick a spread, then shuffle and cut the face-down deck before dealing.</p>
                     </div>
 
                     <div class="tarot-table">
+                        <div id="tarot-deck-stage" class="tarot-deck-stage" role="group" aria-labelledby="tarot-deck-stage-title" hidden>
+                            <p id="tarot-deck-stage-title" class="tarot-deck-stage-title">The deck, face down</p>
+                            <div id="tarot-deck-stack" class="tarot-deck-stack" aria-hidden="true"></div>
+                            <p id="tarot-deck-meta" class="tarot-deck-meta"></p>
+                            <div class="tarot-actions tarot-deck-actions">
+                                <button class="tarot-button" type="button" id="tarot-shuffle-button">Shuffle</button>
+                                <button class="tarot-button" type="button" id="tarot-cut-button">Cut</button>
+                                <button class="tarot-button tarot-button-primary" type="button" id="tarot-auto-deal-button">Deal</button>
+                            </div>
+                        </div>
                         <div id="tarot-fan" class="tarot-fan" role="group" aria-label="Shuffled deck, face down" hidden></div>
                         <div id="tarot-board" class="tarot-board" role="group" aria-label="Spread layout"></div>
                     </div>

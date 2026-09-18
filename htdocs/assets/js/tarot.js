@@ -583,17 +583,34 @@
     const board = document.getElementById('tarot-board');
     const readingsList = document.getElementById('tarot-readings-list');
     const fan = document.getElementById('tarot-fan');
+    const modeOptionsRoot = document.getElementById('tarot-mode-options');
+    const deckStage = document.getElementById('tarot-deck-stage');
+    const deckStack = document.getElementById('tarot-deck-stack');
+    const deckMeta = document.getElementById('tarot-deck-meta');
+    const shuffleButton = document.getElementById('tarot-shuffle-button');
+    const cutButton = document.getElementById('tarot-cut-button');
+    const autoDealButton = document.getElementById('tarot-auto-deal-button');
+
+    /* Deal modes: 'shuffle' (primary: shuffle/cut, then auto-deal) or 'fan' (pick card by card). */
+    const DEAL_MODES = ['shuffle', 'fan'];
+    const DECK_STACK_LAYERS = 7;
+    const DECK_ANIMATION_MS = 760;
 
     /*
      * deal:     placed entries, in spread position order (index === position index).
      * deck:     the shuffled 78-card deck backing the face-down fan (empty until shuffled).
      * nextPick: index of the spread position the next picked card lands in.
+     * mode:     'shuffle' (shuffle/cut stage, then auto-deal; the default) or 'fan' (pick card by card).
+     * shuffles/cuts: how many times the deck on the shuffle stage has been shuffled or cut.
      */
     const state = {
         spreadId: SPREADS.length > 0 ? SPREADS[0].id : null,
         deal: [],
         deck: [],
         nextPick: 0,
+        mode: 'shuffle',
+        shuffles: 0,
+        cuts: 0,
     };
 
     const currentSpread = () => findSpread(state.spreadId);
@@ -879,11 +896,88 @@
         return slot;
     };
 
+    /* ---------- shuffle & cut deck stage (primary deal mode) ---------- */
+
+    let deckAnimationTimer = 0;
+
+    const stopDeckAnimation = () => {
+        window.clearTimeout(deckAnimationTimer);
+        deckAnimationTimer = 0;
+
+        if (deckStack) {
+            deckStack.classList.remove('is-shuffling', 'is-cutting');
+        }
+    };
+
+    /* Restarts the named animation even when it is triggered again mid-play. */
+    const playDeckAnimation = (className) => {
+        if (!deckStack) {
+            return;
+        }
+
+        stopDeckAnimation();
+        void deckStack.offsetWidth;
+        deckStack.classList.add(className);
+        deckAnimationTimer = window.setTimeout(stopDeckAnimation, DECK_ANIMATION_MS);
+    };
+
+    const renderDeckStack = () => {
+        if (!deckStack) {
+            return;
+        }
+
+        const topPacketStart = Math.ceil(DECK_STACK_LAYERS / 2);
+
+        deckStack.replaceChildren(...Array.from({ length: DECK_STACK_LAYERS }, (unused, layer) => {
+            const card = el('span', 'tarot-deck-card');
+            card.dataset.packet = layer >= topPacketStart ? 'top' : 'bottom';
+            card.style.setProperty('--tarot-stack-i', String(layer));
+            card.append(createCardBack());
+            return card;
+        }));
+    };
+
+    const updateDeckMeta = () => {
+        const spread = currentSpread();
+        const count = spread ? spread.positions.length : 0;
+
+        if (deckMeta) {
+            deckMeta.textContent = `${state.deck.length} cards · shuffled ${state.shuffles} `
+                + `time${state.shuffles === 1 ? '' : 's'} · cut ${state.cuts} time${state.cuts === 1 ? '' : 's'}`;
+        }
+
+        if (autoDealButton) {
+            autoDealButton.textContent = `Deal ${count} card${count === 1 ? '' : 's'}`;
+            autoDealButton.disabled = count === 0 || state.deck.length < count;
+        }
+    };
+
+    const showDeckStage = () => {
+        if (!deckStage) {
+            return;
+        }
+
+        renderDeckStack();
+        updateDeckMeta();
+        deckStage.hidden = false;
+    };
+
+    const hideDeckStage = () => {
+        stopDeckAnimation();
+
+        if (deckStage) {
+            deckStage.hidden = true;
+        }
+    };
+
     const resetTable = (spread) => {
         state.deal = [];
         state.deck = [];
         state.nextPick = 0;
+        state.shuffles = 0;
+        state.cuts = 0;
         clearFan();
+        hideDeckStage();
         renderEmptyBoard(spread);
         revealAllButton.disabled = true;
     };
@@ -897,6 +991,13 @@
 
         state.spreadId = spread.id;
         spreadDescription.textContent = `${spread.description} (${spread.positions.length} card${spread.positions.length === 1 ? '' : 's'})`;
+
+        if (state.mode !== 'fan') {
+            dealButton.textContent = 'Gather a fresh deck';
+            gatherDeck(`${spread.name} selected.`);
+            return;
+        }
+
         resetTable(spread);
         dealButton.textContent = 'Shuffle & deal';
         dealStatus.textContent = `${spread.name} selected. Shuffle to fan the deck out face-down, then pick a card for each spot.`;
@@ -907,6 +1008,11 @@
         const spread = currentSpread();
 
         if (!spread) {
+            return;
+        }
+
+        if (state.mode !== 'fan') {
+            gatherDeck('Table cleared.');
             return;
         }
 
@@ -986,6 +1092,137 @@
         }
     };
 
+    const isDeckStageActive = () => state.mode !== 'fan'
+        && Boolean(deckStage)
+        && !deckStage.hidden
+        && state.deal.length === 0
+        && state.deck.length > 0;
+
+    /* Shuffle mode, step 1: clear the table and set a fresh face-down deck on the stage. */
+    const gatherDeck = (prefix) => {
+        const spread = currentSpread();
+
+        if (!spread) {
+            return;
+        }
+
+        resetTable(spread);
+        state.deck = shuffled(CARDS);
+        showDeckStage();
+
+        const count = spread.positions.length;
+        dealStatus.textContent = `${prefix} A fresh ${state.deck.length}-card deck waits face-down. `
+            + `Shuffle or cut as many times as you like, then deal ${count} card${count === 1 ? '' : 's'}.`;
+    };
+
+    /* Shuffle mode: a Fisher-Yates reshuffle of the current deck order. */
+    const shuffleDeck = () => {
+        if (!isDeckStageActive()) {
+            return;
+        }
+
+        state.deck = shuffled(state.deck);
+        state.shuffles += 1;
+        playDeckAnimation('is-shuffling');
+        updateDeckMeta();
+        dealStatus.textContent = `Shuffled the deck (${state.shuffles} shuffle${state.shuffles === 1 ? '' : 's'} so far). `
+            + 'Shuffle or cut again, or deal when it feels right.';
+    };
+
+    /* Shuffle mode: split the deck near the middle and restack the bottom packet over the top. */
+    const cutDeck = () => {
+        if (!isDeckStageActive() || state.deck.length < 2) {
+            return;
+        }
+
+        const total = state.deck.length;
+        const margin = Math.max(1, Math.floor(total / 4));
+        const point = margin + randomIndex(Math.max(1, total - margin * 2 + 1));
+        const top = state.deck.slice(0, point);
+        const bottom = state.deck.slice(point);
+
+        state.deck = bottom.concat(top);
+        state.cuts += 1;
+        playDeckAnimation('is-cutting');
+        updateDeckMeta();
+        dealStatus.textContent = `Cut the deck at card ${point}: the bottom ${bottom.length} cards now sit on top of the other ${top.length}. `
+            + 'Shuffle or cut again, or deal when it feels right.';
+    };
+
+    /* Shuffle mode, step 2: deal from the top of the deck into every position, in order, face-down. */
+    const autoDeal = () => {
+        const spread = currentSpread();
+
+        if (!spread || !isDeckStageActive()) {
+            return;
+        }
+
+        const count = spread.positions.length;
+
+        if (count === 0 || state.deck.length < count) {
+            return;
+        }
+
+        const hadFocus = deckStage.contains(document.activeElement);
+
+        spread.positions.forEach((position, index) => {
+            const entry = {
+                position,
+                card: state.deck[index],
+                reversed: randomIndex(2) === 1,
+                revealed: false,
+            };
+
+            state.deal.push(entry);
+
+            const slot = createPlacedSlot(entry, index);
+            slot.style.setProperty('--tarot-deal-delay', `${index * 110}ms`);
+            const emptySlot = board.querySelector(`[data-slot-index="${index}"]`);
+
+            if (emptySlot) {
+                emptySlot.replaceWith(slot);
+            } else {
+                board.append(slot);
+            }
+
+            const item = readingsList.children[index];
+
+            if (item) {
+                renderReadingItem(item, entry, index);
+            }
+        });
+
+        state.deck = state.deck.slice(count);
+        state.nextPick = count;
+        hideDeckStage();
+        highlightNextSlot();
+        updateRevealState();
+        dealStatus.textContent = `Dealt ${count} card${count === 1 ? '' : 's'} face-down from the top of the deck. ${dealStatus.textContent}`;
+
+        if (hadFocus) {
+            const firstHidden = board.querySelector('.tarot-card-flip:not(.is-revealed)');
+
+            if (firstHidden) {
+                firstHidden.focus();
+            }
+        }
+    };
+
+    const setDealMode = (mode) => {
+        if (!DEAL_MODES.includes(mode) || mode === state.mode) {
+            return;
+        }
+
+        state.mode = mode;
+
+        if (!currentSpread()) {
+            return;
+        }
+
+        selectSpread(state.spreadId);
+        dealStatus.textContent = `${mode === 'fan' ? 'Switched to picking from a fan.' : 'Switched to shuffle & cut.'} ${dealStatus.textContent}`;
+    };
+
     const setupSpreads = () => {
         SPREADS.forEach((spread, index) => {
             const label = el('label', 'tarot-spread-option');
@@ -1058,6 +1295,31 @@
                 revealEntry(index);
             });
         });
+
+        if (modeOptionsRoot) {
+            // Always open in the primary shuffle & cut mode, even if the browser restored a radio.
+            modeOptionsRoot.querySelectorAll('input[name="tarot-deal-mode"]').forEach((input) => {
+                input.checked = input.value === state.mode;
+            });
+
+            modeOptionsRoot.addEventListener('change', (event) => {
+                if (event.target && event.target.name === 'tarot-deal-mode') {
+                    setDealMode(event.target.value);
+                }
+            });
+        }
+
+        if (shuffleButton) {
+            shuffleButton.addEventListener('click', shuffleDeck);
+        }
+
+        if (cutButton) {
+            cutButton.addEventListener('click', cutDeck);
+        }
+
+        if (autoDealButton) {
+            autoDealButton.addEventListener('click', autoDeal);
+        }
 
         if (state.spreadId) {
             selectSpread(state.spreadId);
