@@ -578,7 +578,6 @@
     const spreadOptionsRoot = document.getElementById('tarot-spread-options');
     const spreadDescription = document.getElementById('tarot-spread-description');
     const dealButton = document.getElementById('tarot-deal-button');
-    const revealAllButton = document.getElementById('tarot-reveal-all-button');
     const dealStatus = document.getElementById('tarot-deal-status');
     const board = document.getElementById('tarot-board');
     const readingsList = document.getElementById('tarot-readings-list');
@@ -743,7 +742,6 @@
         const revealed = state.deal.filter((entry) => entry.revealed).length;
 
         refreshRevealOrder();
-        revealAllButton.disabled = total === 0 || revealed === total;
 
         if (!spread || state.deck.length === 0) {
             return;
@@ -1216,10 +1214,6 @@
         isDealing = locked;
         dealButton.disabled = locked;
 
-        if (locked) {
-            revealAllButton.disabled = true;
-        }
-
         [spreadOptionsRoot, modeOptionsRoot].forEach((root) => {
             if (root) {
                 root.querySelectorAll('input').forEach((input) => {
@@ -1286,7 +1280,6 @@
         clearFan();
         hideDeckStage();
         renderEmptyBoard(spread);
-        revealAllButton.disabled = true;
     };
 
     const selectSpread = (spreadId) => {
@@ -1673,11 +1666,6 @@
                 setControlsCollapsed(false, { moveFocus: true });
             });
         }
-        revealAllButton.addEventListener('click', () => {
-            state.deal.forEach((entry, index) => {
-                revealEntry(index);
-            });
-        });
 
         if (modeOptionsRoot) {
             // Always open in the primary shuffle & cut mode, even if the browser restored a radio.
