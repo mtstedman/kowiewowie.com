@@ -812,7 +812,8 @@
         const entry = state.deal[index];
 
         // Out-of-order flips are blocked: only the lowest-index face-down card may turn over.
-        if (!entry || entry.revealed || index !== nextRevealIndex()) {
+        // Nothing turns over while a paced deal is still laying cards down.
+        if (isDealing || !entry || entry.revealed || index !== nextRevealIndex()) {
             return false;
         }
 
@@ -1006,6 +1007,89 @@
         return slot;
     };
 
+    const prefersReducedMotion = () => typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* Aims a placed card's lay-down animation so it travels from sourceRect into targetRect. */
+    const aimLayDown = (slot, sourceRect, targetRect) => {
+        const dx = (sourceRect.left + sourceRect.width / 2) - (targetRect.left + targetRect.width / 2);
+        const dy = (sourceRect.top + sourceRect.height / 2) - (targetRect.top + targetRect.height / 2);
+        // Tilt the card a little with its sideways travel, as if carried across by hand.
+        const tilt = Math.max(-14, Math.min(14, dx / 30));
+
+        slot.style.setProperty('--tarot-deal-from-x', `${Math.round(dx)}px`);
+        slot.style.setProperty('--tarot-deal-from-y', `${Math.round(dy)}px`);
+        slot.style.setProperty('--tarot-deal-tilt', `${tilt.toFixed(1)}deg`);
+        slot.classList.add('is-dealing');
+        // Carry the card above everything already on the table while it travels.
+        slot.style.zIndex = '30';
+    };
+
+    /* Runs done once the slot's lay-down animation ends (at once when it doesn't run). */
+    const whenLaidDown = (slot, done) => {
+        if (typeof slot.getAnimations === 'function') {
+            const lay = slot.getAnimations().find((animation) => animation.animationName === 'tarot-deal-lay');
+
+            if (lay) {
+                lay.finished.then(done, done);
+            } else {
+                done();
+            }
+
+            return;
+        }
+
+        window.setTimeout(done, DEAL_LAY_MS);
+    };
+
+    /*
+     * Lays a face-down card into its board spot. With a sourceRect it visibly travels
+     * from there (the deck, the fan, or the table edge) and settles; onLanded runs
+     * once it rests. Without motion it lands immediately.
+     */
+    const placeSlot = (entry, index, sourceRect, onLanded) => {
+        const slot = createPlacedSlot(entry, index);
+        const restingZ = slot.style.zIndex;
+        const emptySlot = board.querySelector(`[data-slot-index="${index}"]`);
+        const animate = Boolean(sourceRect && emptySlot) && !prefersReducedMotion();
+
+        if (animate) {
+            aimLayDown(slot, sourceRect, emptySlot.getBoundingClientRect());
+        }
+
+        if (emptySlot) {
+            emptySlot.replaceWith(slot);
+        } else {
+            board.append(slot);
+        }
+
+        const item = readingsList.children[index];
+
+        if (item) {
+            renderReadingItem(item, entry, index);
+        }
+
+        const landed = () => {
+            slot.classList.remove('is-dealing');
+            slot.style.zIndex = restingZ;
+            DEAL_FLIGHT_PROPS.forEach((property) => {
+                slot.style.removeProperty(property);
+            });
+
+            if (onLanded) {
+                onLanded();
+            }
+        };
+
+        if (animate) {
+            whenLaidDown(slot, landed);
+        } else {
+            landed();
+        }
+
+        return slot;
+    };
+
     /* ---------- shuffle & cut deck stage (primary deal mode) ---------- */
 
     let deckAnimationTimer = 0;
@@ -1015,6 +1099,17 @@
     const SHUFFLE_LOOP_MAX_MS = 3000;
     let shuffleLoopTimer = 0;
     let isShuffleLooping = false;
+
+    /*
+     * Paced deal: one card is laid per DEAL_STEP_MS in spread position order.
+     * isDealing locks the controls; dealRun invalidates a cancelled sequence.
+     */
+    const DEAL_STEP_MS = 640;
+    const DEAL_LAY_MS = 560;
+    const DEAL_FLIGHT_PROPS = ['--tarot-deal-from-x', '--tarot-deal-from-y', '--tarot-deal-tilt'];
+    let isDealing = false;
+    let dealTimer = 0;
+    let dealRun = 0;
     let shuffleLoopCount = 0;
 
     const stopDeckAnimation = () => {
@@ -1065,7 +1160,7 @@
 
         if (autoDealButton) {
             autoDealButton.textContent = `Deal ${count} card${count === 1 ? '' : 's'}`;
-            autoDealButton.disabled = isShuffleLooping || count === 0 || state.deck.length < count;
+            autoDealButton.disabled = isDealing || isShuffleLooping || count === 0 || state.deck.length < count;
         }
     };
 
@@ -1116,6 +1211,62 @@
         deckStage.hidden = false;
     };
 
+    /* Locks every control that could re-enter or corrupt a paced deal while it runs. */
+    const setDealLocked = (locked) => {
+        isDealing = locked;
+        dealButton.disabled = locked;
+
+        if (locked) {
+            revealAllButton.disabled = true;
+        }
+
+        [spreadOptionsRoot, modeOptionsRoot].forEach((root) => {
+            if (root) {
+                root.querySelectorAll('input').forEach((input) => {
+                    input.disabled = locked;
+                });
+            }
+        });
+
+        [shuffleButton, cutButton].forEach((button) => {
+            if (button) {
+                button.disabled = locked;
+            }
+        });
+
+        board.setAttribute('aria-busy', locked ? 'true' : 'false');
+        updateDeckMeta();
+    };
+
+    const cancelDealSequence = () => {
+        dealRun += 1;
+        window.clearTimeout(dealTimer);
+        dealTimer = 0;
+
+        if (isDealing) {
+            setDealLocked(false);
+        }
+    };
+
+    /* Where dealt cards come from: the deck on the stage, else the near edge of the table. */
+    const dealSourceRect = () => {
+        if (deckStack && deckStage && !deckStage.hidden) {
+            const rect = deckStack.getBoundingClientRect();
+
+            if (rect.width > 0 && rect.height > 0) {
+                return rect;
+            }
+        }
+
+        const boardRect = board.getBoundingClientRect();
+        return {
+            left: boardRect.left + boardRect.width / 2,
+            top: boardRect.bottom + 48,
+            width: 0,
+            height: 0,
+        };
+    };
+
     const hideDeckStage = () => {
         stopShuffleLoop(false);
         stopDeckAnimation();
@@ -1126,6 +1277,7 @@
     };
 
     const resetTable = (spread) => {
+        cancelDealSequence();
         state.deal = [];
         state.deck = [];
         state.nextPick = 0;
@@ -1160,7 +1312,7 @@
     const deal = () => {
         const spread = currentSpread();
 
-        if (!spread) {
+        if (!spread || isDealing) {
             return;
         }
 
@@ -1212,30 +1364,20 @@
 
         const hadFocus = document.activeElement === button;
         const neighbor = button.nextElementSibling || button.previousElementSibling;
+        // The card is laid down from where it was picked out of the fan.
+        const sourceRect = button.getBoundingClientRect();
         button.remove();
-
-        const slot = createPlacedSlot(entry, index);
-        const emptySlot = board.querySelector(`[data-slot-index="${index}"]`);
-
-        if (emptySlot) {
-            emptySlot.replaceWith(slot);
-        } else {
-            board.append(slot);
-        }
-
-        const item = readingsList.children[index];
-
-        if (item) {
-            renderReadingItem(item, entry, index);
-        }
 
         const complete = state.nextPick >= spread.positions.length;
 
+        // Settle the fan first so the target spot is measured where it will rest.
         if (complete) {
             clearFan();
         } else {
             labelFanCards();
         }
+
+        const slot = placeSlot(entry, index, sourceRect);
 
         highlightNextSlot();
         updateRevealState();
@@ -1351,7 +1493,7 @@
     const autoDeal = () => {
         const spread = currentSpread();
 
-        if (!spread || isShuffleLooping || !isDeckStageActive()) {
+        if (!spread || isDealing || isShuffleLooping || !isDeckStageActive()) {
             return;
         }
 
@@ -1362,52 +1504,84 @@
         }
 
         const hadFocus = deckStage.contains(document.activeElement);
+        const entries = spread.positions.map((position, index) => ({
+            position,
+            card: state.deck[index],
+            reversed: randomIndex(2) === 1,
+            revealed: false,
+        }));
+        const paced = !prefersReducedMotion();
+        const run = dealRun + 1;
+        dealRun = run;
 
-        spread.positions.forEach((position, index) => {
-            const entry = {
-                position,
-                card: state.deck[index],
-                reversed: randomIndex(2) === 1,
-                revealed: false,
-            };
+        setDealLocked(true);
+        dealStatus.textContent = `Dealing ${count} card${count === 1 ? '' : 's'} face-down from the top of the deck, `
+            + 'one position at a time.';
+
+        // Runs once the last card has settled; status and focus wait for it.
+        const finish = () => {
+            if (run !== dealRun) {
+                return;
+            }
+
+            dealTimer = 0;
+            hideDeckStage();
+            setDealLocked(false);
+            highlightNextSlot();
+            updateRevealState();
+            dealStatus.textContent = `Dealt ${count} card${count === 1 ? '' : 's'} face-down from the top of the deck. ${dealStatus.textContent}`;
+
+            if (hadFocus) {
+                const active = document.activeElement;
+                const focusIdle = !active || active === document.body || !document.contains(active) || deckStage.contains(active);
+                const firstHidden = board.querySelector('.tarot-card-flip:not(.is-revealed)');
+
+                if (focusIdle && firstHidden) {
+                    firstHidden.focus();
+                }
+            }
+        };
+
+        // Takes the top card and lays it in the next position, in spread.positions order.
+        const dealOne = (index) => {
+            if (run !== dealRun) {
+                return;
+            }
+
+            const entry = entries[index];
+            const last = index === count - 1;
 
             state.deal.push(entry);
+            state.deck = state.deck.slice(1);
+            state.nextPick = index + 1;
+            updateDeckMeta();
+            highlightNextSlot();
 
-            const slot = createPlacedSlot(entry, index);
-            slot.style.setProperty('--tarot-deal-delay', `${index * 110}ms`);
-            const emptySlot = board.querySelector(`[data-slot-index="${index}"]`);
+            const slot = placeSlot(entry, index, paced ? dealSourceRect() : null, last ? finish : null);
 
-            if (emptySlot) {
-                emptySlot.replaceWith(slot);
-            } else {
-                board.append(slot);
+            // Not operable until the whole deal has landed (refreshRevealOrder then clears this).
+            if (isDealing) {
+                slot.setAttribute('aria-disabled', 'true');
             }
 
-            const item = readingsList.children[index];
-
-            if (item) {
-                renderReadingItem(item, entry, index);
+            if (!last && paced) {
+                dealTimer = window.setTimeout(() => {
+                    dealOne(index + 1);
+                }, DEAL_STEP_MS);
             }
-        });
+        };
 
-        state.deck = state.deck.slice(count);
-        state.nextPick = count;
-        hideDeckStage();
-        highlightNextSlot();
-        updateRevealState();
-        dealStatus.textContent = `Dealt ${count} card${count === 1 ? '' : 's'} face-down from the top of the deck. ${dealStatus.textContent}`;
-
-        if (hadFocus) {
-            const firstHidden = board.querySelector('.tarot-card-flip:not(.is-revealed)');
-
-            if (firstHidden) {
-                firstHidden.focus();
-            }
+        if (paced) {
+            dealOne(0);
+        } else {
+            entries.forEach((entry, index) => {
+                dealOne(index);
+            });
         }
     };
 
     const setDealMode = (mode) => {
-        if (!DEAL_MODES.includes(mode) || mode === state.mode) {
+        if (isDealing || !DEAL_MODES.includes(mode) || mode === state.mode) {
             return;
         }
 

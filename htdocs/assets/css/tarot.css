@@ -1191,8 +1191,16 @@
 .tarot-card-flip {
     cursor: pointer;
     perspective: 900px;
-    animation: tarot-deal-in 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-    animation-delay: var(--tarot-deal-delay, 0ms);
+    animation: tarot-deal-lay 560ms cubic-bezier(0.22, 0.7, 0.3, 1) backwards;
+}
+
+/* In the dealer's hand: not hoverable/clickable until it has settled in its spot. */
+.tarot-card-flip.is-dealing {
+    pointer-events: none;
+}
+
+.tarot-board[aria-busy="true"] .tarot-card-flip {
+    cursor: progress;
 }
 
 .tarot-card-flip.is-revealed {
@@ -1355,15 +1363,40 @@
     visibility: hidden;
 }
 
-@keyframes tarot-deal-in {
-    from {
+/*
+ * Laying a dealt card down: it travels from the deck (or the fan / table edge) in
+ * a slight arc, tilted as if carried by hand, lifts just over its spot, then drops
+ * and settles flat. tarot.js sets the per-card offsets; without them the card
+ * simply drops in from just above. Individual translate/rotate/scale compose with
+ * the slot's own transform, so crossing cards keep their layout rotation.
+ */
+@keyframes tarot-deal-lay {
+    0% {
         opacity: 0;
-        translate: 0 -18px;
+        translate: var(--tarot-deal-from-x, 0px) var(--tarot-deal-from-y, -18px);
+        rotate: var(--tarot-deal-tilt, 0deg);
+        scale: 1.1;
+        filter: drop-shadow(0 18px 16px rgba(0, 0, 0, 0.55));
     }
 
-    to {
+    12% {
+        opacity: 1;
+    }
+
+    62% {
+        translate: calc(var(--tarot-deal-from-x, 0px) * 0.1) calc(var(--tarot-deal-from-y, -18px) * 0.1 - 12px);
+        rotate: calc(var(--tarot-deal-tilt, 0deg) * -0.2);
+        scale: 1.06;
+        filter: drop-shadow(0 14px 12px rgba(0, 0, 0, 0.5));
+        animation-timing-function: cubic-bezier(0.5, 0, 0.7, 1);
+    }
+
+    100% {
         opacity: 1;
         translate: 0 0;
+        rotate: 0deg;
+        scale: 1;
+        filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
     }
 }
 
@@ -1601,7 +1634,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    /* No lay-down travel: dealt cards appear in place (tarot.js also deals them at once). */
     .tarot-card-flip,
+    .tarot-card-flip.is-dealing,
     .tarot-fan-card,
     .tarot-slot-empty.is-next,
     .tarot-reveal-card-frame,
