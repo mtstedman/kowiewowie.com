@@ -340,6 +340,92 @@
         renderMeaningMap();
     };
 
+    /* ---------- view tabs (dealer / deck / meaning map) ---------- */
+
+    const tabList = app.querySelector('[data-tarot-tabs]');
+    const tabs = tabList ? Array.from(tabList.querySelectorAll('[role="tab"]')) : [];
+
+    const panelForTab = (tab) => document.getElementById(tab.getAttribute('aria-controls') || '');
+
+    const activateTab = (tab, moveFocus) => {
+        if (!tab || !tabs.includes(tab)) {
+            return;
+        }
+
+        tabs.forEach((entry) => {
+            const selected = entry === tab;
+            const panel = panelForTab(entry);
+
+            entry.setAttribute('aria-selected', selected ? 'true' : 'false');
+            entry.tabIndex = selected ? 0 : -1;
+
+            if (panel) {
+                panel.hidden = !selected;
+            }
+        });
+
+        if (moveFocus) {
+            tab.focus();
+        }
+    };
+
+    const activateTabContaining = (node) => {
+        const panel = node ? node.closest('[role="tabpanel"]') : null;
+
+        if (!panel) {
+            return;
+        }
+
+        activateTab(tabs.find((tab) => panelForTab(tab) === panel), false);
+    };
+
+    const setupTabs = () => {
+        if (!tabList || tabs.length === 0) {
+            return;
+        }
+
+        tabList.addEventListener('click', (event) => {
+            const tab = event.target.closest('[role="tab"]');
+
+            if (tab) {
+                activateTab(tab, false);
+            }
+        });
+
+        tabList.addEventListener('keydown', (event) => {
+            const current = event.target.closest('[role="tab"]');
+            const index = tabs.indexOf(current);
+
+            if (index === -1) {
+                return;
+            }
+
+            let next = null;
+
+            switch (event.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                    next = tabs[(index + 1) % tabs.length];
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    next = tabs[(index - 1 + tabs.length) % tabs.length];
+                    break;
+                case 'Home':
+                    next = tabs[0];
+                    break;
+                case 'End':
+                    next = tabs[tabs.length - 1];
+                    break;
+                default:
+                    return;
+            }
+
+            event.preventDefault();
+            activateTab(next, true);
+        });
+    };
+
     const showInMeaningMap = (slug) => {
         if (!findCard(slug)) {
             return;
@@ -349,6 +435,8 @@
         renderMeaningMap();
 
         const heading = document.getElementById('tarot-map-title');
+
+        activateTabContaining(heading || mapCardSelect);
 
         if (heading) {
             heading.scrollIntoView({ block: 'start' });
@@ -892,6 +980,7 @@
         }
     };
 
+    setupTabs();
     setupGallery();
     setupSpreads();
     setupMeaningMap();

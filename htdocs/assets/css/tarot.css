@@ -43,35 +43,73 @@
     max-width: 68ch;
 }
 
-.tarot-jump-nav {
+/* ---------- view tabs ---------- */
+
+.tarot-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-top: 0.4rem;
+    padding: 0.35rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 14px;
+    background: rgba(5, 14, 28, 0.72);
+    box-shadow: inset 0 1px 0 var(--surface-highlight);
+    width: fit-content;
+    max-width: 100%;
 }
 
-.tarot-jump-nav a {
+.tarot-tab {
     display: inline-flex;
     align-items: center;
-    min-height: 40px;
-    padding: 0.4rem 0.8rem;
-    border: 1px solid var(--surface-edge);
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0.45rem 1rem;
+    border: 1px solid transparent;
     border-radius: 999px;
-    background: rgba(5, 14, 28, 0.82);
+    background: transparent;
     color: var(--ink-soft);
+    font: inherit;
     font-size: 0.8rem;
     font-weight: 850;
     letter-spacing: 0.06em;
-    text-decoration: none;
     text-transform: uppercase;
-    transition: border-color var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
+    cursor: pointer;
+    transition: border-color var(--motion-fast), color var(--motion-fast), background var(--motion-fast), box-shadow var(--motion-fast);
 }
 
-.tarot-jump-nav a:hover,
-.tarot-jump-nav a:focus-visible {
-    border-color: var(--tarot-gold);
+.tarot-tab-glyph {
+    color: var(--tarot-gold);
+    opacity: 0.7;
+}
+
+.tarot-tab:hover {
+    border-color: var(--surface-edge-strong);
     color: var(--ink);
-    box-shadow: 0 0 22px rgba(var(--tarot-gold-rgb), 0.3);
+}
+
+.tarot-tab[aria-selected="true"] {
+    border-color: var(--tarot-gold);
+    background: linear-gradient(135deg, rgba(var(--tarot-gold-rgb), 0.18), rgba(124, 92, 255, 0.16));
+    color: var(--ink);
+    box-shadow: 0 0 22px rgba(var(--tarot-gold-rgb), 0.28);
+}
+
+.tarot-tab[aria-selected="true"] .tarot-tab-glyph {
+    opacity: 1;
+}
+
+.tarot-tab:focus-visible {
+    outline: 2px solid var(--accent-warm);
+    outline-offset: 3px;
+}
+
+.tarot-tab-panel[hidden] {
+    display: none;
+}
+
+.tarot-tab-panel:focus-visible {
+    outline: 2px solid var(--accent-warm);
+    outline-offset: 3px;
 }
 
 .tarot-panel {
@@ -1058,6 +1096,16 @@
 }
 
 @media (max-width: 560px) {
+    .tarot-tabs {
+        width: 100%;
+    }
+
+    .tarot-tab {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 0.45rem 0.7rem;
+    }
+
     .tarot-dialog-body {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -1093,7 +1141,7 @@
     .tarot-card-face,
     .tarot-gallery-card,
     .tarot-button,
-    .tarot-jump-nav a {
+    .tarot-tab {
         transition: none;
     }
 }

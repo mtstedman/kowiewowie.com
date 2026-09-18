@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Tarot - wowiekowie.com';
-$metaDescription = 'Browse all 78 tarot cards, deal classic spreads, and explore position-by-position meanings on wowiekowie.com.';
+$metaDescription = 'Deal classic tarot spreads, browse all 78 cards, and explore position-by-position meanings on wowiekowie.com.';
 $pageStyles = ['/assets/css/tarot.css'];
 
 $tarotScriptVersion = static function (string $href): string {
@@ -23,28 +23,27 @@ $tarotScriptVersion = static function (string $href): string {
             <section class="tarot-hero" aria-labelledby="tarot-title">
                 <p class="eyebrow">Tarot table</p>
                 <h1 id="tarot-title">Tarot deck &amp; spreads</h1>
-                <p class="lede">Flip through all 78 cards, pick a spread's cards from a face-down fan and turn each one over, then trace what every card means in every position.</p>
-                <nav class="tarot-jump-nav" aria-label="Tarot sections">
-                    <a href="#tarot-gallery-title">Deck gallery</a>
-                    <a href="#tarot-spreads-title">Setups</a>
-                    <a href="#tarot-map-title">Meaning map</a>
-                </nav>
+                <p class="lede">Pick a spread, shuffle, and draw each card from a face-down fan, then turn them over one by one. Browse all 78 cards or trace what any card means in any position whenever you like.</p>
             </section>
 
             <p id="tarot-load-error" class="tarot-panel tarot-load-error" role="alert" hidden>The tarot deck could not be loaded. Refresh the page to try again.</p>
 
-            <section class="tarot-panel tarot-gallery" aria-labelledby="tarot-gallery-title">
-                <div class="tarot-panel-heading">
-                    <div>
-                        <p class="eyebrow">Deck gallery</p>
-                        <h2 id="tarot-gallery-title">All 78 cards</h2>
-                    </div>
-                    <p class="tarot-panel-note">Select a card to read its keywords, upright meaning, and reversed meaning.</p>
-                </div>
-                <div id="tarot-gallery-groups" class="tarot-gallery-groups"></div>
-            </section>
+            <div class="tarot-tabs" role="tablist" aria-label="Tarot views" data-tarot-tabs>
+                <button class="tarot-tab" type="button" role="tab" id="tarot-tab-dealer" aria-controls="tarot-panel-dealer" aria-selected="true">
+                    <span class="tarot-tab-glyph" aria-hidden="true">✦</span>
+                    <span>Deal a spread</span>
+                </button>
+                <button class="tarot-tab" type="button" role="tab" id="tarot-tab-deck" aria-controls="tarot-panel-deck" aria-selected="false" tabindex="-1">
+                    <span class="tarot-tab-glyph" aria-hidden="true">★</span>
+                    <span>Deck</span>
+                </button>
+                <button class="tarot-tab" type="button" role="tab" id="tarot-tab-map" aria-controls="tarot-panel-map" aria-selected="false" tabindex="-1">
+                    <span class="tarot-tab-glyph" aria-hidden="true">◈</span>
+                    <span>Meaning map</span>
+                </button>
+            </div>
 
-            <section class="tarot-panel tarot-spreads" aria-labelledby="tarot-spreads-title">
+            <section id="tarot-panel-dealer" class="tarot-panel tarot-tab-panel tarot-spreads" role="tabpanel" aria-labelledby="tarot-tab-dealer" tabindex="0">
                 <div class="tarot-panel-heading">
                     <div>
                         <p class="eyebrow">Setups</p>
@@ -79,7 +78,18 @@ $tarotScriptVersion = static function (string $href): string {
                 </section>
             </section>
 
-            <section class="tarot-panel tarot-map" aria-labelledby="tarot-map-title">
+            <section id="tarot-panel-deck" class="tarot-panel tarot-tab-panel tarot-gallery" role="tabpanel" aria-labelledby="tarot-tab-deck" tabindex="0" hidden>
+                <div class="tarot-panel-heading">
+                    <div>
+                        <p class="eyebrow">Deck gallery</p>
+                        <h2 id="tarot-gallery-title">All 78 cards</h2>
+                    </div>
+                    <p class="tarot-panel-note">Select a card to read its keywords, upright meaning, and reversed meaning.</p>
+                </div>
+                <div id="tarot-gallery-groups" class="tarot-gallery-groups"></div>
+            </section>
+
+            <section id="tarot-panel-map" class="tarot-panel tarot-tab-panel tarot-map" role="tabpanel" aria-labelledby="tarot-tab-map" tabindex="0" hidden>
                 <div class="tarot-panel-heading">
                     <div>
                         <p class="eyebrow">Meaning map</p>
