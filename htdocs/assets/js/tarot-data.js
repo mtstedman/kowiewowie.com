@@ -197,6 +197,33 @@
         { id: 'king', name: 'King' },
     ];
 
+    // Structural lenses used to add suit-and-rank context to position readings.
+    // They describe the shared progression of the Minor Arcana rather than
+    // replacing the card-specific meanings below.
+    const SUIT_CONTEXTS = {
+        wands: 'will, creativity, ambition, and action',
+        cups: 'emotion, relationships, receptivity, and intuition',
+        swords: 'thought, communication, conflict, and decision',
+        pentacles: 'work, resources, the body, and material stability',
+    };
+
+    const RANK_CONTEXTS = {
+        ace: 'the seed of a new cycle',
+        two: 'polarity, balance, and choice',
+        three: 'development, expression, and early results',
+        four: 'structure, stability, and consolidation',
+        five: 'disruption, friction, and adaptation',
+        six: 'adjustment, exchange, and restored movement',
+        seven: 'assessment, testing, and perseverance',
+        eight: 'movement, refinement, and increasing mastery',
+        nine: 'culmination, intensity, and nearing completion',
+        ten: 'completion, consequence, and transition into a new cycle',
+        page: 'curiosity, messages, and learning',
+        knight: 'movement, pursuit, and putting an impulse into action',
+        queen: 'inward mastery, stewardship, and embodied understanding',
+        king: 'outward mastery, authority, and deliberate direction',
+    };
+
     // Minor Arcana meanings, indexed by suit then rank order (ace..king).
     const MINOR_MEANINGS = {
         wands: [
@@ -899,6 +926,23 @@
             : 'upright'
     );
 
+    const structuralContextFor = (card) => {
+        if (card.arcana === 'major') {
+            return 'As a Major Arcana card, it points to a larger archetypal lesson or turning point behind the immediate circumstances.';
+        }
+
+        const rank = RANKS.find((entry) => entry.id === card.rank);
+        const suit = SUITS.find((entry) => entry.id === card.suit);
+        const rankContext = RANK_CONTEXTS[card.rank];
+        const suitContext = SUIT_CONTEXTS[card.suit];
+
+        if (!rank || !suit || !rankContext || !suitContext) {
+            return '';
+        }
+
+        return `As the ${rank.name} of ${suit.name}, it emphasizes ${rankContext} within ${suitContext}.`;
+    };
+
     // Pure helper: composes position context with the card's upright or
     // reversed meaning. Returns '' only for an unknown card, spread, or position.
     const tarotMeaningFor = (cardSlug, spreadId, positionId, orientation) => {
@@ -911,8 +955,13 @@
 
         const orientationKey = normalizeOrientation(orientation);
         const meaning = orientationKey === 'reversed' ? card.reversedMeaning : card.uprightMeaning;
+        const orientationContext = orientationKey === 'reversed'
+            ? `Within “${position.name},” read the reversal as energy that may be blocked, internalized, delayed, or overexpressed rather than as a simple opposite.`
+            : `Within “${position.name},” the card's themes are operating openly or are available to engage with directly.`;
 
-        return `${meaning} ${position.readingPrompt}`;
+        return [meaning, orientationContext, structuralContextFor(card), position.readingPrompt]
+            .filter(Boolean)
+            .join(' ');
     };
 
     // Builds the full map { [positionId]: { [slug]: { upright, reversed } } }

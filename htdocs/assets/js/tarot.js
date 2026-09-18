@@ -851,7 +851,7 @@
         heroOrientation.textContent = orientationLabel(reversed);
         heroOrientation.classList.toggle('is-reversed', reversed);
         heroPositionLabel.textContent = `Position: ${position.name}`;
-        heroPosition.textContent = [position.positionMeaning, position.readingPrompt].filter(Boolean).join(' ');
+        heroPosition.textContent = position.positionMeaning || '';
         heroInterpretation.textContent = meaningFor(card, spread, position, reversed);
 
         if (typeof heroDialog.showModal === 'function') {
