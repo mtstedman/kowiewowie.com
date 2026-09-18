@@ -158,6 +158,33 @@ $tarotScriptVersion = static function (string $href): string {
         </div>
     </dialog>
 
+    <dialog id="tarot-reading-dialog" class="tarot-card-dialog tarot-reading-dialog" aria-labelledby="tarot-reveal-title" aria-describedby="tarot-reveal-eyebrow">
+        <div class="tarot-dialog-body tarot-reveal-body">
+            <div id="tarot-reveal-card" class="tarot-dialog-card tarot-reveal-stage"></div>
+            <div class="tarot-dialog-copy tarot-reveal-copy">
+                <p id="tarot-reveal-eyebrow" class="eyebrow"></p>
+                <h2 id="tarot-reveal-title" class="tarot-reveal-title">
+                    <span id="tarot-reveal-name"></span>
+                    <span id="tarot-reveal-orientation" class="tarot-orientation-badge"></span>
+                </h2>
+                <dl class="tarot-dialog-meanings">
+                    <div>
+                        <dt>This position</dt>
+                        <dd id="tarot-reveal-position"></dd>
+                    </div>
+                    <div>
+                        <dt>Interpretation</dt>
+                        <dd id="tarot-reveal-interpretation"></dd>
+                    </div>
+                </dl>
+                <p id="tarot-reveal-prompt" class="tarot-reveal-prompt"></p>
+                <div class="tarot-actions">
+                    <button class="tarot-button tarot-button-primary" type="button" id="tarot-reveal-close">Back to the table</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
     <script src="<?= $tarotScriptVersion('/assets/js/tarot-data.js') ?>" defer></script>
     <script src="<?= $tarotScriptVersion('/assets/js/tarot.js') ?>" defer></script>
 </body>

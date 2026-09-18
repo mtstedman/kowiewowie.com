@@ -686,7 +686,7 @@
         const entry = state.deal[index];
 
         if (!entry || entry.revealed) {
-            return;
+            return false;
         }
 
         entry.revealed = true;
@@ -709,6 +709,72 @@
         }
 
         updateRevealState();
+        return true;
+    };
+
+    /* ---------- hero reveal dialog (single reveals once the spread is filled) ---------- */
+
+    const heroDialog = document.getElementById('tarot-reading-dialog');
+    const heroCard = document.getElementById('tarot-reveal-card');
+    const heroEyebrow = document.getElementById('tarot-reveal-eyebrow');
+    const heroName = document.getElementById('tarot-reveal-name');
+    const heroOrientation = document.getElementById('tarot-reveal-orientation');
+    const heroPosition = document.getElementById('tarot-reveal-position');
+    const heroInterpretation = document.getElementById('tarot-reveal-interpretation');
+    const heroPrompt = document.getElementById('tarot-reveal-prompt');
+    const heroClose = document.getElementById('tarot-reveal-close');
+    let heroReturnFocus = null;
+
+    const isDealComplete = () => {
+        const spread = currentSpread();
+
+        return Boolean(spread) && spread.positions.length > 0 && state.nextPick >= spread.positions.length;
+    };
+
+    const closeReadingHero = () => {
+        if (typeof heroDialog.close === 'function') {
+            if (heroDialog.open) {
+                heroDialog.close();
+            }
+        } else {
+            heroDialog.removeAttribute('open');
+            heroDialog.dispatchEvent(new Event('close'));
+        }
+    };
+
+    const openReadingHero = (index) => {
+        const entry = state.deal[index];
+        const spread = currentSpread();
+
+        if (!heroDialog || !entry || !spread || heroDialog.hasAttribute('open')) {
+            return;
+        }
+
+        const { position, card, reversed } = entry;
+        heroReturnFocus = board.querySelector(`[data-slot-index="${index}"]`);
+
+        const frame = el('span', `tarot-card tarot-card-static tarot-card-large tarot-reveal-card-frame${reversed ? ' is-reversed' : ''}`);
+        frame.append(createCardFace(card, { reversed, lazy: false }));
+        heroCard.replaceChildren(frame);
+
+        heroEyebrow.textContent = `Position ${index + 1} · ${position.name}`;
+        heroName.textContent = card.name;
+        heroOrientation.textContent = orientationLabel(reversed);
+        heroOrientation.classList.toggle('is-reversed', reversed);
+        heroPosition.textContent = position.positionMeaning || '';
+        heroInterpretation.textContent = meaningFor(card, spread, position, reversed);
+        heroPrompt.textContent = position.readingPrompt || '';
+        heroPrompt.hidden = !position.readingPrompt;
+
+        if (typeof heroDialog.showModal === 'function') {
+            if (!heroDialog.open) {
+                heroDialog.showModal();
+            }
+        } else {
+            heroDialog.setAttribute('open', '');
+        }
+
+        heroClose.focus();
     };
 
     const renderEmptyBoard = (spread) => {
@@ -948,9 +1014,30 @@
             const slot = event.target.closest('.tarot-card-flip');
 
             if (slot && board.contains(slot)) {
-                revealEntry(Number(slot.dataset.slotIndex));
+                const index = Number(slot.dataset.slotIndex);
+
+                // Only a single reveal after every position is filled opens the hero view.
+                if (revealEntry(index) && isDealComplete()) {
+                    openReadingHero(index);
+                }
             }
         });
+
+        if (heroDialog) {
+            heroClose.addEventListener('click', closeReadingHero);
+            heroDialog.addEventListener('click', (event) => {
+                if (event.target === heroDialog) {
+                    closeReadingHero();
+                }
+            });
+            heroDialog.addEventListener('close', () => {
+                if (heroReturnFocus && document.contains(heroReturnFocus)) {
+                    heroReturnFocus.focus();
+                }
+
+                heroReturnFocus = null;
+            });
+        }
 
         fan.addEventListener('click', (event) => {
             // A double-click would otherwise pick the card under the pointer twice.

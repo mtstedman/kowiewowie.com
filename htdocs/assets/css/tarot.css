@@ -486,6 +486,67 @@
     color: var(--ink-soft);
 }
 
+/* ---------- hero reveal dialog (post-deal single reveals) ---------- */
+
+.tarot-reading-dialog {
+    width: min(880px, calc(100% - 2rem));
+}
+
+.tarot-reveal-body {
+    grid-template-columns: minmax(170px, 290px) minmax(0, 1fr);
+    align-items: center;
+}
+
+.tarot-reveal-stage {
+    align-self: center;
+    perspective: 1100px;
+}
+
+.tarot-reveal-card-frame {
+    transform-origin: 50% 100%;
+    animation: tarot-hero-flip-up 720ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+.tarot-reveal-card-frame .tarot-card-face {
+    box-shadow:
+        0 26px 50px -22px rgba(0, 0, 0, 0.95),
+        0 0 0 1px rgba(0, 0, 0, 0.4),
+        0 0 42px rgba(var(--tarot-gold-rgb), 0.24);
+}
+
+.tarot-reveal-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.7rem;
+    font-family: var(--serif);
+    overflow-wrap: anywhere;
+}
+
+.tarot-reveal-prompt {
+    margin: 0;
+    padding-left: 0.85rem;
+    border-left: 2px solid rgba(var(--tarot-gold-rgb), 0.6);
+    color: var(--ink-soft);
+    font-style: italic;
+}
+
+@keyframes tarot-hero-flip-up {
+    from {
+        opacity: 0;
+        transform: translateY(28px) rotateX(78deg) scale(0.7);
+    }
+
+    60% {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
 .tarot-keywords {
     display: flex;
     flex-wrap: wrap;
@@ -1128,7 +1189,8 @@
 @media (prefers-reduced-motion: reduce) {
     .tarot-card-flip,
     .tarot-fan-card,
-    .tarot-slot-empty.is-next {
+    .tarot-slot-empty.is-next,
+    .tarot-reveal-card-frame {
         animation: none;
     }
 
