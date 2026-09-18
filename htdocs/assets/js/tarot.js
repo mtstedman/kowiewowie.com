@@ -624,7 +624,8 @@
     /* Deal modes: 'shuffle' (primary: shuffle/cut, then auto-deal) or 'fan' (pick card by card). */
     const DEAL_MODES = ['shuffle', 'fan'];
     const DECK_STACK_LAYERS = 7;
-    const DECK_ANIMATION_MS = 760;
+    /* Covers the full staggered riffle: 360ms + 6 cards x 6ms stagger = 396ms. */
+    const DECK_ANIMATION_MS = 400;
 
     /*
      * deal:     placed entries, in spread position order (index === position index).
@@ -1090,9 +1091,9 @@
 
     let deckAnimationTimer = 0;
 
-    /* Shuffle loop: reshuffle every 2-3 seconds until the user presses Stop or the deck stage closes. */
-    const SHUFFLE_LOOP_MIN_MS = 2000;
-    const SHUFFLE_LOOP_MAX_MS = 3000;
+    /* Shuffle loop: reshuffle every 1-1.5 seconds until the user presses Stop or the deck stage closes. */
+    const SHUFFLE_LOOP_MIN_MS = 1000;
+    const SHUFFLE_LOOP_MAX_MS = 1500;
     let shuffleLoopTimer = 0;
     let isShuffleLooping = false;
 
@@ -1440,7 +1441,7 @@
         shuffleLoopCount = 0;
         setShuffleControl(true);
         randomizeDeck();
-        dealStatus.textContent = 'Shuffling the deck. It keeps reshuffling every few seconds until you press Stop.';
+        dealStatus.textContent = 'Shuffling the deck. It keeps reshuffling every second or so until you press Stop.';
         scheduleShuffleCycle();
     };
 
