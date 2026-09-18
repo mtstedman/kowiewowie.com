@@ -672,7 +672,9 @@
             const inner = el('span', 'tarot-card-inner');
             const back = createCardBack();
             const front = el('span', `tarot-card-front${entry.reversed ? ' is-reversed' : ''}`);
-            front.append(createCardFace(entry.card, { reversed: entry.reversed, lazy: false }));
+            const footer = el('span', 'tarot-card-footer', entry.card.name);
+            footer.setAttribute('aria-hidden', 'true');
+            front.append(createCardFace(entry.card, { reversed: entry.reversed, lazy: false }), footer);
             inner.append(back, front);
 
             slot.append(inner, el('span', 'tarot-slot-number', index + 1));

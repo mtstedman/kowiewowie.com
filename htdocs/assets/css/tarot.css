@@ -701,6 +701,46 @@
     transform: rotateY(180deg) rotateZ(180deg);
 }
 
+/* Card-name footer overlay: dealt board cards only (lives inside .tarot-card-front,
+   so it inherits the front's backface hiding and stays invisible while face-down). */
+.tarot-card-footer {
+    position: absolute;
+    right: 1px;
+    bottom: 1px;
+    left: 1px;
+    z-index: 1;
+    display: block;
+    max-height: 45%;
+    padding: 0.85em 0.3rem 0.35rem;
+    overflow: hidden;
+    border-radius: 0 0 calc(var(--tarot-card-radius) - 1px) calc(var(--tarot-card-radius) - 1px);
+    background: linear-gradient(180deg, rgba(3, 6, 16, 0), rgba(3, 6, 16, 0.82) 40%, rgba(3, 6, 16, 0.94));
+    box-shadow: inset 0 -1px 0 rgba(var(--tarot-gold-rgb), 0.35);
+    color: var(--tarot-gold);
+    font-family: var(--serif);
+    font-size: clamp(0.5rem, 0.44rem + 0.3vw, 0.74rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: 0.03em;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    overflow-wrap: anywhere;
+    pointer-events: none;
+}
+
+/* The reversed front is rotated 180deg as a whole; counter-rotate the footer and
+   anchor it to the local top so it reads upright at the card's visual bottom. */
+.tarot-card-front.is-reversed .tarot-card-footer {
+    top: 1px;
+    bottom: auto;
+    transform: rotate(180deg);
+}
+
+/* The footer already names the card, so hide the duplicate fallback name on the board. */
+.tarot-card-front .tarot-card-fallback-name {
+    visibility: hidden;
+}
+
 @keyframes tarot-deal-in {
     from {
         opacity: 0;
