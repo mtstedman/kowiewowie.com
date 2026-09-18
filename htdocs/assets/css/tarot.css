@@ -1,4 +1,7 @@
-.tarot-page-shell {
+/* The card dialogs render outside .tarot-page-shell, so they need the same
+   tokens; without --tarot-card-ratio the card frame collapses to 0 height. */
+.tarot-page-shell,
+.tarot-card-dialog {
     --tarot-gold: #f9d976;
     --tarot-gold-rgb: 249, 217, 118;
     --tarot-wands: #ff8a4c;
