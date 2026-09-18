@@ -1604,12 +1604,16 @@
             input.value = spread.id;
             input.checked = index === 0;
 
+            // Compact chip: name + card count. The selected spread's full description is
+            // shown once below the row (#tarot-spread-description) so the row stays tidy.
             const text = el('span', 'tarot-spread-option-text');
             text.append(
                 el('strong', null, spread.name),
                 el('span', null, `${spread.positions.length} card${spread.positions.length === 1 ? '' : 's'}`),
-                el('span', 'tarot-spread-option-description', spread.description),
             );
+            if (spread.description) {
+                label.title = spread.description;
+            }
             label.append(input, text);
             spreadOptionsRoot.append(label);
         });

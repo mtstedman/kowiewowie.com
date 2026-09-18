@@ -20,38 +20,28 @@ $tarotScriptVersion = static function (string $href): string {
         <?php include dirname(__DIR__) . '/partials/header.php'; ?>
 
         <main id="main-content" class="tarot-page" data-tarot-app>
-            <section class="tarot-hero" aria-labelledby="tarot-title">
-                <p class="eyebrow">Tarot table</p>
-                <h1 id="tarot-title">Tarot deck &amp; spreads</h1>
-                <p class="lede">Pick a spread, shuffle and cut the deck, and deal it face-down (or draw each card from a fan), then turn them over one by one. Browse all 78 cards or trace what any card means in any position whenever you like.</p>
-            </section>
+            <div class="tarot-topbar">
+                <h1 id="tarot-title" class="tarot-title">Tarot deck &amp; spreads</h1>
+
+                <div class="tarot-tabs" role="tablist" aria-label="Tarot views" data-tarot-tabs>
+                    <button class="tarot-tab" type="button" role="tab" id="tarot-tab-dealer" aria-controls="tarot-panel-dealer" aria-selected="true">
+                        <span class="tarot-tab-glyph" aria-hidden="true">✦</span>
+                        <span>Deal a spread</span>
+                    </button>
+                    <button class="tarot-tab" type="button" role="tab" id="tarot-tab-deck" aria-controls="tarot-panel-deck" aria-selected="false" tabindex="-1">
+                        <span class="tarot-tab-glyph" aria-hidden="true">★</span>
+                        <span>Deck</span>
+                    </button>
+                    <button class="tarot-tab" type="button" role="tab" id="tarot-tab-map" aria-controls="tarot-panel-map" aria-selected="false" tabindex="-1">
+                        <span class="tarot-tab-glyph" aria-hidden="true">◈</span>
+                        <span>Meaning map</span>
+                    </button>
+                </div>
+            </div>
 
             <p id="tarot-load-error" class="tarot-panel tarot-load-error" role="alert" hidden>The tarot deck could not be loaded. Refresh the page to try again.</p>
 
-            <div class="tarot-tabs" role="tablist" aria-label="Tarot views" data-tarot-tabs>
-                <button class="tarot-tab" type="button" role="tab" id="tarot-tab-dealer" aria-controls="tarot-panel-dealer" aria-selected="true">
-                    <span class="tarot-tab-glyph" aria-hidden="true">✦</span>
-                    <span>Deal a spread</span>
-                </button>
-                <button class="tarot-tab" type="button" role="tab" id="tarot-tab-deck" aria-controls="tarot-panel-deck" aria-selected="false" tabindex="-1">
-                    <span class="tarot-tab-glyph" aria-hidden="true">★</span>
-                    <span>Deck</span>
-                </button>
-                <button class="tarot-tab" type="button" role="tab" id="tarot-tab-map" aria-controls="tarot-panel-map" aria-selected="false" tabindex="-1">
-                    <span class="tarot-tab-glyph" aria-hidden="true">◈</span>
-                    <span>Meaning map</span>
-                </button>
-            </div>
-
             <section id="tarot-panel-dealer" class="tarot-panel tarot-tab-panel tarot-spreads" role="tabpanel" aria-labelledby="tarot-tab-dealer" tabindex="0">
-                <div class="tarot-panel-heading">
-                    <div>
-                        <p class="eyebrow">Setups</p>
-                        <h2 id="tarot-spreads-title">Deal a spread</h2>
-                    </div>
-                    <p class="tarot-panel-note">Click Shuffle &amp; deal to set out the face-down deck, shuffle and cut it as often as you like, then deal it into the spread. Prefer to choose? Switch to picking from a fan.</p>
-                </div>
-
                 <div id="tarot-spread-layout" class="tarot-spread-layout">
                     <div id="tarot-spread-controls" class="tarot-spread-controls">
                         <button class="tarot-button tarot-controls-toggle" type="button" id="tarot-controls-toggle" aria-controls="tarot-spread-controls" aria-expanded="true" hidden>Show controls</button>
@@ -60,28 +50,30 @@ $tarotScriptVersion = static function (string $href): string {
                             <div id="tarot-spread-options" class="tarot-spread-options"></div>
                         </fieldset>
                         <p id="tarot-spread-description" class="tarot-spread-description"></p>
-                        <fieldset class="tarot-mode-picker">
-                            <legend>How to draw</legend>
-                            <div id="tarot-mode-options" class="tarot-mode-options">
-                                <label class="tarot-mode-option">
-                                    <input type="radio" name="tarot-deal-mode" value="shuffle" checked>
-                                    <span class="tarot-mode-option-text">
-                                        <strong>Shuffle &amp; cut</strong>
-                                        <span>Work the deck, then deal</span>
-                                    </span>
-                                </label>
-                                <label class="tarot-mode-option">
-                                    <input type="radio" name="tarot-deal-mode" value="fan">
-                                    <span class="tarot-mode-option-text">
-                                        <strong>Pick from a fan</strong>
-                                        <span>Choose each card yourself</span>
-                                    </span>
-                                </label>
+                        <div class="tarot-deal-bar">
+                            <fieldset class="tarot-mode-picker">
+                                <legend>How to draw</legend>
+                                <div id="tarot-mode-options" class="tarot-mode-options">
+                                    <label class="tarot-mode-option">
+                                        <input type="radio" name="tarot-deal-mode" value="shuffle" checked>
+                                        <span class="tarot-mode-option-text">
+                                            <strong>Shuffle &amp; cut</strong>
+                                            <span>Work the deck, then deal</span>
+                                        </span>
+                                    </label>
+                                    <label class="tarot-mode-option">
+                                        <input type="radio" name="tarot-deal-mode" value="fan">
+                                        <span class="tarot-mode-option-text">
+                                            <strong>Pick from a fan</strong>
+                                            <span>Choose each card yourself</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </fieldset>
+                            <div class="tarot-actions tarot-deal-actions">
+                                <button class="tarot-button tarot-button-primary" type="button" id="tarot-deal-button">Shuffle &amp; deal</button>
+                                <button class="tarot-button" type="button" id="tarot-reveal-all-button" disabled>Reveal all</button>
                             </div>
-                        </fieldset>
-                        <div class="tarot-actions">
-                            <button class="tarot-button tarot-button-primary" type="button" id="tarot-deal-button">Shuffle &amp; deal</button>
-                            <button class="tarot-button" type="button" id="tarot-reveal-all-button" disabled>Reveal all</button>
                         </div>
                         <p id="tarot-deal-status" class="tarot-deal-status" role="status" aria-live="polite">Pick a spread, then click Shuffle &amp; deal to set out the face-down deck.</p>
                     </div>
