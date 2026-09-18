@@ -706,11 +706,43 @@
         item.append(cardLine, el('p', 'tarot-reading-meaning', meaningFor(card, spread, position, reversed)));
     };
 
+    /* Cards are turned over in deal order: the lowest-index face-down entry is next. */
+    const nextRevealIndex = () => state.deal.findIndex((entry) => entry && !entry.revealed);
+
+    /* Highlights the next card to reveal and marks every other face-down card as out of order. */
+    const refreshRevealOrder = () => {
+        const next = nextRevealIndex();
+
+        board.querySelectorAll('.tarot-card-flip').forEach((slot) => {
+            const index = Number(slot.dataset.slotIndex);
+            const entry = state.deal[index];
+            const faceDown = Boolean(entry) && !entry.revealed;
+            const isNext = faceDown && index === next;
+            const outOfOrder = faceDown && !isNext;
+
+            slot.classList.toggle('is-next-reveal', isNext);
+            slot.classList.toggle('is-out-of-order', outOfOrder);
+
+            if (isNext) {
+                slot.setAttribute('aria-current', 'step');
+            } else {
+                slot.removeAttribute('aria-current');
+            }
+
+            if (outOfOrder) {
+                slot.setAttribute('aria-disabled', 'true');
+            } else {
+                slot.removeAttribute('aria-disabled');
+            }
+        });
+    };
+
     const updateRevealState = () => {
         const spread = currentSpread();
         const total = state.deal.length;
         const revealed = state.deal.filter((entry) => entry.revealed).length;
 
+        refreshRevealOrder();
         revealAllButton.disabled = total === 0 || revealed === total;
 
         if (!spread || state.deck.length === 0) {
@@ -726,9 +758,15 @@
             return;
         }
 
+        const nextIndex = nextRevealIndex();
+        const nextEntry = state.deal[nextIndex];
+        const nextHint = nextEntry
+            ? `Turn over position ${nextIndex + 1}: ${nextEntry.position.name} next.`
+            : 'Select a face-down card to turn it over.';
+
         dealStatus.textContent = revealed === total
             ? `All ${total} card${total === 1 ? '' : 's'} revealed.`
-            : `${revealed} of ${total} card${total === 1 ? '' : 's'} revealed. Select a face-down card to turn it over.`;
+            : `${revealed} of ${total} card${total === 1 ? '' : 's'} revealed. ${nextHint}`;
     };
 
     /*
@@ -773,7 +811,8 @@
     const revealEntry = (index) => {
         const entry = state.deal[index];
 
-        if (!entry || entry.revealed) {
+        // Out-of-order flips are blocked: only the lowest-index face-down card may turn over.
+        if (!entry || entry.revealed || index !== nextRevealIndex()) {
             return false;
         }
 

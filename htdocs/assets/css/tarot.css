@@ -1221,6 +1221,43 @@
     transform: rotateY(180deg);
 }
 
+/* Next face-down card to turn over, in the spread's position order. */
+.tarot-card-flip.is-next-reveal .tarot-card-back {
+    box-shadow: 0 0 0 2px var(--tarot-gold), 0 0 24px rgba(var(--tarot-gold-rgb), 0.5);
+}
+
+.tarot-card-flip.is-next-reveal .tarot-slot-number {
+    width: 1.75rem;
+    height: 1.75rem;
+    background: var(--tarot-gold);
+    color: #0a0f22;
+    font-size: 0.8rem;
+    animation: tarot-slot-pulse 1.6s ease-in-out infinite;
+}
+
+/* Face-down cards that are not next: shown but not operable until their turn. */
+.tarot-card-flip.is-out-of-order {
+    cursor: not-allowed;
+}
+
+.tarot-card-flip.is-out-of-order .tarot-card-back {
+    filter: saturate(0.6) brightness(0.72);
+}
+
+.tarot-card-flip.is-out-of-order .tarot-slot-number {
+    opacity: 0.6;
+}
+
+.tarot-card-flip.is-out-of-order:hover .tarot-card-inner,
+.tarot-card-flip.is-out-of-order:focus-visible .tarot-card-inner {
+    translate: none;
+}
+
+.tarot-card-flip.is-out-of-order:hover .tarot-card-back,
+.tarot-card-flip.is-out-of-order:focus-visible .tarot-card-back {
+    box-shadow: none;
+}
+
 .tarot-card-inner > .tarot-card-back,
 .tarot-card-front {
     backface-visibility: hidden;
@@ -1575,6 +1612,11 @@
 
     .tarot-slot-empty.is-next {
         box-shadow: 0 0 20px rgba(var(--tarot-gold-rgb), 0.4);
+    }
+
+    .tarot-card-flip.is-next-reveal .tarot-slot-number {
+        animation: none;
+        box-shadow: 0 0 14px rgba(var(--tarot-gold-rgb), 0.55);
     }
 
     /* Swap the riffle/cut motion for a brief glow so the action still registers. */
