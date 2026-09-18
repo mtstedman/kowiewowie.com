@@ -156,6 +156,7 @@
 .tarot-button:focus-visible,
 .tarot-gallery-card:focus-visible,
 .tarot-slot:focus-visible,
+.tarot-fan-card:focus-visible,
 .tarot-field select:focus-visible {
     outline: 2px solid var(--accent-warm);
     outline-offset: 3px;
@@ -580,6 +581,81 @@
         radial-gradient(ellipse at 50% 40%, rgba(124, 92, 255, 0.22), transparent 70%),
         radial-gradient(circle at 50% 120%, rgba(255, 43, 214, 0.14), transparent 60%),
         rgba(3, 6, 14, 0.85);
+    container-type: inline-size;
+}
+
+/* ---------- face-down fan (shuffled deck to pick from) ---------- */
+
+.tarot-fan {
+    --tarot-fan-card-width: clamp(1.5rem, 5vw, 3.4rem);
+    --tarot-fan-span: 70deg;
+    position: relative;
+    width: calc(var(--tarot-fan-card-width) * 11.3);
+    height: calc(var(--tarot-fan-card-width) * 3.45 + 1.6rem);
+    margin: 0 auto clamp(0.9rem, 2.5vw, 1.4rem);
+}
+
+@supports (width: 1cqi) {
+    .tarot-fan {
+        /* Size the fan to the table so the whole arc fits without scrolling when possible. */
+        --tarot-fan-card-width: clamp(1.5rem, 8.3cqi, 3.4rem);
+    }
+}
+
+.tarot-fan[hidden] {
+    display: none;
+}
+
+.tarot-fan-card {
+    --tarot-fan-angle: calc(var(--tarot-fan-t, 0) * var(--tarot-fan-span));
+    position: absolute;
+    top: 1.1rem;
+    left: 50%;
+    display: block;
+    width: var(--tarot-fan-card-width);
+    aspect-ratio: var(--tarot-card-ratio);
+    margin-left: calc(var(--tarot-fan-card-width) / -2);
+    padding: 0;
+    border: 0;
+    border-radius: var(--tarot-card-radius);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+    transform-origin: 50% calc(var(--tarot-fan-card-width) * 9);
+    transform: rotate(var(--tarot-fan-angle));
+    transition: transform var(--motion-fast);
+    animation: tarot-fan-open 520ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    animation-delay: var(--tarot-fan-delay, 0ms);
+}
+
+.tarot-fan-card .tarot-card-back {
+    border-radius: calc(var(--tarot-card-radius) - 2px);
+}
+
+.tarot-fan-card .tarot-card-back-glyph {
+    font-size: calc(var(--tarot-fan-card-width) * 0.42);
+}
+
+.tarot-fan-card:hover,
+.tarot-fan-card:focus-visible {
+    transform: rotate(var(--tarot-fan-angle)) translateY(-0.9rem);
+}
+
+.tarot-fan-card:focus-visible {
+    z-index: 1;
+}
+
+.tarot-fan-card:hover .tarot-card-back,
+.tarot-fan-card:focus-visible .tarot-card-back {
+    box-shadow: 0 0 22px rgba(var(--tarot-gold-rgb), 0.5), 0 0 0 1px rgba(var(--tarot-gold-rgb), 0.8);
+}
+
+@keyframes tarot-fan-open {
+    from {
+        opacity: 0;
+        transform: rotate(0deg);
+    }
 }
 
 .tarot-board {
@@ -649,6 +725,31 @@
     translate: -50% -50%;
     border-style: dashed;
     opacity: 0.7;
+}
+
+/* Next spot to fill, in the spread's traditional position order. */
+.tarot-slot-empty.is-next {
+    border: 1px solid var(--tarot-gold);
+    background: rgba(var(--tarot-gold-rgb), 0.08);
+    animation: tarot-slot-pulse 1.6s ease-in-out infinite;
+}
+
+.tarot-slot-empty.is-next .tarot-slot-number {
+    border-style: solid;
+    background: var(--tarot-gold);
+    color: #0a0f22;
+    opacity: 1;
+}
+
+@keyframes tarot-slot-pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--tarot-gold-rgb), 0.5), 0 0 14px rgba(var(--tarot-gold-rgb), 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 0 5px rgba(var(--tarot-gold-rgb), 0), 0 0 26px rgba(var(--tarot-gold-rgb), 0.45);
+    }
 }
 
 .tarot-card-flip {
@@ -977,11 +1078,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .tarot-card-flip {
+    .tarot-card-flip,
+    .tarot-fan-card,
+    .tarot-slot-empty.is-next {
         animation: none;
     }
 
+    .tarot-slot-empty.is-next {
+        box-shadow: 0 0 20px rgba(var(--tarot-gold-rgb), 0.4);
+    }
+
     .tarot-card-inner,
+    .tarot-fan-card,
     .tarot-card-face,
     .tarot-gallery-card,
     .tarot-button,

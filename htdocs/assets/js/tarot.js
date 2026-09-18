@@ -494,10 +494,18 @@
     const dealStatus = document.getElementById('tarot-deal-status');
     const board = document.getElementById('tarot-board');
     const readingsList = document.getElementById('tarot-readings-list');
+    const fan = document.getElementById('tarot-fan');
 
+    /*
+     * deal:     placed entries, in spread position order (index === position index).
+     * deck:     the shuffled 78-card deck backing the face-down fan (empty until shuffled).
+     * nextPick: index of the spread position the next picked card lands in.
+     */
     const state = {
         spreadId: SPREADS.length > 0 ? SPREADS[0].id : null,
         deal: [],
+        deck: [],
+        nextPick: 0,
     };
 
     const currentSpread = () => findSpread(state.spreadId);
@@ -562,12 +570,22 @@
     };
 
     const updateRevealState = () => {
+        const spread = currentSpread();
         const total = state.deal.length;
         const revealed = state.deal.filter((entry) => entry.revealed).length;
 
         revealAllButton.disabled = total === 0 || revealed === total;
 
-        if (total === 0) {
+        if (!spread || state.deck.length === 0) {
+            return;
+        }
+
+        const slotCount = spread.positions.length;
+
+        if (state.nextPick < slotCount) {
+            const position = spread.positions[state.nextPick];
+            dealStatus.textContent = `Pick a card for position ${state.nextPick + 1}: ${position.name}. `
+                + `${total} of ${slotCount} placed.`;
             return;
         }
 
@@ -609,6 +627,7 @@
         applyBoardGrid(spread);
         board.replaceChildren(...spread.positions.map((position, index) => {
             const slot = el('div', 'tarot-slot tarot-slot-empty');
+            slot.dataset.slotIndex = String(index);
             layoutSlot(slot, position, index);
             slot.append(el('span', 'tarot-slot-number', index + 1));
             slot.title = position.name;
@@ -627,6 +646,94 @@
         }));
     };
 
+    /* Marks the next unfilled spot (traditional positions[] order) as the pick target. */
+    const highlightNextSlot = () => {
+        board.querySelectorAll('.tarot-slot.is-next').forEach((slot) => {
+            slot.classList.remove('is-next');
+            slot.removeAttribute('aria-current');
+        });
+
+        const spread = currentSpread();
+
+        if (!spread || state.deck.length === 0 || state.nextPick >= spread.positions.length) {
+            return;
+        }
+
+        const slot = board.querySelector(`.tarot-slot-empty[data-slot-index="${state.nextPick}"]`);
+
+        if (slot) {
+            slot.classList.add('is-next');
+            slot.setAttribute('aria-current', 'step');
+        }
+    };
+
+    const clearFan = () => {
+        fan.replaceChildren();
+        fan.hidden = true;
+    };
+
+    const labelFanCards = () => {
+        const spread = currentSpread();
+        const position = spread ? spread.positions[state.nextPick] : null;
+        const total = state.deck.length;
+
+        fan.querySelectorAll('.tarot-fan-card').forEach((button) => {
+            const number = Number(button.dataset.deckIndex) + 1;
+            button.setAttribute('aria-label', position
+                ? `Face-down card ${number} of ${total} — pick to place in Position ${state.nextPick + 1}, ${position.name}`
+                : `Face-down card ${number} of ${total}`);
+        });
+    };
+
+    /* Fans the shuffled deck out face-down: card backs only, no faces are built here. */
+    const renderFan = () => {
+        const count = state.deck.length;
+
+        fan.replaceChildren(...state.deck.map((card, index) => {
+            const button = el('button', 'tarot-fan-card');
+            button.type = 'button';
+            button.dataset.deckIndex = String(index);
+            button.style.setProperty('--tarot-fan-t', count > 1 ? (index / (count - 1) - 0.5).toFixed(4) : '0');
+            button.style.setProperty('--tarot-fan-delay', `${index * 6}ms`);
+            button.append(createCardBack());
+            return button;
+        }));
+
+        fan.hidden = count === 0;
+        labelFanCards();
+    };
+
+    /* A placed, face-down board card; the front face is built only now, at placement. */
+    const createPlacedSlot = (entry, index) => {
+        const slot = el('button', 'tarot-slot tarot-card-flip');
+        slot.type = 'button';
+        slot.dataset.slotIndex = String(index);
+        slot.setAttribute('aria-pressed', 'false');
+        slot.setAttribute('aria-label', `Position ${index + 1}, ${entry.position.name}: face down. Select to reveal.`);
+        slot.title = entry.position.name;
+        layoutSlot(slot, entry.position, index);
+
+        const inner = el('span', 'tarot-card-inner');
+        const back = createCardBack();
+        const front = el('span', `tarot-card-front${entry.reversed ? ' is-reversed' : ''}`);
+        const footer = el('span', 'tarot-card-footer', entry.card.name);
+        footer.setAttribute('aria-hidden', 'true');
+        front.append(createCardFace(entry.card, { reversed: entry.reversed, lazy: false }), footer);
+        inner.append(back, front);
+
+        slot.append(inner, el('span', 'tarot-slot-number', index + 1));
+        return slot;
+    };
+
+    const resetTable = (spread) => {
+        state.deal = [];
+        state.deck = [];
+        state.nextPick = 0;
+        clearFan();
+        renderEmptyBoard(spread);
+        revealAllButton.disabled = true;
+    };
+
     const selectSpread = (spreadId) => {
         const spread = findSpread(spreadId);
 
@@ -635,13 +742,13 @@
         }
 
         state.spreadId = spread.id;
-        state.deal = [];
         spreadDescription.textContent = `${spread.description} (${spread.positions.length} card${spread.positions.length === 1 ? '' : 's'})`;
-        renderEmptyBoard(spread);
-        revealAllButton.disabled = true;
-        dealStatus.textContent = `${spread.name} selected. Shuffle and deal to lay the cards face-down.`;
+        resetTable(spread);
+        dealButton.textContent = 'Shuffle & deal';
+        dealStatus.textContent = `${spread.name} selected. Shuffle to fan the deck out face-down, then pick a card for each spot.`;
     };
 
+    /* Step 1: shuffle the full deck and fan it out; nothing is placed yet. */
     const deal = () => {
         const spread = currentSpread();
 
@@ -649,47 +756,80 @@
             return;
         }
 
-        const deck = shuffled(CARDS);
-
-        state.deal = spread.positions.map((position, index) => ({
-            position,
-            card: deck[index],
-            reversed: randomIndex(2) === 1,
-            revealed: false,
-        }));
-
-        applyBoardGrid(spread);
-        board.replaceChildren(...state.deal.map((entry, index) => {
-            const slot = el('button', 'tarot-slot tarot-card-flip');
-            slot.type = 'button';
-            slot.dataset.slotIndex = String(index);
-            slot.setAttribute('aria-pressed', 'false');
-            slot.setAttribute('aria-label', `Position ${index + 1}, ${entry.position.name}: face down. Select to reveal.`);
-            slot.title = entry.position.name;
-            slot.style.setProperty('--tarot-deal-delay', `${index * 70}ms`);
-            layoutSlot(slot, entry.position, index);
-
-            const inner = el('span', 'tarot-card-inner');
-            const back = createCardBack();
-            const front = el('span', `tarot-card-front${entry.reversed ? ' is-reversed' : ''}`);
-            const footer = el('span', 'tarot-card-footer', entry.card.name);
-            footer.setAttribute('aria-hidden', 'true');
-            front.append(createCardFace(entry.card, { reversed: entry.reversed, lazy: false }), footer);
-            inner.append(back, front);
-
-            slot.append(inner, el('span', 'tarot-slot-number', index + 1));
-            return slot;
-        }));
-
-        readingsList.replaceChildren(...state.deal.map((entry, index) => {
-            const item = el('li', 'tarot-reading');
-            renderReadingItem(item, entry, index);
-            return item;
-        }));
+        resetTable(spread);
+        state.deck = shuffled(CARDS);
+        renderFan();
+        highlightNextSlot();
 
         dealButton.textContent = 'Shuffle & deal again';
-        dealStatus.textContent = `Dealt ${state.deal.length} card${state.deal.length === 1 ? '' : 's'} face-down for ${spread.name}.`;
         updateRevealState();
+        dealStatus.textContent = `Shuffled ${state.deck.length} cards into a face-down fan. ${dealStatus.textContent}`;
+    };
+
+    /* Step 2: a picked fan card lands face-down in the highlighted spot. */
+    const pickCard = (button) => {
+        const spread = currentSpread();
+
+        if (!spread || !fan.contains(button)) {
+            return;
+        }
+
+        const index = state.nextPick;
+        const position = spread.positions[index];
+        const card = state.deck[Number(button.dataset.deckIndex)];
+
+        if (!position || !card) {
+            return;
+        }
+
+        const entry = {
+            position,
+            card,
+            reversed: randomIndex(2) === 1,
+            revealed: false,
+        };
+
+        state.deal.push(entry);
+        state.nextPick = index + 1;
+
+        const hadFocus = document.activeElement === button;
+        const neighbor = button.nextElementSibling || button.previousElementSibling;
+        button.remove();
+
+        const slot = createPlacedSlot(entry, index);
+        const emptySlot = board.querySelector(`[data-slot-index="${index}"]`);
+
+        if (emptySlot) {
+            emptySlot.replaceWith(slot);
+        } else {
+            board.append(slot);
+        }
+
+        const item = readingsList.children[index];
+
+        if (item) {
+            renderReadingItem(item, entry, index);
+        }
+
+        const complete = state.nextPick >= spread.positions.length;
+
+        if (complete) {
+            clearFan();
+        } else {
+            labelFanCards();
+        }
+
+        highlightNextSlot();
+        updateRevealState();
+
+        if (hadFocus) {
+            if (complete) {
+                const firstHidden = board.querySelector('.tarot-card-flip:not(.is-revealed)') || slot;
+                firstHidden.focus();
+            } else if (neighbor && fan.contains(neighbor)) {
+                neighbor.focus();
+            }
+        }
     };
 
     const setupSpreads = () => {
@@ -721,6 +861,19 @@
 
             if (slot && board.contains(slot)) {
                 revealEntry(Number(slot.dataset.slotIndex));
+            }
+        });
+
+        fan.addEventListener('click', (event) => {
+            // A double-click would otherwise pick the card under the pointer twice.
+            if (event.detail > 1) {
+                return;
+            }
+
+            const button = event.target.closest('.tarot-fan-card');
+
+            if (button && fan.contains(button)) {
+                pickCard(button);
             }
         });
 

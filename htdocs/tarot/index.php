@@ -23,7 +23,7 @@ $tarotScriptVersion = static function (string $href): string {
             <section class="tarot-hero" aria-labelledby="tarot-title">
                 <p class="eyebrow">Tarot table</p>
                 <h1 id="tarot-title">Tarot deck &amp; spreads</h1>
-                <p class="lede">Flip through all 78 cards, deal a spread face-down and turn each card over, then trace what every card means in every position.</p>
+                <p class="lede">Flip through all 78 cards, pick a spread's cards from a face-down fan and turn each one over, then trace what every card means in every position.</p>
                 <nav class="tarot-jump-nav" aria-label="Tarot sections">
                     <a href="#tarot-gallery-title">Deck gallery</a>
                     <a href="#tarot-spreads-title">Setups</a>
@@ -50,6 +50,7 @@ $tarotScriptVersion = static function (string $href): string {
                         <p class="eyebrow">Setups</p>
                         <h2 id="tarot-spreads-title">Deal a spread</h2>
                     </div>
+                    <p class="tarot-panel-note">Shuffle to fan the deck out face-down, then pick a card for each glowing spot in order.</p>
                 </div>
 
                 <div class="tarot-spread-layout">
@@ -63,10 +64,11 @@ $tarotScriptVersion = static function (string $href): string {
                             <button class="tarot-button tarot-button-primary" type="button" id="tarot-deal-button">Shuffle &amp; deal</button>
                             <button class="tarot-button" type="button" id="tarot-reveal-all-button" disabled>Reveal all</button>
                         </div>
-                        <p id="tarot-deal-status" class="tarot-deal-status" role="status" aria-live="polite">Pick a spread and deal to lay the cards face-down.</p>
+                        <p id="tarot-deal-status" class="tarot-deal-status" role="status" aria-live="polite">Pick a spread, then shuffle to fan the deck out face-down.</p>
                     </div>
 
                     <div class="tarot-table">
+                        <div id="tarot-fan" class="tarot-fan" role="group" aria-label="Shuffled deck, face down" hidden></div>
                         <div id="tarot-board" class="tarot-board" role="group" aria-label="Spread layout"></div>
                     </div>
                 </div>
