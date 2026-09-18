@@ -587,7 +587,6 @@
     const deckStack = document.getElementById('tarot-deck-stack');
     const deckMeta = document.getElementById('tarot-deck-meta');
     const shuffleButton = document.getElementById('tarot-shuffle-button');
-    const cutButton = document.getElementById('tarot-cut-button');
     const autoDealButton = document.getElementById('tarot-auto-deal-button');
     const spreadLayout = document.getElementById('tarot-spread-layout');
     const spreadControls = document.getElementById('tarot-spread-controls');
@@ -641,7 +640,6 @@
         nextPick: 0,
         mode: 'shuffle',
         shuffles: 0,
-        cuts: 0,
     };
 
     const currentSpread = () => findSpread(state.spreadId);
@@ -1115,7 +1113,7 @@
         deckAnimationTimer = 0;
 
         if (deckStack) {
-            deckStack.classList.remove('is-shuffling', 'is-cutting');
+            deckStack.classList.remove('is-shuffling');
         }
     };
 
@@ -1136,11 +1134,8 @@
             return;
         }
 
-        const topPacketStart = Math.ceil(DECK_STACK_LAYERS / 2);
-
         deckStack.replaceChildren(...Array.from({ length: DECK_STACK_LAYERS }, (unused, layer) => {
             const card = el('span', 'tarot-deck-card');
-            card.dataset.packet = layer >= topPacketStart ? 'top' : 'bottom';
             card.style.setProperty('--tarot-stack-i', String(layer));
             card.append(createCardBack());
             return card;
@@ -1153,7 +1148,7 @@
 
         if (deckMeta) {
             deckMeta.textContent = `${state.deck.length} cards · shuffled ${state.shuffles} `
-                + `time${state.shuffles === 1 ? '' : 's'} · cut ${state.cuts} time${state.cuts === 1 ? '' : 's'}`;
+                + `time${state.shuffles === 1 ? '' : 's'}`;
         }
 
         if (autoDealButton) {
@@ -1162,7 +1157,7 @@
         }
     };
 
-    /* While the shuffle loop runs, the Shuffle button becomes Stop and Cut/Deal wait until it stops. */
+    /* While the shuffle loop runs, the Shuffle button becomes Stop and Deal waits until it stops. */
     const setShuffleControl = (looping) => {
         if (shuffleButton) {
             shuffleButton.textContent = looping ? 'Stop' : 'Shuffle';
@@ -1173,10 +1168,6 @@
             } else {
                 shuffleButton.removeAttribute('aria-label');
             }
-        }
-
-        if (cutButton) {
-            cutButton.disabled = looping;
         }
     };
 
@@ -1195,7 +1186,7 @@
 
         if (announce) {
             dealStatus.textContent = `Stopped shuffling after ${shuffleLoopCount} shuffle${shuffleLoopCount === 1 ? '' : 's'} `
-                + `(${state.shuffles} so far). Cut if you like, or deal when it feels right.`;
+                + `(${state.shuffles} so far). Shuffle again, or deal when it feels right.`;
         }
     };
 
@@ -1222,11 +1213,9 @@
             }
         });
 
-        [shuffleButton, cutButton].forEach((button) => {
-            if (button) {
-                button.disabled = locked;
-            }
-        });
+        if (shuffleButton) {
+            shuffleButton.disabled = locked;
+        }
 
         board.setAttribute('aria-busy', locked ? 'true' : 'false');
         updateDeckMeta();
@@ -1276,7 +1265,6 @@
         state.deck = [];
         state.nextPick = 0;
         state.shuffles = 0;
-        state.cuts = 0;
         clearFan();
         hideDeckStage();
         renderEmptyBoard(spread);
@@ -1302,7 +1290,7 @@
         dealButton.textContent = 'Shuffle & deal';
         dealStatus.textContent = state.mode === 'fan'
             ? `${spread.name} selected. Click Shuffle & deal to fan the deck out face-down, then pick a card for each spot.`
-            : `${spread.name} selected. Click Shuffle & deal to set out a fresh face-down deck, then shuffle, cut, and deal it into the spread.`;
+            : `${spread.name} selected. Click Shuffle & deal to set out a fresh face-down deck, then shuffle and deal it into the spread.`;
     };
 
     /* Step 1: shuffle the full deck and fan it out; nothing is placed yet. */
@@ -1409,7 +1397,7 @@
 
         const count = spread.positions.length;
         dealStatus.textContent = `${prefix} A fresh ${state.deck.length}-card deck waits face-down. `
-            + `Shuffle or cut as many times as you like, then deal ${count} card${count === 1 ? '' : 's'}.`;
+            + `Shuffle as many times as you like, then deal ${count} card${count === 1 ? '' : 's'}.`;
     };
 
     /* Shuffle mode: one Fisher-Yates reshuffle of the current deck order, with the riffle animation. */
@@ -1464,26 +1452,6 @@
         }
 
         startShuffleLoop();
-    };
-
-    /* Shuffle mode: split the deck near the middle and restack the bottom packet over the top. */
-    const cutDeck = () => {
-        if (isShuffleLooping || !isDeckStageActive() || state.deck.length < 2) {
-            return;
-        }
-
-        const total = state.deck.length;
-        const margin = Math.max(1, Math.floor(total / 4));
-        const point = margin + randomIndex(Math.max(1, total - margin * 2 + 1));
-        const top = state.deck.slice(0, point);
-        const bottom = state.deck.slice(point);
-
-        state.deck = bottom.concat(top);
-        state.cuts += 1;
-        playDeckAnimation('is-cutting');
-        updateDeckMeta();
-        dealStatus.textContent = `Cut the deck at card ${point}: the bottom ${bottom.length} cards now sit on top of the other ${top.length}. `
-            + 'Shuffle or cut again, or deal when it feels right.';
     };
 
     /* Shuffle mode, step 2: deal from the top of the deck into every position, in order, face-down. */
@@ -1589,7 +1557,7 @@
         }
 
         selectSpread(state.spreadId);
-        dealStatus.textContent = `${mode === 'fan' ? 'Switched to picking from a fan.' : 'Switched to shuffle & cut.'} ${dealStatus.textContent}`;
+        dealStatus.textContent = `${mode === 'fan' ? 'Switched to picking from a fan.' : 'Switched to shuffle & deal.'} ${dealStatus.textContent}`;
     };
 
     const setupSpreads = () => {
@@ -1686,10 +1654,6 @@
 
         if (shuffleButton) {
             shuffleButton.addEventListener('click', shuffleDeck);
-        }
-
-        if (cutButton) {
-            cutButton.addEventListener('click', cutDeck);
         }
 
         if (autoDealButton) {

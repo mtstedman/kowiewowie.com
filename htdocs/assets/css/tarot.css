@@ -797,7 +797,7 @@
     font-size: 0.74rem;
 }
 
-/* ---------- deal mode picker (shuffle & cut vs. fan) ---------- */
+/* ---------- deal mode picker (shuffle & deal vs. fan) ---------- */
 
 .tarot-mode-picker {
     margin: 0;
@@ -1065,7 +1065,7 @@
     }
 }
 
-/* ---------- shuffle & cut deck stage (primary deal mode) ---------- */
+/* ---------- shuffle & deal deck stage (primary deal mode) ---------- */
 
 .tarot-deck-stage {
     --tarot-deck-card-width: clamp(4.2rem, 14vw, 6.2rem);
@@ -1157,59 +1157,6 @@
 
     60% {
         transform: translateX(24%) rotate(4deg);
-    }
-}
-
-/* Cut: the top packet lifts away, the bottom packet slides up over it. */
-.tarot-deck-stack.is-cutting .tarot-deck-card[data-packet="top"] {
-    animation: tarot-cut-top 720ms cubic-bezier(0.45, 0, 0.25, 1);
-}
-
-.tarot-deck-stack.is-cutting .tarot-deck-card[data-packet="bottom"] {
-    animation: tarot-cut-bottom 720ms cubic-bezier(0.45, 0, 0.25, 1);
-}
-
-@keyframes tarot-cut-top {
-    0% {
-        z-index: 20;
-        transform: none;
-    }
-
-    40% {
-        z-index: 20;
-        transform: translate(78%, -16%) rotate(7deg);
-    }
-
-    55% {
-        z-index: 0;
-        transform: translate(78%, -4%) rotate(4deg);
-    }
-
-    100% {
-        z-index: 0;
-        transform: none;
-    }
-}
-
-@keyframes tarot-cut-bottom {
-    0% {
-        z-index: 0;
-        transform: none;
-    }
-
-    40% {
-        z-index: 0;
-        transform: translate(-40%, 6%) rotate(-4deg);
-    }
-
-    55% {
-        z-index: 30;
-        transform: translate(-40%, 2%) rotate(-3deg);
-    }
-
-    100% {
-        z-index: 30;
-        transform: none;
     }
 }
 
@@ -1864,11 +1811,9 @@
         box-shadow: 0 0 14px rgba(var(--tarot-gold-rgb), 0.55);
     }
 
-    /* Swap the riffle/cut motion for a brief glow so the action still registers. */
+    /* Swap the riffle motion for a brief glow so the action still registers. */
     .tarot-deck-stack.is-shuffling .tarot-deck-card,
-    .tarot-deck-stack.is-shuffling .tarot-deck-card:nth-child(even),
-    .tarot-deck-stack.is-cutting .tarot-deck-card[data-packet="top"],
-    .tarot-deck-stack.is-cutting .tarot-deck-card[data-packet="bottom"] {
+    .tarot-deck-stack.is-shuffling .tarot-deck-card:nth-child(even) {
         animation: tarot-deck-glow 420ms ease-out;
         animation-delay: 0ms;
     }

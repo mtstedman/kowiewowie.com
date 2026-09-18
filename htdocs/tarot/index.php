@@ -58,7 +58,7 @@ $tarotScriptVersion = static function (string $href): string {
                                         <label class="tarot-mode-option">
                                             <input type="radio" name="tarot-deal-mode" value="shuffle" checked>
                                             <span class="tarot-mode-option-text">
-                                                <strong>Shuffle &amp; cut</strong>
+                                                <strong>Shuffle &amp; deal</strong>
                                                 <span>Work the deck, then deal</span>
                                             </span>
                                         </label>
@@ -84,7 +84,6 @@ $tarotScriptVersion = static function (string $href): string {
                             <p id="tarot-deck-meta" class="tarot-deck-meta"></p>
                             <div class="tarot-actions tarot-deck-actions">
                                 <button class="tarot-button" type="button" id="tarot-shuffle-button">Shuffle</button>
-                                <button class="tarot-button" type="button" id="tarot-cut-button">Cut</button>
                                 <button class="tarot-button tarot-button-primary" type="button" id="tarot-auto-deal-button">Deal</button>
                             </div>
                         </div>
