@@ -715,12 +715,10 @@
         upright: {
             id: 'upright',
             label: 'Upright',
-            lead: 'Upright, its energy flows openly:',
         },
         reversed: {
             id: 'reversed',
             label: 'Reversed',
-            lead: 'Reversed, its energy is blocked, delayed, or turned inward:',
         },
     });
 
@@ -754,10 +752,9 @@
         }
 
         const orientationKey = normalizeOrientation(orientation);
-        const frame = TAROT_ORIENTATIONS[orientationKey];
         const meaning = orientationKey === 'reversed' ? card.reversedMeaning : card.uprightMeaning;
 
-        return `${frame.lead} ${meaning} ${position.readingPrompt}`;
+        return `${meaning} ${position.readingPrompt}`;
     };
 
     // Builds the full map { [positionId]: { [slug]: { upright, reversed } } }
