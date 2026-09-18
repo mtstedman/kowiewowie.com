@@ -590,6 +590,38 @@
     const shuffleButton = document.getElementById('tarot-shuffle-button');
     const cutButton = document.getElementById('tarot-cut-button');
     const autoDealButton = document.getElementById('tarot-auto-deal-button');
+    const spreadLayout = document.getElementById('tarot-spread-layout');
+    const spreadControls = document.getElementById('tarot-spread-controls');
+    const controlsToggle = document.getElementById('tarot-controls-toggle');
+
+    /* Collapsing hides every setup control but keeps the deal status live region
+       (a hidden live region is never announced) and the re-expand toggle. */
+    const collapsibleControls = spreadControls
+        ? Array.from(spreadControls.children).filter((node) => node !== dealStatus && node !== controlsToggle)
+        : [];
+
+    const setControlsCollapsed = (collapsed, { moveFocus = false } = {}) => {
+        if (!spreadLayout || !spreadControls || !controlsToggle) {
+            return;
+        }
+
+        const active = document.activeElement;
+        const focusWasInControls = Boolean(active) && spreadControls.contains(active) && active !== controlsToggle;
+        const focusWasOnToggle = active === controlsToggle;
+
+        spreadLayout.classList.toggle('is-collapsed', collapsed);
+        collapsibleControls.forEach((node) => {
+            node.hidden = collapsed;
+        });
+        controlsToggle.hidden = !collapsed;
+        controlsToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+
+        if (collapsed && focusWasInControls) {
+            controlsToggle.focus({ preventScroll: true });
+        } else if (!collapsed && (moveFocus || focusWasOnToggle)) {
+            dealButton.focus({ preventScroll: true });
+        }
+    };
 
     /* Deal modes: 'shuffle' (primary: shuffle/cut, then auto-deal) or 'fan' (pick card by card). */
     const DEAL_MODES = ['shuffle', 'fan'];
@@ -1078,6 +1110,7 @@
         spreadDescription.textContent = `${spread.description} (${spread.positions.length} card${spread.positions.length === 1 ? '' : 's'})`;
 
         // Both modes start from the empty layout preview; clicking "Shuffle & deal" starts the draw.
+        setControlsCollapsed(false);
         resetTable(spread);
         dealButton.textContent = 'Shuffle & deal';
         dealStatus.textContent = state.mode === 'fan'
@@ -1092,6 +1125,9 @@
         if (!spread) {
             return;
         }
+
+        // Tuck the setup panel away so the card field takes the whole view.
+        setControlsCollapsed(true);
 
         if (state.mode !== 'fan') {
             const tableInUse = state.deck.length > 0 || state.deal.length > 0;
@@ -1414,6 +1450,12 @@
         });
 
         dealButton.addEventListener('click', deal);
+
+        if (controlsToggle) {
+            controlsToggle.addEventListener('click', () => {
+                setControlsCollapsed(false, { moveFocus: true });
+            });
+        }
         revealAllButton.addEventListener('click', () => {
             state.deal.forEach((entry, index) => {
                 revealEntry(index);

@@ -52,8 +52,9 @@ $tarotScriptVersion = static function (string $href): string {
                     <p class="tarot-panel-note">Click Shuffle &amp; deal to set out the face-down deck, shuffle and cut it as often as you like, then deal it into the spread. Prefer to choose? Switch to picking from a fan.</p>
                 </div>
 
-                <div class="tarot-spread-layout">
-                    <div class="tarot-spread-controls">
+                <div id="tarot-spread-layout" class="tarot-spread-layout">
+                    <div id="tarot-spread-controls" class="tarot-spread-controls">
+                        <button class="tarot-button tarot-controls-toggle" type="button" id="tarot-controls-toggle" aria-controls="tarot-spread-controls" aria-expanded="true" hidden>Show controls</button>
                         <fieldset class="tarot-spread-picker">
                             <legend>Choose a spread</legend>
                             <div id="tarot-spread-options" class="tarot-spread-options"></div>

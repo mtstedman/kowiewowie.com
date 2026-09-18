@@ -587,6 +587,59 @@
     min-width: 0;
 }
 
+/* Collapsed after Shuffle & deal: the table spans the full width and the panel
+   shrinks to a slim bar holding the re-expand toggle and the live deal status. */
+.tarot-spread-controls > [hidden] {
+    display: none !important;
+}
+
+.tarot-spread-layout.is-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.tarot-spread-layout.is-collapsed .tarot-spread-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 0.9rem;
+    animation: tarot-controls-collapse-in var(--motion-medium) ease-out both;
+}
+
+.tarot-spread-layout.is-collapsed .tarot-deal-status {
+    flex: 1 1 16rem;
+    min-width: 0;
+}
+
+.tarot-spread-layout.is-collapsed .tarot-table {
+    animation: tarot-table-widen-in var(--motion-medium) ease-out both;
+}
+
+.tarot-controls-toggle {
+    flex: none;
+}
+
+@keyframes tarot-controls-collapse-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes tarot-table-widen-in {
+    from {
+        opacity: 0.6;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 .tarot-spread-picker {
     margin: 0;
     padding: 0;
@@ -1516,7 +1569,9 @@
     .tarot-card-flip,
     .tarot-fan-card,
     .tarot-slot-empty.is-next,
-    .tarot-reveal-card-frame {
+    .tarot-reveal-card-frame,
+    .tarot-spread-layout.is-collapsed .tarot-spread-controls,
+    .tarot-spread-layout.is-collapsed .tarot-table {
         animation: none;
     }
 
