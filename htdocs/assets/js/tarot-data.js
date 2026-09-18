@@ -757,7 +757,7 @@
         const frame = TAROT_ORIENTATIONS[orientationKey];
         const meaning = orientationKey === 'reversed' ? card.reversedMeaning : card.uprightMeaning;
 
-        return `${position.name}: ${card.name} (${frame.label}). ${position.positionMeaning} ${frame.lead} ${meaning} ${position.readingPrompt}`;
+        return `${frame.lead} ${meaning} ${position.readingPrompt}`;
     };
 
     // Builds the full map { [positionId]: { [slug]: { upright, reversed } } }
