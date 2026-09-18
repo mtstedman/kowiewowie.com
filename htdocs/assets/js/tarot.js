@@ -940,6 +940,13 @@
 
     let deckAnimationTimer = 0;
 
+    /* Shuffle loop: reshuffle every 2-3 seconds until the user presses Stop or the deck stage closes. */
+    const SHUFFLE_LOOP_MIN_MS = 2000;
+    const SHUFFLE_LOOP_MAX_MS = 3000;
+    let shuffleLoopTimer = 0;
+    let isShuffleLooping = false;
+    let shuffleLoopCount = 0;
+
     const stopDeckAnimation = () => {
         window.clearTimeout(deckAnimationTimer);
         deckAnimationTimer = 0;
@@ -988,7 +995,44 @@
 
         if (autoDealButton) {
             autoDealButton.textContent = `Deal ${count} card${count === 1 ? '' : 's'}`;
-            autoDealButton.disabled = count === 0 || state.deck.length < count;
+            autoDealButton.disabled = isShuffleLooping || count === 0 || state.deck.length < count;
+        }
+    };
+
+    /* While the shuffle loop runs, the Shuffle button becomes Stop and Cut/Deal wait until it stops. */
+    const setShuffleControl = (looping) => {
+        if (shuffleButton) {
+            shuffleButton.textContent = looping ? 'Stop' : 'Shuffle';
+            shuffleButton.classList.toggle('is-looping', looping);
+
+            if (looping) {
+                shuffleButton.setAttribute('aria-label', 'Stop shuffling');
+            } else {
+                shuffleButton.removeAttribute('aria-label');
+            }
+        }
+
+        if (cutButton) {
+            cutButton.disabled = looping;
+        }
+    };
+
+    const stopShuffleLoop = (announce) => {
+        window.clearTimeout(shuffleLoopTimer);
+        shuffleLoopTimer = 0;
+
+        if (!isShuffleLooping) {
+            return;
+        }
+
+        isShuffleLooping = false;
+        stopDeckAnimation();
+        setShuffleControl(false);
+        updateDeckMeta();
+
+        if (announce) {
+            dealStatus.textContent = `Stopped shuffling after ${shuffleLoopCount} shuffle${shuffleLoopCount === 1 ? '' : 's'} `
+                + `(${state.shuffles} so far). Cut if you like, or deal when it feels right.`;
         }
     };
 
@@ -1003,6 +1047,7 @@
     };
 
     const hideDeckStage = () => {
+        stopShuffleLoop(false);
         stopDeckAnimation();
 
         if (deckStage) {
@@ -1155,23 +1200,63 @@
             + `Shuffle or cut as many times as you like, then deal ${count} card${count === 1 ? '' : 's'}.`;
     };
 
-    /* Shuffle mode: a Fisher-Yates reshuffle of the current deck order. */
-    const shuffleDeck = () => {
-        if (!isDeckStageActive()) {
+    /* Shuffle mode: one Fisher-Yates reshuffle of the current deck order, with the riffle animation. */
+    const randomizeDeck = () => {
+        state.deck = shuffled(state.deck);
+        state.shuffles += 1;
+        shuffleLoopCount += 1;
+        playDeckAnimation('is-shuffling');
+        updateDeckMeta();
+    };
+
+    const scheduleShuffleCycle = () => {
+        window.clearTimeout(shuffleLoopTimer);
+        const delay = SHUFFLE_LOOP_MIN_MS + randomIndex(SHUFFLE_LOOP_MAX_MS - SHUFFLE_LOOP_MIN_MS + 1);
+        shuffleLoopTimer = window.setTimeout(runShuffleCycle, delay);
+    };
+
+    const runShuffleCycle = () => {
+        shuffleLoopTimer = 0;
+
+        if (!isShuffleLooping) {
             return;
         }
 
-        state.deck = shuffled(state.deck);
-        state.shuffles += 1;
-        playDeckAnimation('is-shuffling');
-        updateDeckMeta();
-        dealStatus.textContent = `Shuffled the deck (${state.shuffles} shuffle${state.shuffles === 1 ? '' : 's'} so far). `
-            + 'Shuffle or cut again, or deal when it feels right.';
+        if (!isDeckStageActive()) {
+            stopShuffleLoop(false);
+            return;
+        }
+
+        randomizeDeck();
+        scheduleShuffleCycle();
+    };
+
+    const startShuffleLoop = () => {
+        if (isShuffleLooping || !isDeckStageActive()) {
+            return;
+        }
+
+        isShuffleLooping = true;
+        shuffleLoopCount = 0;
+        setShuffleControl(true);
+        randomizeDeck();
+        dealStatus.textContent = 'Shuffling the deck. It keeps reshuffling every few seconds until you press Stop.';
+        scheduleShuffleCycle();
+    };
+
+    /* Shuffle mode: Shuffle starts a continuous reshuffle loop; pressing it again (Stop) ends the loop. */
+    const shuffleDeck = () => {
+        if (isShuffleLooping) {
+            stopShuffleLoop(true);
+            return;
+        }
+
+        startShuffleLoop();
     };
 
     /* Shuffle mode: split the deck near the middle and restack the bottom packet over the top. */
     const cutDeck = () => {
-        if (!isDeckStageActive() || state.deck.length < 2) {
+        if (isShuffleLooping || !isDeckStageActive() || state.deck.length < 2) {
             return;
         }
 
@@ -1193,7 +1278,7 @@
     const autoDeal = () => {
         const spread = currentSpread();
 
-        if (!spread || !isDeckStageActive()) {
+        if (!spread || isShuffleLooping || !isDeckStageActive()) {
             return;
         }
 
