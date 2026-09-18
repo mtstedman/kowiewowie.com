@@ -699,6 +699,45 @@
             : `${revealed} of ${total} card${total === 1 ? '' : 's'} revealed. Select a face-down card to turn it over.`;
     };
 
+    /*
+     * Once a board card has finished turning over, mark it settled so the CSS drops
+     * its 3D flip context and the card rests as flat 2D content (crossing cards
+     * would otherwise stay warped/blurry). With no running flip transition (e.g.
+     * prefers-reduced-motion), it settles immediately.
+     */
+    const settleWhenFlipped = (slot) => {
+        const inner = slot.querySelector('.tarot-card-inner');
+        const settle = () => {
+            slot.classList.add('is-settled');
+        };
+
+        if (!inner) {
+            settle();
+            return;
+        }
+
+        if (typeof inner.getAnimations === 'function') {
+            const flip = inner.getAnimations().find((animation) => animation.transitionProperty === 'transform');
+
+            if (flip) {
+                flip.finished.then(settle, settle);
+            } else {
+                settle();
+            }
+
+            return;
+        }
+
+        const onFlipEnd = (event) => {
+            if (event.target === inner && event.propertyName === 'transform') {
+                inner.removeEventListener('transitionend', onFlipEnd);
+                settle();
+            }
+        };
+
+        inner.addEventListener('transitionend', onFlipEnd);
+    };
+
     const revealEntry = (index) => {
         const entry = state.deal[index];
 
@@ -712,6 +751,7 @@
 
         if (slot) {
             slot.classList.add('is-revealed');
+            settleWhenFlipped(slot);
             slot.setAttribute('aria-pressed', 'true');
             slot.setAttribute(
                 'aria-label',
