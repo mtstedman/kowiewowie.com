@@ -1291,6 +1291,10 @@
 
         state.spreadId = spread.id;
         spreadDescription.textContent = `${spread.description} (${spread.positions.length} card${spread.positions.length === 1 ? '' : 's'})`;
+        // Restart the short highlight cue (CSS disables it under reduced motion).
+        spreadDescription.classList.remove('is-highlighted');
+        void spreadDescription.offsetWidth;
+        spreadDescription.classList.add('is-highlighted');
 
         // Both modes start from the empty layout preview; clicking "Shuffle & deal" starts the draw.
         setControlsCollapsed(false);

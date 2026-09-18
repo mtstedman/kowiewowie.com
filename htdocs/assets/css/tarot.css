@@ -898,19 +898,78 @@
     }
 }
 
-.tarot-spread-description,
 .tarot-deal-status {
     margin: 0;
     color: var(--ink-soft);
     font-size: var(--step--1);
 }
 
+/* The chosen spread's explanation is featured, not muted helper text: a framed
+   gold panel with brighter, larger type so it stands apart from the deal status. */
 .tarot-spread-description {
+    position: relative;
+    box-sizing: border-box;
     max-width: 75ch;
+    margin: 0;
+    padding: 0.7rem 0.9rem 0.7rem 2.3rem;
+    border: 1px solid rgba(var(--tarot-gold-rgb), 0.45);
+    border-left: 4px solid var(--tarot-gold);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(var(--tarot-gold-rgb), 0.16), rgba(var(--tarot-gold-rgb), 0.04) 60%),
+        rgba(5, 14, 28, 0.55);
+    box-shadow: 0 0 18px -6px rgba(var(--tarot-gold-rgb), 0.45), inset 0 1px 0 var(--surface-highlight);
+    color: var(--ink);
+    font-size: var(--step-0, 1rem);
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.tarot-spread-description::before {
+    content: '✦';
+    position: absolute;
+    top: 0.62rem;
+    left: 0.8rem;
+    color: var(--tarot-gold);
+    font-size: 1rem;
+    line-height: 1.5;
+    text-shadow: 0 0 10px rgba(var(--tarot-gold-rgb), 0.7);
 }
 
 .tarot-spread-description:empty {
     display: none;
+}
+
+/* Brief attention cue, re-triggered by tarot.js each time the spread changes. */
+.tarot-spread-description.is-highlighted {
+    animation: tarot-spread-description-in 650ms ease-out;
+}
+
+@keyframes tarot-spread-description-in {
+    from {
+        opacity: 0.4;
+        box-shadow: 0 0 30px 2px rgba(var(--tarot-gold-rgb), 0.75), inset 0 1px 0 var(--surface-highlight);
+        transform: translateY(-3px);
+    }
+
+    to {
+        opacity: 1;
+        box-shadow: 0 0 18px -6px rgba(var(--tarot-gold-rgb), 0.45), inset 0 1px 0 var(--surface-highlight);
+        transform: none;
+    }
+}
+
+@media (max-width: 360px) {
+    .tarot-spread-description {
+        padding: 0.6rem 0.7rem 0.6rem 2rem;
+        font-size: 0.92rem;
+    }
+
+    .tarot-spread-description::before {
+        top: 0.52rem;
+        left: 0.65rem;
+    }
 }
 
 .tarot-deal-status {
@@ -1790,6 +1849,7 @@
     .tarot-fan-card,
     .tarot-slot-empty.is-next,
     .tarot-reveal-card-frame,
+    .tarot-spread-description.is-highlighted,
     .tarot-spread-layout.is-collapsed .tarot-spread-controls,
     .tarot-spread-layout.is-collapsed .tarot-table {
         animation: none;
