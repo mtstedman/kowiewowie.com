@@ -49,7 +49,7 @@ $tarotScriptVersion = static function (string $href): string {
                         <p class="eyebrow">Setups</p>
                         <h2 id="tarot-spreads-title">Deal a spread</h2>
                     </div>
-                    <p class="tarot-panel-note">Shuffle and cut the face-down deck as often as you like, then deal it into the spread. Prefer to choose? Switch to picking from a fan.</p>
+                    <p class="tarot-panel-note">Click Shuffle &amp; deal to set out the face-down deck, shuffle and cut it as often as you like, then deal it into the spread. Prefer to choose? Switch to picking from a fan.</p>
                 </div>
 
                 <div class="tarot-spread-layout">
@@ -82,7 +82,7 @@ $tarotScriptVersion = static function (string $href): string {
                             <button class="tarot-button tarot-button-primary" type="button" id="tarot-deal-button">Shuffle &amp; deal</button>
                             <button class="tarot-button" type="button" id="tarot-reveal-all-button" disabled>Reveal all</button>
                         </div>
-                        <p id="tarot-deal-status" class="tarot-deal-status" role="status" aria-live="polite">Pick a spread, then shuffle and cut the face-down deck before dealing.</p>
+                        <p id="tarot-deal-status" class="tarot-deal-status" role="status" aria-live="polite">Pick a spread, then click Shuffle &amp; deal to set out the face-down deck.</p>
                     </div>
 
                     <div class="tarot-table">

@@ -1077,15 +1077,12 @@
         state.spreadId = spread.id;
         spreadDescription.textContent = `${spread.description} (${spread.positions.length} card${spread.positions.length === 1 ? '' : 's'})`;
 
-        if (state.mode !== 'fan') {
-            dealButton.textContent = 'Gather a fresh deck';
-            gatherDeck(`${spread.name} selected.`);
-            return;
-        }
-
+        // Both modes start from the empty layout preview; clicking "Shuffle & deal" starts the draw.
         resetTable(spread);
         dealButton.textContent = 'Shuffle & deal';
-        dealStatus.textContent = `${spread.name} selected. Shuffle to fan the deck out face-down, then pick a card for each spot.`;
+        dealStatus.textContent = state.mode === 'fan'
+            ? `${spread.name} selected. Click Shuffle & deal to fan the deck out face-down, then pick a card for each spot.`
+            : `${spread.name} selected. Click Shuffle & deal to set out a fresh face-down deck, then shuffle, cut, and deal it into the spread.`;
     };
 
     /* Step 1: shuffle the full deck and fan it out; nothing is placed yet. */
@@ -1097,7 +1094,9 @@
         }
 
         if (state.mode !== 'fan') {
-            gatherDeck('Table cleared.');
+            const tableInUse = state.deck.length > 0 || state.deal.length > 0;
+            gatherDeck(tableInUse ? 'Table cleared.' : 'Deck gathered.');
+            dealButton.textContent = 'Gather a fresh deck';
             return;
         }
 
