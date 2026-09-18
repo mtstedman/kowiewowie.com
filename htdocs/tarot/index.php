@@ -199,7 +199,7 @@ $tarotScriptVersion = static function (string $href): string {
                 </h2>
                 <dl class="tarot-dialog-meanings">
                     <div>
-                        <dt>This position</dt>
+                        <dt id="tarot-reveal-position-label"></dt>
                         <dd id="tarot-reveal-position"></dd>
                     </div>
                     <div>
@@ -207,7 +207,6 @@ $tarotScriptVersion = static function (string $href): string {
                         <dd id="tarot-reveal-interpretation"></dd>
                     </div>
                 </dl>
-                <p id="tarot-reveal-prompt" class="tarot-reveal-prompt"></p>
                 <div class="tarot-actions">
                     <button class="tarot-button tarot-button-primary" type="button" id="tarot-reveal-close">Back to the table</button>
                 </div>

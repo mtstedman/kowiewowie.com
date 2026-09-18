@@ -808,9 +808,9 @@
     const heroEyebrow = document.getElementById('tarot-reveal-eyebrow');
     const heroName = document.getElementById('tarot-reveal-name');
     const heroOrientation = document.getElementById('tarot-reveal-orientation');
+    const heroPositionLabel = document.getElementById('tarot-reveal-position-label');
     const heroPosition = document.getElementById('tarot-reveal-position');
     const heroInterpretation = document.getElementById('tarot-reveal-interpretation');
-    const heroPrompt = document.getElementById('tarot-reveal-prompt');
     const heroClose = document.getElementById('tarot-reveal-close');
     let heroReturnFocus = null;
 
@@ -846,14 +846,13 @@
         frame.append(createCardFace(card, { reversed, lazy: false }));
         heroCard.replaceChildren(frame);
 
-        heroEyebrow.textContent = `Position ${index + 1} · ${position.name}`;
+        heroEyebrow.textContent = `${spread.name} · Position ${index + 1}`;
         heroName.textContent = card.name;
         heroOrientation.textContent = orientationLabel(reversed);
         heroOrientation.classList.toggle('is-reversed', reversed);
-        heroPosition.textContent = position.positionMeaning || '';
+        heroPositionLabel.textContent = `Position: ${position.name}`;
+        heroPosition.textContent = [position.positionMeaning, position.readingPrompt].filter(Boolean).join(' ');
         heroInterpretation.textContent = meaningFor(card, spread, position, reversed);
-        heroPrompt.textContent = position.readingPrompt || '';
-        heroPrompt.hidden = !position.readingPrompt;
 
         if (typeof heroDialog.showModal === 'function') {
             if (!heroDialog.open) {
@@ -1396,6 +1395,7 @@
             text.append(
                 el('strong', null, spread.name),
                 el('span', null, `${spread.positions.length} card${spread.positions.length === 1 ? '' : 's'}`),
+                el('span', 'tarot-spread-option-description', spread.description),
             );
             label.append(input, text);
             spreadOptionsRoot.append(label);

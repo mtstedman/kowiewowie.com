@@ -529,14 +529,6 @@
     overflow-wrap: anywhere;
 }
 
-.tarot-reveal-prompt {
-    margin: 0;
-    padding-left: 0.85rem;
-    border-left: 2px solid rgba(var(--tarot-gold-rgb), 0.6);
-    color: var(--ink-soft);
-    font-style: italic;
-}
-
 @keyframes tarot-hero-flip-up {
     from {
         opacity: 0;
@@ -703,7 +695,7 @@
 
 .tarot-spread-option-text {
     display: grid;
-    gap: 0.05rem;
+    gap: 0.1rem;
     min-width: 0;
 }
 
@@ -714,6 +706,12 @@
 .tarot-spread-option-text span {
     color: var(--muted);
     font-size: 0.78rem;
+}
+
+.tarot-spread-option-text .tarot-spread-option-description {
+    margin-top: 0.15rem;
+    color: var(--ink-soft);
+    line-height: 1.35;
 }
 
 /* ---------- deal mode picker (shuffle & cut vs. fan) ---------- */

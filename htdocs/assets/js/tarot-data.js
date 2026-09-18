@@ -680,7 +680,7 @@
                 },
                 {
                     id: 'self',
-                    name: 'Yourself',
+                    name: 'Self',
                     positionMeaning: 'This card shows your own attitude, position, and approach to the situation.',
                     readingPrompt: 'Reflect honestly on how you are showing up.',
                     layout: { row: 4, col: 4, rotate: 0 },
