@@ -762,9 +762,10 @@
     --tarot-cols: 1;
     display: grid;
     grid-template-columns: repeat(var(--tarot-cols), var(--tarot-card-width));
+    --tarot-board-gap: clamp(0.55rem, 1.8vw, 1rem);
     grid-template-rows: repeat(var(--tarot-rows), auto);
     justify-content: center;
-    gap: clamp(0.55rem, 1.8vw, 1rem);
+    gap: var(--tarot-board-gap);
     width: max-content;
     min-width: 100%;
     margin-inline: auto;
@@ -774,6 +775,32 @@
     column-gap: calc(var(--tarot-card-width) * 0.32);
     row-gap: calc(var(--tarot-card-width) * 0.18);
     padding-inline: calc(var(--tarot-card-width) * 0.2);
+}
+
+@supports (width: 1cqi) {
+    /*
+     * Fit every spread inside the table by default: shrink the card width with the
+     * spread's column count (set by applyBoardGrid) so all columns, gaps, and the
+     * slot-number badge overhang (0.55rem per side) fit the table's inline size.
+     * The viewport clamp still caps the size, so roomy spreads render as before.
+     */
+    .tarot-board {
+        --tarot-card-width: max(1rem, min(
+            clamp(3.6rem, 11vw, 7.25rem),
+            calc((100cqi - 1.1rem - (var(--tarot-cols) - 1) * var(--tarot-board-gap)) / var(--tarot-cols))
+        ));
+    }
+
+    /*
+     * Crossing boards size gaps/padding as multiples of the card width W:
+     * cols*W + (cols - 1)*0.32W + 2*0.2W = W * (1.32*cols + 0.08), solved for W here.
+     */
+    .tarot-board.has-crossing {
+        --tarot-card-width: max(1rem, min(
+            clamp(3.6rem, 11vw, 7.25rem),
+            calc((100cqi - 1.1rem) / (1.32 * var(--tarot-cols) + 0.08))
+        ));
+    }
 }
 
 .tarot-slot {
