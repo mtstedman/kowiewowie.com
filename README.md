@@ -160,20 +160,17 @@ products are upserted by `(source_key, external_id)`.
   Mart's signed backend API is not used.
 - **Nommi** is a TOP TOY (MINISO) character and is not sold by Pop Mart, and no
   official machine-readable feed was found, so it comes from a retailer's
-  Shopify feed: `<collection>/products.json?limit=250&page=N` until an empty or
-  short page (at most 20), keeping products whose title, vendor, or tags contain
-  `nommi`.
+  Shopify feed: the first request uses `<collection>/products.json?limit=250`,
+  then later requests add `&page=N` until an empty or short page (at most 20),
+  keeping products whose title, vendor, or tags contain `nommi`.
 
-Checked on 2026-10-01 for the Nommi source: the first `products.json` page
-returned Shopify product JSON with 21 products tagged `Nommi`, each with a
-`cdn.shopify.com` image and a single `Default Title` variant, and
+Checked on 2026-10-01 for the Nommi source: a full production sync returned
+166 products tagged `Nommi`, each with a `cdn.shopify.com` image and no named
+variants (the products use Shopify's single `Default Title` variant), and
 `https://toysez.com/meta.json` reports the store currency as `USD`. The store
-rate limits quickly (a second request within a minute received
-`429 Retry-After: 60`); the sync waits as instructed. Not checked: a product
-with several named variants on that store, and a full sync run against either
-live site. The Pop Mart parser was written from the rendered page text rather
-than the raw markup, so confirm the first run's product, image, and variant
-counts before relying on it.
+rate limits the redundant `page=1` query shape, so the sync omits it for the
+first request and stops immediately when that first page is short. A full
+production Pop Mart sync returned 82 Skullpanda products and 58 named variants.
 
 Prices are the retail listing prices shown by each store at sync time, stored
 in minor units with the store currency; they are not live and are not market

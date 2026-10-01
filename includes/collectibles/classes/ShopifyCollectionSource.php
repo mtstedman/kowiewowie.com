@@ -85,8 +85,16 @@ final class ShopifyCollectionSource
     {
         $products = [];
         for ($page = 1; $page <= self::MAX_PAGES; $page++) {
+            // Some Shopify storefronts rate-limit the otherwise redundant
+            // page=1 query shape. Start with the canonical collection feed,
+            // then add an explicit page number only if pagination is needed.
+            $url = $this->collectionUrl . '/products.json?limit=' . self::PAGE_SIZE;
+            if ($page > 1) {
+                $url .= '&page=' . $page;
+            }
+
             $body = $this->http->get(
-                $this->collectionUrl . '/products.json?limit=' . self::PAGE_SIZE . '&page=' . $page,
+                $url,
                 CollectibleHttpClient::ACCEPT_JSON,
             );
 
