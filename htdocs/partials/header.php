@@ -10,6 +10,7 @@ $publicNavItems = [
     'music' => ['href' => '/music/', 'label' => 'Music'],
     'videos' => ['href' => '/videos/', 'label' => 'Videos'],
     'dongs' => ['href' => '/dongs/', 'label' => 'Dongs'],
+    'collectibles' => ['href' => '/collectibles/', 'label' => 'Collectibles'],
 ];
 
 $publicSectionAliases = [

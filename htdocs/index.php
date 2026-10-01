@@ -70,6 +70,7 @@ require __DIR__ . '/partials/head.php';
                         <a class="text-link" href="/music/">Music</a>
                         <a class="text-link" href="/videos/">Videos</a>
                         <a class="text-link" href="/dongs/">Dongs</a>
+                        <a class="text-link" href="/collectibles/">Collectibles</a>
                     </div>
                 </section>
 

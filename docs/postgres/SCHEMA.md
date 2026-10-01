@@ -1,9 +1,9 @@
-<!-- schema-version: 12 -->
+<!-- schema-version: 13 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 12**. `migration-chain.json` is the ordered,
+current release pin is **version 13**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -29,11 +29,12 @@ per-file execution ledger.
 | 10 | `010_open_deck_scheduler.sql` | Open-deck time slots, set nominations, fill votes, and eviction votes |
 | 11 | `011_trivia_murder_party.sql` | Killing-floor minigames, ghosts, multi-select prompts, and the final body race |
 | 12 | `012_trivia_mini_games.sql` | Expanded Killing Floor trials with poison chalices, sword boxes, and crypt runes |
+| 13 | `013_collectibles_catalog.sql` | Cached SKULLPANDA and Nommi collectible series products and their figure variants |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 12 inventory
+## Current version 13 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -51,6 +52,7 @@ their full basenames are already stored in production's migration ledger.
   boxes, and crypt runes Killing Floor trials), and `trivia_answers`
 - Open deck: `open_deck_slots`, `open_deck_set_nominations`,
   `open_deck_fill_votes`, and `open_deck_eviction_votes`
+- Collectibles: `collectible_products` and `collectible_variants`
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -209,6 +211,32 @@ fills the slot with the next eligible vote winner if one exists. If no eligible
 winner has fill votes, the slot returns to `open` with all nomination and vote
 history preserved. Closed slots reject nominations, fill votes, resolution, and
 eviction votes until reopened through the scheduler API.
+
+## Collectibles catalog
+
+The collectibles tables cache a server-side pull of Pop Mart SKULLPANDA and
+Nommi blind-box lines. They are a refreshable catalog snapshot, not
+user-authored content, and use `bigint` identity keys rather than UUIDs.
+
+`collectible_products` stores one series-level product per upstream listing:
+`id` (identity primary key), `brand` (`skullpanda` or `nommi`), `source_key`
+naming the upstream source, the source's `external_id`, `title`,
+`product_url`, optional `image_url`, optional `price_cents`, optional
+`currency`, and `first_seen_at`/`last_seen_at` timestamps (both default to
+`now()`). `(source_key, external_id)` is unique so refreshes upsert the same
+row and advance `last_seen_at`. The `brand` index supports per-line listing.
+
+`collectible_variants` stores the individual figures in a product: `id`
+(identity primary key), `product_id` referencing `collectible_products(id)`
+with `ON DELETE CASCADE`, `name`, `is_secret` (default `false`) for secret or
+chase figures, optional `image_url`, optional `price_cents`, optional
+`currency`, and display `position` (default `0`). `(product_id, name)` is
+unique.
+
+`price_cents` is a non-negative integer amount in currency minor units, paired
+with an uppercase ISO 4217 `currency` code; for example, USD 19.99 is stored as
+`1999` with `USD`. A variant whose `price_cents` is `NULL` inherits its
+product's price.
 
 ## Chess opening book
 

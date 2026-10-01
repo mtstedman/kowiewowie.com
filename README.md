@@ -13,6 +13,7 @@ api/                            API front controller and autoloader
 includes/
   api/classes/                  API application/configuration
   auth/classes/                 JWT, refresh-token, and OAuth services
+  collectibles/classes/         Collectible catalog repository and storefront sync
   content/classes/              PostgreSQL content repository
   content/functions/            Stateless validation and slug helpers
   database/classes/             PDO connection and schema version minter
@@ -22,6 +23,7 @@ database/
   seed.php                      Idempotent JSON-to-PostgreSQL import
   seed-trivia.php               Focused trivia-catalog import used by deploys
   seed-chess-openings.php       Validated common-opening graph import
+  sync-collectibles.php         Skullpanda/Nommi storefront catalog sync
   data/chess-openings.tsv       Curated CC0 ECO/name/PGN starter catalog
   grant-role.php                User/editor/admin role management
 docs/postgres/
@@ -127,6 +129,63 @@ The opening seed validates every curated PGN move through the same chess engine
 used by live games, derives UCI and canonical EPD data, and merges transposing
 move orders into shared book positions. Re-running it safely upserts the same
 classifications, positions, and directed moves.
+
+## Collectibles catalog sync
+
+The Skullpanda and Nommi catalog tables are filled by a server-side pull from
+public storefront pages. Apply the schema first, then run the sync:
+
+```bash
+php docs/postgres/db-version-minter.php
+php database/sync-collectibles.php
+php database/sync-collectibles.php --only=popmart-us
+```
+
+`--only=<source_key>` limits the run to one source. The command prints one line
+per source and exits non-zero when any selected source failed. Sources run
+independently: a source that errors, stays rate limited after three
+`Retry-After` retries, or returns no products is reported as failed and writes
+nothing, so existing rows are never removed or blanked. Re-running is safe;
+products are upserted by `(source_key, external_id)`.
+
+| `source_key`   | Brand      | Source                                                                 | Currency |
+| -------------- | ---------- | ---------------------------------------------------------------------- | -------- |
+| `popmart-us`   | skullpanda | Official Pop Mart US store, `https://www.popmart.com/us/collection/skullpanda` | USD      |
+| `toysez-nommi` | nommi      | TOYSEZ (third-party Shopify retailer), `https://toysez.com/collections/nommi`   | USD      |
+
+- **Skullpanda** walks the collection pages (`?page=N`, at most 30) and then
+  reads each product page for its main image and figure names. A `(Secret)`
+  suffix marks a secret figure. Pop Mart prices the series or blind box, so
+  figure variants carry no price. Only the public HTML pages are read; Pop
+  Mart's signed backend API is not used.
+- **Nommi** is a TOP TOY (MINISO) character and is not sold by Pop Mart, and no
+  official machine-readable feed was found, so it comes from a retailer's
+  Shopify feed: `<collection>/products.json?limit=250&page=N` until an empty
+  page (at most 20), keeping products whose title, vendor, or tags contain
+  `nommi`.
+
+Checked on 2026-10-01 for the Nommi source: the first `products.json` page
+returned Shopify product JSON with 21 products tagged `Nommi`, each with a
+`cdn.shopify.com` image and a single `Default Title` variant, and
+`https://toysez.com/meta.json` reports the store currency as `USD`. The store
+rate limits quickly (a second request within a minute received
+`429 Retry-After: 60`); the sync waits as instructed. Not checked: a product
+with several named variants on that store, and a full sync run against either
+live site. The Pop Mart parser was written from the rendered page text rather
+than the raw markup, so confirm the first run's product, image, and variant
+counts before relying on it.
+
+Prices are the retail listing prices shown by each store at sync time, stored
+in minor units with the store currency; they are not live and are not market
+or resale values. Images are stored as remote HTTPS URLs and are not copied.
+
+Requests use HTTPS only, wait at least one second between requests to the same
+host, and time out after 20 seconds, so a full run takes a few minutes. A daily
+run is enough, for example in `/etc/cron.d/wowiekowie-collectibles`:
+
+```cron
+17 4 * * * www-data cd /var/www/wowiekowie.com && php database/sync-collectibles.php >> /var/log/wowiekowie-collectibles.log 2>&1
+```
 
 ## Local development
 

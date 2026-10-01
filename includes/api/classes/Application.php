@@ -12,6 +12,7 @@ use Wowie\Api\Auth\OAuthService;
 use Wowie\Api\Chess\ChessEngine;
 use Wowie\Api\Chess\ChessIdentityService;
 use Wowie\Api\Chess\ChessRepository;
+use Wowie\Api\Collectibles\CollectiblesRepository;
 use Wowie\Api\Content\ContentRepository;
 use Wowie\Api\Content\ScryfallClient;
 use Wowie\Api\Http\Request;
@@ -25,6 +26,7 @@ final class Application
     private readonly AuthService $auth;
     private readonly OAuthService $oauth;
     private readonly ContentRepository $content;
+    private readonly CollectiblesRepository $collectibles;
     private readonly ScryfallClient $scryfall;
     private readonly ChessRepository $chess;
     private readonly ChessIdentityService $chessGuests;
@@ -41,6 +43,7 @@ final class Application
         $this->auth = new AuthService($pdo, new JwtService($config), $config);
         $this->oauth = new OAuthService($pdo, $this->auth, $config);
         $this->content = new ContentRepository($pdo);
+        $this->collectibles = new CollectiblesRepository($pdo);
         $this->scryfall = new ScryfallClient();
         $this->chess = new ChessRepository($pdo, new ChessEngine());
         $this->chessGuests = new ChessIdentityService($pdo);
@@ -102,7 +105,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/trivia/rooms', '/v1/open-deck/slots'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/trivia/rooms', '/v1/open-deck/slots'],
             ]);
         }
 
@@ -125,6 +128,35 @@ final class Application
             }
 
             return Response::json($this->scryfall->search($query));
+        }
+
+        if ($request->method === 'GET' && $request->path === '/v1/collectibles') {
+            $query = trim((string) ($request->query['q'] ?? ''));
+            if ($query !== '') {
+                $query = preg_match('/^.{0,100}/us', $query, $queryMatch) === 1
+                    ? $queryMatch[0]
+                    : substr($query, 0, 100);
+            }
+            $brand = trim((string) ($request->query['brand'] ?? ''));
+            if ($brand !== '' && !in_array($brand, ['skullpanda', 'nommi'], true)) {
+                throw new ApiException(422, 'validation_error', 'brand must be skullpanda or nommi.', [
+                    'brand' => 'Use skullpanda or nommi.',
+                ]);
+            }
+            $limit = max(1, min(100, isset($request->query['limit']) ? (int) $request->query['limit'] : 48));
+            $offset = max(0, isset($request->query['offset']) ? (int) $request->query['offset'] : 0);
+            $result = $this->collectibles->search($query === '' ? null : $query, $brand === '' ? null : $brand, $limit, $offset);
+
+            return Response::json([
+                'data' => $result['items'],
+                'meta' => [
+                    'limit' => $limit,
+                    'offset' => $offset,
+                    'count' => count($result['items']),
+                    'total' => $result['total'],
+                    'last_synced_at' => $result['last_synced_at'],
+                ],
+            ]);
         }
 
         if ($request->method === 'POST' && $request->path === '/v1/auth/register') {
