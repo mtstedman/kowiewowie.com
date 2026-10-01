@@ -858,84 +858,222 @@
 }
 
 .risk-hand {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 0.55rem;
     margin: 0;
-    padding: 0;
+    padding: 4px 0 0;
     list-style: none;
 }
 
+.risk-hand-slot {
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+}
+
 .risk-hand-empty {
+    grid-column: 1 / -1;
     color: var(--muted);
     font-size: 0.85rem;
 }
 
+/* Portrait card: decorative art fills the face, text sits on dark scrims above and below it. */
 .risk-card {
-    width: 96px;
-    min-height: 92px;
-    display: grid;
-    align-content: start;
-    gap: 0.25rem;
-    padding: 0.5rem;
-    border: 2px solid rgba(248, 209, 108, 0.45);
+    --card-tint: 248, 209, 108;
+    position: relative;
+    width: 100%;
+    max-width: 128px;
+    aspect-ratio: 5 / 7;
+    min-height: 128px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid rgba(248, 209, 108, 0.6);
     border-radius: 8px;
-    background: linear-gradient(170deg, rgba(248, 209, 108, 0.16), rgba(5, 14, 28, 0.9));
+    background:
+        radial-gradient(circle at 50% 42%, rgba(var(--card-tint), 0.34), transparent 62%),
+        linear-gradient(170deg, #12264a, #050e1c 78%);
+    box-shadow: 0 8px 16px -10px rgba(0, 0, 0, 0.9);
     color: var(--ink);
     font: inherit;
     text-align: left;
     cursor: pointer;
+    transition: transform 0.14s ease-out, box-shadow 0.14s ease-out, border-color 0.14s ease-out;
 }
 
-.risk-card::before {
-    font-size: 1.15rem;
+.risk-card-infantry {
+    --card-tint: 74, 222, 128;
+}
+
+.risk-card-cavalry {
+    --card-tint: 56, 189, 248;
+}
+
+.risk-card-artillery {
+    --card-tint: 251, 146, 60;
+}
+
+.risk-card-wild {
+    --card-tint: 255, 43, 214;
+}
+
+.risk-card:hover {
+    border-color: var(--risk-neutral);
+}
+
+.risk-card:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+}
+
+.risk-card-art {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+}
+
+/* The emblem is the fallback face: visible while art loads and whenever it is missing. */
+.risk-card-emblem {
+    color: rgba(var(--card-tint), 0.95);
+    font-size: 2.6rem;
     line-height: 1;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
 }
 
-.risk-card-infantry::before {
-    content: "\265F";
+.risk-card-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
 }
 
-.risk-card-cavalry::before {
-    content: "\265E";
+.risk-card.is-art-loaded .risk-card-image {
+    opacity: 1;
 }
 
-.risk-card-artillery::before {
-    content: "\2738";
+.risk-card.is-art-loaded .risk-card-emblem {
+    visibility: hidden;
 }
 
-.risk-card-wild::before {
-    content: "\2605";
+.risk-card.is-art-missing {
+    border-style: double;
+    border-width: 4px;
 }
 
-.risk-card[aria-pressed="true"] {
-    border-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(255, 43, 214, 0.45);
-    transform: translateY(-3px);
-}
-
-.risk-card[aria-pressed="true"] .risk-card-type::after {
-    content: " ✓";
+.risk-card-type,
+.risk-card-body {
+    position: relative;
+    display: block;
+    padding: 0.3rem 0.4rem;
 }
 
 .risk-card-type {
+    background: linear-gradient(180deg, rgba(5, 14, 28, 0.94), rgba(5, 14, 28, 0.55) 70%, transparent);
     color: var(--accent-warm);
     font-size: 0.68rem;
     font-weight: 900;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
+    padding-bottom: 0.7rem;
+}
+
+.risk-card-body {
+    display: grid;
+    gap: 0.1rem;
+    padding-top: 1rem;
+    background: linear-gradient(0deg, rgba(5, 14, 28, 0.96) 55%, rgba(5, 14, 28, 0.6) 82%, transparent);
 }
 
 .risk-card-name {
-    font-size: 0.78rem;
+    color: #ffffff;
+    font-size: 0.76rem;
     font-weight: 850;
     line-height: 1.15;
     overflow-wrap: anywhere;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 .risk-card-owned {
     color: var(--risk-human);
     font-size: 0.66rem;
     font-weight: 850;
+}
+
+.risk-card-owned[hidden] {
+    display: none;
+}
+
+.risk-card[aria-pressed="true"] {
+    border-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(255, 43, 214, 0.75), 0 12px 18px -10px rgba(0, 0, 0, 0.9);
+    transform: translateY(-4px);
+}
+
+.risk-card[aria-pressed="true"] .risk-card-type::after {
+    content: " \2713";
+    color: #ffffff;
+}
+
+/* A complete selection reads as valid (solid green) or not a set (dashed red), never by colour alone. */
+.risk-card.is-set-valid {
+    border-color: var(--risk-human);
+    box-shadow: 0 0 0 3px rgba(var(--risk-human-rgb), 0.8), 0 0 16px rgba(var(--risk-human-rgb), 0.55);
+}
+
+.risk-card.is-set-valid .risk-card-type::after {
+    content: " \2713 set";
+    color: var(--risk-human);
+}
+
+.risk-card.is-set-invalid {
+    border-style: dashed;
+    border-color: #fecaca;
+    box-shadow: 0 0 0 3px rgba(var(--risk-ai-rgb), 0.6);
+}
+
+.risk-card.is-set-invalid .risk-card-type::after {
+    content: " \2715";
+    color: #fecaca;
+}
+
+/* A newly drawn card deals in once and keeps a gold edge until its timer clears the class. */
+.risk-card.is-dealt {
+    border-color: var(--risk-neutral);
+    box-shadow: 0 0 0 3px rgba(var(--risk-neutral-rgb), 0.7), 0 0 18px rgba(var(--risk-neutral-rgb), 0.5);
+    animation: risk-card-deal 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.1);
+}
+
+.risk-card.is-fx-pick {
+    animation: risk-card-pick 0.3s ease-out;
+}
+
+@keyframes risk-card-deal {
+    from {
+        opacity: 0;
+        transform: translateY(-22px) rotate(-7deg) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) rotate(0) scale(1);
+    }
+}
+
+@keyframes risk-card-pick {
+    0% {
+        filter: brightness(1.6);
+    }
+
+    100% {
+        filter: brightness(1);
+    }
 }
 
 /* Selection */
@@ -1159,18 +1297,271 @@
     }
 }
 
+/* Objective and event feedback */
+
+.risk-objective {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(248, 209, 108, 0.45);
+    border-left: 4px solid var(--accent-warm);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(248, 209, 108, 0.12), rgba(5, 14, 28, 0.72));
+}
+
+.risk-objective h3,
+.risk-objective p {
+    margin: 0;
+}
+
+.risk-objective-label {
+    color: var(--accent-warm);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.risk-objective h3 {
+    font-size: 1.05rem;
+    line-height: 1.2;
+}
+
+.risk-objective-text {
+    color: var(--ink);
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.risk-objective-blocker {
+    padding-left: 1.35rem;
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+    font-weight: 750;
+    line-height: 1.35;
+    text-indent: -1.35rem;
+}
+
+.risk-objective-blocker::before {
+    content: "\26A0\FE0E\00A0";
+    color: var(--risk-neutral);
+}
+
+/* The feedback line keeps its space so the controls below never jump when it appears. */
+.risk-feedback {
+    min-height: 2.5rem;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--ink);
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.risk-feedback:empty {
+    visibility: hidden;
+}
+
+.risk-feedback::before {
+    flex: 0 0 auto;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.risk-feedback[class*="is-"] {
+    border-color: currentColor;
+    background: rgba(5, 14, 28, 0.82);
+    animation: risk-feedback-in 0.28s ease-out;
+}
+
+.risk-feedback.is-draw,
+.risk-feedback.is-trade {
+    color: var(--risk-neutral);
+}
+
+.risk-feedback.is-draw::before {
+    content: "\2605";
+}
+
+.risk-feedback.is-trade::before {
+    content: "\21C4";
+}
+
+.risk-feedback.is-set,
+.risk-feedback.is-conquer {
+    color: var(--risk-human);
+}
+
+.risk-feedback.is-set::before {
+    content: "\2713";
+}
+
+.risk-feedback.is-conquer::before {
+    content: "\2691";
+}
+
+.risk-feedback.is-hit {
+    color: var(--risk-ink);
+}
+
+.risk-feedback.is-hit::before {
+    content: "\2694\FE0E";
+}
+
+.risk-feedback.is-loss,
+.risk-feedback.is-invalid {
+    color: #fecaca;
+}
+
+.risk-feedback.is-loss::before {
+    content: "\25BC";
+}
+
+.risk-feedback.is-invalid::before {
+    content: "\2715";
+}
+
+@keyframes risk-feedback-in {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Map markers flash once per placement, loss or conquest; the class is removed by a timer. */
+.risk-marker.is-fx-place .risk-marker-shape {
+    animation: risk-fx-place 0.9s ease-out;
+}
+
+.risk-marker.is-fx-loss .risk-marker-shape {
+    animation: risk-fx-loss 1s ease-out;
+}
+
+.risk-marker.is-fx-conquer .risk-marker-shape {
+    animation: risk-fx-conquer 1.4s ease-out;
+}
+
+@keyframes risk-fx-place {
+    0% {
+        filter: brightness(1.8) drop-shadow(0 0 8px rgba(255, 255, 255, 0.95));
+    }
+
+    100% {
+        filter: brightness(1) drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+    }
+}
+
+@keyframes risk-fx-loss {
+    0%,
+    40% {
+        filter: brightness(0.7) drop-shadow(0 0 9px rgba(255, 60, 60, 1));
+    }
+
+    20% {
+        filter: brightness(1.5) drop-shadow(0 0 3px rgba(255, 60, 60, 0.8));
+    }
+
+    100% {
+        filter: brightness(1) drop-shadow(0 0 0 rgba(255, 60, 60, 0));
+    }
+}
+
+@keyframes risk-fx-conquer {
+    0%,
+    50% {
+        filter: brightness(1.7) drop-shadow(0 0 12px rgba(248, 209, 108, 1));
+    }
+
+    25% {
+        filter: brightness(1.1) drop-shadow(0 0 4px rgba(255, 43, 214, 0.9));
+    }
+
+    100% {
+        filter: brightness(1) drop-shadow(0 0 0 rgba(248, 209, 108, 0));
+    }
+}
+
+.risk-scoreboard strong.is-fx-tick {
+    display: inline-block;
+    color: var(--risk-neutral);
+    animation: risk-fx-tick 0.5s ease-out;
+}
+
+@keyframes risk-fx-tick {
+    0% {
+        transform: scale(1.55);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 940px) {
+    .risk-command-panel > .risk-objective {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 430px) {
+    .risk-hand {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.4rem;
+    }
+
+    .risk-card-name {
+        font-size: 0.7rem;
+    }
+
+    .risk-cards-panel .risk-button {
+        width: 100%;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .risk-die.is-rolling,
-    .risk-marker.is-legal .risk-marker-ring {
+    .risk-marker.is-legal .risk-marker-ring,
+    .risk-feedback[class*="is-"],
+    .risk-scoreboard strong.is-fx-tick,
+    .risk-card.is-dealt,
+    .risk-card.is-fx-pick {
         animation: none;
     }
 
     .risk-land,
-    .risk-marker-shape {
+    .risk-marker-shape,
+    .risk-card,
+    .risk-card-image {
         transition: none;
     }
 
     .risk-card[aria-pressed="true"] {
         transform: none;
+    }
+
+    /* Static stand-ins: each effect holds one steady highlight until its timer clears the class. */
+    .risk-marker.is-fx-place .risk-marker-shape {
+        animation: none;
+        filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.95));
+    }
+
+    .risk-marker.is-fx-loss .risk-marker-shape {
+        animation: none;
+        filter: drop-shadow(0 0 6px rgba(255, 60, 60, 1));
+    }
+
+    .risk-marker.is-fx-conquer .risk-marker-shape {
+        animation: none;
+        filter: drop-shadow(0 0 7px rgba(248, 209, 108, 1));
     }
 }

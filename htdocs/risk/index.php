@@ -84,6 +84,14 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         </div>
                     </div>
 
+                    <section class="risk-objective" aria-labelledby="risk-objective-label">
+                        <p id="risk-objective-label" class="risk-objective-label">Current objective</p>
+                        <h3 id="risk-objective-title">Ready to play</h3>
+                        <p id="risk-objective-text" class="risk-objective-text">Pick your Game setup options, then press New game to deal the world.</p>
+                        <p id="risk-objective-blocker" class="risk-objective-blocker" hidden></p>
+                        <p id="risk-feedback" class="risk-feedback"></p>
+                    </section>
+
                     <div class="risk-actions" aria-label="Risk game controls">
                         <button class="risk-button risk-button-primary" type="button" id="risk-start-button">New game</button>
                         <button class="risk-button" type="button" id="risk-end-button" disabled>End phase</button>

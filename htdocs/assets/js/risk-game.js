@@ -58,6 +58,17 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         wild: 'Wild'
     };
 
+    // Card artwork is decorative and keyed by card type; a drawn emblem stands in while it loads or if it fails.
+    const CARD_ART_ROOT = '/assets/img/risk-cards/';
+    const cardArtType = (type) => (Object.prototype.hasOwnProperty.call(cardTypeLabels, type) ? type : 'wild');
+    const cardArtUrl = (type) => `${CARD_ART_ROOT}${cardArtType(type)}.png`;
+    const cardEmblems = {
+        infantry: '♟',
+        cavalry: '♞',
+        artillery: '✸',
+        wild: '★'
+    };
+
     const territoryIds = new Set(territoryCatalog.map((territory) => territory.id));
     const continentById = new Map();
     const continentMembers = new Map();
@@ -130,6 +141,14 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     if (Object.values(elements).some((element) => !element)) {
         return;
     }
+
+    // Optional guidance and feedback regions: the game still runs if a page omits them.
+    const objectiveElements = {
+        title: byElementId('risk-objective-title'),
+        text: byElementId('risk-objective-text'),
+        blocker: byElementId('risk-objective-blocker')
+    };
+    const feedbackBox = byElementId('risk-feedback');
 
     const asButton = (element) => /** @type {HTMLButtonElement} */ (element);
     const asInput = (element) => /** @type {HTMLInputElement} */ (element);
@@ -272,7 +291,22 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         battleCounter: 0,
         diceKey: '',
         figureKey: '',
-        legendKey: ''
+        legendKey: '',
+        // Transient, event-driven feedback. Every entry is cleared by cancelPending.
+        /** @type {Map<string, {kind: string, serial: number}>} */
+        fx: new Map(),
+        fxSerial: 0,
+        feedbackSerial: 0,
+        /** @type {Map<Element, {className: string, serial: number}>} */
+        pulses: new Map(),
+        pulseSerial: 0,
+        /** @type {Set<string>} */
+        freshCardIds: new Set(),
+        // Card buttons persist across renders so focus and running effects survive unrelated rerenders.
+        /** @type {Map<string, {item: HTMLElement, button: HTMLButtonElement, owned: HTMLElement}>} */
+        cardNodes: new Map(),
+        /** @type {Set<string>} */
+        missingArt: new Set()
     };
 
     const schedule = (callback, delay) => {
@@ -295,11 +329,27 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
     };
 
+    // Drops every transient effect so a restart or game over never shows stale feedback.
+    const clearEffects = () => {
+        runtime.fx.clear();
+        runtime.pulses.forEach((pulse, element) => element.classList.remove(pulse.className));
+        runtime.pulses.clear();
+        runtime.freshCardIds.clear();
+        runtime.cardNodes.clear();
+        runtime.feedbackSerial += 1;
+
+        if (feedbackBox) {
+            feedbackBox.className = 'risk-feedback';
+            feedbackBox.textContent = '';
+        }
+    };
+
     const cancelPending = () => {
         runtime.token += 1;
         runtime.timers.forEach((timerId) => window.clearTimeout(timerId));
         runtime.timers.clear();
         stopRollingFaces();
+        clearEffects();
     };
 
     const reducedMotion = () => (
@@ -308,6 +358,93 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     );
 
     const pace = (milliseconds) => (reducedMotion() ? Math.min(milliseconds, 160) : milliseconds);
+
+    /* ------------------------------------------------------------------
+     * Event feedback. Effects are started only by game events, expire on
+     * tokenised timers, and fall back to static styling under reduced motion.
+     * ------------------------------------------------------------------ */
+
+    const fxDurations = {
+        place: 900,
+        loss: 1000,
+        conquer: 1400
+    };
+
+    // Restarts a CSS animation on an element that may already carry the class.
+    const restartClass = (element, className) => {
+        element.classList.remove(className);
+        void element.getBoundingClientRect();
+        element.classList.add(className);
+    };
+
+    const pulseElement = (element, className, duration) => {
+        if (!element) {
+            return;
+        }
+
+        const previous = runtime.pulses.get(element);
+
+        if (previous && previous.className !== className) {
+            element.classList.remove(previous.className);
+        }
+
+        runtime.pulseSerial += 1;
+        const serial = runtime.pulseSerial;
+
+        runtime.pulses.set(element, { className, serial });
+        restartClass(element, className);
+        schedule(() => {
+            if (runtime.pulses.get(element)?.serial === serial) {
+                runtime.pulses.delete(element);
+                element.classList.remove(className);
+            }
+        }, duration);
+    };
+
+    // Marks a territory marker for a brief effect; renderMap applies the class.
+    const flashTerritory = (territoryId, kind) => {
+        if (!territoryId) {
+            return;
+        }
+
+        const previous = runtime.fx.get(territoryId);
+        const marker = markers.get(territoryId);
+
+        if (previous && marker) {
+            marker.group.classList.remove(`is-fx-${previous.kind}`);
+            void marker.group.getBoundingClientRect();
+        }
+
+        runtime.fxSerial += 1;
+        const serial = runtime.fxSerial;
+
+        runtime.fx.set(territoryId, { kind, serial });
+        schedule(() => {
+            if (runtime.fx.get(territoryId)?.serial === serial) {
+                runtime.fx.delete(territoryId);
+                renderMap();
+            }
+        }, fxDurations[kind] || 900);
+    };
+
+    const showFeedback = (kind, text) => {
+        if (!feedbackBox) {
+            return;
+        }
+
+        runtime.feedbackSerial += 1;
+        const serial = runtime.feedbackSerial;
+
+        feedbackBox.textContent = text;
+        feedbackBox.className = 'risk-feedback';
+        restartClass(feedbackBox, `is-${kind}`);
+        schedule(() => {
+            if (runtime.feedbackSerial === serial) {
+                feedbackBox.className = 'risk-feedback';
+                feedbackBox.textContent = '';
+            }
+        }, kind === 'draw' ? 3600 : 2800);
+    };
 
     /* ------------------------------------------------------------------
      * Small helpers.
@@ -1014,6 +1151,13 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
                 addLog('No cards remain to draw.');
             } else if (player === 'human') {
                 addLog(`Player earns a card for conquering this turn: ${describeCard(card)}.`);
+                // The new card deals into the hand once; the flag expires on a cancellable timer.
+                runtime.freshCardIds.add(card.id);
+                schedule(() => {
+                    runtime.freshCardIds.delete(card.id);
+                    runtime.cardNodes.get(card.id)?.button.classList.remove('is-dealt');
+                }, 1400);
+                showFeedback('draw', `New card: ${describeCard(card)}. It waits in your hand for a set.`);
             } else {
                 addLog(`${ownerLabel(player)} earns a card for conquering this turn.`);
             }
@@ -1100,6 +1244,17 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         battle.rolling = false;
         state.busy = false;
 
+        if (outcome.attackerLosses > 0) {
+            flashTerritory(source.id, 'loss');
+        }
+
+        if (outcome.defenderLosses > 0 && target.armies > 0) {
+            flashTerritory(target.id, 'loss');
+        }
+
+        const humanAttacking = battle.attacker === 'human';
+        const humanInvolved = humanAttacking || battle.defender === 'human';
+
         let summary = `${ownerLabel(battle.attacker)} rolled ${outcome.attack.join(', ')} against ${ownerLabel(battle.defender)} ${outcome.defend.join(', ')} at ${target.name}: attacker loses ${outcome.attackerLosses}, defender loses ${outcome.defenderLosses}.`;
 
         if (target.armies <= 0) {
@@ -1140,9 +1295,27 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             state.message = battle.attacker === 'human'
                 ? `${summary} Move between ${state.pendingConquest.min} and ${state.pendingConquest.max} armies in.`
                 : summary;
+            flashTerritory(target.id, 'conquer');
+
+            if (humanAttacking) {
+                showFeedback('conquer', `${target.name} conquered! You will draw a card when your turn ends.`);
+            } else if (battle.defender === 'human') {
+                showFeedback('loss', `${ownerLabel(battle.attacker)} captured your ${target.name}.`);
+            }
         } else {
             addLog(summary);
             state.message = summary;
+
+            if (humanInvolved) {
+                const yourLosses = humanAttacking ? outcome.attackerLosses : outcome.defenderLosses;
+                const theirLosses = humanAttacking ? outcome.defenderLosses : outcome.attackerLosses;
+                const rival = humanAttacking ? battle.defender : battle.attacker;
+
+                showFeedback(
+                    yourLosses > theirLosses ? 'loss' : 'hit',
+                    `Battle at ${target.name}: you lose ${yourLosses}, ${ownerLabel(rival)} loses ${theirLosses}.`
+                );
+            }
         }
 
         render();
@@ -1332,6 +1505,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
 
             if (!error) {
                 addLog(`${ownerLabel(seat)} deploys ${pluralArmy(action.count)} to ${territory.name}.`);
+                flashTerritory(territory.id, 'place');
             }
         } else if (action.type === 'attack') {
             if (state.attacksThisTurn >= AI_ATTACK_LIMIT) {
@@ -1434,6 +1608,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
+        flashTerritory(territory.id, 'place');
+
         if (setupStepComplete()) {
             finishSetupStep('human');
             return;
@@ -1463,6 +1639,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
 
         state.sourceId = territory.id;
+        flashTerritory(territory.id, 'place');
+        pulseElement(elements.reinforcements, 'is-fx-tick', 600);
         afterHumanPlacement();
     };
 
@@ -1673,10 +1851,17 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
+        flashTerritory(territory.id, 'place');
+        pulseElement(elements.reinforcements, 'is-fx-tick', 600);
         afterHumanPlacement();
     };
 
+    const selectedHumanCards = () => state.selectedCardIds
+        .map((cardId) => state.hands.human.find((card) => card.id === cardId))
+        .filter(Boolean);
+
     const humanTrade = () => {
+        const before = state.reinforcementRemaining;
         const error = tradeCards('human', state.selectedCardIds);
 
         if (error) {
@@ -1687,6 +1872,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
 
         render();
+
+        if (!error) {
+            showFeedback('trade', `Set traded: +${pluralArmy(state.reinforcementRemaining - before)} to deploy.`);
+            pulseElement(elements.reinforcements, 'is-fx-tick', 700);
+        }
     };
 
     const toggleCard = (cardId) => {
@@ -1701,6 +1891,23 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
 
         render();
+
+        const node = runtime.cardNodes.get(cardId);
+
+        if (node) {
+            pulseElement(node.button, 'is-fx-pick', 320);
+        }
+
+        const selected = selectedHumanCards();
+
+        if (selected.length === 3) {
+            if (isValidSet(selected)) {
+                const value = tradeValue(state.setsTraded, state.config.cardMode, selected);
+                showFeedback('set', `Valid set: worth ${pluralArmy(value)}. ${state.phase === 'reinforce' ? 'Press Trade selected set.' : 'Trade it during your reinforcement phase.'}`);
+            } else {
+                showFeedback('invalid', 'Not a set: use three of a kind, one of each type, or two cards with a wild.');
+            }
+        }
     };
 
     const advancePhase = () => {
@@ -1894,7 +2101,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
                 role ? `is-${role}` : '',
                 isLegal ? 'is-legal' : '',
                 isPlaceable ? 'is-placeable' : '',
-                territory.id === state.detailId ? 'is-detail' : ''
+                territory.id === state.detailId ? 'is-detail' : '',
+                runtime.fx.has(territory.id) ? `is-fx-${runtime.fx.get(territory.id).kind}` : ''
             ].filter(Boolean).join(' ');
 
             if (path) {
@@ -2142,6 +2350,65 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         ].filter(Boolean).join(' ');
     };
 
+    // A portrait card: decorative art (or its emblem fallback) under readable type, name and bonus text.
+    const createCardNode = (card) => {
+        const type = cardArtType(card.type);
+        const territory = byId(card.territoryId);
+        const item = document.createElement('li');
+        const button = document.createElement('button');
+        const art = document.createElement('span');
+        const body = document.createElement('span');
+        const owned = createText('span', 'risk-card-owned', 'You own it: +2');
+        const emblem = createText('span', 'risk-card-emblem', cardEmblems[type]);
+
+        item.className = 'risk-hand-slot';
+        button.type = 'button';
+        button.className = `risk-card risk-card-${card.type}`;
+        button.dataset.cardId = card.id;
+        art.className = 'risk-card-art';
+        art.setAttribute('aria-hidden', 'true');
+        art.append(emblem);
+
+        if (runtime.missingArt.has(type)) {
+            button.classList.add('is-art-missing');
+        } else {
+            const image = document.createElement('img');
+
+            image.className = 'risk-card-image';
+            image.alt = '';
+            image.decoding = 'async';
+            image.draggable = false;
+            image.addEventListener('load', () => {
+                button.classList.add('is-art-loaded');
+            });
+            image.addEventListener('error', () => {
+                runtime.missingArt.add(type);
+                button.classList.add('is-art-missing');
+                image.remove();
+            });
+            image.src = cardArtUrl(type);
+            art.append(image);
+        }
+
+        body.className = 'risk-card-body';
+        body.append(
+            createText('span', 'risk-card-name', territory ? territory.name : 'Wild card'),
+            owned
+        );
+        button.append(
+            createText('span', 'risk-card-type', cardTypeLabels[type]),
+            art,
+            body
+        );
+
+        if (runtime.freshCardIds.has(card.id)) {
+            button.classList.add('is-dealt');
+        }
+
+        item.append(button);
+        return { item, button, owned };
+    };
+
     const renderHand = () => {
         const hand = state.hands.human;
         const selectedCards = state.selectedCardIds
@@ -2154,44 +2421,58 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             ? activeElement.getAttribute('data-card-id')
             : null;
         let focusTarget = null;
+        const fullSelection = selectedCards.length === 3;
+        const validSelection = fullSelection && isValidSet(selectedCards);
 
         if (hand.length === 0) {
+            runtime.cardNodes.clear();
             elements.hand.replaceChildren(createText(
                 'li',
                 'risk-hand-empty',
                 state.active ? 'No cards yet. Conquer a territory during your turn to earn one.' : 'Cards appear here during play.'
             ));
         } else {
-            elements.hand.replaceChildren(...hand.map((card) => {
-                const item = document.createElement('li');
-                const button = document.createElement('button');
+            const held = new Set(hand.map((card) => card.id));
+
+            runtime.cardNodes.forEach((_node, cardId) => {
+                if (!held.has(cardId)) {
+                    runtime.cardNodes.delete(cardId);
+                }
+            });
+
+            const items = hand.map((card) => {
+                let node = runtime.cardNodes.get(card.id);
+
+                if (!node) {
+                    node = createCardNode(card);
+                    runtime.cardNodes.set(card.id, node);
+                }
+
                 const territory = byId(card.territoryId);
                 const selected = state.selectedCardIds.includes(card.id);
+                const owned = Boolean(territory && territory.owner === 'human');
 
-                button.type = 'button';
-                button.className = `risk-card risk-card-${card.type}`;
-                button.dataset.cardId = card.id;
+                node.button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+                node.button.classList.toggle('is-owned', owned);
+                node.button.classList.toggle('is-set-valid', selected && validSelection);
+                node.button.classList.toggle('is-set-invalid', selected && fullSelection && !validSelection);
+                node.owned.hidden = !owned;
 
                 if (card.id === focusedCardId) {
-                    focusTarget = button;
+                    focusTarget = node.button;
                 }
 
-                button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-                button.append(
-                    createText('span', 'risk-card-type', cardTypeLabels[card.type]),
-                    createText('span', 'risk-card-name', territory ? territory.name : 'Wild card')
-                );
+                return node.item;
+            });
+            const current = Array.from(elements.hand.children);
 
-                if (territory && territory.owner === 'human') {
-                    button.append(createText('span', 'risk-card-owned', 'You own it: +2'));
-                }
-
-                item.append(button);
-                return item;
-            }));
+            // Only reorder the list when the hand itself changed, so unrelated renders do not restart effects.
+            if (current.length !== items.length || current.some((child, index) => child !== items[index])) {
+                elements.hand.replaceChildren(...items);
+            }
         }
 
-        if (focusTarget) {
+        if (focusTarget && document.activeElement !== focusTarget) {
             focusTarget.focus();
         }
 
@@ -2416,9 +2697,187 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         elements.log.replaceChildren(...state.log.map((entry) => createText('li', '', entry)));
     };
 
+    // The current objective plus, when the next relevant action is unavailable, the reason why.
+    const objectiveFor = () => {
+        if (state.phase === 'gameover') {
+            return state.winner === 'human'
+                ? { title: 'Victory', text: 'You hold the table. Press New game to play again.', blocker: '' }
+                : { title: 'Defeat', text: `${state.winner ? ownerLabel(state.winner) : 'A rival'} won this game. Press New game for a rematch.`, blocker: '' };
+        }
+
+        if (!state.active) {
+            return {
+                title: 'Ready to play',
+                text: 'Pick your Game setup options, then press New game to deal the world.',
+                blocker: ''
+            };
+        }
+
+        if (state.pendingDefense) {
+            const attacker = byId(state.pendingDefense.sourceId);
+            const defender = byId(state.pendingDefense.targetId);
+
+            return {
+                title: 'Defend',
+                text: attacker && defender
+                    ? `${ownerLabel(attacker.owner)} attacks ${defender.name} from ${attacker.name}. Choose your defense dice.`
+                    : 'You are under attack. Choose your defense dice.',
+                blocker: 'The battle waits for your defense choice.'
+            };
+        }
+
+        if (state.phase === 'setup') {
+            const pool = state.setupPool.human;
+
+            if (state.autoSetupHuman) {
+                return { title: 'Setup', text: 'Auto-place is spreading your remaining armies.', blocker: '' };
+            }
+
+            return {
+                title: 'Setup: place your armies',
+                text: pool > 0
+                    ? `Click one of your territories to add an army. ${pluralArmy(pool)} left to place, or press Auto-place setup.`
+                    : 'Your armies are placed. The other seats are finishing setup.',
+                blocker: state.current !== 'human' || state.busy
+                    ? `Waiting for ${ownerLabel(state.current)} to place.`
+                    : ''
+            };
+        }
+
+        if (state.current !== 'human') {
+            return {
+                title: `${ownerLabel(state.current)}: ${phaseLabels[state.phase] || 'Turn'}`,
+                text: 'Watch the map and dice tray. You choose defense dice if a bot attacks you.',
+                blocker: 'Your controls unlock when your turn begins.'
+            };
+        }
+
+        const source = byId(state.sourceId);
+        const target = byId(state.targetId);
+        const ownSource = source && source.owner === 'human' ? source : null;
+        const endLabel = elements.endButton.textContent;
+        const rolling = state.busy ? 'Wait for the dice to settle.' : '';
+
+        if (state.phase === 'reinforce') {
+            if (state.hands.human.length >= 5) {
+                return {
+                    title: 'Reinforce: trade a set',
+                    text: 'You hold five or more cards. Select three that form a set, then press Trade selected set.',
+                    blocker: 'Placing armies is locked until you trade a set.'
+                };
+            }
+
+            if (state.reinforcementRemaining > 0) {
+                return {
+                    title: 'Reinforce',
+                    text: `Deploy ${pluralArmy(state.reinforcementRemaining)}: click your territories one army at a time, or select one and press Place all here.`,
+                    blocker: `${endLabel} unlocks once every army is deployed.`
+                };
+            }
+
+            return { title: 'Reinforce', text: `All armies deployed. Press ${endLabel} to continue.`, blocker: rolling };
+        }
+
+        if (state.phase === 'conquer' && state.pendingConquest) {
+            const conquered = byId(state.pendingConquest.targetId);
+
+            return {
+                title: 'Move in',
+                text: `Move ${state.pendingConquest.min} to ${state.pendingConquest.max} armies into ${conquered ? conquered.name : 'the conquered territory'}, then press Move armies.`,
+                blocker: 'Attacks resume after you move in.'
+            };
+        }
+
+        if (state.phase === 'attack') {
+            if (rolling) {
+                return { title: 'Attack', text: 'The dice are rolling.', blocker: rolling };
+            }
+
+            if (!ownSource) {
+                return {
+                    title: 'Attack',
+                    text: `Select one of your territories with 2 or more armies, then a neighbouring enemy. Or press ${endLabel}.`,
+                    blocker: hasLegalAttack('human')
+                        ? 'Roll attack unlocks once you pick an attacker and a target.'
+                        : `No attack is possible: none of your territories has spare armies beside an enemy. Press ${endLabel}.`
+                };
+            }
+
+            if (!target) {
+                return {
+                    title: 'Attack',
+                    text: `Attacking from ${ownSource.name}. Choose an enemy territory with a dashed ring.`,
+                    blocker: ownSource.armies < 2
+                        ? `${ownSource.name} needs at least 2 armies to attack.`
+                        : 'Roll attack unlocks once you choose a target.'
+                };
+            }
+
+            return {
+                title: 'Attack',
+                text: `${ownSource.name} against ${target.name}. Choose your dice and press Roll attack.`,
+                blocker: attackError('human', ownSource, target, effectiveAttackDice(ownSource)) || ''
+            };
+        }
+
+        if (state.phase === 'fortify') {
+            if (!ownSource) {
+                return {
+                    title: 'Fortify',
+                    text: `Optional: move armies between two connected territories of yours, or press ${endLabel}.`,
+                    blocker: 'Fortify unlocks once you pick a source and a destination.'
+                };
+            }
+
+            if (!target) {
+                return {
+                    title: 'Fortify',
+                    text: `Moving from ${ownSource.name}. Choose a connected territory of yours, or press ${endLabel}.`,
+                    blocker: ownSource.armies < 2
+                        ? `${ownSource.name} needs at least 2 armies to move any.`
+                        : 'Fortify unlocks once you choose a destination.'
+                };
+            }
+
+            return {
+                title: 'Fortify',
+                text: `Set how many armies move from ${ownSource.name} to ${target.name}, then press Fortify.`,
+                blocker: fortifyError('human', ownSource, target, 1) || ''
+            };
+        }
+
+        return { title: phaseLabels[state.phase] || 'Ready', text: state.message, blocker: rolling };
+    };
+
+    const renderObjective = () => {
+        const { title, text, blocker } = objectiveElements;
+
+        if (!title || !text || !blocker) {
+            return;
+        }
+
+        const objective = objectiveFor();
+
+        // Text is only written when it changes, so unrelated rerenders leave the region untouched.
+        if (title.textContent !== objective.title) {
+            title.textContent = objective.title;
+        }
+
+        if (text.textContent !== objective.text) {
+            text.textContent = objective.text;
+        }
+
+        if (blocker.textContent !== objective.blocker) {
+            blocker.textContent = objective.blocker;
+        }
+
+        blocker.hidden = objective.blocker === '';
+    };
+
     const render = () => {
         renderSummary();
         renderControls();
+        renderObjective();
         renderMap();
         renderSelection();
         renderHand();
