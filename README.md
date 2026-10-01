@@ -260,6 +260,57 @@ php database/grant-role.php --email user@example.com --role editor
 
 Public registration is controlled by `WOWIE_REGISTRATION_ENABLED`.
 
+### Browser sessions (cookie mode)
+
+The public site signs visitors in through the same `/v1/auth` routes, users
+table, and rotating refresh-token families. A browser opts in per request by
+sending `X-Wowie-Auth-Mode: cookie` with `credentials: 'same-origin'`:
+
+- `POST /api/v1/auth/login` (`{email, password}`, 200) and
+  `POST /api/v1/auth/register` (`{email, password, display_name}`, 201) return
+  the usual token payload **without** `refresh_token`. The refresh token is
+  instead set in the host-only `wowie_refresh` cookie with
+  `Path=/api/v1/auth; HttpOnly; Secure; SameSite=Lax` and a lifetime of
+  `refresh_expires_in`.
+- `POST /api/v1/auth/refresh` (no body, 200) reads that cookie, rotates the
+  token, and replaces the cookie. Missing, invalid, expired, revoked, or reused
+  tokens and inactive accounts return the normal 401/403 error payloads and
+  expire the cookie. Server errors leave the cookie untouched.
+- `POST /api/v1/auth/logout` (no body, 204) revokes the cookie's refresh token
+  and expires the cookie.
+- The access token stays in page memory only and is sent as
+  `Authorization: Bearer <access_token>` to `GET /api/v1/auth/me` and other
+  protected routes. No credentials or tokens go in URLs or browser storage.
+
+Clients without the header keep the existing JSON behavior: they send and
+receive `refresh_token` in JSON, and the API never reads the browser cookie for
+them.
+
+Deployment prerequisites (all opt-in; nothing is enabled by default):
+
+1. **HTTPS.** The cookie is `Secure`, so browsers only store and return it on
+   `https://` pages. The site must call the API on the same origin under
+   `/api/v1/auth/...` (for example `https://wowiekowie.com/api/v1/auth/login`),
+   because the cookie is host-only and scoped to that path.
+2. **Allowed origins.** Cookie-mode requests must send an `Origin` header that
+   exactly matches an entry in an explicitly set `WOWIE_CORS_ORIGINS`, for
+   example `WOWIE_CORS_ORIGINS=https://wowiekowie.com,https://www.wowiekowie.com`.
+   Missing, `null`, or unlisted origins get `403 origin_not_allowed` before any
+   token is issued, rotated, or revoked. While `WOWIE_CORS_ORIGINS` is unset,
+   cookie mode rejects every request. The `X-Wowie-Auth-Mode` header is not in
+   the CORS allow-list, so cross-origin pages cannot use cookie mode.
+3. **Account availability.** Browser registration needs
+   `WOWIE_REGISTRATION_ENABLED=true`. If registration stays disabled, register
+   returns `403 registration_disabled` and visitors can only sign in to
+   accounts that already exist: accounts made while registration was enabled,
+   or accounts created through a configured Google/GitHub OAuth login. Public
+   login and registration grant no additional roles. Grant `editor` or `admin`
+   only on purpose with `php database/grant-role.php`.
+
+Set these values in the API environment file (see
+[Database configuration](#database-configuration)). Do not put secrets in
+this repository.
+
 ### OAuth setup
 
 Google and GitHub use authorization-code flow with PKCE and a one-time,

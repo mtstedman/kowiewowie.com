@@ -44,6 +44,18 @@ if (is_string($requestPath) && $requestPath !== '' && $requestPath !== '/') {
         $currentGameSubsection = $firstPathSegment;
     }
 }
+
+$isLoginPage = is_string($requestPath) && explode('/', trim($requestPath, '/'))[0] === 'login';
+$accountReturnTo = '/';
+if (
+    is_string($requestPath)
+    && str_starts_with($requestPath, '/')
+    && !str_starts_with($requestPath, '//')
+    && !str_contains($requestPath, '\\')
+) {
+    $accountReturnTo = $requestPath;
+}
+$accountLoginHref = $isLoginPage ? '/login/' : '/login/?return_to=' . rawurlencode($accountReturnTo);
 ?>
 <a class="skip-link" href="#main-content">Skip to main content</a>
 <header class="site-header" aria-label="Site header">
@@ -57,6 +69,23 @@ if (is_string($requestPath) && $requestPath !== '' && $requestPath !== '/') {
         <?php endforeach; ?>
     </nav>
     <span class="status"><span class="status-dot" aria-hidden="true"></span>site awake</span>
+    <div class="site-account" role="group" aria-label="Account" data-site-account data-account-state="signed-out">
+        <span data-account-view="loading" hidden>
+            <span class="site-account-note">Checking account&hellip;</span>
+        </span>
+        <span data-account-view="signed-out">
+            <a class="button site-account-link" href="<?= htmlspecialchars($accountLoginHref, ENT_QUOTES, 'UTF-8') ?>" data-account-login-link<?= $isLoginPage ? ' aria-current="page"' : '' ?>>Log in</a>
+        </span>
+        <span data-account-view="authenticated" hidden>
+            <a class="button site-account-link" href="/login/" data-account-profile-link><span class="public-visually-hidden">Signed in as </span><span data-account-name></span></a>
+            <button class="button site-account-logout" type="button" data-account-logout>Log out</button>
+        </span>
+        <span data-account-view="error" hidden>
+            <span class="site-account-note">Could not check your account.</span>
+            <button class="button site-account-retry" type="button" data-account-retry>Retry</button>
+        </span>
+        <span class="site-account-message" role="status" data-account-message></span>
+    </div>
     <?php if ($currentPublicSection === 'games'): ?>
         <nav class="games-subnav" aria-label="Games navigation">
             <?php foreach ($gameSubNavItems as $sectionKey => $navItem): ?>

@@ -35,6 +35,12 @@ final class Application
     private readonly OpenDeckSchedulerRepository $openDeck;
     /** @var array<string, string> */
     private array $chessIdentityResponseHeaders = [];
+    /** @var array<string, string> Headers that must survive an auth error response, such as an expired refresh cookie. */
+    private array $authResponseHeaders = [];
+
+    private const AUTH_MODE_HEADER = 'x-wowie-auth-mode';
+    private const REFRESH_COOKIE_NAME = 'wowie_refresh';
+    private const REFRESH_COOKIE_PATH = '/api/v1/auth';
 
     public function __construct(
         private readonly Config $config,
@@ -56,6 +62,7 @@ final class Application
     {
         $requestId = preg_replace('/[^a-zA-Z0-9._-]/', '', $request->header('x-request-id') ?? '') ?: bin2hex(random_bytes(8));
         $this->chessIdentityResponseHeaders = [];
+        $this->authResponseHeaders = [];
         try {
             $response = $request->method === 'OPTIONS'
                 ? Response::empty()
@@ -88,6 +95,7 @@ final class Application
             'X-Request-ID' => $requestId,
             'X-Content-Type-Options' => 'nosniff',
             ...$this->chessIdentityResponseHeaders,
+            ...$this->authResponseHeaders,
         ]);
     }
 
@@ -167,6 +175,12 @@ final class Application
             ]);
         }
 
+        if ($request->method === 'POST'
+            && in_array($request->path, ['/v1/auth/register', '/v1/auth/login', '/v1/auth/refresh', '/v1/auth/logout'], true)
+            && $this->isCookieAuthMode($request)
+        ) {
+            return $this->dispatchBrowserAuth($request);
+        }
         if ($request->method === 'POST' && $request->path === '/v1/auth/register') {
             return Response::json($this->auth->register($request->json(), $request->remoteAddress, $request->header('user-agent')), 201);
         }
@@ -699,6 +713,146 @@ final class Application
         }
 
         return null;
+    }
+
+    private function isCookieAuthMode(Request $request): bool
+    {
+        return strtolower(trim($request->header(self::AUTH_MODE_HEADER) ?? '')) === 'cookie';
+    }
+
+    /**
+     * Public browser sessions (shared contract public-browser-auth): the refresh token
+     * travels only in the host-only HttpOnly wowie_refresh cookie, never in JSON.
+     */
+    private function dispatchBrowserAuth(Request $request): Response
+    {
+        $this->requireTrustedBrowserOrigin($request);
+
+        $ip = $request->remoteAddress;
+        $userAgent = $request->header('user-agent');
+
+        if ($request->path === '/v1/auth/register') {
+            return $this->browserSessionResponse($this->auth->register($request->json(), $ip, $userAgent), 201);
+        }
+        if ($request->path === '/v1/auth/login') {
+            return $this->browserSessionResponse($this->auth->login($request->json(), $ip, $userAgent), 200);
+        }
+        if ($request->path === '/v1/auth/refresh') {
+            try {
+                $payload = $this->auth->refresh($this->refreshCookie($request), $ip, $userAgent);
+            } catch (ApiException $error) {
+                // Terminal authentication failures (missing, invalid, expired, revoked,
+                // reused token or inactive account) clear the browser cookie. Transient
+                // server failures leave it untouched and surface as errors.
+                if ($error->status === 401 || $error->status === 403) {
+                    $this->authResponseHeaders = ['Set-Cookie' => $this->expiredRefreshCookie()];
+                }
+                throw $error;
+            }
+
+            return $this->browserSessionResponse($payload, 200);
+        }
+
+        // POST /v1/auth/logout: revoke first; only expire the cookie once revocation succeeded.
+        $this->auth->logout($this->refreshCookie($request));
+
+        return Response::empty(204, [
+            'Set-Cookie' => $this->expiredRefreshCookie(),
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    private function requireTrustedBrowserOrigin(Request $request): void
+    {
+        $origin = trim($request->header('origin') ?? '');
+        // Cookie mode is opt-in: only origins explicitly listed in WOWIE_CORS_ORIGINS qualify.
+        $allowed = $this->config->csv('WOWIE_CORS_ORIGINS');
+        if ($origin === '' || strtolower($origin) === 'null' || !in_array($origin, $allowed, true)) {
+            throw new ApiException(403, 'origin_not_allowed', 'Browser session requests must come from an allowed origin.');
+        }
+    }
+
+    private function browserSessionResponse(array $payload, int $status): Response
+    {
+        $refreshToken = (string) ($payload['refresh_token'] ?? '');
+        $lifetime = max(0, (int) ($payload['refresh_expires_in'] ?? 0));
+        unset($payload['refresh_token']);
+        if ($refreshToken === '' || $lifetime === 0) {
+            throw new \RuntimeException('Browser session could not be established: refresh credential missing.');
+        }
+        $payload['user'] = $this->browserSessionUser($payload['user'] ?? null);
+
+        return Response::json($payload, $status, [
+            'Set-Cookie' => $this->refreshCookieHeader($refreshToken, $lifetime),
+        ]);
+    }
+
+    /**
+     * Normalizes the cookie-mode user to the public-browser-auth shape:
+     * id, email, display_name, roles, status, email_verified_at, created_at.
+     */
+    private function browserSessionUser(mixed $user): array
+    {
+        if (!is_array($user) || (string) ($user['id'] ?? '') === '') {
+            throw new \RuntimeException('Browser session could not be established: user record missing.');
+        }
+
+        $statement = $this->pdo->prepare('SELECT email_verified_at FROM users WHERE id = :id');
+        $statement->execute(['id' => (string) $user['id']]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row) || !array_key_exists('email_verified_at', $row)) {
+            throw new \RuntimeException('Browser session could not be established: user record could not be loaded.');
+        }
+        $verifiedAt = $row['email_verified_at'];
+
+        $roles = $user['roles'] ?? [];
+
+        return [
+            'id' => (string) $user['id'],
+            'email' => (string) ($user['email'] ?? ''),
+            'display_name' => (string) ($user['display_name'] ?? ''),
+            'roles' => is_array($roles) ? array_values(array_map('strval', $roles)) : [],
+            'status' => (string) ($user['status'] ?? ''),
+            'email_verified_at' => $verifiedAt === null ? null : (string) $verifiedAt,
+            'created_at' => (string) ($user['created_at'] ?? ''),
+        ];
+    }
+
+    private function refreshCookie(Request $request): string
+    {
+        $cookieHeader = $request->header('cookie') ?? '';
+        foreach (explode(';', $cookieHeader) as $pair) {
+            $parts = explode('=', trim($pair), 2);
+            if (count($parts) !== 2 || trim($parts[0]) !== self::REFRESH_COOKIE_NAME) {
+                continue;
+            }
+            $value = trim($parts[1]);
+
+            return preg_match('/^[A-Za-z0-9_-]{1,512}$/', $value) === 1 ? $value : '';
+        }
+
+        return '';
+    }
+
+    private function refreshCookieHeader(string $token, int $lifetime): string
+    {
+        return sprintf(
+            '%s=%s; Max-Age=%d; Expires=%s; Path=%s; HttpOnly; Secure; SameSite=Lax',
+            self::REFRESH_COOKIE_NAME,
+            $token,
+            $lifetime,
+            gmdate('D, d M Y H:i:s \G\M\T', time() + $lifetime),
+            self::REFRESH_COOKIE_PATH,
+        );
+    }
+
+    private function expiredRefreshCookie(): string
+    {
+        return sprintf(
+            '%s=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=%s; HttpOnly; Secure; SameSite=Lax',
+            self::REFRESH_COOKIE_NAME,
+            self::REFRESH_COOKIE_PATH,
+        );
     }
 
     /** @return array<string, string> */

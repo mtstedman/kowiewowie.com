@@ -29,6 +29,111 @@
         });
     });
 
+    const accountRoot = document.querySelector('[data-site-account]');
+
+    if (accountRoot) {
+        // Same specifier as login.js resolves to, so the page shares one in-memory session.
+        const authModuleUrl = '/assets/js/auth-api.js';
+        const accountViews = accountRoot.querySelectorAll('[data-account-view]');
+        const accountName = accountRoot.querySelector('[data-account-name]');
+        const accountMessage = accountRoot.querySelector('[data-account-message]');
+        const loginLink = /** @type {HTMLElement | null} */ (accountRoot.querySelector('[data-account-login-link]'));
+        const logoutButton = /** @type {HTMLButtonElement | null} */ (accountRoot.querySelector('[data-account-logout]'));
+        const retryButton = /** @type {HTMLButtonElement | null} */ (accountRoot.querySelector('[data-account-retry]'));
+        let authApi = null;
+        let authLoad = null;
+
+        const showAccountView = (viewName) => {
+            accountViews.forEach((view) => {
+                (/** @type {HTMLElement} */ (view)).hidden = view.getAttribute('data-account-view') !== viewName;
+            });
+            accountRoot.setAttribute('data-account-state', viewName);
+        };
+        const setAccountMessage = (message) => {
+            if (accountMessage) {
+                accountMessage.textContent = message;
+            }
+        };
+        const renderAccount = (accountState) => {
+            if (accountState.status === 'authenticated' && accountState.user) {
+                if (accountName) {
+                    accountName.textContent = accountState.user.display_name || accountState.user.email || 'Your account';
+                }
+                showAccountView('authenticated');
+                return;
+            }
+
+            if (accountName) {
+                accountName.textContent = '';
+            }
+
+            if (accountState.status === 'signed-out') {
+                showAccountView('signed-out');
+            } else if (accountState.status === 'error') {
+                showAccountView('error');
+            } else {
+                showAccountView('loading');
+            }
+        };
+        const loadAuth = () => {
+            if (!authLoad) {
+                authLoad = import(authModuleUrl).then((module) => {
+                    authApi = module;
+                    module.subscribe(renderAccount);
+                    return module;
+                }).catch((error) => {
+                    authLoad = null;
+                    throw error;
+                });
+            }
+
+            return authLoad;
+        };
+        const restoreAccount = (force) => {
+            setAccountMessage('');
+            showAccountView('loading');
+            loadAuth()
+                .then((module) => module.restoreSession({ force }))
+                .catch(() => {
+                    showAccountView('error');
+                });
+        };
+
+        if (logoutButton) {
+            logoutButton.addEventListener('click', () => {
+                if (!authApi || logoutButton.disabled) {
+                    return;
+                }
+
+                logoutButton.disabled = true;
+                logoutButton.setAttribute('aria-busy', 'true');
+                setAccountMessage('Signing out…');
+                authApi.logout()
+                    .then(() => {
+                        setAccountMessage('You are signed out.');
+                        if (loginLink) {
+                            loginLink.focus();
+                        }
+                    })
+                    .catch((error) => {
+                        setAccountMessage(`Sign-out failed. ${authApi.authErrorMessage(error)}`);
+                    })
+                    .finally(() => {
+                        logoutButton.disabled = false;
+                        logoutButton.removeAttribute('aria-busy');
+                    });
+            });
+        }
+
+        if (retryButton) {
+            retryButton.addEventListener('click', () => {
+                restoreAccount(true);
+            });
+        }
+
+        restoreAccount(false);
+    }
+
     const selector = [
         '.site-header',
         '.foundation',
