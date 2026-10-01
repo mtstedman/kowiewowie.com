@@ -160,8 +160,8 @@ products are upserted by `(source_key, external_id)`.
   Mart's signed backend API is not used.
 - **Nommi** is a TOP TOY (MINISO) character and is not sold by Pop Mart, and no
   official machine-readable feed was found, so it comes from a retailer's
-  Shopify feed: `<collection>/products.json?limit=250&page=N` until an empty
-  page (at most 20), keeping products whose title, vendor, or tags contain
+  Shopify feed: `<collection>/products.json?limit=250&page=N` until an empty or
+  short page (at most 20), keeping products whose title, vendor, or tags contain
   `nommi`.
 
 Checked on 2026-10-01 for the Nommi source: the first `products.json` page

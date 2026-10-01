@@ -69,7 +69,7 @@ final class ShopifyCollectionSource
     }
 
     /**
-     * Read every page of the collection feed until an empty page.
+     * Read every page of the collection feed until an empty or short page.
      *
      * @return list<array{
      *     external_id: string,
@@ -100,6 +100,13 @@ final class ShopifyCollectionSource
                 if ($product !== null && !isset($products[$product['external_id']])) {
                     $products[$product['external_id']] = $product;
                 }
+            }
+
+            // Shopify honors limit=250 for this feed. A short page is the
+            // final page, so do not make an unnecessary request that can trip
+            // a strict storefront rate limit and discard the valid first page.
+            if (count($pageProducts) < self::PAGE_SIZE) {
+                break;
             }
         }
 

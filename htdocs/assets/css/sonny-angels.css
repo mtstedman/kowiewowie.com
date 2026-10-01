@@ -56,7 +56,7 @@
 
 .sa-filters {
     display: grid;
-    grid-template-columns: minmax(12rem, 2fr) minmax(9rem, 1fr) minmax(12rem, 1.5fr) auto;
+    grid-template-columns: minmax(12rem, 2fr) minmax(9rem, 1fr) minmax(12rem, 1.5fr) auto auto;
     gap: 1rem;
     align-items: end;
 }
@@ -256,5 +256,167 @@
 
     .sa-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@page {
+    size: letter portrait;
+    margin: 0.45in;
+}
+
+@media print {
+    :root {
+        color-scheme: light;
+    }
+
+    body {
+        color: #111;
+        background: #fff;
+        font-size: 9pt;
+    }
+
+    .page-shell {
+        display: block;
+        width: auto;
+        margin: 0;
+    }
+
+    .site-header,
+    body > .skip-link,
+    body > .skip-target,
+    footer,
+    .sa-filters,
+    .sa-notice,
+    .sa-card summary,
+    .sa-series-heading summary,
+    .sa-image figcaption {
+        display: none !important;
+    }
+
+    .sa-catalog,
+    .sa-series,
+    .sa-card,
+    .sa-coverage {
+        color: #111;
+        background: #fff;
+        box-shadow: none;
+    }
+
+    .sa-catalog {
+        display: block;
+    }
+
+    .hero {
+        min-height: 0;
+        padding: 0 0 0.2in;
+        border: 0;
+        background: none;
+        box-shadow: none;
+    }
+
+    .hero::before,
+    .hero::after {
+        display: none;
+    }
+
+    .hero h1 {
+        color: #111;
+        font-size: 24pt;
+        text-shadow: none;
+    }
+
+    .hero p,
+    .sa-count {
+        color: #333;
+    }
+
+    .sa-coverage {
+        margin: 0 0 0.2in;
+        padding: 0.15in;
+        border: 1px solid #aaa;
+    }
+
+    .sa-coverage details {
+        display: none;
+    }
+
+    .sa-series {
+        margin: 0.24in 0 0;
+        padding-top: 0.12in;
+        border-color: #777;
+        break-before: page;
+    }
+
+    .sa-series:first-child {
+        break-before: auto;
+    }
+
+    .sa-series-heading {
+        margin-bottom: 0.12in;
+    }
+
+    .sa-series-heading h2 {
+        color: #111;
+        font-size: 17pt;
+    }
+
+    .sa-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.12in;
+    }
+
+    .sa-card,
+    .sa-undocumented {
+        break-inside: avoid;
+        border: 1px solid #999;
+        border-radius: 0;
+    }
+
+    .sa-image-frame {
+        aspect-ratio: 3 / 2;
+        max-height: 2.2in;
+        background: #fff;
+    }
+
+    .sa-card-body {
+        padding: 0.1in;
+    }
+
+    .sa-card h3 {
+        color: #111;
+        font-size: 13pt;
+    }
+
+    .sa-card h4,
+    .sa-card p,
+    .sa-card li,
+    .sa-series-heading p {
+        color: #222;
+        font-size: 8pt;
+        line-height: 1.35;
+    }
+
+    .sa-card a,
+    .sa-catalog summary {
+        color: #111;
+        text-decoration: none;
+    }
+
+    .sa-price-block,
+    .sa-details {
+        margin-top: 0.08in;
+        border-color: #bbb;
+    }
+
+    .sa-card h4 {
+        margin: 0.08in 0 0.03in;
+    }
+
+    .sa-observations,
+    .sa-identifiers,
+    .sa-sources {
+        margin-block: 0.04in;
+        padding-left: 0.16in;
     }
 }

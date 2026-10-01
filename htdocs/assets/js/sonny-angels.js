@@ -27,9 +27,11 @@
   const series = root.querySelector('[data-sa-series]');
   const count = root.querySelector('[data-sa-count]');
   const empty = root.querySelector('[data-sa-empty]');
+  const exportButton = root.querySelector('[data-sa-export-pdf]');
   if (!(form instanceof HTMLFormElement) || !(query instanceof HTMLInputElement)
       || !(family instanceof HTMLSelectElement) || !(series instanceof HTMLSelectElement)
-      || !(count instanceof HTMLElement) || !(empty instanceof HTMLElement)) return;
+      || !(count instanceof HTMLElement) || !(empty instanceof HTMLElement)
+      || !(exportButton instanceof HTMLButtonElement)) return;
 
   /** @param {string} value */
   const normalize = (value) => value.normalize('NFKC').toLocaleLowerCase().trim();
@@ -96,6 +98,64 @@
       render();
       query.focus();
     });
+  });
+
+  let printState = null;
+
+  const prepareForPrint = () => {
+    if (printState !== null) return;
+    const details = Array.from(root.querySelectorAll('details')).filter((element) => !element.closest('[hidden]'));
+    printState = {
+      details: details.map((element) => ({ element, open: element.open })),
+      title: document.title,
+    };
+    details.forEach((element) => { element.open = true; });
+    document.title = 'Sonny Angels catalog';
+    document.documentElement.classList.add('sa-printing');
+  };
+
+  const restoreAfterPrint = () => {
+    if (printState === null) return;
+    printState.details.forEach(({ element, open }) => { element.open = open; });
+    document.title = printState.title;
+    document.documentElement.classList.remove('sa-printing');
+    printState = null;
+    exportButton.disabled = false;
+    exportButton.removeAttribute('aria-busy');
+    exportButton.textContent = 'Export PDF';
+  };
+
+  const preloadVisibleImages = async () => {
+    const images = Array.from(root.querySelectorAll('[data-sa-image]')).flatMap((image) => {
+      if (!(image instanceof HTMLImageElement) || image.closest('[hidden]')) return [];
+      return [image];
+    });
+    await Promise.all(images.map((image) => new Promise((resolve) => {
+      image.loading = 'eager';
+      if (image.complete) {
+        updateImage(image);
+        resolve(undefined);
+        return;
+      }
+      const finish = () => {
+        updateImage(image);
+        resolve(undefined);
+      };
+      image.addEventListener('load', finish, { once: true });
+      image.addEventListener('error', finish, { once: true });
+    })));
+  };
+
+  window.addEventListener('beforeprint', prepareForPrint);
+  window.addEventListener('afterprint', restoreAfterPrint);
+  exportButton.addEventListener('click', async () => {
+    exportButton.disabled = true;
+    exportButton.setAttribute('aria-busy', 'true');
+    exportButton.textContent = 'Preparing PDF…';
+    prepareForPrint();
+    await preloadVisibleImages();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    window.print();
   });
 
   syncSeriesOptions();

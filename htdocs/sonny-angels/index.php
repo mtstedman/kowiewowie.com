@@ -287,6 +287,7 @@ require __DIR__ . '/../partials/head.php';
                     </select>
                 </div>
                 <button type="button" class="button" data-sa-clear>Clear all</button>
+                <button type="button" class="button" data-sa-export-pdf title="Opens the print dialog; choose Save as PDF">Export PDF</button>
             </form>
             <noscript><p class="sa-notice">All catalog entries are shown below. Use your browser’s Find command to search; interactive filters need JavaScript.</p></noscript>
             <p class="sa-count" data-sa-count role="status" aria-live="polite" aria-atomic="true"><?= count($catalog['figures']) ?> figures across <?= count($seriesById) ?> series.</p>
