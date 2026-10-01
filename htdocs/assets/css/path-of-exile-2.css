@@ -193,14 +193,16 @@
 
 .poe2-edge {
     fill: none;
-    stroke: rgba(150, 168, 192, 0.55);
-    stroke-width: var(--poe2-edge-stroke, 0.35);
+    stroke: rgba(205, 219, 235, 0.82);
+    stroke-width: calc(var(--poe2-edge-stroke, 0.35) * 2.4);
     vector-effect: non-scaling-stroke;
     pointer-events: none;
 }
 
 .poe2-edge.is-allocated {
     stroke: var(--poe2-gold);
+    stroke-width: calc(var(--poe2-edge-stroke, 0.35) * 4.4);
+    filter: drop-shadow(0 0 2px rgba(231, 189, 104, 0.75));
 }
 
 .poe2-node {
@@ -230,14 +232,14 @@
 .poe2-node-body {
     fill: var(--poe2-kind-fill);
     stroke: var(--poe2-kind-colour);
-    stroke-width: var(--poe2-node-stroke, 0.4);
+    stroke-width: calc(var(--poe2-node-stroke, 0.4) * 1.6);
     vector-effect: non-scaling-stroke;
 }
 
 .poe2-node-kind {
     fill: none;
     stroke: var(--poe2-kind-colour);
-    stroke-width: var(--poe2-node-stroke, 0.4);
+    stroke-width: calc(var(--poe2-node-stroke, 0.4) * 1.6);
     vector-effect: non-scaling-stroke;
     pointer-events: none;
 }
@@ -255,6 +257,8 @@
 .poe2-node.is-root .poe2-node-body {
     fill: #6d4f1d;
     stroke: var(--poe2-gold);
+    stroke-width: calc(var(--poe2-node-stroke, 0.4) * 2.6);
+    filter: drop-shadow(0 0 2.5px rgba(231, 189, 104, 0.8));
 }
 
 .poe2-node text {
@@ -296,6 +300,7 @@
 
 .poe2-node.is-must-have .poe2-node-body {
     stroke: #f472b6;
+    stroke-width: calc(var(--poe2-node-stroke, 0.4) * 2.2);
     stroke-dasharray: 1.2 0.8;
 }
 
@@ -303,6 +308,8 @@
 .poe2-node:focus-visible .poe2-node-body,
 .poe2-node.is-selected .poe2-node-body {
     stroke: #ffffff;
+    stroke-width: calc(var(--poe2-node-stroke, 0.4) * 3);
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.85));
 }
 
 .poe2-must-haves {
