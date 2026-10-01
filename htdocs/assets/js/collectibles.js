@@ -45,6 +45,7 @@
         controller: null,
         debounceTimer: 0,
         loading: false,
+        disclosureCount: 0,
     };
 
     const normalizeQuery = (value) => String(value ?? '').trim().slice(0, MAX_QUERY_LENGTH).trim();
@@ -184,6 +185,52 @@
         loadMoreButton.textContent = 'Load more';
     };
 
+    const setDisclosure = (toggle, expanded) => {
+        const panelId = toggle.getAttribute('aria-controls');
+        const panel = panelId ? document.getElementById(panelId) : null;
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        const action = toggle.querySelector('.collectible-variants-action');
+        if (action instanceof HTMLElement) {
+            action.textContent = expanded ? 'Hide' : 'Show';
+        }
+        const card = toggle.closest('.collectible-card');
+        if (card instanceof HTMLElement) {
+            card.classList.toggle('is-expanded', expanded);
+        }
+        if (panel instanceof HTMLElement) {
+            panel.hidden = !expanded;
+        }
+    };
+
+    const disclosureToggles = () => Array.from(resultsElement.querySelectorAll('.collectible-variants-toggle'))
+        .filter((toggle) => toggle instanceof HTMLButtonElement);
+
+    let savedDisclosures = null;
+
+    const expandDisclosuresForPrint = () => {
+        if (savedDisclosures !== null) {
+            return;
+        }
+        savedDisclosures = new Map();
+        disclosureToggles().forEach((toggle) => {
+            savedDisclosures.set(toggle, toggle.getAttribute('aria-expanded') === 'true');
+            setDisclosure(toggle, true);
+        });
+    };
+
+    const restoreDisclosuresAfterPrint = () => {
+        if (savedDisclosures === null) {
+            return;
+        }
+        const saved = savedDisclosures;
+        savedDisclosures = null;
+        disclosureToggles().forEach((toggle) => {
+            if (saved.has(toggle)) {
+                setDisclosure(toggle, saved.get(toggle) === true);
+            }
+        });
+    };
+
     const renderVariant = (variant, product, productPrice) => {
         const safeVariant = variant && typeof variant === 'object' ? variant : {};
         const name = typeof safeVariant.name === 'string' && safeVariant.name.trim() !== '' ? safeVariant.name.trim() : 'Unnamed figure';
@@ -304,20 +351,45 @@
         card.append(header);
 
         const variantSection = createElement('div', 'collectible-variants');
-        variantSection.append(createElement(
-            'h4',
-            'collectible-variants-title',
-            variants.length === 1 ? '1 variant' : `${variants.length} variants`
-        ));
+        const countLabel = variants.length === 1 ? '1 variant' : `${variants.length} variants`;
 
         if (variants.length === 0) {
+            variantSection.classList.add('is-empty');
+            variantSection.append(createElement('h4', 'collectible-variants-title', countLabel));
             variantSection.append(createElement('p', 'collectible-variants-empty', 'No figure variants are listed for this series yet.'));
         } else {
+            state.disclosureCount += 1;
+            const panelId = `collectible-variants-${state.disclosureCount}`;
+            const heading = createElement('h4', 'collectible-variants-title');
+            const toggle = createElement('button', 'collectible-variants-toggle');
+            toggle.type = 'button';
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.setAttribute('aria-controls', panelId);
+            toggle.append(
+                createElement('span', 'collectible-variants-action', 'Show'),
+                ' ',
+                createElement('span', 'collectible-variants-count', countLabel),
+                createElement('span', 'collectibles-sr-only', ` in ${title}`)
+            );
+            const icon = createElement('span', 'collectible-variants-icon');
+            icon.setAttribute('aria-hidden', 'true');
+            toggle.append(icon);
+            heading.append(toggle);
+            variantSection.append(heading);
+
+            const panel = createElement('div', 'collectible-variants-panel');
+            panel.id = panelId;
+            panel.hidden = true;
             const list = createElement('ul', 'collectible-variant-list');
             variants.forEach((variant) => {
                 list.append(renderVariant(variant, { title }, productPrice));
             });
-            variantSection.append(list);
+            panel.append(list);
+            variantSection.append(panel);
+
+            toggle.addEventListener('click', () => {
+                setDisclosure(toggle, toggle.getAttribute('aria-expanded') !== 'true');
+            });
         }
 
         card.append(variantSection);
@@ -573,7 +645,11 @@
         exportButton.removeAttribute('aria-busy');
         exportButton.textContent = 'Export PDF';
     };
-    window.addEventListener('afterprint', restorePrint);
+    window.addEventListener('beforeprint', expandDisclosuresForPrint);
+    window.addEventListener('afterprint', () => {
+        restoreDisclosuresAfterPrint();
+        restorePrint();
+    });
     exportButton.addEventListener('click', async () => {
         if (state.loading) return;
         exportButton.disabled = true;
@@ -587,6 +663,7 @@
         printTitle = document.title;
         document.title = 'Collectibles catalog';
         document.documentElement.classList.add('collectibles-printing');
+        expandDisclosuresForPrint();
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         window.print();
     });

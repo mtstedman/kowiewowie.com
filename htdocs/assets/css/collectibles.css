@@ -186,9 +186,10 @@
 
 .collectibles-results {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  grid-auto-flow: row;
   gap: 1.25rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .collectibles-results:empty {
@@ -196,8 +197,9 @@
 }
 
 .collectible-card {
-  display: grid;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
   min-width: 0;
   padding: 1.1rem;
   border: 1px solid var(--glass-border);
@@ -213,6 +215,7 @@
   grid-template-columns: 6.5rem minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
+  min-width: 0;
 }
 
 .collectible-card-media,
@@ -291,7 +294,11 @@
 
 .collectible-variants {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--glass-border);
+  min-width: 0;
 }
 
 .collectible-variants-title {
@@ -302,9 +309,74 @@
   text-transform: uppercase;
 }
 
+.collectible-variants-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-tint);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.collectible-variants-toggle:hover {
+  border-color: var(--accent);
+}
+
+.collectible-variants-toggle:focus-visible {
+  outline: 2px solid var(--accent-warm);
+  outline-offset: 3px;
+}
+
+.collectible-variants-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+  background: rgba(0, 245, 255, 0.12);
+}
+
+.collectible-variants-action {
+  color: var(--ink-soft);
+}
+
+.collectible-variants-count {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.collectible-variants-icon {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.2rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.15rem) rotate(45deg);
+  transition: transform var(--motion-fast);
+}
+
+.collectible-variants-toggle[aria-expanded="true"] .collectible-variants-icon {
+  transform: translateY(0.1rem) rotate(-135deg);
+}
+
+.collectible-variants-panel[hidden] {
+  display: none;
+}
+
 .collectible-variants-empty {
   margin: 0;
   color: var(--ink-soft);
+  font-size: 0.9rem;
 }
 
 .collectible-variant-list {
@@ -466,6 +538,38 @@
     grid-template-columns: 0.75in minmax(0, 1fr);
   }
 
+  .collectibles-results {
+    align-items: start;
+  }
+
+  .collectible-variants {
+    margin-top: 0;
+    border-top-color: #ccc;
+  }
+
+  .collectible-variants-panel,
+  .collectible-variants-panel[hidden] {
+    display: block !important;
+  }
+
+  .collectible-variants-toggle {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #444;
+  }
+
+  .collectible-variants-action,
+  .collectible-variants-icon {
+    display: none;
+  }
+
+  .collectible-variant-price,
+  .collectible-price-source {
+    color: #222;
+  }
+
   .collectible-variant-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -488,7 +592,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .collectibles-search input,
-  .collectibles-filter-option span {
+  .collectibles-filter-option span,
+  .collectible-variants-toggle,
+  .collectible-variants-icon {
     transition: none;
   }
 }
