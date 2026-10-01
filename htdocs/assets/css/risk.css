@@ -3,6 +3,10 @@
     --risk-human-rgb: 74, 222, 128;
     --risk-ai: #fb7185;
     --risk-ai-rgb: 251, 113, 133;
+    --risk-ai2: #38bdf8;
+    --risk-ai3: #fb923c;
+    --risk-ai4: #c084fc;
+    --risk-ai5: #fde047;
     --risk-neutral: #f8d16c;
     --risk-neutral-rgb: 248, 209, 108;
     --risk-ocean: #0b2635;
@@ -101,10 +105,32 @@
     margin-bottom: 1rem;
 }
 
+/* The per-seat entries are rendered by the game script and laid out as scoreboard items. */
+.risk-scoreboard-seats {
+    display: contents;
+}
+
 .risk-scoreboard-side {
     min-width: 0;
     flex-wrap: wrap;
     white-space: normal;
+}
+
+.risk-scoreboard-side.is-current {
+    border-color: var(--accent-warm);
+}
+
+.risk-scoreboard-side.is-eliminated {
+    border-style: dashed;
+    opacity: 0.78;
+}
+
+.risk-scoreboard .risk-scoreboard-eliminated {
+    min-height: 0;
+    padding: 0.15rem 0.4rem;
+    border-color: currentColor;
+    color: #fecaca;
+    font-size: 0.72rem;
 }
 
 .risk-scoreboard-avatar {
@@ -161,6 +187,26 @@
 .owner-ai .risk-owner-glyph,
 .risk-owner-glyph.owner-ai {
     color: var(--risk-ai);
+}
+
+.owner-ai2 .risk-owner-glyph,
+.risk-owner-glyph.owner-ai2 {
+    color: var(--risk-ai2);
+}
+
+.owner-ai3 .risk-owner-glyph,
+.risk-owner-glyph.owner-ai3 {
+    color: var(--risk-ai3);
+}
+
+.owner-ai4 .risk-owner-glyph,
+.risk-owner-glyph.owner-ai4 {
+    color: var(--risk-ai4);
+}
+
+.owner-ai5 .risk-owner-glyph,
+.risk-owner-glyph.owner-ai5 {
+    color: var(--risk-ai5);
 }
 
 .owner-neutral .risk-owner-glyph,
@@ -246,6 +292,26 @@
 .risk-marker.owner-ai {
     --owner-fill: var(--risk-ai);
     --owner-ink: #1c0409;
+}
+
+.risk-marker.owner-ai2 {
+    --owner-fill: var(--risk-ai2);
+    --owner-ink: #04141f;
+}
+
+.risk-marker.owner-ai3 {
+    --owner-fill: var(--risk-ai3);
+    --owner-ink: #1f0d02;
+}
+
+.risk-marker.owner-ai4 {
+    --owner-fill: var(--risk-ai4);
+    --owner-ink: #150527;
+}
+
+.risk-marker.owner-ai5 {
+    --owner-fill: var(--risk-ai5);
+    --owner-ink: #1c1602;
 }
 
 .risk-marker.owner-neutral {
@@ -364,10 +430,16 @@
     font-weight: 750;
 }
 
-.risk-map-legend > span {
+.risk-map-legend > span,
+.risk-legend-owners > span {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
+}
+
+/* The owner entries are rendered by the game script and flow with the static legend items. */
+.risk-map-legend > .risk-legend-owners {
+    display: contents;
 }
 
 .risk-status-message,
@@ -744,6 +816,38 @@
     height: 20px;
 }
 
+/* Game setup settings */
+
+.risk-setup-settings {
+    gap: 0.8rem;
+}
+
+.risk-setting-choice label {
+    font-weight: 800;
+}
+
+.risk-setting-choice label:has(input:checked) {
+    border-color: var(--risk-human);
+    background: rgba(var(--risk-human-rgb), 0.16);
+}
+
+.risk-setting-choice label:has(input:focus-visible) {
+    outline: 2px solid var(--risk-human);
+    outline-offset: 2px;
+}
+
+/* Five seat-count options share one row on the narrow command panel. */
+.risk-bot-count-choice label {
+    min-width: 44px;
+    flex: 1 1 44px;
+}
+
+.risk-setting-note {
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
 /* Cards */
 
 .risk-trade-value,
@@ -895,6 +999,22 @@
     stroke: var(--risk-ai);
 }
 
+.risk-selection-land.owner-ai2 {
+    stroke: var(--risk-ai2);
+}
+
+.risk-selection-land.owner-ai3 {
+    stroke: var(--risk-ai3);
+}
+
+.risk-selection-land.owner-ai4 {
+    stroke: var(--risk-ai4);
+}
+
+.risk-selection-land.owner-ai5 {
+    stroke: var(--risk-ai5);
+}
+
 .risk-selection-land.owner-neutral {
     stroke: #e8dcc0;
     stroke-dasharray: 6 3;
@@ -993,6 +1113,7 @@
 
     .risk-command-panel > .risk-panel-heading,
     .risk-command-panel > .risk-actions,
+    .risk-command-panel > .risk-setup-settings,
     .risk-command-panel > .risk-subpanel-alert,
     .risk-command-panel > .risk-check {
         grid-column: 1 / -1;

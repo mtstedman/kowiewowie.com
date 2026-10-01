@@ -1,3 +1,23 @@
+import {
+    territoryCatalog,
+    continentDefinitions,
+    cardTypes,
+    buildDeck,
+    isValidSet,
+    findValidSets,
+    tradeValue,
+    compareRolls,
+    normalizeConfig,
+    createGame,
+    distributeSetupArmies,
+    startingArmies,
+    nextSeat,
+    PLAYER_IDS,
+    NEUTRAL_ID,
+    SETUP_ARMY_CAP
+} from './risk-model.js';
+import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
+
 (() => {
     'use strict';
 
@@ -28,106 +48,9 @@
     })();
 
     /* ------------------------------------------------------------------
-     * Canonical board data: six continents, 42 territories, 83 links.
+     * Board data and card rules come from the shared rules model.
      * ------------------------------------------------------------------ */
 
-    const continentDefinitions = [
-        { id: 'north-america', name: 'North America', bonus: 5, color: '#d9aa4f' },
-        { id: 'south-america', name: 'South America', bonus: 2, color: '#c8674a' },
-        { id: 'europe', name: 'Europe', bonus: 5, color: '#6f8fd0' },
-        { id: 'africa', name: 'Africa', bonus: 3, color: '#a97d52' },
-        { id: 'asia', name: 'Asia', bonus: 7, color: '#7aa95a' },
-        { id: 'australia', name: 'Australia', bonus: 2, color: '#a56fb2' }
-    ];
-
-    const territoryDefinitions = [
-        { id: 'alaska', name: 'Alaska', short: 'Alaska', continent: 'north-america', marker: [58, 112] },
-        { id: 'northwest-territory', name: 'Northwest Territory', short: 'N.W. Territory', continent: 'north-america', marker: [172, 98] },
-        { id: 'greenland', name: 'Greenland', short: 'Greenland', continent: 'north-america', marker: [328, 68] },
-        { id: 'alberta', name: 'Alberta', short: 'Alberta', continent: 'north-america', marker: [134, 176] },
-        { id: 'ontario', name: 'Ontario', short: 'Ontario', continent: 'north-america', marker: [206, 176] },
-        { id: 'quebec', name: 'Quebec', short: 'Quebec', continent: 'north-america', marker: [272, 170] },
-        { id: 'western-united-states', name: 'Western United States', short: 'W. United States', continent: 'north-america', marker: [146, 254] },
-        { id: 'eastern-united-states', name: 'Eastern United States', short: 'E. United States', continent: 'north-america', marker: [226, 252] },
-        { id: 'central-america', name: 'Central America', short: 'C. America', continent: 'north-america', marker: [168, 318] },
-        { id: 'venezuela', name: 'Venezuela', short: 'Venezuela', continent: 'south-america', marker: [254, 392] },
-        { id: 'peru', name: 'Peru', short: 'Peru', continent: 'south-america', marker: [236, 452] },
-        { id: 'brazil', name: 'Brazil', short: 'Brazil', continent: 'south-america', marker: [306, 462] },
-        { id: 'argentina', name: 'Argentina', short: 'Argentina', continent: 'south-america', marker: [268, 566] },
-        { id: 'iceland', name: 'Iceland', short: 'Iceland', continent: 'europe', marker: [416, 97] },
-        { id: 'great-britain', name: 'Great Britain', short: 'Great Britain', continent: 'europe', marker: [437, 164] },
-        { id: 'scandinavia', name: 'Scandinavia', short: 'Scandinavia', continent: 'europe', marker: [512, 104] },
-        { id: 'northern-europe', name: 'Northern Europe', short: 'N. Europe', continent: 'europe', marker: [508, 196] },
-        { id: 'western-europe', name: 'Western Europe', short: 'W. Europe', continent: 'europe', marker: [466, 256] },
-        { id: 'southern-europe', name: 'Southern Europe', short: 'S. Europe', continent: 'europe', marker: [526, 246] },
-        { id: 'ukraine', name: 'Ukraine', short: 'Ukraine', continent: 'europe', marker: [592, 148] },
-        { id: 'north-africa', name: 'North Africa', short: 'N. Africa', continent: 'africa', marker: [470, 358] },
-        { id: 'egypt', name: 'Egypt', short: 'Egypt', continent: 'africa', marker: [550, 328] },
-        { id: 'east-africa', name: 'East Africa', short: 'E. Africa', continent: 'africa', marker: [568, 412] },
-        { id: 'congo', name: 'Congo', short: 'Congo', continent: 'africa', marker: [512, 452] },
-        { id: 'south-africa', name: 'South Africa', short: 'S. Africa', continent: 'africa', marker: [532, 528] },
-        { id: 'madagascar', name: 'Madagascar', short: 'Madagascar', continent: 'africa', marker: [600, 522] },
-        { id: 'ural', name: 'Ural', short: 'Ural', continent: 'asia', marker: [666, 124] },
-        { id: 'siberia', name: 'Siberia', short: 'Siberia', continent: 'asia', marker: [736, 112] },
-        { id: 'yakutsk', name: 'Yakutsk', short: 'Yakutsk', continent: 'asia', marker: [810, 82] },
-        { id: 'kamchatka', name: 'Kamchatka', short: 'Kamchatka', continent: 'asia', marker: [914, 94] },
-        { id: 'irkutsk', name: 'Irkutsk', short: 'Irkutsk', continent: 'asia', marker: [812, 138] },
-        { id: 'mongolia', name: 'Mongolia', short: 'Mongolia', continent: 'asia', marker: [834, 196] },
-        { id: 'japan', name: 'Japan', short: 'Japan', continent: 'asia', marker: [927, 208] },
-        { id: 'afghanistan', name: 'Afghanistan', short: 'Afghanistan', continent: 'asia', marker: [666, 224] },
-        { id: 'china', name: 'China', short: 'China', continent: 'asia', marker: [776, 262] },
-        { id: 'middle-east', name: 'Middle East', short: 'Middle East', continent: 'asia', marker: [612, 292] },
-        { id: 'india', name: 'India', short: 'India', continent: 'asia', marker: [706, 318] },
-        { id: 'siam', name: 'Siam', short: 'Siam', continent: 'asia', marker: [768, 354] },
-        { id: 'indonesia', name: 'Indonesia', short: 'Indonesia', continent: 'australia', marker: [830, 454] },
-        { id: 'new-guinea', name: 'New Guinea', short: 'New Guinea', continent: 'australia', marker: [926, 446] },
-        { id: 'western-australia', name: 'Western Australia', short: 'W. Australia', continent: 'australia', marker: [866, 556] },
-        { id: 'eastern-australia', name: 'Eastern Australia', short: 'E. Australia', continent: 'australia', marker: [932, 556] }
-    ];
-
-    // Undirected canonical links; neighbor lists are derived so adjacency is always symmetric.
-    const adjacencyLinks = [
-        ['alaska', 'northwest-territory'], ['alaska', 'alberta'], ['alaska', 'kamchatka'],
-        ['northwest-territory', 'alberta'], ['northwest-territory', 'ontario'], ['northwest-territory', 'greenland'],
-        ['greenland', 'ontario'], ['greenland', 'quebec'], ['greenland', 'iceland'],
-        ['alberta', 'ontario'], ['alberta', 'western-united-states'],
-        ['ontario', 'quebec'], ['ontario', 'western-united-states'], ['ontario', 'eastern-united-states'],
-        ['quebec', 'eastern-united-states'],
-        ['western-united-states', 'eastern-united-states'], ['western-united-states', 'central-america'],
-        ['eastern-united-states', 'central-america'],
-        ['central-america', 'venezuela'],
-        ['venezuela', 'peru'], ['venezuela', 'brazil'],
-        ['peru', 'brazil'], ['peru', 'argentina'],
-        ['brazil', 'argentina'], ['brazil', 'north-africa'],
-        ['iceland', 'great-britain'], ['iceland', 'scandinavia'],
-        ['great-britain', 'scandinavia'], ['great-britain', 'northern-europe'], ['great-britain', 'western-europe'],
-        ['scandinavia', 'northern-europe'], ['scandinavia', 'ukraine'],
-        ['northern-europe', 'western-europe'], ['northern-europe', 'southern-europe'], ['northern-europe', 'ukraine'],
-        ['western-europe', 'southern-europe'], ['western-europe', 'north-africa'],
-        ['southern-europe', 'ukraine'], ['southern-europe', 'north-africa'], ['southern-europe', 'egypt'], ['southern-europe', 'middle-east'],
-        ['ukraine', 'ural'], ['ukraine', 'afghanistan'], ['ukraine', 'middle-east'],
-        ['north-africa', 'egypt'], ['north-africa', 'east-africa'], ['north-africa', 'congo'],
-        ['egypt', 'east-africa'], ['egypt', 'middle-east'],
-        ['east-africa', 'congo'], ['east-africa', 'south-africa'], ['east-africa', 'madagascar'], ['east-africa', 'middle-east'],
-        ['congo', 'south-africa'],
-        ['south-africa', 'madagascar'],
-        ['ural', 'siberia'], ['ural', 'china'], ['ural', 'afghanistan'],
-        ['siberia', 'yakutsk'], ['siberia', 'irkutsk'], ['siberia', 'mongolia'], ['siberia', 'china'],
-        ['yakutsk', 'irkutsk'], ['yakutsk', 'kamchatka'],
-        ['kamchatka', 'irkutsk'], ['kamchatka', 'mongolia'], ['kamchatka', 'japan'],
-        ['irkutsk', 'mongolia'],
-        ['mongolia', 'japan'], ['mongolia', 'china'],
-        ['afghanistan', 'china'], ['afghanistan', 'india'], ['afghanistan', 'middle-east'],
-        ['china', 'india'], ['china', 'siam'],
-        ['middle-east', 'india'],
-        ['india', 'siam'],
-        ['siam', 'indonesia'],
-        ['indonesia', 'new-guinea'], ['indonesia', 'western-australia'],
-        ['new-guinea', 'western-australia'], ['new-guinea', 'eastern-australia'],
-        ['western-australia', 'eastern-australia']
-    ];
-
-    const cardTypes = ['infantry', 'cavalry', 'artillery'];
     const cardTypeLabels = {
         infantry: 'Infantry',
         cavalry: 'Cavalry',
@@ -135,22 +58,6 @@
         wild: 'Wild'
     };
 
-    const neighborMap = new Map();
-
-    territoryDefinitions.forEach((territory) => {
-        neighborMap.set(territory.id, new Set());
-    });
-
-    adjacencyLinks.forEach(([first, second]) => {
-        neighborMap.get(first).add(second);
-        neighborMap.get(second).add(first);
-    });
-
-    const territoryCatalog = territoryDefinitions.map((territory, index) => ({
-        ...territory,
-        neighbors: Array.from(neighborMap.get(territory.id)),
-        card: cardTypes[index % cardTypes.length]
-    }));
     const territoryIds = new Set(territoryCatalog.map((territory) => territory.id));
     const continentById = new Map();
     const continentMembers = new Map();
@@ -163,10 +70,9 @@
         );
     });
 
-    const STARTING_ARMIES = 40;
-    const DEAL_PER_COLOR = 14;
-    const TRADE_SCHEDULE = [4, 6, 8, 10, 12, 15];
+    const FIXED_VALUE_TABLE = `Fixed values: 3 ${cardTypeLabels[cardTypes[0]]} 4, 3 ${cardTypeLabels[cardTypes[1]]} 6, 3 ${cardTypeLabels[cardTypes[2]]} 8, one of each 10; wilds count as the best.`;
     const AI_ATTACK_LIMIT = 80;
+    const AI_TIME_BUDGET_MS = 250;
 
     /* ------------------------------------------------------------------
      * DOM contract.
@@ -180,15 +86,8 @@
         turn: byElementId('risk-turn-value'),
         phase: byElementId('risk-phase-value'),
         reinforcements: byElementId('risk-reinforcements-value'),
-        humanCount: byElementId('risk-human-count'),
-        aiCount: byElementId('risk-ai-count'),
-        neutralCount: byElementId('risk-neutral-count'),
-        humanCards: byElementId('risk-human-cards'),
-        aiCards: byElementId('risk-ai-cards'),
-        humanAvatarName: byElementId('risk-human-avatar-name'),
-        humanAvatarFace: byElementId('risk-human-avatar-face'),
-        aiAvatarName: byElementId('risk-ai-avatar-name'),
-        aiAvatarFace: byElementId('risk-ai-avatar-face'),
+        scoreboardSeats: byElementId('risk-scoreboard-seats'),
+        legendOwners: byElementId('risk-legend-owners'),
         selection: byElementId('risk-territory-card'),
         selectionFigure: byElementId('risk-selection-figure'),
         selectionArt: byElementId('risk-selection-art'),
@@ -199,6 +98,9 @@
         endButton: byElementId('risk-end-button'),
         reinforceButton: byElementId('risk-reinforce-button'),
         autoSetupButton: byElementId('risk-auto-setup-button'),
+        botCountGroup: byElementId('risk-bot-count'),
+        placementGroup: byElementId('risk-placement-options'),
+        cardModeGroup: byElementId('risk-card-mode-options'),
         attackDiceGroup: byElementId('risk-attack-dice-options'),
         attackButton: byElementId('risk-attack-button'),
         conquestPanel: byElementId('risk-conquest-panel'),
@@ -232,17 +134,47 @@
     const asButton = (element) => /** @type {HTMLButtonElement} */ (element);
     const asInput = (element) => /** @type {HTMLInputElement} */ (element);
     const attackDiceInputs = Array.from(elements.attackDiceGroup.querySelectorAll('input[name="risk-attack-dice"]')).map(asInput);
+    const placementInputs = Array.from(elements.placementGroup.querySelectorAll('input[name="risk-placement"]')).map(asInput);
+    const cardModeInputs = Array.from(elements.cardModeGroup.querySelectorAll('input[name="risk-card-mode"]')).map(asInput);
+    const botCountInputs = Array.from(elements.botCountGroup.querySelectorAll('input[name="risk-bot-count"]')).map(asInput);
+    const checkedValue = (inputs) => inputs.find((input) => input.checked)?.value;
 
+    // Startup settings are read only when a new game starts; the radios keep their values across games.
+    const readSetupConfig = () => normalizeConfig({
+        botCount: checkedValue(botCountInputs),
+        placement: checkedValue(placementInputs),
+        cardMode: checkedValue(cardModeInputs)
+    });
+
+    // Every owner has a label, a text glyph and a marker shape, so ownership never depends on colour alone.
     const ownerLabels = {
         human: 'Player',
-        ai: 'Browser',
+        ai: 'Bot 1',
+        ai2: 'Bot 2',
+        ai3: 'Bot 3',
+        ai4: 'Bot 4',
+        ai5: 'Bot 5',
         neutral: 'Neutral'
     };
 
-    const ownerShapeLabels = {
-        human: 'circle marker',
-        ai: 'diamond marker',
-        neutral: 'square marker'
+    const ownerGlyphs = {
+        human: '●',
+        ai: '◆',
+        ai2: '▲',
+        ai3: '★',
+        ai4: '▼',
+        ai5: '✚',
+        neutral: '■'
+    };
+
+    const ownerShapeNames = {
+        human: 'circle',
+        ai: 'diamond',
+        ai2: 'triangle',
+        ai3: 'star',
+        ai4: 'inverted triangle',
+        ai5: 'cross',
+        neutral: 'square'
     };
 
     const phaseLabels = {
@@ -258,6 +190,10 @@
     const markerShapes = {
         human: 'M-13 0a13 13 0 1 0 26 0a13 13 0 1 0 -26 0Z',
         ai: 'M0 -16L16 0L0 16L-16 0Z',
+        ai2: 'M0 -18L17 12H-17Z',
+        ai3: 'M0 -18L5.6 -7.7L17.1 -5.6L9 2.9L10.6 14.6L0 9.5L-10.6 14.6L-9 2.9L-17.1 -5.6L-5.6 -7.7Z',
+        ai4: 'M0 18L17 -12H-17Z',
+        ai5: 'M-6 -16H6V-6H16V6H6V16H-6V6H-16V-6H-6Z',
         neutral: 'M-12 -12H12V12H-12Z',
         none: 'M-11 0a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z'
     };
@@ -266,20 +202,47 @@
      * State and runtime (timers are tokenised so restart cancels them).
      * ------------------------------------------------------------------ */
 
-    const createState = () => ({
+    // Seats in turn order: the human first, then one bot per configured opponent.
+    const seatsFor = (config) => PLAYER_IDS.slice(0, config.botCount + 1);
+
+    // Per-seat containers: a hand, an avatar slot and a setup pool for every seat.
+    const createSeatState = (players) => {
+        /** @type {{[seat: string]: any[]}} */
+        const hands = {};
+        /** @type {{[seat: string]: {name: string, text: string}|null}} */
+        const avatars = {};
+        /** @type {{[owner: string]: number}} */
+        const setupPool = {};
+
+        players.forEach((seat) => {
+            hands[seat] = [];
+            avatars[seat] = null;
+            setupPool[seat] = 0;
+        });
+
+        return {
+            players: /** @type {string[]} */ (players.slice()),
+            eliminated: /** @type {string[]} */ ([]),
+            hands,
+            avatars,
+            setupPool
+        };
+    };
+
+    const createState = (config = readSetupConfig()) => ({
+        config,
+        ...createSeatState(seatsFor(config)),
         active: false,
         phase: 'idle',
         current: 'human',
         firstPlayer: 'human',
         turn: 0,
         territories: [],
-        setupPool: { human: 0, ai: 0, neutral: 0 },
         setupStep: null,
         autoSetupHuman: false,
         reinforcementRemaining: 0,
         deck: [],
         discard: [],
-        hands: { human: [], ai: [] },
         setsTraded: 0,
         selectedCardIds: [],
         pictureBonusUsed: false,
@@ -297,11 +260,7 @@
         busy: false,
         winner: null,
         message: 'Start a new game to deal the world.',
-        log: [],
-        avatars: {
-            human: null,
-            ai: null
-        }
+        log: []
     });
 
     let state = createState();
@@ -312,7 +271,8 @@
         rollInterval: 0,
         battleCounter: 0,
         diceKey: '',
-        figureKey: ''
+        figureKey: '',
+        legendKey: ''
     };
 
     const schedule = (callback, delay) => {
@@ -354,7 +314,17 @@
      * ------------------------------------------------------------------ */
 
     const byId = (id) => (id ? state.territories.find((territory) => territory.id === id) || null : null);
-    const opponentOf = (player) => (player === 'human' ? 'ai' : 'human');
+    const isBot = (seat) => seat !== 'human' && state.players.includes(seat);
+    const isEliminated = (seat) => state.eliminated.includes(seat);
+    const activeSeats = () => state.players.filter((seat) => !isEliminated(seat));
+    // Turn order is cyclic and skips eliminated seats.
+    const seatAfter = (seat) => nextSeat(/** @type {any} */ (state), seat);
+    // The neutral army only exists in the two-seat game (one bot).
+    const hasNeutral = () => state.players.length === 2;
+    const boardOwners = () => (hasNeutral() ? [...state.players, NEUTRAL_ID] : state.players.slice());
+    const joinList = (items) => (items.length > 1
+        ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
+        : items.join(''));
     const ownedBy = (owner) => state.territories.filter((territory) => territory.owner === owner);
     const isNeighbor = (territory, neighborId) => Boolean(territory && territory.neighbors.includes(neighborId));
     const ownerLabel = (owner) => ownerLabels[owner] || 'Unassigned';
@@ -402,22 +372,18 @@
         return node;
     };
 
-    const chooseAvatars = () => {
-        if (avatarCatalog.length < 2) {
-            return { human: null, ai: null };
-        }
+    // Distinct avatars when the catalog covers every seat. A smaller catalog is reused in
+    // rotation, and an empty one leaves every seat without an avatar.
+    const chooseAvatars = (players) => {
+        const pool = shuffle(avatarCatalog);
+        /** @type {{[seat: string]: {name: string, text: string}|null}} */
+        const avatars = {};
 
-        const humanIndex = Math.floor(Math.random() * avatarCatalog.length);
-        let aiIndex = Math.floor(Math.random() * (avatarCatalog.length - 1));
+        players.forEach((seat, index) => {
+            avatars[seat] = pool.length > 0 ? pool[index % pool.length] : null;
+        });
 
-        if (aiIndex >= humanIndex) {
-            aiIndex += 1;
-        }
-
-        return {
-            human: avatarCatalog[humanIndex],
-            ai: avatarCatalog[aiIndex]
-        };
+        return avatars;
     };
 
     /* ------------------------------------------------------------------
@@ -454,53 +420,6 @@
         return parts.join(', ');
     };
 
-    const tradeValue = (setsTraded) => (
-        setsTraded < TRADE_SCHEDULE.length
-            ? TRADE_SCHEDULE[setsTraded]
-            : TRADE_SCHEDULE[TRADE_SCHEDULE.length - 1] + (setsTraded - TRADE_SCHEDULE.length + 1) * 5
-    );
-
-    const buildDeck = () => shuffle([
-        ...territoryCatalog.map((territory) => ({
-            id: `card-${territory.id}`,
-            territoryId: territory.id,
-            type: territory.card
-        })),
-        { id: 'wild-1', territoryId: null, type: 'wild' },
-        { id: 'wild-2', territoryId: null, type: 'wild' }
-    ]);
-
-    const isValidSet = (cards) => {
-        if (cards.length !== 3 || new Set(cards).size !== 3) {
-            return false;
-        }
-
-        if (cards.some((card) => card.type === 'wild')) {
-            return true;
-        }
-
-        const types = new Set(cards.map((card) => card.type));
-        return types.size === 1 || types.size === 3;
-    };
-
-    const findValidSets = (hand) => {
-        const sets = [];
-
-        for (let first = 0; first < hand.length; first += 1) {
-            for (let second = first + 1; second < hand.length; second += 1) {
-                for (let third = second + 1; third < hand.length; third += 1) {
-                    const cards = [hand[first], hand[second], hand[third]];
-
-                    if (isValidSet(cards)) {
-                        sets.push(cards);
-                    }
-                }
-            }
-        }
-
-        return sets;
-    };
-
     const describeCard = (card) => {
         const territory = territoryCatalog.find((entry) => entry.id === card.territoryId);
         return territory ? `${territory.name} (${cardTypeLabels[card.type]})` : 'Wild';
@@ -523,7 +442,7 @@
     };
 
     const territoryPressure = (player, territory) => hostileNeighbors(player, territory)
-        .filter((neighbor) => neighbor.owner === opponentOf(player))
+        .filter((neighbor) => neighbor.owner !== NEUTRAL_ID)
         .reduce((sum, neighbor) => sum + neighbor.armies, 0);
 
     const continentShare = (player, continentId) => {
@@ -576,7 +495,7 @@
         return '';
     };
 
-    const tradeCards = (player, cardIds) => {
+    const tradeCards = (player, cardIds, bonusTerritoryId) => {
         const hand = state.hands[player];
         const cards = cardIds.map((cardId) => hand.find((card) => card.id === cardId) || null);
         const error = tradeError(player, cards);
@@ -585,7 +504,25 @@
             return error;
         }
 
-        const value = tradeValue(state.setsTraded);
+        let chosenBonus = null;
+
+        if (!state.pictureBonusUsed) {
+            const pictured = cards
+                .map((card) => byId(card.territoryId))
+                .filter((territory) => territory && territory.owner === player);
+
+            if (bonusTerritoryId !== undefined && bonusTerritoryId !== null) {
+                chosenBonus = pictured.find((territory) => territory.id === bonusTerritoryId) || null;
+
+                if (!chosenBonus) {
+                    return 'The bonus armies can only go on a territory you own that is pictured on a traded card.';
+                }
+            } else {
+                chosenBonus = bestBy(pictured, (territory) => placementScore(player, territory));
+            }
+        }
+
+        const value = tradeValue(state.setsTraded, state.config.cardMode, cards);
         state.setsTraded += 1;
         state.hands[player] = hand.filter((card) => !cards.includes(card));
         state.discard.push(...cards);
@@ -593,17 +530,10 @@
 
         let bonusText = '';
 
-        if (!state.pictureBonusUsed) {
-            const pictured = cards
-                .map((card) => byId(card.territoryId))
-                .filter((territory) => territory && territory.owner === player);
-            const chosen = bestBy(pictured, (territory) => placementScore(player, territory));
-
-            if (chosen) {
-                chosen.armies += 2;
-                state.pictureBonusUsed = true;
-                bonusText = ` +2 armies placed on pictured ${chosen.name}.`;
-            }
+        if (chosenBonus) {
+            chosenBonus.armies += 2;
+            state.pictureBonusUsed = true;
+            bonusText = ` +2 armies placed on pictured ${chosenBonus.name}.`;
         }
 
         const description = player === 'human'
@@ -646,27 +576,6 @@
     const maxAttackDice = (source) => (source ? Math.max(0, Math.min(3, source.armies - 1)) : 0);
     const maxDefendDice = (target) => (target ? Math.max(0, Math.min(2, target.armies)) : 0);
 
-    const compareRolls = (attackRolls, defendRolls) => {
-        const attack = attackRolls.slice().sort((first, second) => second - first);
-        const defend = defendRolls.slice().sort((first, second) => second - first);
-        const pairs = [];
-
-        for (let index = 0; index < Math.min(attack.length, defend.length); index += 1) {
-            pairs.push({
-                attack: attack[index],
-                defend: defend[index],
-                winner: attack[index] > defend[index] ? 'attacker' : 'defender'
-            });
-        }
-
-        return {
-            attack,
-            defend,
-            pairs,
-            attackerLosses: pairs.filter((pair) => pair.winner === 'defender').length,
-            defenderLosses: pairs.filter((pair) => pair.winner === 'attacker').length
-        };
-    };
 
     const legalAttackTargets = (player, source) => (
         source && source.owner === player && source.armies > 1
@@ -815,7 +724,8 @@
     };
 
     /* ------------------------------------------------------------------
-     * Setup: random deal, then 2 own + 1 neutral army per placement step.
+     * Setup: random deal, then seats take turns placing 2 own armies per
+     * step, plus 1 neutral army while the neutral exists (one-bot game).
      * ------------------------------------------------------------------ */
 
     const setupPrompt = () => {
@@ -857,58 +767,54 @@
             return '';
         }
 
-        if (territory.owner === 'neutral') {
+        if (territory.owner === NEUTRAL_ID) {
             if (step.neutral >= step.neutralNeeded) {
                 return 'The neutral army for this step is placed. Now place your own armies.';
             }
 
             territory.armies += 1;
-            state.setupPool.neutral -= 1;
+            state.setupPool[NEUTRAL_ID] -= 1;
             step.neutral += 1;
             return '';
         }
 
-        return 'During setup, place armies on your own territories or on neutral territories.';
+        return hasNeutral()
+            ? 'During setup, place armies on your own territories or on neutral territories.'
+            : 'During setup, place armies on your own territories.';
     };
 
     const setupStepComplete = () => Boolean(state.setupStep)
         && state.setupStep.own >= state.setupStep.ownNeeded
         && state.setupStep.neutral >= state.setupStep.neutralNeeded;
 
-    const pickNeutralPlacement = (player) => bestBy(ownedBy('neutral'), (territory) => {
-        const opponent = opponentOf(player);
-        const opponentNeighbors = territory.neighbors.filter((id) => byId(id)?.owner === opponent).length;
-        const ownNeighbors = territory.neighbors.filter((id) => byId(id)?.owner === player).length;
-
-        return opponentNeighbors * 2
-            + continentShare(opponent, territory.continent) * 5
-            - ownNeighbors * 1.5
-            - territory.armies * 0.25
-            + Math.random() * 0.5;
-    });
-
-    const pickPlacementTerritory = (player) => bestBy(
-        ownedBy(player),
-        (territory) => placementScore(player, territory) + Math.random() * 0.3
-    );
-
     const beginSetupStep = (player) => {
         state.current = player;
         state.setupStep = {
             own: 0,
             neutral: 0,
-            ownNeeded: Math.min(2, state.setupPool[player]),
-            neutralNeeded: Math.min(1, state.setupPool.neutral)
+            ownNeeded: Math.max(0, Math.min(2, state.setupPool[player] || 0)),
+            neutralNeeded: Math.max(0, Math.min(1, state.setupPool[NEUTRAL_ID] || 0))
         };
         state.sourceId = null;
         state.targetId = null;
 
-        if (player === 'ai' || state.autoSetupHuman) {
-            state.message = player === 'ai'
-                ? 'Browser is placing two of its armies and one neutral army.'
+        if (isBot(player) || state.autoSetupHuman) {
+            const step = state.setupStep;
+            const botParts = [`${step.ownNeeded === 1 ? 'one' : 'two'} of its armies`];
+
+            if (step.neutralNeeded > 0) {
+                botParts.push('one neutral army');
+            }
+
+            state.message = isBot(player)
+                ? `${ownerLabel(player)} is placing ${botParts.join(' and ')}.`
                 : 'Auto-placing your setup armies.';
             render();
-            schedule(() => autoSetupStep(player), pace(player === 'ai' ? 380 : 140));
+            // A fuller table steps faster so the rotation back to the player stays short.
+            schedule(
+                () => autoSetupStep(player),
+                pace(isBot(player) ? Math.max(120, Math.round(380 / (state.players.length - 1))) : 140)
+            );
             return;
         }
 
@@ -920,20 +826,50 @@
         state.setupStep = null;
         state.deck = buildDeck();
         state.discard = [];
-        state.hands = { human: [], ai: [] };
+        state.hands = createSeatState(state.players).hands;
         state.setsTraded = 0;
-        addLog(`Setup complete: every color has ${STARTING_ARMIES} armies. ${ownerLabel(state.firstPlayer)} moves first.`);
+        addLog(`Setup complete: every color has ${startingArmies(state.players.length)} armies. ${ownerLabel(state.firstPlayer)} moves first.`);
         beginTurn(state.firstPlayer);
     };
 
+    // Rotates to the next seat in turn order that still has setup armies; play starts once
+    // every seat's pool is empty.
     const finishSetupStep = (player) => {
-        if (state.setupPool.human <= 0 && state.setupPool.ai <= 0) {
+        const order = state.players;
+        const start = order.indexOf(player);
+        let next = null;
+
+        for (let offset = 1; offset <= order.length && !next; offset += 1) {
+            const candidate = order[(start + offset) % order.length];
+
+            if (state.setupPool[candidate] > 0) {
+                next = candidate;
+            }
+        }
+
+        if (!next) {
             startPlay();
             return;
         }
 
-        const next = state.setupPool[opponentOf(player)] > 0 ? opponentOf(player) : player;
         beginSetupStep(next);
+    };
+
+    // Uniformly random territory of owner under the setup cap; if none is under it, the one with the fewest armies.
+    const pickCappedRandom = (owner) => {
+        const owned = ownedBy(owner);
+
+        if (owned.length === 0) {
+            return null;
+        }
+
+        const open = owned.filter((territory) => territory.armies < SETUP_ARMY_CAP);
+
+        if (open.length > 0) {
+            return open[Math.floor(Math.random() * open.length)];
+        }
+
+        return owned.reduce((fewest, territory) => (territory.armies < fewest.armies ? territory : fewest));
     };
 
     const autoSetupStep = (player) => {
@@ -942,20 +878,35 @@
         }
 
         const step = state.setupStep;
+        const pickOwn = player === 'human'
+            ? () => pickCappedRandom(player)
+            : () => byId(chooseSetupPlacement(state.territories, player, 'own', state.config));
+        const pickNeutral = player === 'human'
+            ? () => pickCappedRandom(NEUTRAL_ID)
+            : () => byId(chooseSetupPlacement(state.territories, player, 'neutral', state.config));
 
         while (step.own < step.ownNeeded) {
-            if (placeSetupArmy(player, pickPlacementTerritory(player))) {
+            if (placeSetupArmy(player, pickOwn())) {
                 break;
             }
         }
 
         while (step.neutral < step.neutralNeeded) {
-            if (placeSetupArmy(player, pickNeutralPlacement(player))) {
+            if (placeSetupArmy(player, pickNeutral())) {
                 break;
             }
         }
 
         finishSetupStep(player);
+    };
+
+    const describeDeal = () => {
+        const owners = boardOwners();
+        const counts = owners.map((owner) => ownedBy(owner).length);
+
+        return counts.every((count) => count === counts[0])
+            ? `${counts[0]} territories each dealt to ${joinList(owners.map(ownerLabel))}`
+            : `all ${state.territories.length} territories dealt to ${joinList(owners.map((owner, index) => `${ownerLabel(owner)} (${counts[index]})`))}`;
     };
 
     const startGame = () => {
@@ -965,32 +916,30 @@
             attackDice: state.attackDice,
             autoDefend: state.autoDefend
         };
+        const config = readSetupConfig();
 
-        state = createState();
-        Object.assign(state, preferences);
-        state.avatars = chooseAvatars();
+        // The model owns the deal: seats, one army per territory, setup pools and the first player.
+        const game = createGame(config);
+
+        state = createState(config);
+        Object.assign(state, preferences, createSeatState(game.players));
+        state.avatars = chooseAvatars(state.players);
         state.active = true;
         state.phase = 'setup';
+        state.territories = game.territories;
+        state.setupPool = { ...game.setupPool };
+        state.firstPlayer = game.firstPlayer;
 
-        const owners = ['human', 'ai', 'neutral'];
-        const dealtOwners = new Map();
+        if (config.placement === 'random') {
+            Object.keys(state.setupPool).forEach((owner) => {
+                state.setupPool[owner] -= distributeSetupArmies(state.territories, owner, state.setupPool[owner]);
+            });
+            addLog(`New game: ${describeDeal()}, and every remaining army placed at random (at most ${SETUP_ARMY_CAP} per territory).`);
+            startPlay();
+            return;
+        }
 
-        shuffle(territoryCatalog.map((territory) => territory.id)).forEach((id, index) => {
-            dealtOwners.set(id, owners[Math.floor(index / DEAL_PER_COLOR)]);
-        });
-
-        state.territories = territoryCatalog.map((territory) => ({
-            ...territory,
-            owner: dealtOwners.get(territory.id),
-            armies: 1
-        }));
-        state.setupPool = {
-            human: STARTING_ARMIES - DEAL_PER_COLOR,
-            ai: STARTING_ARMIES - DEAL_PER_COLOR,
-            neutral: STARTING_ARMIES - DEAL_PER_COLOR
-        };
-        state.firstPlayer = Math.random() < 0.5 ? 'human' : 'ai';
-        addLog(`New game: 14 territories each dealt to Player, Browser and Neutral. ${ownerLabel(state.firstPlayer)} places first.`);
+        addLog(`New game: ${describeDeal()}. ${ownerLabel(state.firstPlayer)} places first.`);
         beginSetupStep(state.firstPlayer);
     };
 
@@ -1042,10 +991,10 @@
         state.reinforcementRemaining = breakdown.total;
         addLog(`Turn ${state.turn}: ${ownerLabel(player)} receives ${pluralArmy(breakdown.total)} (${describeBreakdown(breakdown)}).`);
 
-        if (player === 'ai') {
-            state.message = 'Browser is reinforcing.';
+        if (isBot(player)) {
+            state.message = `${ownerLabel(player)} is reinforcing.`;
             render();
-            schedule(aiStep, pace(650));
+            schedule(() => aiStep(player), pace(650));
             return;
         }
 
@@ -1066,11 +1015,29 @@
             } else if (player === 'human') {
                 addLog(`Player earns a card for conquering this turn: ${describeCard(card)}.`);
             } else {
-                addLog('Browser earns a card for conquering this turn.');
+                addLog(`${ownerLabel(player)} earns a card for conquering this turn.`);
             }
         }
 
-        beginTurn(opponentOf(player));
+        beginTurn(seatAfter(player));
+    };
+
+    // An eliminated seat leaves the rotation and its cards go to the seat that conquered it.
+    // A resulting hand of five or more is traded at the start of the conqueror's next turn.
+    const eliminateSeat = (seat, conqueror) => {
+        const captured = state.hands[seat] || [];
+
+        state.eliminated.push(seat);
+        state.hands[conqueror].push(...captured);
+        state.hands[seat] = [];
+
+        const cardNote = captured.length > 0
+            ? `${ownerLabel(conqueror)} captures its ${captured.length} ${captured.length === 1 ? 'card' : 'cards'}.`
+            : 'It held no cards to capture.';
+        const note = `${ownerLabel(seat)} is eliminated. ${cardNote}`;
+
+        addLog(note);
+        return note;
     };
 
     const declareVictory = (winner) => {
@@ -1084,14 +1051,15 @@
         state.reinforcementRemaining = 0;
         state.targetId = null;
 
-        const neutralLeft = ownedBy('neutral').length;
+        const neutralLeft = ownedBy(NEUTRAL_ID).length;
         const neutralNote = neutralLeft > 0
             ? ` ${neutralLeft} neutral ${neutralLeft === 1 ? 'territory remains' : 'territories remain'}, which this variant does not require you to conquer.`
             : '';
+        const rivals = state.players.filter((seat) => seat !== 'human');
 
         state.message = winner === 'human'
-            ? `Victory! You eliminated the Browser.${neutralNote}`
-            : 'Defeat. The Browser eliminated your last army. Start a new game for a rematch.';
+            ? `Victory! ${rivals.length === 1 ? `You eliminated ${ownerLabel(rivals[0])}.` : `You are the last seat standing: all ${rivals.length} bots are eliminated.`}${neutralNote}`
+            : `Defeat. ${ownerLabel(winner)} eliminated your last army. Start a new game for a rematch.`;
         addLog(state.message);
         render();
     };
@@ -1146,8 +1114,18 @@
             summary += ` ${target.name} is conquered.`;
             addLog(summary);
 
-            if (ownedBy(opponentOf(battle.attacker)).length === 0) {
+            if (battle.defender !== NEUTRAL_ID && ownedBy(battle.defender).length === 0) {
+                summary += ` ${eliminateSeat(battle.defender, battle.attacker)}`;
+            }
+
+            // Defeat as soon as the player is eliminated; victory once the player is the last seat.
+            if (isEliminated('human')) {
                 declareVictory(battle.attacker);
+                return;
+            }
+
+            if (activeSeats().length === 1) {
+                declareVictory(activeSeats()[0]);
                 return;
             }
 
@@ -1174,6 +1152,11 @@
         }
     };
 
+    const isSpectatorBattle = (battle) => Boolean(battle)
+        && state.players.length > 2
+        && battle.attacker !== 'human'
+        && battle.defender !== 'human';
+
     const rollBattle = (player, source, target, attackDice, defendDice, onComplete) => {
         const outcome = compareRolls(rollDice(attackDice), rollDice(defendDice));
 
@@ -1198,7 +1181,8 @@
         state.message = `${ownerLabel(player)} rolls ${diceLabel(attackDice)} from ${source.name} against ${diceLabel(defendDice)} on ${target.name}…`;
         render();
         startRollingFaces();
-        schedule(() => commitBattle(onComplete), reducedMotion() ? 120 : 1100);
+        // With several bots, battles that do not involve the player resolve faster.
+        schedule(() => commitBattle(onComplete), reducedMotion() ? 120 : isSpectatorBattle(state.battle) ? 600 : 1100);
     };
 
     const launchBattle = (player, source, target, attackDice, onComplete) => {
@@ -1220,7 +1204,7 @@
             };
             state.sourceId = source.id;
             state.targetId = target.id;
-            state.message = `${source.name} attacks your ${target.name} with ${diceLabel(attackDice)}. Choose your defense dice.`;
+            state.message = `${ownerLabel(player)} attacks your ${target.name} from ${source.name} with ${diceLabel(attackDice)}. Choose your defense dice.`;
             render();
             return '';
         }
@@ -1250,172 +1234,191 @@
     };
 
     /* ------------------------------------------------------------------
-     * Browser player: same rule functions, bounded heuristics.
+     * Bot seats: bounded game-tree decisions applied through UI rules.
+     * Every bot seat runs the same driver with its own seat id.
      * ------------------------------------------------------------------ */
 
-    const chooseAiSet = (sets) => bestBy(sets, (cards) => (
-        cards.filter((card) => byId(card.territoryId)?.owner === 'ai').length * 2
-        - cards.filter((card) => card.type === 'wild').length * 3
-    ));
+    const botSnapshot = () => JSON.parse(JSON.stringify({
+        config: state.config,
+        players: state.players,
+        eliminated: state.eliminated,
+        current: state.current,
+        phase: state.phase,
+        territories: state.territories,
+        hands: state.hands,
+        deck: state.deck,
+        discard: state.discard,
+        setsTraded: state.setsTraded,
+        reinforcementRemaining: state.reinforcementRemaining,
+        pictureBonusUsed: state.pictureBonusUsed,
+        conqueredThisTurn: state.conqueredThisTurn,
+        fortifiedThisTurn: state.fortifiedThisTurn,
+        pendingConquest: state.pendingConquest ? {
+            sourceId: state.pendingConquest.sourceId,
+            targetId: state.pendingConquest.targetId,
+            min: state.pendingConquest.min,
+            max: state.pendingConquest.max
+        } : null,
+        winner: state.winner
+    }));
 
-    const chooseAiAttack = () => {
-        const needCard = !state.conqueredThisTurn;
-        let best = null;
-
-        ownedBy('ai').forEach((source) => {
-            legalAttackTargets('ai', source).forEach((target) => {
-                const advantage = source.armies - target.armies;
-                const easyCard = needCard && target.armies === 1 && source.armies >= 2;
-
-                if (!easyCard && (source.armies < 3 || advantage < 2)) {
-                    return;
-                }
-
-                const score = advantage * 2
-                    + (target.owner === 'human' ? 3 : 0)
-                    + continentShare('ai', target.continent) * 8
-                    + (target.armies === 1 ? 2 : 0)
-                    + (easyCard ? 4 : 0);
-
-                if (!best || score > best.score) {
-                    best = { source, target, score };
-                }
-            });
-        });
-
-        return best;
+    const scheduleAiStep = (seat, delay) => {
+        schedule(() => aiStep(seat), pace(delay));
     };
 
-    const aiConquestCount = (pending) => {
-        const source = byId(pending.sourceId);
-        const sourceStillThreatened = hostileNeighbors('ai', source).length > 0;
-
-        if (!sourceStillThreatened) {
-            return pending.max;
-        }
-
-        return Math.max(pending.min, Math.min(pending.max, Math.ceil(pending.max * 2 / 3)));
-    };
-
-    const aiReinforce = () => {
-        let guard = 0;
-
-        while (guard < 8) {
-            guard += 1;
-            const sets = findValidSets(state.hands.ai);
-
-            if (sets.length === 0 || tradeCards('ai', chooseAiSet(sets).map((card) => card.id))) {
-                break;
-            }
-        }
-
-        const placements = new Map();
-
-        while (state.reinforcementRemaining > 0) {
-            const territory = pickPlacementTerritory('ai');
-
-            if (placeReinforcement('ai', territory, 1)) {
-                break;
-            }
-
-            placements.set(territory.name, (placements.get(territory.name) || 0) + 1);
-        }
-
-        if (placements.size > 0) {
-            addLog(`Browser deploys: ${Array.from(placements).map(([name, count]) => `${name} +${count}`).join(', ')}.`);
-        }
-
-        enterAttackPhase('ai');
-        state.message = 'Browser is choosing attacks.';
+    const beginAiAttackPhase = (seat) => {
+        enterAttackPhase(seat);
+        state.message = `${ownerLabel(seat)} is choosing attacks.`;
         render();
-        schedule(aiStep, pace(700));
+        scheduleAiStep(seat, 500);
     };
 
-    const afterAiBattle = () => {
-        if (!state.active || state.current !== 'ai') {
-            return;
-        }
-
-        if (state.phase === 'conquer' && state.pendingConquest) {
-            moveIntoConquest('ai', aiConquestCount(state.pendingConquest));
-            render();
-        }
-
-        schedule(aiStep, pace(750));
-    };
-
-    const aiAttack = () => {
-        const move = state.attacksThisTurn < AI_ATTACK_LIMIT ? chooseAiAttack() : null;
-
-        if (!move) {
+    const endAiAttackPhase = (seat, message = '') => {
+        if (message) {
+            addLog(message);
+        } else {
             addLog(state.attacksThisTurn === 0
-                ? 'Browser makes no attacks this turn.'
-                : `Browser ends its attacks after ${state.attacksThisTurn} ${state.attacksThisTurn === 1 ? 'battle' : 'battles'}.`);
-            state.phase = 'fortify';
-            state.sourceId = null;
-            state.targetId = null;
-            state.message = 'Browser is fortifying.';
-            render();
-            schedule(aiStep, pace(500));
-            return;
+                ? `${ownerLabel(seat)} makes no attacks this turn.`
+                : `${ownerLabel(seat)} ends its attacks after ${state.attacksThisTurn} ${state.attacksThisTurn === 1 ? 'battle' : 'battles'}.`);
         }
 
-        state.attacksThisTurn += 1;
-        const error = launchBattle('ai', move.source, move.target, maxAttackDice(move.source), afterAiBattle);
-
-        if (error) {
-            state.phase = 'fortify';
-            schedule(aiStep, pace(300));
-        }
+        state.pendingConquest = null;
+        state.phase = 'fortify';
+        state.sourceId = null;
+        state.targetId = null;
+        state.message = `${ownerLabel(seat)} is fortifying.`;
+        render();
+        scheduleAiStep(seat, 500);
     };
 
-    const aiFortify = () => {
-        let best = null;
-
-        ownedBy('ai')
-            .filter((source) => source.armies > 1 && hostileNeighbors('ai', source).length === 0)
-            .forEach((source) => {
-                connectedOwned('ai', source.id).forEach((targetId) => {
-                    const target = byId(targetId);
-                    const hostileCount = hostileNeighbors('ai', target).length;
-
-                    if (targetId === source.id || hostileCount === 0) {
-                        return;
-                    }
-
-                    const score = territoryPressure('ai', target) + hostileCount + source.armies;
-
-                    if (!best || score > best.score) {
-                        best = { source, target, score };
-                    }
-                });
-            });
-
-        if (!best || performFortify('ai', best.source, best.target, best.source.armies - 1)) {
-            addLog('Browser skips fortification.');
-        }
-
-        endTurn('ai');
-    };
-
-    const aiStep = () => {
-        if (!state.active || state.current !== 'ai' || state.busy || state.pendingDefense) {
+    const rejectBotAction = (seat) => {
+        if (!state.active || state.current !== seat) {
             return;
         }
 
         if (state.phase === 'reinforce') {
-            aiReinforce();
+            addLog(`${ownerLabel(seat)} abandons a rejected reinforcement action and starts attacking.`);
+            beginAiAttackPhase(seat);
             return;
         }
 
-        if (state.phase === 'attack') {
-            aiAttack();
+        if (state.phase === 'attack' || state.phase === 'conquer') {
+            endAiAttackPhase(seat, `${ownerLabel(seat)} ends its attacks after a chosen action was rejected.`);
             return;
         }
 
         if (state.phase === 'fortify') {
-            aiFortify();
+            addLog(`${ownerLabel(seat)} ends its turn after a chosen fortification was rejected.`);
+            endTurn(seat);
         }
+    };
+
+    const afterAiBattle = (seat) => {
+        if (!state.active || state.current !== seat) {
+            return;
+        }
+
+        scheduleAiStep(seat, isSpectatorBattle(state.battle) ? 450 : 750);
+    };
+
+    const applyBotAction = (seat, action) => {
+        let error = '';
+
+        if (action.type === 'trade') {
+            error = tradeCards(seat, action.cardIds, action.bonusTerritoryId);
+        } else if (action.type === 'place') {
+            const territory = byId(action.territoryId);
+            error = placeReinforcement(seat, territory, action.count);
+
+            if (!error) {
+                addLog(`${ownerLabel(seat)} deploys ${pluralArmy(action.count)} to ${territory.name}.`);
+            }
+        } else if (action.type === 'attack') {
+            if (state.attacksThisTurn >= AI_ATTACK_LIMIT) {
+                endAiAttackPhase(seat, `${ownerLabel(seat)} reaches the ${AI_ATTACK_LIMIT}-battle limit and ends its attacks.`);
+                return;
+            }
+
+            state.attacksThisTurn += 1;
+            error = launchBattle(
+                seat,
+                byId(action.sourceId),
+                byId(action.targetId),
+                action.dice,
+                () => afterAiBattle(seat)
+            );
+
+            if (!error) {
+                return;
+            }
+        } else if (action.type === 'occupy') {
+            error = moveIntoConquest(seat, action.count);
+        } else if (action.type === 'end-attack') {
+            endAiAttackPhase(seat);
+            return;
+        } else if (action.type === 'fortify') {
+            error = performFortify(
+                seat,
+                byId(action.sourceId),
+                byId(action.targetId),
+                action.count
+            );
+        } else if (action.type === 'end-turn') {
+            endTurn(seat);
+            return;
+        } else {
+            error = `${ownerLabel(seat)} chose an unsupported action.`;
+        }
+
+        if (error) {
+            rejectBotAction(seat);
+            return;
+        }
+
+        render();
+
+        if (state.phase === 'reinforce' && state.reinforcementRemaining === 0) {
+            beginAiAttackPhase(seat);
+            return;
+        }
+
+        scheduleAiStep(seat, action.type === 'occupy' ? 600 : 350);
+    };
+
+    const aiStep = (seat) => {
+        if (!state.active || state.current !== seat || state.busy || state.pendingDefense) {
+            return;
+        }
+
+        if (state.phase === 'attack' && state.attacksThisTurn >= AI_ATTACK_LIMIT) {
+            endAiAttackPhase(seat, `${ownerLabel(seat)} reaches the ${AI_ATTACK_LIMIT}-battle limit and ends its attacks.`);
+            return;
+        }
+
+        if (state.phase === 'reinforce' && state.reinforcementRemaining === 0) {
+            beginAiAttackPhase(seat);
+            return;
+        }
+
+        if (!['reinforce', 'attack', 'conquer', 'fortify'].includes(state.phase)) {
+            return;
+        }
+
+        state.message = `${ownerLabel(seat)} is thinking…`;
+        render();
+
+        schedule(() => {
+            if (!state.active || state.current !== seat || state.busy || state.pendingDefense) {
+                return;
+            }
+
+            try {
+                const action = chooseBotAction(botSnapshot(), seat, { timeBudgetMs: AI_TIME_BUDGET_MS });
+                applyBotAction(seat, action);
+            } catch (error) {
+                rejectBotAction(seat);
+            }
+        }, pace(80));
     };
 
     /* ------------------------------------------------------------------
@@ -1551,7 +1554,7 @@
         if (state.current !== 'human') {
             state.message = state.pendingDefense
                 ? 'Choose your defense dice first.'
-                : `The Browser is taking its turn. Viewing ${territory.name}.`;
+                : `${ownerLabel(state.current)} is taking its turn. Viewing ${territory.name}.`;
             render();
             return;
         }
@@ -1973,11 +1976,13 @@
         }
 
         if (state.current !== 'human') {
-            return state.pendingDefense ? 'Choose your defense dice in the command panel.' : 'The Browser is playing its turn.';
+            return state.pendingDefense ? 'Choose your defense dice in the command panel.' : `${ownerLabel(state.current)} is playing its turn.`;
         }
 
         if (state.phase === 'setup') {
-            return 'Click your territories (circles) for your two armies and a neutral territory (square) for the neutral army.';
+            return hasNeutral()
+                ? 'Click your territories (circles) for your two armies and a neutral territory (square) for the neutral army.'
+                : 'Click your territories (circles) to place your two armies for this step.';
         }
 
         if (state.phase === 'reinforce') {
@@ -2010,8 +2015,11 @@
 
         const continent = continentById.get(focus.continent);
         const members = continentMembers.get(focus.continent);
-        const humanOwned = members.filter((id) => byId(id)?.owner === 'human').length;
-        const aiOwned = members.filter((id) => byId(id)?.owner === 'ai').length;
+        const ownedCount = (owner) => members.filter((id) => byId(id)?.owner === owner).length;
+        // A full table lists only the seats present in this continent, always including the player.
+        const controlSeats = state.players.length > 2
+            ? state.players.filter((seat) => seat === 'human' || ownedCount(seat) > 0)
+            : state.players;
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
         const wrapper = document.createElement('div');
@@ -2023,8 +2031,8 @@
         const rows = [
             ['Territory', focus.name],
             ['Continent', `${continent.name} (+${continent.bonus} for all ${members.length})`],
-            ['Control', focus.owner ? `Player ${humanOwned}/${members.length}, Browser ${aiOwned}/${members.length}` : 'Not dealt yet'],
-            ['Owner', focus.owner ? `${ownerLabel(focus.owner)} (${ownerShapeLabels[focus.owner]})` : 'Unassigned'],
+            ['Control', focus.owner ? controlSeats.map((seat) => `${ownerLabel(seat)} ${ownedCount(seat)}/${members.length}`).join(', ') : 'Not dealt yet'],
+            ['Owner', focus.owner ? `${ownerLabel(focus.owner)} (${ownerShapeNames[focus.owner]} marker)` : 'Unassigned'],
             ['Armies', focus.owner ? pluralArmy(focus.armies) : '–'],
             ['Card', cardTypeLabels[focus.card]],
             ['Neighbors', focus.neighbors.map((neighborId) => {
@@ -2187,8 +2195,14 @@
             focusTarget.focus();
         }
 
-        const value = tradeValue(state.setsTraded);
-        elements.tradeValue.textContent = `Next set: ${pluralArmy(value)} (${state.setsTraded} ${state.setsTraded === 1 ? 'set' : 'sets'} traded so far)`;
+        if (state.config.cardMode === 'fixed') {
+            elements.tradeValue.textContent = selectedCards.length === 3 && isValidSet(selectedCards)
+                ? `Selected set: ${pluralArmy(tradeValue(state.setsTraded, 'fixed', selectedCards))}. ${FIXED_VALUE_TABLE}`
+                : `Next set: by type. ${FIXED_VALUE_TABLE}`;
+        } else {
+            const value = tradeValue(state.setsTraded, state.config.cardMode);
+            elements.tradeValue.textContent = `Next set: ${pluralArmy(value)} (${state.setsTraded} ${state.setsTraded === 1 ? 'set' : 'sets'} traded so far)`;
+        }
 
         if (hand.length >= 5 && state.current === 'human' && state.phase === 'reinforce') {
             elements.handHelp.textContent = 'Five or more cards: you must trade a set now.';
@@ -2285,7 +2299,7 @@
         if (pendingDefense) {
             const attacker = byId(pendingDefense.sourceId);
             const defender = byId(pendingDefense.targetId);
-            elements.defenseHelp.textContent = `${attacker.name} rolls ${diceLabel(pendingDefense.attackDice)} against your ${defender.name} (${pluralArmy(defender.armies)}). Ties go to you.`;
+            elements.defenseHelp.textContent = `${ownerLabel(pendingDefense.player)} rolls ${diceLabel(pendingDefense.attackDice)} from ${attacker.name} against your ${defender.name} (${pluralArmy(defender.armies)}). Ties go to you.`;
             asButton(elements.defendTwoButton).disabled = maxDefendDice(defender) < 2;
         }
 
@@ -2298,6 +2312,88 @@
         );
     };
 
+    const createGlyph = (owner, className) => {
+        const glyph = createText('span', className, ownerGlyphs[owner] || '');
+
+        glyph.setAttribute('aria-hidden', 'true');
+        return glyph;
+    };
+
+    // One scoreboard entry per seat in turn order, plus the neutral army in the one-bot game.
+    const renderScoreboard = () => {
+        elements.scoreboardSeats.replaceChildren(...boardOwners().map((owner) => {
+            const entry = document.createElement('span');
+            const label = ownerLabel(owner);
+            const eliminated = isEliminated(owner);
+
+            entry.append(
+                createGlyph(owner, 'risk-owner-glyph'),
+                createText('strong', '', String(ownedBy(owner).length)),
+                ` ${label}`
+            );
+
+            if (owner === NEUTRAL_ID) {
+                entry.className = `owner-${owner}`;
+                return entry;
+            }
+
+            entry.className = [
+                'risk-scoreboard-side',
+                `owner-${owner}`,
+                eliminated ? 'is-eliminated' : '',
+                state.active && state.current === owner ? 'is-current' : ''
+            ].filter(Boolean).join(' ');
+
+            const cards = document.createElement('span');
+
+            cards.className = 'risk-scoreboard-cards';
+            cards.append(createText('strong', '', String(state.hands[owner]?.length || 0)), ' cards');
+            entry.append(cards);
+
+            if (eliminated) {
+                entry.append(createText('span', 'risk-scoreboard-eliminated', '✕ Eliminated'));
+            }
+
+            const avatar = state.avatars[owner];
+            const avatarBox = document.createElement('span');
+            const avatarName = document.createElement('span');
+            const avatarFace = createText('span', 'risk-scoreboard-avatar-face', avatar?.text || '—');
+
+            avatarBox.className = 'risk-scoreboard-avatar';
+            avatarName.className = 'risk-scoreboard-avatar-name';
+            avatarName.append(
+                'Avatar: ',
+                createText('span', '', avatar?.name || (state.phase === 'idle' ? 'Assigned when a game starts' : 'None available'))
+            );
+            avatarFace.setAttribute('aria-label', `${label} avatar face`);
+            avatarBox.append(avatarName, avatarFace);
+            entry.append(avatarBox);
+
+            return entry;
+        }));
+    };
+
+    // The legend lists the owners in play; it is rebuilt only when the seats change.
+    const renderLegend = () => {
+        const owners = boardOwners();
+        const key = owners.join(',');
+
+        if (key === runtime.legendKey) {
+            return;
+        }
+
+        runtime.legendKey = key;
+        elements.legendOwners.replaceChildren(...owners.map((owner) => {
+            const item = document.createElement('span');
+
+            item.append(
+                createGlyph(owner, `risk-owner-glyph owner-${owner}`),
+                ` ${ownerLabel(owner)} ${ownerShapeNames[owner]}`
+            );
+            return item;
+        }));
+    };
+
     const renderSummary = () => {
         elements.turn.textContent = String(state.turn);
         elements.phase.textContent = state.active
@@ -2306,16 +2402,9 @@
         elements.reinforcements.textContent = String(state.phase === 'setup'
             ? state.setupPool.human
             : state.current === 'human' ? state.reinforcementRemaining : 0);
-        elements.humanCount.textContent = String(ownedBy('human').length);
-        elements.aiCount.textContent = String(ownedBy('ai').length);
-        elements.neutralCount.textContent = String(ownedBy('neutral').length);
-        elements.humanCards.textContent = String(state.hands.human.length);
-        elements.aiCards.textContent = String(state.hands.ai.length);
-        elements.humanAvatarName.textContent = state.avatars.human?.name || 'Assigned when a game starts';
-        elements.humanAvatarFace.textContent = state.avatars.human?.text || '—';
-        elements.aiAvatarName.textContent = state.avatars.ai?.name || 'Assigned when a game starts';
-        elements.aiAvatarFace.textContent = state.avatars.ai?.text || '—';
         elements.status.textContent = state.message;
+        renderScoreboard();
+        renderLegend();
     };
 
     const renderLog = () => {
@@ -2374,6 +2463,16 @@
         input.addEventListener('change', () => {
             if (input.checked) {
                 state.attackDice = Number(input.value);
+                render();
+            }
+        });
+    });
+    botCountInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            // Before the first game, the scoreboard previews the seats the next game will have.
+            if (input.checked && state.phase === 'idle') {
+                state.config = readSetupConfig();
+                Object.assign(state, createSeatState(seatsFor(state.config)));
                 render();
             }
         });

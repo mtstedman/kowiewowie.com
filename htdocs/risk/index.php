@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Risk - wowiekowie.com';
-$metaDescription = 'Play classic Risk on the 42-territory world board against the browser, with a neutral army, territory cards and animated dice.';
+$metaDescription = 'Play classic Risk on the 42-territory world board against one to five game-tree bots, with territory cards and animated dice.';
 $pageStyles = ['/assets/css/risk.css'];
 $dongerCatalog = require dirname(__DIR__) . '/dongs/dongers.php';
 $riskAvatarCatalog = array_map(
@@ -31,7 +31,7 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
             <section class="risk-hero" aria-labelledby="risk-title">
                 <p class="eyebrow">Risk table</p>
                 <h1 id="risk-title">Risk: world domination</h1>
-                <p class="lede">The classic 42-territory world board, played solo against the browser with a neutral third army. Deploy, trade cards, roll real Risk dice, and eliminate your rival.</p>
+                <p class="lede">The classic 42-territory world board, played solo against one to five bots that plan their turns with a game-tree search. Deploy, trade cards, roll real Risk dice, and be the last seat standing.</p>
             </section>
 
             <section class="risk-layout" aria-label="Playable Risk game">
@@ -48,33 +48,13 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     </div>
 
                     <div class="risk-scoreboard" aria-label="Territory counts, cards and player avatars">
-                        <span class="risk-scoreboard-side owner-human">
-                            <span class="risk-owner-glyph" aria-hidden="true">&#9679;</span>
-                            <strong id="risk-human-count">0</strong> Player
-                            <span class="risk-scoreboard-cards"><strong id="risk-human-cards">0</strong> cards</span>
-                            <span class="risk-scoreboard-avatar">
-                                <span class="risk-scoreboard-avatar-name">Avatar: <span id="risk-human-avatar-name">Assigned when a game starts</span></span>
-                                <span id="risk-human-avatar-face" class="risk-scoreboard-avatar-face" aria-label="Player avatar face">—</span>
-                            </span>
-                        </span>
-                        <span class="risk-scoreboard-side owner-ai">
-                            <span class="risk-owner-glyph" aria-hidden="true">&#9670;</span>
-                            <strong id="risk-ai-count">0</strong> Browser
-                            <span class="risk-scoreboard-cards"><strong id="risk-ai-cards">0</strong> cards</span>
-                            <span class="risk-scoreboard-avatar">
-                                <span class="risk-scoreboard-avatar-name">Avatar: <span id="risk-ai-avatar-name">Assigned when a game starts</span></span>
-                                <span id="risk-ai-avatar-face" class="risk-scoreboard-avatar-face" aria-label="Browser avatar face">—</span>
-                            </span>
-                        </span>
-                        <span class="owner-neutral"><span class="risk-owner-glyph" aria-hidden="true">&#9632;</span><strong id="risk-neutral-count">0</strong> Neutral</span>
+                        <div id="risk-scoreboard-seats" class="risk-scoreboard-seats"></div>
                         <span><strong id="risk-reinforcements-value">0</strong> To place</span>
                     </div>
 
                     <div id="risk-map" class="risk-map"><?= $riskMapSvg ?></div>
                     <p class="risk-map-legend">
-                        <span><span class="risk-owner-glyph owner-human" aria-hidden="true">&#9679;</span> Player circle</span>
-                        <span><span class="risk-owner-glyph owner-ai" aria-hidden="true">&#9670;</span> Browser diamond</span>
-                        <span><span class="risk-owner-glyph owner-neutral" aria-hidden="true">&#9632;</span> Neutral square</span>
+                        <span id="risk-legend-owners" class="risk-legend-owners"></span>
                         <span><strong>FROM</strong> / <strong>TO</strong> mark source and target</span>
                         <span>Dashed ring: legal destination</span>
                         <span>Dashed gold line: sea route</span>
@@ -110,6 +90,29 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
                         <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
                     </div>
+
+                    <section class="risk-subpanel risk-setup-settings" aria-labelledby="risk-setup-title" aria-describedby="risk-setup-note">
+                        <h3 id="risk-setup-title">Game setup</h3>
+                        <fieldset id="risk-bot-count" class="risk-dice-choice risk-setting-choice risk-bot-count-choice">
+                            <legend>Bot opponents</legend>
+                            <label><input type="radio" name="risk-bot-count" value="1"> 1</label>
+                            <label><input type="radio" name="risk-bot-count" value="2" checked> 2</label>
+                            <label><input type="radio" name="risk-bot-count" value="3"> 3</label>
+                            <label><input type="radio" name="risk-bot-count" value="4"> 4</label>
+                            <label><input type="radio" name="risk-bot-count" value="5"> 5</label>
+                        </fieldset>
+                        <fieldset id="risk-placement-options" class="risk-dice-choice risk-setting-choice">
+                            <legend>Placement</legend>
+                            <label><input type="radio" name="risk-placement" value="random" checked> Random</label>
+                            <label><input type="radio" name="risk-placement" value="manual"> Manual</label>
+                        </fieldset>
+                        <fieldset id="risk-card-mode-options" class="risk-dice-choice risk-setting-choice">
+                            <legend>Cards</legend>
+                            <label><input type="radio" name="risk-card-mode" value="incremental" checked> Incremental</label>
+                            <label><input type="radio" name="risk-card-mode" value="fixed"> Fixed</label>
+                        </fieldset>
+                        <p id="risk-setup-note" class="risk-setting-note">Changes apply to the next new game.</p>
+                    </section>
 
                     <section class="risk-subpanel risk-attack-controls" aria-labelledby="risk-attack-title">
                         <h3 id="risk-attack-title">Attack</h3>
@@ -178,15 +181,15 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
 
             <section class="risk-panel risk-rules" aria-labelledby="risk-rules-title">
                 <p class="eyebrow">How to play</p>
-                <h2 id="risk-rules-title">Classic two-player rules with a neutral army</h2>
+                <h2 id="risk-rules-title">Classic rules against one to five bots</h2>
                 <div class="risk-rules-grid">
                     <div>
-                        <h3>Variant</h3>
-                        <p>You and the Browser are the only active players. A third, neutral army holds territory and defends with the most dice allowed, but never takes turns, receives reinforcements, or holds cards. You win by eliminating the Browser; leftover neutral territories do not need to be conquered.</p>
+                        <h3>Seats</h3>
+                        <p>Choose <strong>1 to 5 bot opponents</strong> under Game setup. Turns pass from you to Bot 1 through Bot 5 in order, and each bot plans its moves with a game-tree search. With <strong>one bot</strong> the classic two-player variant applies: a third, neutral army holds territory and defends with the most dice allowed, but never takes turns, receives reinforcements, or holds cards, and leftover neutral territories do not need to be conquered. With <strong>two or more bots</strong> there is no neutral army. You win when you are the last seat standing and lose as soon as your last territory falls.</p>
                     </div>
                     <div>
                         <h3>Setup</h3>
-                        <p>The 42 territories are dealt at random: 14 each to you, the Browser and Neutral, with one army on each. Each placement step, the active player adds two of their own armies and one neutral army. Steps alternate until every color has 40 armies. The first player is chosen at random.</p>
+                        <p>The 42 territories are dealt at random with one army on each. With one bot, you, Bot 1 and Neutral get 14 territories each and every color ends setup with 40 armies. With two, three, four or five bots, all 42 territories are dealt among the seats and every seat ends setup with 35, 30, 25 or 20 armies. The first player is chosen at random. With <strong>Random</strong> placement, every remaining army is spread at random, at most 4 per territory, and play starts at once. With <strong>Manual</strong> placement, the seats take turns adding two of their own armies per step, plus one neutral army in the one-bot game, until all armies are placed; Auto-place setup finishes your share at random, at most 4 per territory. Game setup choices apply when you start a new game.</p>
                     </div>
                     <div>
                         <h3>Reinforce</h3>
@@ -194,11 +197,15 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     </div>
                     <div>
                         <h3>Cards</h3>
-                        <p>If you conquer at least one territory during your turn, including a neutral one, you draw one card at the end of it. Three of a kind, one of each, or any two cards plus a wild make a set. Sets are worth 4, 6, 8, 10, 12 and 15 armies, then 5 more each time; this count is shared by both players. Holding five or more cards forces a trade at the start of your turn. If you own a territory pictured on a traded card, it gets 2 extra armies (once per turn).</p>
+                        <p>If you conquer at least one territory during your turn, including a neutral one, you draw one card at the end of it. Three of a kind, one of each, or any two cards plus a wild make a set. With <strong>Incremental</strong> cards, sets are worth 4, 6, 8, 10, 12 and 15 armies, then 5 more each time; this count is shared by every seat, so each trade raises the value of the next set for everyone. With <strong>Fixed</strong> cards, a set is always worth the same by type: 3 infantry 4, 3 cavalry 6, 3 artillery 8, one of each 10, and a wild counts as whichever gives the best value. Holding five or more cards forces a trade at the start of your turn. If you own a territory pictured on a traded card, it gets 2 extra armies (once per turn).</p>
                     </div>
                     <div>
                         <h3>Attack</h3>
-                        <p>Attack a hostile territory that is adjacent or connected by a sea route. The attacker rolls 1–3 dice and must have more armies than dice; the defender rolls 1–2 dice, no more than their armies. Dice are sorted highest first and compared in pairs, with ties going to the defender. After a conquest, move in at least as many armies as dice you rolled, always leaving one behind.</p>
+                        <p>Attack a hostile territory that is adjacent or connected by a sea route. The attacker rolls 1–3 dice and must have more armies than dice; the defender rolls 1–2 dice, no more than their armies. Dice are sorted highest first and compared in pairs, with ties going to the defender. After a conquest, move in at least as many armies as dice you rolled, always leaving one behind. You choose your defense dice when a bot attacks you; bots and the neutral army always defend with the most dice allowed.</p>
+                    </div>
+                    <div>
+                        <h3>Elimination</h3>
+                        <p>A seat that loses its last territory is eliminated: the scoreboard marks it and it drops out of the turn order. The seat that conquered it captures all of its cards. If that leaves the conqueror holding five or more, the forced trade applies at the start of its next turn.</p>
                     </div>
                     <div>
                         <h3>Fortify &amp; controls</h3>
