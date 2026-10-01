@@ -53,8 +53,25 @@
     align-items: start;
 }
 
+.risk-layout > * {
+    min-width: 0;
+}
+
 .risk-panel {
     padding: clamp(0.95rem, 2.5vw, 1.35rem);
+}
+
+/* Screen-reader-only live region for consolidated phase and action announcements. */
+.risk-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .risk-board-panel {
@@ -103,6 +120,21 @@
 
 .risk-scoreboard {
     margin-bottom: 1rem;
+}
+
+/* The reserve counter names whose armies it counts, so it may wrap on narrow screens. */
+.risk-scoreboard .risk-reserve {
+    border-color: rgba(248, 209, 108, 0.45);
+    white-space: normal;
+}
+
+.risk-reserve strong {
+    color: var(--risk-neutral);
+    font-size: 0.95rem;
+}
+
+.risk-reserve-owner {
+    font-size: inherit;
 }
 
 /* The per-seat entries are rendered by the game script and laid out as scoreboard items. */
@@ -226,6 +258,37 @@
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+}
+
+/* Shown by the game script only while the board is wider than its frame. */
+.risk-map-hint {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+    margin: 0 0 0.5rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px dashed rgba(248, 209, 108, 0.55);
+    border-radius: 6px;
+    background: rgba(248, 209, 108, 0.08);
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    font-weight: 750;
+    line-height: 1.35;
+}
+
+.risk-map-hint[hidden] {
+    display: none;
+}
+
+.risk-map-hint span {
+    color: var(--risk-neutral);
+    font-size: 1.1rem;
+}
+
+.risk-map.is-scrollable {
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset -18px 0 16px -14px rgba(248, 209, 108, 0.45);
 }
 
 .risk-board-svg {
@@ -675,11 +738,35 @@
     background: rgba(10, 32, 44, 0.88);
     color: var(--ink);
     font: inherit;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 900;
+    line-height: 1.2;
     letter-spacing: 0;
     text-transform: uppercase;
     cursor: pointer;
+}
+
+/* Restarting abandons the current game, so it reads as a secondary, cautionary action. */
+.risk-button-restart {
+    border-style: dashed;
+    color: var(--ink-soft);
+}
+
+.risk-button:focus-visible,
+.risk-inline-field input[type="number"]:focus-visible,
+.risk-check input:focus-visible,
+.risk-setup-toggle:focus-visible {
+    outline: 3px solid #7dd3fc;
+    outline-offset: 2px;
+}
+
+.risk-start-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 750;
+    line-height: 1.35;
 }
 
 .risk-button-primary {
@@ -819,7 +906,44 @@
 /* Game setup settings */
 
 .risk-setup-settings {
+    display: block;
+}
+
+.risk-setup-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+    align-items: baseline;
+    min-height: 44px;
+    padding: 0.2rem 0;
+    border-radius: 4px;
+    cursor: pointer;
+    list-style-position: inside;
+}
+
+.risk-setup-heading {
+    color: var(--ink);
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.risk-setup-summary {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 750;
+}
+
+.risk-setup-body {
+    display: grid;
     gap: 0.8rem;
+    margin-top: 0.6rem;
+}
+
+.risk-setting-note.is-changed {
+    padding: 0.45rem 0.6rem;
+    border-left: 3px solid var(--accent-warm);
+    background: rgba(248, 209, 108, 0.09);
+    color: var(--ink);
 }
 
 .risk-setting-choice label {
@@ -1239,21 +1363,32 @@
     line-height: 1.5;
 }
 
+/* In the command column the dice tray sits beside the attack and defense controls. */
+.risk-command-panel > .risk-dice-tray {
+    margin-top: 0;
+}
+
 @media (max-width: 940px) {
     .risk-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
+    /* Stacked: the objective and actions follow the map directly; secondary panels come after. */
     .risk-command-panel {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         align-items: start;
+    }
+
+    .risk-command-panel > .risk-panel-heading {
+        margin-bottom: 0;
     }
 
     .risk-command-panel > .risk-panel-heading,
     .risk-command-panel > .risk-actions,
     .risk-command-panel > .risk-setup-settings,
     .risk-command-panel > .risk-subpanel-alert,
-    .risk-command-panel > .risk-check {
+    .risk-command-panel > .risk-check,
+    .risk-command-panel > .risk-dice-tray {
         grid-column: 1 / -1;
     }
 }

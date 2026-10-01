@@ -148,6 +148,17 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         text: byElementId('risk-objective-text'),
         blocker: byElementId('risk-objective-blocker')
     };
+
+    // Optional layout and accessibility helpers; each is skipped when the page omits it.
+    const uxElements = {
+        announcer: byElementId('risk-announcer'),
+        reserveOwner: byElementId('risk-reinforcements-owner'),
+        setupPanel: byElementId('risk-setup-panel'),
+        setupSummary: byElementId('risk-setup-summary'),
+        setupNote: byElementId('risk-setup-note'),
+        startNote: byElementId('risk-start-note'),
+        mapHint: byElementId('risk-map-hint')
+    };
     const feedbackBox = byElementId('risk-feedback');
 
     const asButton = (element) => /** @type {HTMLButtonElement} */ (element);
@@ -306,7 +317,14 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         /** @type {Map<string, {item: HTMLElement, button: HTMLButtonElement, owned: HTMLElement}>} */
         cardNodes: new Map(),
         /** @type {Set<string>} */
-        missingArt: new Set()
+        missingArt: new Set(),
+        // Accessible announcements and decision focus survive restarts so nothing is repeated.
+        /** @type {string|null} */
+        announcedPhase: null,
+        announcedMessage: '',
+        decision: '',
+        /** @type {HTMLElement|null} */
+        decisionReturn: null
     };
 
     const schedule = (callback, delay) => {
@@ -1067,6 +1085,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         state.setupPool = { ...game.setupPool };
         state.firstPlayer = game.firstPlayer;
 
+        // Setup folds away during play so the turn controls sit right under the objective.
+        if (uxElements.setupPanel instanceof HTMLDetailsElement) {
+            uxElements.setupPanel.open = false;
+        }
+
         if (config.placement === 'random') {
             Object.keys(state.setupPool).forEach((owner) => {
                 state.setupPool[owner] -= distributeSetupArmies(state.territories, owner, state.setupPool[owner]);
@@ -1184,7 +1207,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         return note;
     };
 
-    const declareVictory = (winner) => {
+    // Ends the game: clears pending decisions and timers. `winner` is null when no single seat has won.
+    const finishGame = (winner, message) => {
         cancelPending();
         state.phase = 'gameover';
         state.active = false;
@@ -1194,18 +1218,37 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         state.pendingDefense = null;
         state.reinforcementRemaining = 0;
         state.targetId = null;
+        state.message = message;
+        addLog(message);
 
+        if (uxElements.setupPanel instanceof HTMLDetailsElement) {
+            uxElements.setupPanel.open = true;
+        }
+
+        render();
+    };
+
+    // The player is out. Only a genuine last active seat is recorded as the winner.
+    const declareDefeat = (conqueror) => {
+        const survivors = activeSeats();
+        const winner = survivors.length === 1 ? survivors[0] : null;
+        const outcome = winner
+            ? ` ${winner === conqueror ? 'It is' : `${ownerLabel(winner)} is`} the last seat standing.`
+            : ` ${survivors.length} bots are still in play, so no overall winner is declared.`;
+
+        finishGame(winner, `Defeat. ${ownerLabel(conqueror)} eliminated your last army.${outcome} Press New game for a rematch.`);
+    };
+
+    const declareVictory = (winner) => {
         const neutralLeft = ownedBy(NEUTRAL_ID).length;
         const neutralNote = neutralLeft > 0
             ? ` ${neutralLeft} neutral ${neutralLeft === 1 ? 'territory remains' : 'territories remain'}, which this variant does not require you to conquer.`
             : '';
         const rivals = state.players.filter((seat) => seat !== 'human');
 
-        state.message = winner === 'human'
+        finishGame(winner, winner === 'human'
             ? `Victory! ${rivals.length === 1 ? `You eliminated ${ownerLabel(rivals[0])}.` : `You are the last seat standing: all ${rivals.length} bots are eliminated.`}${neutralNote}`
-            : `Defeat. ${ownerLabel(winner)} eliminated your last army. Start a new game for a rematch.`;
-        addLog(state.message);
-        render();
+            : `Defeat. ${ownerLabel(winner)} is the last seat standing. Press New game for a rematch.`);
     };
 
     /* ------------------------------------------------------------------
@@ -1273,9 +1316,9 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
                 summary += ` ${eliminateSeat(battle.defender, battle.attacker)}`;
             }
 
-            // Defeat as soon as the player is eliminated; victory once the player is the last seat.
+            // Defeat as soon as the player is eliminated; a winner only once a single seat remains.
             if (isEliminated('human')) {
-                declareVictory(battle.attacker);
+                declareDefeat(battle.attacker);
                 return;
             }
 
@@ -2505,7 +2548,10 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             .map((cardId) => state.hands.human.find((card) => card.id === cardId))
             .filter(Boolean);
 
-        elements.startButton.textContent = state.active ? 'Restart game' : 'New game';
+        // Starting is the primary action between games; restarting mid-game is a secondary, clearly named one.
+        setText(elements.startButton, state.active ? 'Restart game' : 'New game');
+        elements.startButton.classList.toggle('risk-button-primary', !state.active);
+        elements.startButton.classList.toggle('risk-button-restart', state.active);
 
         asButton(elements.autoSetupButton).disabled = !(state.active && state.phase === 'setup' && !state.autoSetupHuman);
         asButton(elements.reinforceButton).disabled = !(
@@ -2675,15 +2721,46 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }));
     };
 
+    const setText = (element, text) => {
+        if (element && element.textContent !== text) {
+            element.textContent = text;
+        }
+    };
+
+    const ownerPossessive = (seat) => (seat === 'human' ? 'Your' : `${ownerLabel(seat)}'s`);
+
+    const describeConfig = (config) => [
+        `${config.botCount} ${config.botCount === 1 ? 'bot' : 'bots'}`,
+        `${config.placement === 'manual' ? 'Manual' : 'Random'} placement`,
+        `${config.cardMode === 'fixed' ? 'Fixed' : 'Incremental'} cards`
+    ].join(' · ');
+
+    // The reserve counter always names the seat whose armies it counts.
+    const reserveFor = () => {
+        if (state.active && state.phase === 'setup') {
+            const seat = state.current && state.setupPool[state.current] !== undefined ? state.current : 'human';
+
+            return { count: state.setupPool[seat] || 0, label: `${ownerPossessive(seat)} setup armies to place` };
+        }
+
+        if (state.active && state.current) {
+            return { count: state.reinforcementRemaining, label: `${ownerPossessive(state.current)} armies to place` };
+        }
+
+        return { count: 0, label: 'Armies to place' };
+    };
+
     const renderSummary = () => {
-        elements.turn.textContent = String(state.turn);
-        elements.phase.textContent = state.active
-            ? `${ownerLabel(state.current)}: ${phaseLabels[state.phase] || 'Ready'}`
-            : phaseLabels[state.phase] || 'Ready';
-        elements.reinforcements.textContent = String(state.phase === 'setup'
-            ? state.setupPool.human
-            : state.current === 'human' ? state.reinforcementRemaining : 0);
-        elements.status.textContent = state.message;
+        const reserve = reserveFor();
+        const phase = phaseLabels[state.phase] || 'Ready';
+
+        setText(elements.turn, String(state.turn));
+        setText(elements.phase, state.active && state.current
+            ? `${state.current === 'human' ? 'Your turn' : `${ownerLabel(state.current)}'s turn`} · ${phase}`
+            : phase);
+        setText(elements.reinforcements, String(reserve.count));
+        setText(uxElements.reserveOwner, reserve.label);
+        setText(elements.status, state.message);
         renderScoreboard();
         renderLegend();
     };
@@ -2700,15 +2777,25 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     // The current objective plus, when the next relevant action is unavailable, the reason why.
     const objectiveFor = () => {
         if (state.phase === 'gameover') {
-            return state.winner === 'human'
-                ? { title: 'Victory', text: 'You hold the table. Press New game to play again.', blocker: '' }
-                : { title: 'Defeat', text: `${state.winner ? ownerLabel(state.winner) : 'A rival'} won this game. Press New game for a rematch.`, blocker: '' };
+            if (state.winner === 'human') {
+                return { title: 'Victory', text: 'You hold the table. Adjust Game setup if you like, then press New game to play again.', blocker: '' };
+            }
+
+            const botsLeft = activeSeats().filter((seat) => seat !== 'human').length;
+
+            return {
+                title: 'Defeat',
+                text: state.winner
+                    ? `You were eliminated and ${ownerLabel(state.winner)} is the last seat standing. Adjust Game setup if you like, then press New game for a rematch.`
+                    : `You were eliminated with ${botsLeft} bots still in play, so no overall winner was decided. Adjust Game setup if you like, then press New game for a rematch.`,
+                blocker: ''
+            };
         }
 
         if (!state.active) {
             return {
                 title: 'Ready to play',
-                text: 'Pick your Game setup options, then press New game to deal the world.',
+                text: 'Choose your Game setup below, then press New game to deal the world.',
                 blocker: ''
             };
         }
@@ -2874,15 +2961,138 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         blocker.hidden = objective.blocker === '';
     };
 
+    const renderSetupInfo = () => {
+        const next = readSetupConfig();
+        const current = state.config;
+        const changed = state.active && Boolean(current) && (
+            next.botCount !== current.botCount
+            || next.placement !== current.placement
+            || next.cardMode !== current.cardMode
+        );
+
+        setText(uxElements.setupSummary, describeConfig(next));
+        setText(uxElements.setupNote, !state.active
+            ? 'These settings are used when you press New game.'
+            : changed
+                ? `Changed settings apply to the next game. This game keeps ${describeConfig(current)}; press Restart game to switch now.`
+                : 'Changes apply to the next game, not the one in progress.');
+        setText(uxElements.startNote, state.active
+            ? 'Restart game abandons this game and deals a new one with the setup above.'
+            : 'New game deals the world with the setup above.');
+
+        if (uxElements.setupNote) {
+            uxElements.setupNote.classList.toggle('is-changed', changed);
+        }
+    };
+
+    // One polite announcement per change: the phase line when the turn or phase changes, then the new message.
+    const announce = () => {
+        const region = uxElements.announcer;
+        const phaseKey = state.active ? `${state.current}:${state.phase}` : state.phase;
+
+        if (!region) {
+            return;
+        }
+
+        if (runtime.announcedPhase === null) {
+            // The initial page state is already on screen; nothing to announce on load.
+            runtime.announcedPhase = phaseKey;
+            runtime.announcedMessage = state.message;
+            return;
+        }
+
+        const parts = [];
+
+        if (phaseKey !== runtime.announcedPhase) {
+            runtime.announcedPhase = phaseKey;
+            parts.push(elements.phase.textContent);
+        }
+
+        if (state.message !== runtime.announcedMessage) {
+            runtime.announcedMessage = state.message;
+
+            if (state.message) {
+                parts.push(state.message);
+            }
+        }
+
+        if (parts.length > 0) {
+            region.textContent = parts.join('. ');
+        }
+    };
+
+    const canFocus = (element) => element instanceof HTMLElement
+        && element.isConnected
+        && !element.closest('[hidden]')
+        && !(/** @type {HTMLButtonElement} */ (element).disabled);
+
+    // Focus moves into a conquest or defense decision only when it first appears, and returns once it resolves.
+    const syncDecisionFocus = () => {
+        const decision = !elements.defensePanel.hidden
+            ? 'defense'
+            : !elements.conquestPanel.hidden ? 'conquest' : '';
+
+        if (decision === runtime.decision) {
+            return;
+        }
+
+        const previousPanel = runtime.decision === 'defense'
+            ? elements.defensePanel
+            : runtime.decision === 'conquest' ? elements.conquestPanel : null;
+        const active = document.activeElement;
+        const focusWasInPanel = previousPanel !== null
+            && (!active || active === document.body || previousPanel.contains(active));
+
+        runtime.decision = decision;
+
+        if (decision) {
+            if (previousPanel === null) {
+                runtime.decisionReturn = active instanceof HTMLElement && active !== document.body ? active : null;
+            }
+
+            if (decision === 'defense') {
+                (canFocus(elements.defendTwoButton) ? elements.defendTwoButton : elements.defendOneButton).focus();
+            } else {
+                const input = asInput(elements.conquestCount);
+
+                input.focus();
+                input.select();
+            }
+
+            return;
+        }
+
+        const returnTo = runtime.decisionReturn;
+
+        runtime.decisionReturn = null;
+
+        if (!focusWasInPanel) {
+            return;
+        }
+
+        // After the game ends the next sensible step is a new game; otherwise go back where the player was.
+        const candidates = state.active
+            ? [returnTo, elements.attackButton, elements.endButton, elements.autoDefend, elements.startButton]
+            : [elements.startButton];
+        const next = candidates.find(canFocus);
+
+        if (next) {
+            next.focus();
+        }
+    };
+
     const render = () => {
         renderSummary();
         renderControls();
+        renderSetupInfo();
         renderObjective();
         renderMap();
         renderSelection();
         renderHand();
         renderDice();
         renderLog();
+        announce();
+        syncDecisionFocus();
     };
 
     /* ------------------------------------------------------------------
@@ -2949,6 +3159,32 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             confirmConquest();
         }
     });
+    // Setup choices only describe the next game; the notes say so as soon as a choice changes.
+    [...botCountInputs, ...placementInputs, ...cardModeInputs].forEach((input) => {
+        input.addEventListener('change', renderSetupInfo);
+    });
+
+    // The scroll hint appears only while the board is wider than its frame.
+    const updateMapHint = () => {
+        const hint = uxElements.mapHint;
+
+        if (!hint) {
+            return;
+        }
+
+        const scrollable = elements.map.scrollWidth - elements.map.clientWidth > 2;
+
+        hint.hidden = !scrollable;
+        elements.map.classList.toggle('is-scrollable', scrollable);
+    };
+
+    if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(updateMapHint).observe(elements.map);
+    } else {
+        window.addEventListener('resize', updateMapHint);
+    }
+
+    window.requestAnimationFrame(updateMapHint);
 
     state.territories = territoryCatalog.map((territory) => ({
         ...territory,

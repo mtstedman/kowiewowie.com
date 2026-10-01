@@ -49,31 +49,19 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
 
                     <div class="risk-scoreboard" aria-label="Territory counts, cards and player avatars">
                         <div id="risk-scoreboard-seats" class="risk-scoreboard-seats"></div>
-                        <span><strong id="risk-reinforcements-value">0</strong> To place</span>
+                        <span class="risk-reserve"><strong id="risk-reinforcements-value">0</strong> <small id="risk-reinforcements-owner" class="risk-reserve-owner">Armies to place</small></span>
                     </div>
 
+                    <p id="risk-map-hint" class="risk-map-hint" hidden><span aria-hidden="true">&#8644;</span> The map is wider than the screen: scroll it sideways to see every territory.</p>
                     <div id="risk-map" class="risk-map"><?= $riskMapSvg ?></div>
+                    <p id="risk-status-message" class="risk-status-message">Start a new game to deal the world.</p>
                     <p class="risk-map-legend">
                         <span id="risk-legend-owners" class="risk-legend-owners"></span>
                         <span><strong>FROM</strong> / <strong>TO</strong> mark source and target</span>
                         <span>Dashed ring: legal destination</span>
                         <span>Dashed gold line: sea route</span>
                     </p>
-                    <p id="risk-status-message" class="risk-status-message" role="status" aria-live="polite">Start a new game to deal the world.</p>
-
-                    <section id="risk-dice-tray" class="risk-dice-tray" aria-labelledby="risk-dice-title">
-                        <h3 id="risk-dice-title">Dice tray</h3>
-                        <div class="risk-dice-side risk-dice-side-attack">
-                            <span id="risk-dice-attack-label" class="risk-dice-label">Attacker</span>
-                            <div id="risk-dice-attack" class="risk-dice-row"></div>
-                        </div>
-                        <div class="risk-dice-side risk-dice-side-defend">
-                            <span id="risk-dice-defend-label" class="risk-dice-label">Defender</span>
-                            <div id="risk-dice-defend" class="risk-dice-row"></div>
-                        </div>
-                        <ol id="risk-dice-comparisons" class="risk-dice-comparisons"></ol>
-                        <p id="risk-dice-result" class="risk-dice-result" aria-live="polite">No battle yet.</p>
-                    </section>
+                    <p id="risk-announcer" class="risk-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
                 </section>
 
                 <aside class="risk-panel risk-command-panel" aria-labelledby="risk-command-title">
@@ -87,40 +75,46 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     <section class="risk-objective" aria-labelledby="risk-objective-label">
                         <p id="risk-objective-label" class="risk-objective-label">Current objective</p>
                         <h3 id="risk-objective-title">Ready to play</h3>
-                        <p id="risk-objective-text" class="risk-objective-text">Pick your Game setup options, then press New game to deal the world.</p>
+                        <p id="risk-objective-text" class="risk-objective-text">Choose your Game setup below, then press New game to deal the world.</p>
                         <p id="risk-objective-blocker" class="risk-objective-blocker" hidden></p>
                         <p id="risk-feedback" class="risk-feedback"></p>
                     </section>
 
+                    <details id="risk-setup-panel" class="risk-subpanel risk-setup-settings" open>
+                        <summary class="risk-setup-toggle">
+                            <span id="risk-setup-title" class="risk-setup-heading">Game setup</span>
+                            <span id="risk-setup-summary" class="risk-setup-summary">2 bots · Random placement · Incremental cards</span>
+                        </summary>
+                        <div class="risk-setup-body">
+                            <fieldset id="risk-bot-count" class="risk-dice-choice risk-setting-choice risk-bot-count-choice">
+                                <legend>Bot opponents</legend>
+                                <label><input type="radio" name="risk-bot-count" value="1"> 1</label>
+                                <label><input type="radio" name="risk-bot-count" value="2" checked> 2</label>
+                                <label><input type="radio" name="risk-bot-count" value="3"> 3</label>
+                                <label><input type="radio" name="risk-bot-count" value="4"> 4</label>
+                                <label><input type="radio" name="risk-bot-count" value="5"> 5</label>
+                            </fieldset>
+                            <fieldset id="risk-placement-options" class="risk-dice-choice risk-setting-choice">
+                                <legend>Placement</legend>
+                                <label><input type="radio" name="risk-placement" value="random" checked> Random</label>
+                                <label><input type="radio" name="risk-placement" value="manual"> Manual</label>
+                            </fieldset>
+                            <fieldset id="risk-card-mode-options" class="risk-dice-choice risk-setting-choice">
+                                <legend>Cards</legend>
+                                <label><input type="radio" name="risk-card-mode" value="incremental" checked> Incremental</label>
+                                <label><input type="radio" name="risk-card-mode" value="fixed"> Fixed</label>
+                            </fieldset>
+                            <p id="risk-setup-note" class="risk-setting-note">These settings are used when you press New game. Changes made during a game apply to the next game.</p>
+                        </div>
+                    </details>
+
                     <div class="risk-actions" aria-label="Risk game controls">
-                        <button class="risk-button risk-button-primary" type="button" id="risk-start-button">New game</button>
+                        <button class="risk-button risk-button-primary" type="button" id="risk-start-button" aria-describedby="risk-start-note">New game</button>
                         <button class="risk-button" type="button" id="risk-end-button" disabled>End phase</button>
                         <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
                         <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
+                        <p id="risk-start-note" class="risk-start-note">New game deals the world with the setup above.</p>
                     </div>
-
-                    <section class="risk-subpanel risk-setup-settings" aria-labelledby="risk-setup-title" aria-describedby="risk-setup-note">
-                        <h3 id="risk-setup-title">Game setup</h3>
-                        <fieldset id="risk-bot-count" class="risk-dice-choice risk-setting-choice risk-bot-count-choice">
-                            <legend>Bot opponents</legend>
-                            <label><input type="radio" name="risk-bot-count" value="1"> 1</label>
-                            <label><input type="radio" name="risk-bot-count" value="2" checked> 2</label>
-                            <label><input type="radio" name="risk-bot-count" value="3"> 3</label>
-                            <label><input type="radio" name="risk-bot-count" value="4"> 4</label>
-                            <label><input type="radio" name="risk-bot-count" value="5"> 5</label>
-                        </fieldset>
-                        <fieldset id="risk-placement-options" class="risk-dice-choice risk-setting-choice">
-                            <legend>Placement</legend>
-                            <label><input type="radio" name="risk-placement" value="random" checked> Random</label>
-                            <label><input type="radio" name="risk-placement" value="manual"> Manual</label>
-                        </fieldset>
-                        <fieldset id="risk-card-mode-options" class="risk-dice-choice risk-setting-choice">
-                            <legend>Cards</legend>
-                            <label><input type="radio" name="risk-card-mode" value="incremental" checked> Incremental</label>
-                            <label><input type="radio" name="risk-card-mode" value="fixed"> Fixed</label>
-                        </fieldset>
-                        <p id="risk-setup-note" class="risk-setting-note">Changes apply to the next new game.</p>
-                    </section>
 
                     <section class="risk-subpanel risk-attack-controls" aria-labelledby="risk-attack-title">
                         <h3 id="risk-attack-title">Attack</h3>
@@ -138,12 +132,12 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         <p id="risk-conquest-help">Choose how many armies move in.</p>
                         <div class="risk-inline-field">
                             <label for="risk-conquest-count">Armies to move</label>
-                            <input id="risk-conquest-count" type="number" inputmode="numeric" min="1" max="1" step="1" value="1">
+                            <input id="risk-conquest-count" type="number" inputmode="numeric" min="1" max="1" step="1" value="1" aria-describedby="risk-conquest-help">
                             <button class="risk-button risk-button-primary" type="button" id="risk-conquest-button">Move armies</button>
                         </div>
                     </section>
 
-                    <section id="risk-defense-panel" class="risk-subpanel risk-subpanel-alert" aria-labelledby="risk-defense-title" hidden>
+                    <section id="risk-defense-panel" class="risk-subpanel risk-subpanel-alert" aria-labelledby="risk-defense-title" aria-describedby="risk-defense-help" hidden>
                         <h3 id="risk-defense-title">You are under attack</h3>
                         <p id="risk-defense-help">Choose your defense dice.</p>
                         <div class="risk-inline-field">
@@ -152,6 +146,20 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         </div>
                     </section>
                     <label class="risk-check"><input type="checkbox" id="risk-auto-defend"> Always defend with maximum dice</label>
+
+                    <section id="risk-dice-tray" class="risk-dice-tray" aria-labelledby="risk-dice-title">
+                        <h3 id="risk-dice-title">Dice tray</h3>
+                        <div class="risk-dice-side risk-dice-side-attack">
+                            <span id="risk-dice-attack-label" class="risk-dice-label">Attacker</span>
+                            <div id="risk-dice-attack" class="risk-dice-row"></div>
+                        </div>
+                        <div class="risk-dice-side risk-dice-side-defend">
+                            <span id="risk-dice-defend-label" class="risk-dice-label">Defender</span>
+                            <div id="risk-dice-defend" class="risk-dice-row"></div>
+                        </div>
+                        <ol id="risk-dice-comparisons" class="risk-dice-comparisons"></ol>
+                        <p id="risk-dice-result" class="risk-dice-result">No battle yet.</p>
+                    </section>
 
                     <section class="risk-subpanel" aria-labelledby="risk-fortify-title">
                         <h3 id="risk-fortify-title">Fortify</h3>
