@@ -41,7 +41,12 @@ final class TriviaQuestionCatalog
         if ($question === '' || mb_strlen($question) > 300) {
             throw new ApiException(422, 'validation_error', 'Each prompt question must contain 1 to 300 characters.');
         }
-        if ($correctAnswer === '' || mb_strlen($correctAnswer) > 200) {
+        $rawAnswerShape = $value['answer_shape'] ?? null;
+        $declaresMultiSelect = is_array($rawAnswerShape)
+            && trim((string) ($rawAnswerShape['type'] ?? 'single_choice')) === 'multi_select';
+        $suppliesCorrectAnswers = ($value['correct_answers'] ?? (is_array($rawAnswerShape) ? ($rawAnswerShape['correct_answers'] ?? null) : null)) !== null;
+        $correctAnswerDerivable = $declaresMultiSelect && $suppliesCorrectAnswers;
+        if (($correctAnswer === '' && !$correctAnswerDerivable) || mb_strlen($correctAnswer) > 200) {
             throw new ApiException(422, 'validation_error', 'Each prompt correct_answer must contain 1 to 200 characters.');
         }
         $choices = $value['choices'] ?? null;
@@ -50,7 +55,7 @@ final class TriviaQuestionCatalog
         }
         $choices = array_values(array_map(static fn (mixed $choice): string => trim((string) $choice), $choices));
         $choices = array_values(array_filter($choices, static fn (string $choice): bool => $choice !== ''));
-        if (!in_array($correctAnswer, $choices, true)) {
+        if ($correctAnswer !== '' && !in_array($correctAnswer, $choices, true)) {
             $choices[] = $correctAnswer;
         }
         if (count($choices) < 2) {
@@ -75,13 +80,17 @@ final class TriviaQuestionCatalog
                 array_map(static fn (mixed $answer): string => trim((string) $answer), $correctAnswers),
                 static fn (string $answer): bool => $answer !== ''
             ));
-            if ($answerShape['correct_answers'] === []) {
+            if ($answerShape['correct_answers'] === [] && $answerShapeType !== 'multi_select') {
                 throw new ApiException(422, 'validation_error', 'Prompt correct_answers must contain at least one answer.');
             }
             foreach ($answerShape['correct_answers'] as $answer) {
                 if (!in_array($answer, $choices, true)) {
                     throw new ApiException(422, 'validation_error', 'Every correct_answers value must also appear in choices.');
                 }
+            }
+            if ($correctAnswer === '') {
+                // Placeholder for none/all-correct multi_select prompts; satisfies DB CHECKs, never used for scoring.
+                $correctAnswer = $answerShape['correct_answers'][0] ?? $choices[0];
             }
         } elseif ($answerShapeType === 'multi_select') {
             $answerShape['correct_answers'] = [$correctAnswer];

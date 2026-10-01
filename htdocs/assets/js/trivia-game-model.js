@@ -80,7 +80,11 @@ export const correctAnswersForRound = (room) => {
             .map((item) => String(item.label || '').trim())
             .filter((item) => item !== '');
     }
-    const shapedAnswers = stringList(round.answer_shape?.correct_answers);
+    const shapedCorrectAnswers = round.answer_shape?.correct_answers;
+    if (round.answer_shape?.type === 'multi_select' && Array.isArray(shapedCorrectAnswers)) {
+        return stringList(shapedCorrectAnswers);
+    }
+    const shapedAnswers = stringList(shapedCorrectAnswers);
     return shapedAnswers.length > 0 ? shapedAnswers : stringList([round.prompt?.correct_answer]);
 };
 
@@ -164,7 +168,7 @@ export const phasePresentation = (room) => {
             key: 'ghost_race',
             label: 'Final round',
             title: 'Escape the ghost race',
-            instructions: 'Select every answer that fits. Each correct judgment moves you toward the exit—or the body.',
+            instructions: 'All, some, or none of the choices may be correct. Each correct pick or correctly skipped choice moves you one space toward the exit—or the body.',
             image: `${SCENE_ROOT}/ghost-race-finale.png`,
             alt: 'Colorful ghosts racing through a haunted hallway beneath a glowing question mark.',
         };

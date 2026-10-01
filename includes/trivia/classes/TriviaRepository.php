@@ -10,6 +10,7 @@ use Wowie\Api\ApiException;
 
 final class TriviaRepository
 {
+    private const MAX_TRIVIA_ROUNDS = 15;
     private const PHASE_TRIVIA = 'trivia';
     private const PHASE_KILLING_FLOOR = 'killing_floor';
     private const PHASE_GHOST_RACE = 'ghost_race';
@@ -950,7 +951,7 @@ final class TriviaRepository
     /** @param array<string, mixed> $room */
     private function openRound(array $room, int $roundNumber, ?int $promptOrder = null): void
     {
-        $promptOrder ??= $roundNumber;
+        $promptOrder ??= $this->nextQuestionPromptOrder($room, 'single_choice');
         $promptStatement = $this->pdo->prepare(<<<'SQL'
             SELECT id, question, correct_answer, choices,
                    COALESCE(answer_shape, '{"type":"single_choice"}'::jsonb) AS answer_shape,
@@ -1089,12 +1090,21 @@ final class TriviaRepository
      */
     private function openNextRoundOrFinish(array $room, array $players, array $round): void
     {
-        $nextRound = ((int) $round['round_number']) + 1;
-        $promptOrder = $this->nextQuestionPromptOrder((string) $room['id']);
-        if (!$this->promptExists((string) $room['id'], $promptOrder)) {
-            $this->ensurePromptSupplyAvailable($room, $promptOrder);
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT count(*)
+            FROM trivia_rounds
+            WHERE room_id = :room_id
+              AND COALESCE(round_type, 'trivia') = 'trivia'
+        SQL);
+        $statement->execute(['room_id' => $room['id']]);
+        if ((int) $statement->fetchColumn() >= self::MAX_TRIVIA_ROUNDS) {
+            $this->openRaceOrFinish($room, $players, $round);
+            return;
         }
-        if (!$this->promptExists((string) $room['id'], $promptOrder)) {
+
+        $nextRound = ((int) $round['round_number']) + 1;
+        $promptOrder = $this->nextQuestionPromptOrder($room, 'single_choice');
+        if ($promptOrder === null) {
             $this->finishRoom($room, $players, 'prompts_exhausted');
             return;
         }
@@ -1161,10 +1171,11 @@ final class TriviaRepository
      */
     private function openRaceOrFinish(array $room, array $players, array $round): void
     {
-        if (!$this->hasGhostPlayer($players)) {
+        if ($this->activePlayerCount($players) <= 1 && !$this->hasGhostPlayer($players)) {
             $this->finishRoom($room, $players, 'last_player_standing');
             return;
         }
+
         $this->openRaceRound($room, $players, $round);
     }
 
@@ -1459,11 +1470,8 @@ final class TriviaRepository
         }
 
         $roundNumber = ((int) $sourceRound['round_number']) + 1;
-        $promptOrder = $this->nextQuestionPromptOrder((string) $room['id']);
-        if (!$this->promptExists((string) $room['id'], $promptOrder)) {
-            $this->ensurePromptSupplyAvailable($room, $promptOrder);
-        }
-        if (!$this->promptExists((string) $room['id'], $promptOrder)) {
+        $promptOrder = $this->nextQuestionPromptOrder($room, 'multi_select');
+        if ($promptOrder === null) {
             $this->finishRoomWithWinner($room, $bodyHolderId, 'prompts_exhausted');
             return;
         }
@@ -1479,10 +1487,12 @@ final class TriviaRepository
         $this->pdo->prepare(<<<'SQL'
             UPDATE trivia_players
             SET race_position = GREATEST(race_position, :start)
-            WHERE id = :id
+            WHERE room_id = :room_id
+              AND status = 'active'
+              AND NOT is_ghost
         SQL)->execute([
             'start' => self::RACE_BODY_START,
-            'id' => $bodyHolderId,
+            'room_id' => $room['id'],
         ]);
 
         $positions = $this->racePositionsForPlayers($players, $bodyHolderId);
@@ -1531,11 +1541,8 @@ final class TriviaRepository
     private function resolveRaceRound(array $round): void
     {
         $players = $this->loadPlayersForRoom((string) $round['room_id'], true);
-        $bodyHolderId = (string) ($round['body_holder_player_id'] ?? '');
-        if ($bodyHolderId === '') {
-            $bodyHolderId = $this->bodyHolderId(['body_holder_player_id' => null], $players) ?? '';
-        }
-        if ($bodyHolderId === '') {
+        $bodyHolderId = $this->bodyHolderId($round, $players);
+        if ($bodyHolderId === null) {
             return;
         }
 
@@ -1554,10 +1561,12 @@ final class TriviaRepository
             ]);
         }
 
+        $bodyHolderId = $this->bodyHolderId($round, $players, $positions) ?? $bodyHolderId;
         $caughtBy = $this->catchingGhostId($players, $positions, $bodyHolderId);
         if ($caughtBy !== null) {
             $this->transferBody($bodyHolderId, $caughtBy, (string) $round['room_id'], (string) $round['id']);
-            $bodyHolderId = $caughtBy;
+            $players = $this->loadPlayersForRoom((string) $round['room_id'], true);
+            $bodyHolderId = $this->bodyHolderId($round, $players, $positions) ?? $caughtBy;
         }
 
         $resultStatement = $this->pdo->prepare(<<<'SQL'
@@ -1618,17 +1627,69 @@ final class TriviaRepository
         return (int) $statement->fetchColumn() >= count($eligibleIds);
     }
 
-    private function nextQuestionPromptOrder(string $roomId): int
+    private function nextQuestionPromptOrder(array $room, string $preferredType): ?int
     {
+        $roomId = (string) $room['id'];
         $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT count(*) + 1
-            FROM trivia_rounds
-            WHERE room_id = :room_id
-              AND COALESCE(round_type, 'trivia') IN ('trivia', 'ghost_race')
+            SELECT p.prompt_order, COALESCE(p.answer_shape->>'type', 'single_choice') AS answer_type
+            FROM trivia_prompts p
+            WHERE p.room_id = :room_id
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM trivia_rounds r
+                  WHERE r.room_id = p.room_id
+                    AND r.prompt_id = p.id
+                    AND COALESCE(r.round_type, 'trivia') IN ('trivia', 'ghost_race')
+              )
+            ORDER BY CASE WHEN COALESCE(p.answer_shape->>'type', 'single_choice') = :preferred_type THEN 0 ELSE 1 END,
+                     p.prompt_order
+            LIMIT 1
         SQL);
-        $statement->execute(['room_id' => $roomId]);
+        $statement->execute(['room_id' => $roomId, 'preferred_type' => $preferredType]);
+        $unused = $statement->fetch(PDO::FETCH_ASSOC);
+        if (is_array($unused) && $unused['answer_type'] === $preferredType) {
+            return (int) $unused['prompt_order'];
+        }
 
-        return max(1, (int) $statement->fetchColumn());
+        // Use the default supply before falling back to the other answer shape.
+        try {
+            $defaultPrompts = $this->loadDefaultPrompts();
+        } catch (ApiException) {
+            $defaultPrompts = [];
+        }
+        $existingStatement = $this->pdo->prepare(<<<'SQL'
+            SELECT prompt_order, question, COALESCE(answer_shape->>'type', 'single_choice') AS answer_type
+            FROM trivia_prompts
+            WHERE room_id = :room_id
+        SQL);
+        $existingStatement->execute(['room_id' => $roomId]);
+        $existing = [];
+        $nextOrder = 1;
+        foreach ($existingStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $prompt) {
+            $existing[(string) $prompt['answer_type']][(string) $prompt['question']] = true;
+            $nextOrder = max($nextOrder, (int) $prompt['prompt_order'] + 1);
+        }
+        $fallback = null;
+        foreach ($defaultPrompts as $prompt) {
+            $type = (string) ($prompt['answer_shape']['type'] ?? 'single_choice');
+            if (isset($existing[$type][(string) $prompt['question']])) {
+                continue;
+            }
+            if ($type === $preferredType) {
+                $this->insertPromptAtOrder($roomId, $prompt, $nextOrder);
+                return $nextOrder;
+            }
+            $fallback ??= $prompt;
+        }
+        if (is_array($unused)) {
+            return (int) $unused['prompt_order'];
+        }
+        if ($fallback !== null) {
+            $this->insertPromptAtOrder($roomId, $fallback, $nextOrder);
+            return $nextOrder;
+        }
+
+        return null;
     }
 
     private function promptExists(string $roomId, int $roundNumber): bool
@@ -2197,19 +2258,26 @@ final class TriviaRepository
      * @param array<string, mixed> $room
      * @param list<array<string, mixed>> $players
      */
-    private function bodyHolderId(array $room, array $players): ?string
+    private function bodyHolderId(array $room, array $players, ?array $positions = null): ?string
     {
-        $stored = $room['body_holder_player_id'] ?? null;
-        if ($stored !== null && (string) $stored !== '') {
-            return (string) $stored;
-        }
+        $leaderId = null;
+        $leaderPosition = -1;
+        $leaderSeat = PHP_INT_MAX;
         foreach ($players as $player) {
-            if ((string) $player['status'] === 'active' && !$this->pgBool($player['is_ghost'] ?? false)) {
-                return (string) $player['id'];
+            if ((string) $player['status'] !== 'active' || $this->pgBool($player['is_ghost'] ?? false)) {
+                continue;
+            }
+            $playerId = (string) $player['id'];
+            $position = $positions[$playerId] ?? max((int) ($player['race_position'] ?? 0), self::RACE_BODY_START);
+            $seat = (int) $player['seat_number'];
+            if ($position > $leaderPosition || ($position === $leaderPosition && $seat < $leaderSeat)) {
+                $leaderId = $playerId;
+                $leaderPosition = $position;
+                $leaderSeat = $seat;
             }
         }
 
-        return null;
+        return $leaderId;
     }
 
     /** @param array<string, mixed> $prompt */
@@ -2255,9 +2323,7 @@ final class TriviaRepository
             if ((string) $player['status'] === 'left') {
                 continue;
             }
-            if ((string) $player['id'] === $bodyHolderId || $this->pgBool($player['is_ghost'] ?? false)) {
-                $ids[] = (string) $player['id'];
-            }
+            $ids[] = (string) $player['id'];
         }
 
         return $ids;
@@ -2275,7 +2341,7 @@ final class TriviaRepository
                 continue;
             }
             $position = max(0, (int) ($player['race_position'] ?? 0));
-            if ((string) $player['id'] === $bodyHolderId) {
+            if ((string) $player['status'] === 'active' && !$this->pgBool($player['is_ghost'] ?? false)) {
                 $position = max($position, self::RACE_BODY_START);
             }
             $positions[(string) $player['id']] = $position;
@@ -2295,7 +2361,7 @@ final class TriviaRepository
         $catcherPosition = $bodyPosition;
         foreach ($players as $player) {
             $playerId = (string) $player['id'];
-            if ($playerId === $bodyHolderId || !$this->pgBool($player['is_ghost'] ?? false)) {
+            if ((string) $player['status'] === 'left' || $playerId === $bodyHolderId || !$this->pgBool($player['is_ghost'] ?? false)) {
                 continue;
             }
             $position = $positions[$playerId] ?? 0;

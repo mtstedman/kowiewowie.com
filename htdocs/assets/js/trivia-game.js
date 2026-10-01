@@ -348,7 +348,10 @@ const answerLegend = (room) => {
     if (minigameType(room) === 'key_lock') {
         return 'Choose one key';
     }
-    if (roundType(room) === 'ghost_race' || selectionMode(room) === 'multiple') {
+    if (roundType(room) === 'ghost_race') {
+        return 'All, some, or none may be correct. Each correct pick or correctly skipped choice moves you one space.';
+    }
+    if (selectionMode(room) === 'multiple') {
         return 'Select every correct answer';
     }
     return 'Choose an answer';
@@ -395,6 +398,7 @@ const renderChoices = (room) => {
     const round = room?.round;
     const choices = choicesForRound(room);
     const mode = selectionMode(room);
+    const allowsEmptySelection = roundType(room) === 'ghost_race';
     const locked = state.lockedRoundId === round?.id || viewerHasAnswered(room);
     const memoryPreviewActive = minigameType(room) === 'memory_match'
         && Array.isArray(round?.minigame?.preview)
@@ -402,6 +406,16 @@ const renderChoices = (room) => {
     const canAnswer = viewerCanAnswer(room) && !locked && !isTimerClosed(room) && !memoryPreviewActive;
     const selected = currentSelection(room);
     const correct = new Set(correctAnswersForRound(room));
+    const updateSubmitButton = () => {
+        elements.submitButton.disabled = !canAnswer
+            || (!allowsEmptySelection && state.selectedAnswers.length === 0)
+            || state.isSubmitting;
+        elements.submitButton.textContent = allowsEmptySelection && state.selectedAnswers.length === 0
+            ? 'Lock none of these'
+            : mode === 'multiple' && state.selectedAnswers.length > 0
+                ? `Lock ${state.selectedAnswers.length} answer${state.selectedAnswers.length === 1 ? '' : 's'}`
+                : 'Lock answer';
+    };
 
     elements.choiceGrid.replaceChildren();
     elements.answerForm.hidden = !round || room?.status === 'waiting' || room?.status === 'finished' || choices.length === 0;
@@ -430,10 +444,7 @@ const renderChoices = (room) => {
             } else {
                 state.selectedAnswers = [choice];
             }
-            elements.submitButton.disabled = state.selectedAnswers.length === 0 || state.isSubmitting;
-            elements.submitButton.textContent = mode === 'multiple' && state.selectedAnswers.length > 0
-                ? `Lock ${state.selectedAnswers.length} answer${state.selectedAnswers.length === 1 ? '' : 's'}`
-                : 'Lock answer';
+            updateSubmitButton();
         });
 
         const text = document.createElement('span');
@@ -443,10 +454,7 @@ const renderChoices = (room) => {
     });
 
     elements.choiceFieldset.disabled = !canAnswer;
-    elements.submitButton.disabled = !canAnswer || state.selectedAnswers.length === 0 || state.isSubmitting;
-    elements.submitButton.textContent = mode === 'multiple' && state.selectedAnswers.length > 0
-        ? `Lock ${state.selectedAnswers.length} answer${state.selectedAnswers.length === 1 ? '' : 's'}`
-        : 'Lock answer';
+    updateSubmitButton();
     renderRoundMessage(room, canAnswer, locked);
 };
 
@@ -481,7 +489,9 @@ const renderResult = (room) => {
     }
 
     const correct = correctAnswersForRound(room);
-    if (correct.length > 0) {
+    if (roundType(room) === 'ghost_race' && correct.length === 0) {
+        appendResultLine('Correct answers', 'None of them');
+    } else if (correct.length > 0) {
         appendResultLine(correct.length === 1 ? 'Correct answer' : 'Correct answers', correct.join(', '));
     }
     if (roundType(room) === 'trivia' && round.prompt?.explanation) {
@@ -715,7 +725,8 @@ const handleStartRoom = async () => {
 const submitCurrentAnswer = async (event) => {
     event.preventDefault();
     const round = state.room?.round;
-    if (!round || state.selectedAnswers.length === 0 || state.isSubmitting || viewerHasAnswered(state.room)) {
+    const allowsEmptySelection = roundType(state.room) === 'ghost_race';
+    if (!round || (!allowsEmptySelection && state.selectedAnswers.length === 0) || state.isSubmitting || viewerHasAnswered(state.room)) {
         return;
     }
     const submittedRoundId = round.id;
