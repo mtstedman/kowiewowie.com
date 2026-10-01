@@ -144,8 +144,11 @@ function analyzeRaw(raw) {
     if (!NODE_KEY_PATTERN.test(key)) {
       fail(`malformed node ID ${describe(key)}; expected a non-negative integer skill hash.`);
     }
-    if (rawNode.skill !== undefined && rawNode.skill !== null && String(rawNode.skill) !== key) {
-      fail(`node ${key} has a mismatched "skill" ID ${describe(rawNode.skill)}.`);
+    if (rawNode.skill === undefined || rawNode.skill === null) {
+      fail(`node ${key} is missing its "skill" ID; every non-root node must carry "skill" equal to its key.`);
+    }
+    if ((typeof rawNode.skill !== 'number' && typeof rawNode.skill !== 'string') || String(rawNode.skill) !== key) {
+      fail(`node ${key} has a mismatched "skill" ID ${describe(rawNode.skill)}; expected ${key}.`);
     }
     const { x, y } = rawNode;
     if (typeof x !== 'number' || !Number.isFinite(x) || typeof y !== 'number' || !Number.isFinite(y)) {

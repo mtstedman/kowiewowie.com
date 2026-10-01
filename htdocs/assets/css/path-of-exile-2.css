@@ -1,0 +1,307 @@
+.poe2-shell {
+    --poe2-gold: #e7bd68;
+    --poe2-blue: #6dd6ff;
+    --poe2-panel: rgba(5, 14, 28, 0.84);
+}
+
+.poe2-page {
+    gap: clamp(1rem, 3vw, 1.6rem);
+}
+
+.poe2-hero,
+.poe2-panel,
+.poe2-credits {
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 8px;
+    background: linear-gradient(145deg, rgba(231, 189, 104, 0.08), transparent 42%), var(--poe2-panel);
+    box-shadow: 0 20px 45px -32px rgba(0, 0, 0, 0.9), inset 0 1px 0 var(--surface-highlight);
+}
+
+.poe2-notice {
+    margin: 0;
+    padding: 0.8rem 1rem;
+    border-left: 4px solid var(--poe2-gold);
+    background: rgba(231, 189, 104, 0.1);
+    color: var(--ink-soft);
+    font-weight: 750;
+}
+
+.poe2-notice--error {
+    border-left-color: #fb7185;
+    background: rgba(251, 113, 133, 0.1);
+}
+
+.poe2-workspace {
+    display: grid;
+    grid-template-columns: minmax(230px, 290px) minmax(0, 1fr) minmax(230px, 300px);
+    gap: 1rem;
+    align-items: start;
+}
+
+.poe2-panel {
+    min-width: 0;
+    padding: 1rem;
+}
+
+.poe2-panel h2,
+.poe2-panel p {
+    margin-top: 0;
+}
+
+.poe2-controls,
+.poe2-details {
+    display: grid;
+    gap: 1rem;
+}
+
+.poe2-controls fieldset {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.poe2-controls label,
+.poe2-search label {
+    display: grid;
+    gap: 0.35rem;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.poe2-controls select,
+.poe2-search input,
+.poe2-panel button {
+    min-height: 44px;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 6px;
+    background: rgba(4, 12, 24, 0.92);
+    color: var(--ink);
+    font: inherit;
+}
+
+.poe2-controls select,
+.poe2-search input {
+    width: 100%;
+    padding: 0.65rem 0.7rem;
+}
+
+.poe2-panel button {
+    padding: 0.6rem 0.75rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.poe2-panel button:hover:not(:disabled),
+.poe2-panel button:focus-visible:not(:disabled),
+.poe2-controls select:focus-visible,
+.poe2-search input:focus-visible,
+.poe2-tree:focus-visible {
+    outline: 3px solid rgba(109, 214, 255, 0.55);
+    outline-offset: 2px;
+    border-color: var(--poe2-blue);
+}
+
+.poe2-panel button:disabled,
+.poe2-controls select:disabled,
+.poe2-search input:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+}
+
+.poe2-search,
+.poe2-search > div,
+.poe2-actions,
+.poe2-zoom,
+.poe2-totals {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.poe2-search > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.poe2-actions {
+    grid-template-columns: 1fr;
+}
+
+.poe2-totals {
+    grid-template-columns: 1fr 1fr;
+}
+
+.poe2-totals span {
+    padding: 0.65rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.22);
+    color: var(--ink-soft);
+    text-align: center;
+}
+
+.poe2-totals strong {
+    display: block;
+    color: var(--poe2-gold);
+    font-size: 1.25rem;
+}
+
+.poe2-help,
+.poe2-node-meta {
+    color: var(--muted);
+    font-size: 0.86rem;
+}
+
+.poe2-tree-panel {
+    padding: 0;
+    overflow: hidden;
+}
+
+.poe2-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+}
+
+.poe2-panel-heading h2,
+.poe2-panel-heading p {
+    margin-bottom: 0;
+}
+
+.poe2-zoom {
+    grid-template-columns: repeat(2, 44px);
+}
+
+.poe2-tree {
+    display: block;
+    width: 100%;
+    min-height: 650px;
+    border-top: 1px solid var(--surface-edge);
+    background: radial-gradient(circle at center, rgba(109, 214, 255, 0.09), transparent 46%), #050b16;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.poe2-tree.is-dragging {
+    cursor: grabbing;
+}
+
+.poe2-edge {
+    stroke: rgba(150, 168, 192, 0.32);
+    stroke-width: 4;
+    vector-effect: non-scaling-stroke;
+}
+
+.poe2-edge.is-allocated {
+    stroke: var(--poe2-gold);
+}
+
+.poe2-node {
+    cursor: pointer;
+    outline: none;
+}
+
+.poe2-node circle {
+    fill: #15243a;
+    stroke: #8494aa;
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+}
+
+.poe2-node:hover circle,
+.poe2-node:focus-visible circle,
+.poe2-node.is-selected circle {
+    stroke: #ffffff;
+    stroke-width: 5;
+}
+
+.poe2-node.is-available circle {
+    fill: #123445;
+    stroke: var(--poe2-blue);
+}
+
+.poe2-node.is-allocated circle,
+.poe2-node.is-root circle {
+    fill: #6d4f1d;
+    stroke: var(--poe2-gold);
+}
+
+.poe2-node.is-ascendancy circle {
+    stroke: #c084fc;
+}
+
+.poe2-node text {
+    fill: #ffffff;
+    font-size: 28px;
+    font-weight: 850;
+    paint-order: stroke;
+    pointer-events: none;
+    stroke: #050b16;
+    stroke-width: 7px;
+    text-anchor: middle;
+}
+
+.poe2-node-stats {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding-left: 1.15rem;
+    color: var(--ink-soft);
+}
+
+.poe2-node-stats li::marker {
+    color: var(--poe2-gold);
+}
+
+.poe2-details button {
+    border-color: var(--poe2-gold);
+}
+
+.poe2-credits {
+    padding: 1rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.poe2-credits p {
+    margin: 0.35rem 0;
+}
+
+@media (max-width: 1120px) {
+    .poe2-workspace {
+        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    }
+
+    .poe2-details {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 760px) {
+    .poe2-workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .poe2-details {
+        grid-column: auto;
+    }
+
+    .poe2-tree {
+        min-height: 540px;
+    }
+}
+
+@media (max-width: 480px) {
+    .poe2-panel-heading {
+        align-items: start;
+    }
+
+    .poe2-tree {
+        min-height: 480px;
+    }
+}
