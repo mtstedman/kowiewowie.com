@@ -509,3 +509,115 @@
         padding-left: 1rem;
     }
 }
+
+.poe2-saved-builds,
+.poe2-saved-build-form {
+    display: grid;
+    min-width: 0;
+    gap: 0.6rem;
+}
+
+.poe2-saved-builds {
+    padding-top: 1rem;
+    border-top: 1px solid var(--surface-edge);
+}
+
+.poe2-saved-builds h3,
+.poe2-saved-builds p {
+    margin: 0;
+}
+
+.poe2-saved-builds h3 {
+    color: var(--ink);
+    font-size: 1rem;
+}
+
+.poe2-saved-build-form input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.65rem 0.7rem;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 6px;
+    background: rgba(4, 12, 24, 0.92);
+    color: var(--ink);
+    font: inherit;
+}
+
+.poe2-saved-build-form input:focus-visible {
+    outline: 3px solid rgba(109, 214, 255, 0.55);
+    outline-offset: 2px;
+    border-color: var(--poe2-blue);
+}
+
+.poe2-saved-build-actions {
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+}
+
+.poe2-saved-build-status,
+.poe2-saved-build-empty {
+    color: var(--muted);
+    font-size: 0.86rem;
+}
+
+.poe2-saved-build-status.is-error {
+    color: #fb7185;
+}
+
+.poe2-saved-build-empty {
+    font-style: italic;
+}
+
+.poe2-saved-build-list {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.poe2-saved-build-list[hidden],
+.poe2-saved-build-actions button[hidden] {
+    display: none;
+}
+
+.poe2-saved-build-list li {
+    display: grid;
+    min-width: 0;
+    gap: 0.45rem;
+    padding: 0.65rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.poe2-saved-build-title,
+.poe2-saved-build-meta {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.poe2-saved-build-title {
+    color: var(--ink-soft);
+    font-weight: 850;
+}
+
+.poe2-saved-build-meta {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.poe2-saved-build-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+}
+
+.poe2-panel .poe2-saved-build-delete {
+    color: #fb7185;
+}
+
+@media (max-width: 480px) {
+    .poe2-saved-build-buttons {
+        grid-template-columns: 1fr;
+    }
+}

@@ -135,6 +135,15 @@
           "sha256": "759c880948f471c649f971a095ad0fe721b9fc7d5c629ea47747981a41bf7d03"
         }
       ]
+    },
+    {
+      "version": 16,
+      "updates": [
+        {
+          "file": "updates/015_poe2_saved_builds.sql",
+          "sha256": "984d21944211184c11be72acd9543fb5e710e1b31b892f7551bc4d0c340b52a3"
+        }
+      ]
     }
   ]
 }

@@ -18,6 +18,7 @@ use Wowie\Api\Content\ScryfallClient;
 use Wowie\Api\Http\Request;
 use Wowie\Api\Http\Response;
 use Wowie\Api\OpenDeck\OpenDeckSchedulerRepository;
+use Wowie\Api\Poe2\Poe2BuildRepository;
 use Wowie\Api\Trivia\TriviaIdentityService;
 use Wowie\Api\Trivia\TriviaRepository;
 
@@ -33,6 +34,7 @@ final class Application
     private readonly TriviaIdentityService $triviaGuests;
     private readonly TriviaRepository $trivia;
     private readonly OpenDeckSchedulerRepository $openDeck;
+    private readonly Poe2BuildRepository $poe2Builds;
     /** @var array<string, string> */
     private array $chessIdentityResponseHeaders = [];
     /** @var array<string, string> Headers that must survive an auth error response, such as an expired refresh cookie. */
@@ -56,6 +58,7 @@ final class Application
         $this->triviaGuests = new TriviaIdentityService($pdo);
         $this->trivia = new TriviaRepository($pdo);
         $this->openDeck = new OpenDeckSchedulerRepository($pdo);
+        $this->poe2Builds = new Poe2BuildRepository($pdo);
     }
 
     public function handle(Request $request): Response
@@ -113,7 +116,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/trivia/rooms', '/v1/open-deck/slots'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/trivia/rooms', '/v1/open-deck/slots', '/v1/poe2/builds'],
             ]);
         }
 
@@ -229,6 +232,11 @@ final class Application
         $openDeckResponse = $this->dispatchOpenDeck($request);
         if ($openDeckResponse !== null) {
             return $openDeckResponse;
+        }
+
+        $poe2Response = $this->dispatchPoe2($request);
+        if ($poe2Response !== null) {
+            return $poe2Response;
         }
 
         $contentRoute = $this->contentRoute($request->path);
@@ -713,6 +721,209 @@ final class Application
         }
 
         return null;
+    }
+
+    /**
+     * Saved PoE 2 builds (shared contract poe2-builds-api). A build belongs to the logged-in
+     * user when there is one, and to the guest cookie profile otherwise.
+     */
+    private function dispatchPoe2(Request $request): ?Response
+    {
+        $isCollection = $request->path === '/v1/poe2/builds';
+        $buildId = null;
+        if (!$isCollection) {
+            if (preg_match('#^/v1/poe2/builds/([A-Fa-f0-9-]{36})$#', $request->path, $matches) !== 1) {
+                return null;
+            }
+            $buildId = $matches[1];
+        }
+
+        if (!in_array($request->method, $isCollection ? ['GET', 'POST'] : ['GET', 'PUT', 'DELETE'], true)) {
+            throw new ApiException(405, 'method_not_allowed', $isCollection
+                ? 'That method is not supported for PoE 2 builds.'
+                : 'That method is not supported for this PoE 2 build.');
+        }
+        if ($request->method !== 'GET') {
+            // Checked before the owner is resolved so a rejected request never touches data.
+            $this->requirePoe2WriteOrigin($request);
+        }
+
+        $identity = $this->resolvePoe2Identity($request);
+        $owner = $identity['owner'];
+
+        if ($isCollection) {
+            if ($request->method === 'GET') {
+                $builds = $this->poe2Builds->listForOwner($owner);
+                return $this->withChessIdentity(Response::json([
+                    'data' => $builds,
+                    'meta' => [
+                        'count' => count($builds),
+                        'limit' => Poe2BuildRepository::MAX_BUILDS_PER_OWNER,
+                        'owner' => $owner['type'],
+                    ],
+                ]), $identity);
+            }
+
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->poe2Builds->create($owner, $this->poe2WriteInput($request)),
+            ], 201), $identity);
+        }
+
+        if ($request->method === 'GET') {
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->poe2Builds->find($owner, $buildId),
+            ]), $identity);
+        }
+        if ($request->method === 'PUT') {
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->poe2Builds->update($owner, $buildId, $this->poe2WriteInput($request)),
+            ]), $identity);
+        }
+
+        $this->poe2Builds->delete($owner, $buildId);
+        return $this->withChessIdentity(Response::empty(), $identity);
+    }
+
+    /**
+     * Body of a PoE 2 build write with the node id fields kept at their wire-level type.
+     *
+     * Request::json() decodes JSON objects and JSON arrays to the same PHP array type, so a
+     * numeric-key object such as {"0":"a"} is indistinguishable from the array ["a"]. The
+     * body is decoded a second time without that collapse and the two id fields are taken
+     * from it: a JSON array stays a PHP list, while a JSON object stays a stdClass that the
+     * repository rejects as a non-array. Every other field, and every invalid_json outcome,
+     * still comes from Request::json().
+     *
+     * @return array<string, mixed>
+     */
+    private function poe2WriteInput(Request $request): array
+    {
+        $input = $request->json();
+        if ($input === []) {
+            return $input;
+        }
+
+        // Request keeps the raw body private and exposes only the collapsed json() view.
+        $rawBody = (new \ReflectionProperty(Request::class, 'rawBody'))->getValue($request);
+
+        try {
+            $wire = json_decode((string) $rawBody, false, 128, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $error) {
+            throw new ApiException(400, 'invalid_json', 'The request body must contain valid JSON.', [
+                'reason' => $error->getMessage(),
+            ]);
+        }
+        if (!$wire instanceof \stdClass) {
+            throw new ApiException(400, 'invalid_json', 'The request body must be a JSON object.');
+        }
+
+        $wireFields = get_object_vars($wire);
+        foreach (['allocated_node_ids', 'must_have_node_ids'] as $field) {
+            if (array_key_exists($field, $wireFields)) {
+                $input[$field] = $wireFields[$field];
+            }
+        }
+
+        return $input;
+    }
+
+    /**
+     * Resolves who owns the PoE 2 builds for this request. A logged-in user (Bearer token or
+     * site login session) never mints a guest profile; everyone else is the guest cookie profile.
+     *
+     * @return array{owner: array{type: string, id: string}, response_headers: array<string, string>}
+     */
+    private function resolvePoe2Identity(Request $request): array
+    {
+        // A malformed or invalid Authorization header still fails with 401 here.
+        $user = $this->optionalAuthenticatedUser($request) ?? $this->siteSessionUser();
+        if ($user !== null) {
+            return [
+                'owner' => ['type' => 'user', 'id' => (string) $user['id']],
+                'response_headers' => [],
+            ];
+        }
+
+        $identity = $this->chessGuests->resolve(null);
+        $headers = $identity['response_headers'] ?? [];
+        $headers = is_array($headers) ? $headers : [];
+        // Stored on the application so the guest cookie also reaches error responses.
+        $this->chessIdentityResponseHeaders = $headers;
+
+        return [
+            'owner' => ['type' => 'guest', 'id' => (string) $identity['guest_profile']['id']],
+            'response_headers' => $headers,
+        ];
+    }
+
+    /**
+     * Reads the site login session without ever creating or writing one. The session is only
+     * opened when its cookie was sent, and the lock is released as soon as it has been read.
+     * Anything short of a confirmed active user returns null so the caller falls back to guest.
+     */
+    private function siteSessionUser(): ?array
+    {
+        if (session_status() === PHP_SESSION_DISABLED) {
+            return null;
+        }
+
+        $sessionName = session_name();
+        $sessionId = is_string($sessionName) && $sessionName !== '' ? ($_COOKIE[$sessionName] ?? null) : null;
+        if (!is_string($sessionId) || preg_match('/\A[A-Za-z0-9,-]{1,256}\z/', $sessionId) !== 1) {
+            return null;
+        }
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            if (headers_sent() || !session_start(['read_and_close' => true])) {
+                return null;
+            }
+        }
+
+        $sessionUser = $_SESSION['admin_user'] ?? $_SESSION['user'] ?? null;
+        $userId = is_array($sessionUser) ? ($sessionUser['id'] ?? null) : null;
+        if (!is_string($userId)
+            || preg_match('/\A[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\z/', $userId) !== 1
+        ) {
+            return null;
+        }
+
+        try {
+            return $this->auth->userById($userId);
+        } catch (ApiException) {
+            return null;
+        }
+    }
+
+    /**
+     * Build writes are authorised by cookies, so a browser-sent Origin must be this site itself
+     * or an origin from the same WOWIE_CORS_ORIGINS allow-list that corsHeaders() uses.
+     */
+    private function requirePoe2WriteOrigin(Request $request): void
+    {
+        $origin = $request->header('origin');
+        if ($origin === null) {
+            return;
+        }
+
+        $origin = trim($origin);
+        $allowed = $this->config->csv('WOWIE_CORS_ORIGINS', [
+            'https://wowiekowie.com',
+            'https://www.wowiekowie.com',
+        ]);
+        if (in_array($origin, $allowed, true)) {
+            return;
+        }
+
+        $host = trim($request->header('host') ?? '');
+        if ($host !== '') {
+            $forwardedProto = strtolower(trim(explode(',', $request->header('x-forwarded-proto') ?? '')[0]));
+            $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https';
+            if (strtolower($origin) === strtolower(($isHttps ? 'https' : 'http') . '://' . $host)) {
+                return;
+            }
+        }
+
+        throw new ApiException(403, 'origin_not_allowed', 'PoE 2 build changes must come from this site or an allowed origin.');
     }
 
     private function isCookieAuthMode(Request $request): bool

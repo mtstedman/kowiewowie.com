@@ -1,9 +1,9 @@
-<!-- schema-version: 15 -->
+<!-- schema-version: 16 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 15**. `migration-chain.json` is the ordered,
+current release pin is **version 16**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -32,11 +32,12 @@ per-file execution ledger.
 | 13 | `013_collectibles_catalog.sql` | Cached SKULLPANDA and Nommi collectible series products and their figure variants |
 | 14 | `013_palworld_breeding.sql` | Indexed Palworld pals, breeding pairs, passive skills, and dataset provenance |
 | 15 | `014_unified_collectibles.sql` | Sonny Angel catalog support, release-year sorting, and sourced price metadata |
+| 16 | `015_poe2_saved_builds.sql` | Path of Exile 2 saved passive-tree builds owned by a registered user or guest browser identity |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 15 inventory
+## Current version 16 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -57,6 +58,7 @@ their full basenames are already stored in production's migration ledger.
 - Collectibles: `collectible_products` and `collectible_variants`
 - Palworld breeding: `palworld_dataset`, `palworld_pals`,
   `palworld_breeding_pairs`, and `palworld_passive_skills`
+- Path of Exile 2: `poe2_saved_builds`
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -190,6 +192,26 @@ to trivia after the trial, or into the ghost race when only one living player
 remains. In the finale, correct classifications move the last body and every
 ghost along the escape track; a catching ghost steals the body, and the current
 body holder wins by reaching the goal.
+
+## Path of Exile 2 saved builds
+
+`poe2_saved_builds` stores passive-tree routes saved from the Path of Exile 2
+planner. Each build belongs to exactly one owner: either a registered `users`
+row (`user_id`) or a `chess_guest_profiles` browser-cookie identity
+(`guest_profile_id`); a check requires exactly one of the two to be set. Both
+owner foreign keys use `ON DELETE CASCADE`, so a build is removed when its
+owner is deleted.
+
+Each row carries a 1-64 character `character_name` and a 1-80 character
+`build_name` (both measured after trimming), the planner `class_id`, an
+optional `ascendancy_id`, and the passive-tree `tree_version` it was built
+against. `allocated_node_ids` and `must_have_node_ids` store the allocated and
+must-have passive node IDs as `jsonb` arrays (both default to `[]`).
+`created_at` and `updated_at` default to `now()`, and the
+`poe2_saved_builds_set_updated_at` trigger refreshes `updated_at` on every
+update. The partial indexes
+`poe2_saved_builds_user_idx` and `poe2_saved_builds_guest_idx` list an owner's
+builds by most recent update.
 
 ## Open-deck scheduler
 

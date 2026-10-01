@@ -1,5 +1,6 @@
 import { loadTree, buildAllocationModel, summarizeRouteBonuses } from './tree-data.js';
 import { findMinimalRoute, MAX_MUST_HAVES } from './optimizer.js';
+import { listBuilds, createBuild, updateBuild, deleteBuild } from './builds-api.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const MIN_SCALE = 0.01;
@@ -38,6 +39,15 @@ const elements = {
   clearRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-route')),
   routeSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-route-summary')),
   bonusSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-bonus-summary')),
+  savedBuildForm: /** @type {HTMLFormElement} */ (document.querySelector('#poe2-saved-build-form')),
+  characterName: /** @type {HTMLInputElement} */ (document.querySelector('#poe2-character-name')),
+  buildName: /** @type {HTMLInputElement} */ (document.querySelector('#poe2-build-name')),
+  saveBuild: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-save-build')),
+  saveBuildAsNew: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-save-build-as-new')),
+  savedBuildOwner: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-saved-build-owner')),
+  savedBuildStatus: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-saved-build-status')),
+  savedBuildEmpty: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-saved-build-empty')),
+  savedBuildList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-saved-build-list')),
   version: /** @type {HTMLSpanElement} */ (document.querySelector('#poe2-version')),
 };
 
@@ -61,6 +71,10 @@ const state = {
   selectedId: null,
   classId: null,
   ascendancyId: null,
+  savedBuilds: [],
+  savedBuildOwner: null,
+  loadedBuildId: null,
+  buildsBusy: false,
   view: { x: 0, y: 0, scale: 1 },
   bounds: null,
   fitScale: MIN_SCALE,
@@ -84,6 +98,7 @@ function setEnabled(enabled) {
   elements.zoomOut.disabled = !enabled;
   if (!enabled) elements.toggleMustHave.disabled = true;
   renderMustHaves();
+  syncSavedBuildControls();
 }
 
 function nodeName(nodeId) {
@@ -96,6 +111,244 @@ function plural(count, singular, pluralForm = `${singular}s`) {
 
 function plannerUsable() {
   return state.enabled && Boolean(state.model) && !state.computing;
+}
+
+function setSavedBuildStatus(message, error = false) {
+  elements.savedBuildStatus.textContent = message;
+  elements.savedBuildStatus.classList.toggle('is-error', error);
+}
+
+function syncSavedBuildControls() {
+  const unavailable = !plannerUsable() || state.buildsBusy;
+  elements.saveBuild.disabled = unavailable;
+  elements.saveBuildAsNew.hidden = !state.loadedBuildId;
+  elements.saveBuildAsNew.disabled = unavailable;
+  for (const button of elements.savedBuildList.querySelectorAll('button')) {
+    button.disabled = state.buildsBusy || (button.dataset.buildAction === 'load' && !plannerUsable());
+  }
+}
+
+function updateSavedBuildOwner() {
+  elements.savedBuildOwner.textContent = state.savedBuildOwner === 'user'
+    ? 'Builds are saved to your signed-in account.'
+    : state.savedBuildOwner === 'guest'
+      ? 'Builds are saved to this browser with a guest cookie.'
+      : 'Saved-build ownership is unavailable.';
+}
+
+function savedBuildClassLabel(build) {
+  const classOption = state.data?.classes.find((option) => option.id === build.class_id);
+  const className = classOption?.name || build.class_id;
+  if (!build.ascendancy_id) return `${className} · No ascendancy`;
+  const ascendancy = classOption?.ascendancies.find((option) => option.id === build.ascendancy_id);
+  return `${className} · ${ascendancy?.name || build.ascendancy_id}`;
+}
+
+function savedBuildTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function renderSavedBuilds() {
+  elements.savedBuildList.replaceChildren();
+  for (const build of state.savedBuilds) {
+    const item = document.createElement('li');
+
+    const title = document.createElement('div');
+    title.className = 'poe2-saved-build-title';
+    title.textContent = `${build.character_name} — ${build.build_name}`;
+
+    const meta = document.createElement('div');
+    meta.className = 'poe2-saved-build-meta';
+    meta.textContent = `${savedBuildClassLabel(build)} · Updated ${savedBuildTime(build.updated_at)}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'poe2-saved-build-buttons';
+
+    const loadButton = document.createElement('button');
+    loadButton.type = 'button';
+    loadButton.dataset.buildAction = 'load';
+    loadButton.textContent = 'Load';
+    loadButton.setAttribute('aria-label', `Load ${build.build_name} for ${build.character_name}`);
+    loadButton.addEventListener('click', () => loadSavedBuild(build));
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.dataset.buildAction = 'delete';
+    deleteButton.className = 'poe2-saved-build-delete';
+    deleteButton.textContent = 'Delete';
+    deleteButton.setAttribute('aria-label', `Delete ${build.build_name} for ${build.character_name}`);
+    deleteButton.addEventListener('click', () => removeSavedBuild(build));
+
+    actions.append(loadButton, deleteButton);
+    item.append(title, meta, actions);
+    elements.savedBuildList.append(item);
+  }
+
+  const empty = state.savedBuilds.length === 0;
+  elements.savedBuildEmpty.hidden = !empty;
+  elements.savedBuildList.hidden = empty;
+  syncSavedBuildControls();
+}
+
+function setBuildsBusy(busy) {
+  state.buildsBusy = busy;
+  elements.savedBuildForm.setAttribute('aria-busy', String(busy));
+  syncSavedBuildControls();
+}
+
+function readBuildNames() {
+  const characterName = elements.characterName.value.trim();
+  const buildName = elements.buildName.value.trim();
+  if (characterName.length === 0 || characterName.length > 64) {
+    setSavedBuildStatus('Character name must be between 1 and 64 characters.', true);
+    elements.characterName.focus();
+    return null;
+  }
+  if (buildName.length === 0 || buildName.length > 80) {
+    setSavedBuildStatus('Build name must be between 1 and 80 characters.', true);
+    elements.buildName.focus();
+    return null;
+  }
+  return { characterName, buildName };
+}
+
+function currentBuildSnapshot(names) {
+  return {
+    character_name: names.characterName,
+    build_name: names.buildName,
+    class_id: state.classId,
+    ascendancy_id: state.ascendancyId,
+    tree_version: state.data.version,
+    allocated_node_ids: [...state.allocated],
+    must_have_node_ids: [...state.mustHaves],
+  };
+}
+
+function storeSavedBuild(build) {
+  state.savedBuilds = [build, ...state.savedBuilds.filter((candidate) => candidate.id !== build.id)]
+    .sort((left, right) => new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime());
+  state.savedBuildOwner = build.owner;
+  state.loadedBuildId = build.id;
+  updateSavedBuildOwner();
+  renderSavedBuilds();
+}
+
+async function saveCurrentBuild(asNew = false) {
+  const names = readBuildNames();
+  if (!names) return;
+  if (!plannerUsable() || state.buildsBusy) {
+    setSavedBuildStatus('Wait until the planner is ready before saving.', true);
+    return;
+  }
+
+  setBuildsBusy(true);
+  setSavedBuildStatus(asNew || !state.loadedBuildId ? 'Saving a new build…' : 'Updating the loaded build…');
+  try {
+    const input = currentBuildSnapshot(names);
+    const build = !asNew && state.loadedBuildId
+      ? await updateBuild(state.loadedBuildId, input)
+      : await createBuild(input);
+    storeSavedBuild(build);
+    setSavedBuildStatus(`${build.build_name} saved for ${build.character_name}.`);
+  } catch (error) {
+    setSavedBuildStatus(error instanceof Error ? error.message : 'The build could not be saved.', true);
+  } finally {
+    setBuildsBusy(false);
+  }
+}
+
+async function refreshSavedBuilds() {
+  setBuildsBusy(true);
+  setSavedBuildStatus('Loading saved builds…');
+  try {
+    const result = await listBuilds();
+    state.savedBuilds = result.builds;
+    state.savedBuildOwner = result.owner;
+    if (state.loadedBuildId && !state.savedBuilds.some((build) => build.id === state.loadedBuildId)) {
+      state.loadedBuildId = null;
+    }
+    updateSavedBuildOwner();
+    renderSavedBuilds();
+    setSavedBuildStatus(state.savedBuilds.length === 0 ? '' : `${plural(state.savedBuilds.length, 'saved build')} loaded.`);
+  } catch (error) {
+    state.savedBuildOwner = null;
+    updateSavedBuildOwner();
+    setSavedBuildStatus(error instanceof Error ? error.message : 'Saved builds are unavailable.', true);
+  } finally {
+    setBuildsBusy(false);
+  }
+}
+
+function loadSavedBuild(build) {
+  if (state.buildsBusy || !plannerUsable()) return;
+  const classOption = state.data.classes.find((option) => option.id === build.class_id);
+  if (!classOption) {
+    setSavedBuildStatus(`The saved class ${build.class_id} is not available in this tree export.`, true);
+    return;
+  }
+  if (build.ascendancy_id && !classOption.ascendancies.some((option) => option.id === build.ascendancy_id)) {
+    setSavedBuildStatus(`The saved ascendancy ${build.ascendancy_id} is not available for ${classOption.name}.`, true);
+    return;
+  }
+
+  setBuildsBusy(true);
+  try {
+    elements.classSelect.value = build.class_id;
+    populateAscendancies(build.ascendancy_id || '');
+    if (!rebuildModel(build.class_id, build.ascendancy_id, false)) {
+      setSavedBuildStatus('The saved build could not be loaded with this tree export.', true);
+      return;
+    }
+    state.loadedBuildId = null;
+    syncSavedBuildControls();
+
+    const validation = state.model.validateAllocation(build.allocated_node_ids);
+    if (!validation.valid) {
+      setSavedBuildStatus(validation.reason || 'The saved allocation is not valid for this tree export.', true);
+      return;
+    }
+
+    setAllocation(new Set(build.allocated_node_ids));
+    const modelNodeIds = new Set(state.model.nodes.map((node) => node.id));
+    state.mustHaves = new Set(build.must_have_node_ids.filter((nodeId) => modelNodeIds.has(nodeId)));
+    state.route = null;
+    renderRouteSummary();
+    updateGraphState();
+    renderMustHaves();
+    elements.characterName.value = build.character_name;
+    elements.buildName.value = build.build_name;
+    state.loadedBuildId = build.id;
+    syncSavedBuildControls();
+
+    const versionNote = build.tree_version === state.data.version
+      ? ''
+      : ` Saved export ${build.tree_version} differs from loaded export ${state.data.version}.`;
+    setSavedBuildStatus(`${build.build_name} loaded for ${build.character_name}.${versionNote}`);
+  } catch (error) {
+    setSavedBuildStatus(error instanceof Error ? error.message : 'The saved build could not be loaded.', true);
+  } finally {
+    setBuildsBusy(false);
+  }
+}
+
+async function removeSavedBuild(build) {
+  if (state.buildsBusy) return;
+  if (!window.confirm(`Delete ${build.build_name} for ${build.character_name}?`)) return;
+
+  setBuildsBusy(true);
+  setSavedBuildStatus(`Deleting ${build.build_name}…`);
+  try {
+    await deleteBuild(build.id);
+    state.savedBuilds = state.savedBuilds.filter((candidate) => candidate.id !== build.id);
+    if (state.loadedBuildId === build.id) state.loadedBuildId = null;
+    renderSavedBuilds();
+    setSavedBuildStatus(`${build.build_name} deleted.`);
+  } catch (error) {
+    setSavedBuildStatus(error instanceof Error ? error.message : 'The saved build could not be deleted.', true);
+  } finally {
+    setBuildsBusy(false);
+  }
 }
 
 // Clear route needs a usable planner and a computed route to clear.
@@ -135,6 +388,7 @@ function renderMustHaves() {
   elements.findRoute.disabled = !usable || empty;
   elements.clearMustHaves.disabled = !usable || empty;
   syncClearRoute();
+  syncSavedBuildControls();
 }
 
 function renderRouteSummary() {
@@ -747,6 +1001,8 @@ async function initialize() {
     elements.retryButton.hidden = false;
     elements.treePanel.setAttribute('aria-busy', 'false');
     setStatus(error instanceof Error ? error.message : 'The passive tree could not be loaded.', true);
+  } finally {
+    void refreshSavedBuilds();
   }
 }
 
@@ -757,6 +1013,15 @@ elements.classSelect.addEventListener('change', () => {
 
 elements.ascendancySelect.addEventListener('change', () => {
   rebuildModel(elements.classSelect.value, elements.ascendancySelect.value || null);
+});
+
+elements.savedBuildForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  void saveCurrentBuild(false);
+});
+
+elements.saveBuildAsNew.addEventListener('click', () => {
+  void saveCurrentBuild(true);
 });
 
 elements.searchForm.addEventListener('submit', (event) => {

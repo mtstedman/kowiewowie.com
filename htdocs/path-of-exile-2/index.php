@@ -41,6 +41,26 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         </label>
                     </fieldset>
 
+                    <section class="poe2-saved-builds" aria-labelledby="poe2-saved-builds-title">
+                        <h3 id="poe2-saved-builds-title">Saved builds</h3>
+                        <form id="poe2-saved-build-form" class="poe2-saved-build-form">
+                            <label for="poe2-character-name">Character name
+                                <input id="poe2-character-name" name="character_name" type="text" maxlength="64" autocomplete="off" required>
+                            </label>
+                            <label for="poe2-build-name">Build name
+                                <input id="poe2-build-name" name="build_name" type="text" maxlength="80" autocomplete="off" required>
+                            </label>
+                            <div class="poe2-actions poe2-saved-build-actions">
+                                <button id="poe2-save-build" type="submit" disabled>Save build</button>
+                                <button id="poe2-save-build-as-new" type="button" hidden disabled>Save as new</button>
+                            </div>
+                        </form>
+                        <p id="poe2-saved-build-owner" class="poe2-help">Checking where builds will be saved…</p>
+                        <p id="poe2-saved-build-status" class="poe2-saved-build-status" role="status" aria-live="polite" aria-atomic="true"></p>
+                        <p id="poe2-saved-build-empty" class="poe2-saved-build-empty">No saved builds yet.</p>
+                        <ul id="poe2-saved-build-list" class="poe2-saved-build-list" aria-label="Saved builds" hidden></ul>
+                    </section>
+
                     <form id="poe2-search" class="poe2-search" role="search">
                         <label for="poe2-node-query">Find a node</label>
                         <div>
