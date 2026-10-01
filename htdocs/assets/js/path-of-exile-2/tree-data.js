@@ -19,6 +19,7 @@
  *   nodes: PassiveNode[], edges: [string, string][], raw: Record<string, unknown>}} TreeData
  * @typedef {{nodes: PassiveNode[], edges: [string, string][], rootIds: string[],
  *   canAllocate(allocatedNodeIds: string[], nodeId: string): boolean,
+ *   availableNodeIds(allocatedNodeIds: string[]): Set<string>,
  *   validateAllocation(allocatedNodeIds: string[]): {valid: boolean, reason: string|null},
  *   pointCost(allocatedNodeIds: string[]): {passive: number, ascendancy: number}}} AllocationModel
  *
@@ -827,6 +828,34 @@ export function buildAllocationModel(data, classId, ascendancyId) {
   };
 
   /**
+   * Every node that is a legal next allocation on top of `allocatedNodeIds`:
+   * exactly the IDs for which canAllocate(allocatedNodeIds, id) is true, found
+   * with one parse and one replay of the allocation instead of one per node.
+   * Empty for malformed input; like canAllocate(), IDs in the allocation that
+   * are not part of this build are ignored.
+   */
+  const availableNodeIds = (allocatedNodeIds) => {
+    const available = new Set();
+    const parsed = readAllocation(allocatedNodeIds);
+    if (parsed.error !== null) return available;
+    const allocated = new Set(parsed.ids);
+    // A hub with an allocated option offers none of its other options.
+    const decidedHubs = new Set();
+    for (const id of allocated) {
+      const parentId = parentOf.get(id);
+      if (parentId !== undefined) decidedHubs.add(parentId);
+    }
+    const { realized, connected } = realize(allocated);
+    for (const [id, node] of members) {
+      if (rootSet.has(id) || allocated.has(id)) continue;
+      const parentId = parentOf.get(id);
+      if (parentId !== undefined && decidedHubs.has(parentId)) continue;
+      if (stepStatus(node, realized, connected) === STEP_OK) available.add(id);
+    }
+    return available;
+  };
+
+  /**
    * Complete legality: every ID belongs to this build, at most one option per
    * multiple-choice hub, and the whole set can be allocated in some legal order
    * from the implicit starts. Never throws.
@@ -880,6 +909,7 @@ export function buildAllocationModel(data, classId, ascendancyId) {
     edges,
     rootIds: rootIds.slice(),
     canAllocate,
+    availableNodeIds,
     validateAllocation,
     pointCost,
   };

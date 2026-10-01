@@ -38,6 +38,10 @@ const state = {
   nodeElements: new Map(),
   edgeElements: [],
   allocated: new Set(),
+  // Node IDs that are a legal next allocation for `allocated` under `model`;
+  // null means it must be recomputed (see currentAvailability).
+  available: null,
+  rootIds: new Set(),
   selectedId: null,
   classId: null,
   ascendancyId: null,
@@ -160,36 +164,28 @@ function buildGraph() {
   }
   elements.edgeLayer.append(edgeFragment);
 
+  // Root and ascendancy membership never change within a model, so those
+  // classes are written once here. Selection is delegated to the tree element.
   const nodeFragment = document.createDocumentFragment();
   for (const node of state.model.nodes) {
+    const isRoot = state.rootIds.has(node.id);
+    const radius = nodeRadius(node);
     const group = document.createElementNS(SVG_NS, 'g');
-    group.setAttribute('class', 'poe2-node');
+    group.setAttribute('class', `poe2-node${isRoot ? ' is-root' : ''}${node.domain === 'ascendancy' ? ' is-ascendancy' : ''}`);
     group.setAttribute('transform', `translate(${node.x} ${node.y})`);
     group.setAttribute('role', 'button');
-    group.setAttribute('tabindex', state.model.rootIds.includes(node.id) ? '0' : '-1');
+    group.setAttribute('tabindex', isRoot ? '0' : '-1');
     group.setAttribute('aria-label', `${node.name || `Node ${node.id}`}, ${node.domain} node`);
     group.dataset.nodeId = node.id;
 
     const circle = document.createElementNS(SVG_NS, 'circle');
-    circle.setAttribute('r', String(nodeRadius(node)));
+    circle.setAttribute('r', String(radius));
     group.append(circle);
 
     const label = document.createElementNS(SVG_NS, 'text');
-    label.setAttribute('y', String(-nodeRadius(node) - 14));
-    if (state.model.rootIds.includes(node.id)) label.textContent = node.name;
+    label.setAttribute('y', String(-radius - 14));
+    if (isRoot) label.textContent = node.name;
     group.append(label);
-
-    group.addEventListener('click', (event) => {
-      if (state.drag?.moved) return;
-      event.stopPropagation();
-      selectNode(node.id);
-    });
-    group.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        selectNode(node.id);
-      }
-    });
 
     nodeFragment.append(group);
     state.nodeElements.set(node.id, { group, label });
@@ -199,24 +195,44 @@ function buildGraph() {
   requestAnimationFrame(fitTree);
 }
 
+// Every change to the allocation goes through here so the availability derived
+// from it can never outlive it.
+function setAllocation(allocated) {
+  state.allocated = allocated;
+  state.available = null;
+}
+
+// The nodes that are a legal next allocation, as decided by the model. Computed
+// once per allocation (one parse and one replay) and reused by every node, the
+// details panel and selection-only updates until the allocation or model changes.
+function currentAvailability() {
+  if (state.available === null) state.available = state.model.availableNodeIds([...state.allocated]);
+  return state.available;
+}
+
+function setAttributeIfChanged(element, name, value) {
+  if (element.getAttribute(name) !== value) element.setAttribute(name, value);
+}
+
+function paintNode(id, parts, available) {
+  const isRoot = state.rootIds.has(id);
+  const allocated = state.allocated.has(id);
+  const selected = state.selectedId === id;
+  const labelText = selected || isRoot ? state.nodeById.get(id).name : '';
+  parts.group.classList.toggle('is-allocated', allocated);
+  parts.group.classList.toggle('is-available', available.has(id));
+  parts.group.classList.toggle('is-selected', selected);
+  setAttributeIfChanged(parts.group, 'aria-pressed', String(allocated || isRoot));
+  setAttributeIfChanged(parts.group, 'tabindex', selected || isRoot ? '0' : '-1');
+  if (parts.label.textContent !== labelText) parts.label.textContent = labelText;
+}
+
+// Full refresh, for a new model or a changed allocation.
 function updateGraphState() {
   if (!state.model) return;
-  const roots = new Set(state.model.rootIds);
-  for (const [id, parts] of state.nodeElements) {
-    const node = state.nodeById.get(id);
-    const allocated = state.allocated.has(id);
-    const selected = state.selectedId === id;
-    const available = !allocated && state.model.canAllocate([...state.allocated], id);
-    parts.group.classList.toggle('is-root', roots.has(id));
-    parts.group.classList.toggle('is-allocated', allocated);
-    parts.group.classList.toggle('is-available', available);
-    parts.group.classList.toggle('is-selected', selected);
-    parts.group.classList.toggle('is-ascendancy', node.domain === 'ascendancy');
-    parts.group.setAttribute('aria-pressed', String(allocated || roots.has(id)));
-    parts.group.setAttribute('tabindex', selected || roots.has(id) ? '0' : '-1');
-    parts.label.textContent = selected || roots.has(id) ? node.name : '';
-  }
-  const active = new Set([...state.allocated, ...state.model.rootIds]);
+  const available = currentAvailability();
+  for (const [id, parts] of state.nodeElements) paintNode(id, parts, available);
+  const active = new Set([...state.allocated, ...state.rootIds]);
   for (const edge of state.edgeElements) {
     edge.element.classList.toggle('is-allocated', active.has(edge.fromId) && active.has(edge.toId));
   }
@@ -224,6 +240,18 @@ function updateGraphState() {
   elements.passiveTotal.textContent = String(totals.passive);
   elements.ascendancyTotal.textContent = String(totals.ascendancy);
   elements.resetButton.disabled = state.allocated.size === 0;
+  updateDetails();
+}
+
+// Selection-only refresh: the allocation is unchanged, so only the previously
+// and newly selected nodes and the details panel can differ.
+function updateSelectionState(previousId) {
+  if (!state.model) return;
+  const available = currentAvailability();
+  for (const id of new Set([previousId, state.selectedId])) {
+    const parts = id ? state.nodeElements.get(id) : null;
+    if (parts) paintNode(id, parts, available);
+  }
   updateDetails();
 }
 
@@ -238,9 +266,9 @@ function updateDetails() {
     return;
   }
 
-  const isRoot = state.model.rootIds.includes(node.id);
+  const isRoot = state.rootIds.has(node.id);
   const isAllocated = state.allocated.has(node.id);
-  const canAllocate = !isAllocated && state.model.canAllocate([...state.allocated], node.id);
+  const canAllocate = currentAvailability().has(node.id);
   elements.detailsTitle.textContent = node.name || `Node ${node.id}`;
   elements.nodeMeta.textContent = `${node.domain === 'ascendancy' ? 'Ascendancy' : 'Passive'} · ${node.kind} · ID ${node.id}${isRoot ? ' · implicit free start' : isAllocated ? ' · allocated' : canAllocate ? ' · available next' : ' · not currently available'}`;
   for (const stat of node.stats) {
@@ -257,10 +285,16 @@ function updateDetails() {
   elements.toggleNode.disabled = isRoot;
 }
 
+function nodeIdFromEvent(event) {
+  const group = event.target instanceof Element ? event.target.closest('[data-node-id]') : null;
+  return group ? group.dataset.nodeId : null;
+}
+
 function selectNode(nodeId, focus = false) {
   if (!state.nodeById.has(nodeId)) return;
+  const previousId = state.selectedId;
   state.selectedId = nodeId;
-  updateGraphState();
+  updateSelectionState(previousId);
   const parts = state.nodeElements.get(nodeId);
   if (focus && parts) parts.group.focus({ preventScroll: true });
 }
@@ -278,7 +312,7 @@ function centerNode(nodeId) {
 
 function tryAllocationChange() {
   const nodeId = state.selectedId;
-  if (!nodeId || state.model.rootIds.includes(nodeId)) return;
+  if (!state.model || !nodeId || state.rootIds.has(nodeId)) return;
   const candidate = new Set(state.allocated);
   const removing = candidate.delete(nodeId);
   if (!removing) candidate.add(nodeId);
@@ -287,7 +321,7 @@ function tryAllocationChange() {
     setStatus(validation.reason || 'That allocation is not legal.', true);
     return;
   }
-  state.allocated = candidate;
+  setAllocation(candidate);
   updateGraphState();
   const node = state.nodeById.get(nodeId);
   setStatus(`${node.name || `Node ${nodeId}`} ${removing ? 'removed' : 'allocated'}.`);
@@ -308,8 +342,11 @@ function rebuildModel(classId, ascendancyId, announce = true) {
   state.model = nextModel;
   state.classId = classId;
   state.ascendancyId = nextAscendancyId;
-  state.allocated = new Set();
+  state.rootIds = new Set(nextModel.rootIds);
+  setAllocation(new Set());
   state.selectedId = nextModel.rootIds[0] || null;
+  setEnabled(true);
+  elements.retryButton.hidden = true;
   buildGraph();
   elements.treePanel.setAttribute('aria-busy', 'false');
   if (announce) {
@@ -334,12 +371,21 @@ async function initialize() {
     elements.version.textContent = `export ${data.version}`;
     replaceOptions(elements.classSelect, data.classes);
     populateAscendancies('');
-    setEnabled(true);
-    rebuildModel(elements.classSelect.value, null, false);
+    if (!rebuildModel(elements.classSelect.value, null, false)) {
+      // rebuildModel has already reported why the default build failed. Keep
+      // that message instead of announcing success, leave the controls that
+      // need a model disabled, and offer both recoveries: choosing another
+      // build or reloading the export.
+      elements.buildControls.disabled = false;
+      elements.retryButton.hidden = false;
+      elements.treePanel.setAttribute('aria-busy', 'false');
+      return;
+    }
     setStatus(`Export ${data.version} loaded. Choose a class or inspect the tree.`);
   } catch (error) {
     state.data = null;
     state.model = null;
+    state.available = null;
     setEnabled(false);
     elements.retryButton.hidden = false;
     elements.treePanel.setAttribute('aria-busy', 'false');
@@ -384,7 +430,7 @@ elements.resetButton.addEventListener('click', () => {
     setStatus(validation.reason || 'The allocation could not be reset.', true);
     return;
   }
-  state.allocated = new Set();
+  setAllocation(new Set());
   updateGraphState();
   setStatus('All allocated nodes reset. Starting nodes remain implicit and free.');
 });
@@ -437,8 +483,28 @@ function endDrag(event) {
 elements.tree.addEventListener('pointerup', endDrag);
 elements.tree.addEventListener('pointercancel', endDrag);
 
+// Node selection is delegated to the tree. Panning captures the pointer on
+// pointerdown, and browsers dispatch the click of a captured pointer at the
+// capturing <svg> rather than at the node under it, so the click position is
+// hit-tested whenever the event target is not inside a node.
+elements.tree.addEventListener('click', (event) => {
+  if (!state.model || state.drag?.moved) return;
+  const nodeId = nodeIdFromEvent(event)
+    || document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-node-id]')?.dataset.nodeId;
+  if (nodeId) selectNode(nodeId);
+});
+
 elements.tree.addEventListener('keydown', (event) => {
-  if (!state.model || event.target !== elements.tree) return;
+  if (!state.model) return;
+  if (event.target !== elements.tree) {
+    // Enter or Space on a focused node selects it.
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const nodeId = nodeIdFromEvent(event);
+    if (!nodeId) return;
+    event.preventDefault();
+    selectNode(nodeId);
+    return;
+  }
   const { width, height } = svgSize();
   if (event.key === '+' || event.key === '=') zoomAt(1.2, width / 2, height / 2);
   else if (event.key === '-' || event.key === '_') zoomAt(1 / 1.2, width / 2, height / 2);
