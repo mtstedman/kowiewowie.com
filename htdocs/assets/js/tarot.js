@@ -2,7 +2,7 @@
     'use strict';
 
     const data = window.TarotData;
-    const app = document.querySelector('[data-tarot-app]');
+    const app = /** @type {HTMLElement | null} */ (document.querySelector('[data-tarot-app]'));
 
     if (!app) {
         return;
@@ -36,12 +36,19 @@
     };
     const DEFAULT_GLYPH = '✦';
 
-    const ROMAN_NUMERALS = [
+    const ROMAN_NUMERALS = /** @type {Array<[number, string]>} */ ([
         [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
-    ];
+    ]);
 
     /* ---------- helpers ---------- */
 
+    /**
+     * @template {keyof HTMLElementTagNameMap} K
+     * @param {K} tag
+     * @param {string | null} className
+     * @param {string | number | null} [text]
+     * @returns {HTMLElementTagNameMap[K]}
+     */
     const el = (tag, className, text) => {
         const node = document.createElement(tag);
 
@@ -92,6 +99,7 @@
         `${card.name} tarot card (${arcanaLabelFor(card)})${reversed ? ', reversed' : ''}`
     );
 
+    /** @param {boolean} reversed @returns {'upright' | 'reversed'} */
     const orientationKey = (reversed) => (reversed ? 'reversed' : 'upright');
 
     const orientationLabel = (reversed) => {
@@ -207,6 +215,7 @@
 
     /* ---------- card groups ---------- */
 
+    /** @type {Array<{ id: string, name: string, element?: string, cards: any[] }>} */
     const groups = [
         {
             id: 'major',
@@ -238,15 +247,15 @@
 
     /* ---------- meaning map explorer ---------- */
 
-    const mapForm = document.getElementById('tarot-map-form');
-    const mapCardSelect = document.getElementById('tarot-map-card');
-    const mapSpreadSelect = document.getElementById('tarot-map-spread');
-    const mapPositionSelect = document.getElementById('tarot-map-position');
-    const mapOrientationGroup = document.getElementById('tarot-map-orientation');
-    const mapPreview = document.getElementById('tarot-map-card-preview');
-    const mapResultTitle = document.getElementById('tarot-map-result-title');
-    const mapKeywords = document.getElementById('tarot-map-keywords');
-    const mapMeaning = document.getElementById('tarot-map-meaning');
+    const mapForm = /** @type {HTMLFormElement} */ (document.getElementById('tarot-map-form'));
+    const mapCardSelect = /** @type {HTMLSelectElement} */ (document.getElementById('tarot-map-card'));
+    const mapSpreadSelect = /** @type {HTMLSelectElement} */ (document.getElementById('tarot-map-spread'));
+    const mapPositionSelect = /** @type {HTMLSelectElement} */ (document.getElementById('tarot-map-position'));
+    const mapOrientationGroup = /** @type {HTMLElement} */ (document.getElementById('tarot-map-orientation'));
+    const mapPreview = /** @type {HTMLElement} */ (document.getElementById('tarot-map-card-preview'));
+    const mapResultTitle = /** @type {HTMLElement} */ (document.getElementById('tarot-map-result-title'));
+    const mapKeywords = /** @type {HTMLElement} */ (document.getElementById('tarot-map-keywords'));
+    const mapMeaning = /** @type {HTMLElement} */ (document.getElementById('tarot-map-meaning'));
 
     const populatePositions = () => {
         const spread = findSpread(mapSpreadSelect.value);
@@ -265,7 +274,7 @@
     };
 
     const selectedOrientationReversed = () => {
-        const checked = mapOrientationGroup.querySelector('input[name="orientation"]:checked');
+        const checked = /** @type {HTMLInputElement | null} */ (mapOrientationGroup.querySelector('input[name="orientation"]:checked'));
 
         return Boolean(checked && checked.value === 'reversed');
     };
@@ -342,8 +351,8 @@
 
     /* ---------- view tabs (dealer / deck / meaning map) ---------- */
 
-    const tabList = app.querySelector('[data-tarot-tabs]');
-    const tabs = tabList ? Array.from(tabList.querySelectorAll('[role="tab"]')) : [];
+    const tabList = /** @type {HTMLElement | null} */ (app.querySelector('[data-tarot-tabs]'));
+    const tabs = /** @type {HTMLElement[]} */ (tabList ? Array.from(tabList.querySelectorAll('[role="tab"]')) : []);
 
     const panelForTab = (tab) => document.getElementById(tab.getAttribute('aria-controls') || '');
 
@@ -385,7 +394,7 @@
         }
 
         tabList.addEventListener('click', (event) => {
-            const tab = event.target.closest('[role="tab"]');
+            const tab = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest('[role="tab"]'));
 
             if (tab) {
                 activateTab(tab, false);
@@ -393,7 +402,7 @@
         });
 
         tabList.addEventListener('keydown', (event) => {
-            const current = event.target.closest('[role="tab"]');
+            const current = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest('[role="tab"]'));
             const index = tabs.indexOf(current);
 
             if (index === -1) {
@@ -447,16 +456,16 @@
 
     /* ---------- deck gallery + detail dialog ---------- */
 
-    const galleryRoot = document.getElementById('tarot-gallery-groups');
-    const dialog = document.getElementById('tarot-card-dialog');
-    const dialogCard = document.getElementById('tarot-dialog-card');
-    const dialogEyebrow = document.getElementById('tarot-dialog-eyebrow');
-    const dialogTitle = document.getElementById('tarot-dialog-title');
-    const dialogKeywords = document.getElementById('tarot-dialog-keywords');
-    const dialogUpright = document.getElementById('tarot-dialog-upright');
-    const dialogReversed = document.getElementById('tarot-dialog-reversed');
-    const dialogClose = document.getElementById('tarot-dialog-close');
-    const dialogMapButton = document.getElementById('tarot-dialog-map-button');
+    const galleryRoot = /** @type {HTMLElement} */ (document.getElementById('tarot-gallery-groups'));
+    const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('tarot-card-dialog'));
+    const dialogCard = /** @type {HTMLElement} */ (document.getElementById('tarot-dialog-card'));
+    const dialogEyebrow = /** @type {HTMLElement} */ (document.getElementById('tarot-dialog-eyebrow'));
+    const dialogTitle = /** @type {HTMLElement} */ (document.getElementById('tarot-dialog-title'));
+    const dialogKeywords = /** @type {HTMLElement} */ (document.getElementById('tarot-dialog-keywords'));
+    const dialogUpright = /** @type {HTMLElement} */ (document.getElementById('tarot-dialog-upright'));
+    const dialogReversed = /** @type {HTMLElement} */ (document.getElementById('tarot-dialog-reversed'));
+    const dialogClose = /** @type {HTMLButtonElement} */ (document.getElementById('tarot-dialog-close'));
+    const dialogMapButton = /** @type {HTMLButtonElement} */ (document.getElementById('tarot-dialog-map-button'));
     let dialogSlug = null;
     let dialogReturnFocus = null;
 
@@ -515,7 +524,7 @@
                 el('span', null, group.name),
                 el('span', 'tarot-gallery-group-count', `${group.cards.length} cards${group.element ? ` · ${group.element}` : ''}`),
             );
-            heading.firstChild.setAttribute('aria-hidden', 'true');
+            /** @type {HTMLElement} */ (heading.firstChild).setAttribute('aria-hidden', 'true');
 
             const list = el('ul', 'tarot-gallery-grid');
 
@@ -539,7 +548,7 @@
         galleryRoot.replaceChildren(fragment);
 
         galleryRoot.addEventListener('click', (event) => {
-            const button = event.target.closest('.tarot-gallery-card');
+            const button = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest('.tarot-gallery-card'));
 
             if (!button) {
                 return;
@@ -575,28 +584,28 @@
 
     /* ---------- spreads / dealing ---------- */
 
-    const spreadOptionsRoot = document.getElementById('tarot-spread-options');
-    const spreadDescription = document.getElementById('tarot-spread-description');
-    const dealButton = document.getElementById('tarot-deal-button');
-    const dealStatus = document.getElementById('tarot-deal-status');
-    const board = document.getElementById('tarot-board');
-    const readingsList = document.getElementById('tarot-readings-list');
-    const fan = document.getElementById('tarot-fan');
-    const modeOptionsRoot = document.getElementById('tarot-mode-options');
-    const deckStage = document.getElementById('tarot-deck-stage');
-    const deckStack = document.getElementById('tarot-deck-stack');
-    const deckMeta = document.getElementById('tarot-deck-meta');
-    const shuffleButton = document.getElementById('tarot-shuffle-button');
-    const autoDealButton = document.getElementById('tarot-auto-deal-button');
-    const spreadLayout = document.getElementById('tarot-spread-layout');
-    const spreadControls = document.getElementById('tarot-spread-controls');
-    const controlsToggle = document.getElementById('tarot-controls-toggle');
+    const spreadOptionsRoot = /** @type {HTMLElement} */ (document.getElementById('tarot-spread-options'));
+    const spreadDescription = /** @type {HTMLElement} */ (document.getElementById('tarot-spread-description'));
+    const dealButton = /** @type {HTMLButtonElement} */ (document.getElementById('tarot-deal-button'));
+    const dealStatus = /** @type {HTMLElement} */ (document.getElementById('tarot-deal-status'));
+    const board = /** @type {HTMLElement} */ (document.getElementById('tarot-board'));
+    const readingsList = /** @type {HTMLElement} */ (document.getElementById('tarot-readings-list'));
+    const fan = /** @type {HTMLElement} */ (document.getElementById('tarot-fan'));
+    const modeOptionsRoot = /** @type {HTMLElement | null} */ (document.getElementById('tarot-mode-options'));
+    const deckStage = /** @type {HTMLElement | null} */ (document.getElementById('tarot-deck-stage'));
+    const deckStack = /** @type {HTMLElement | null} */ (document.getElementById('tarot-deck-stack'));
+    const deckMeta = /** @type {HTMLElement | null} */ (document.getElementById('tarot-deck-meta'));
+    const shuffleButton = /** @type {HTMLButtonElement | null} */ (document.getElementById('tarot-shuffle-button'));
+    const autoDealButton = /** @type {HTMLButtonElement | null} */ (document.getElementById('tarot-auto-deal-button'));
+    const spreadLayout = /** @type {HTMLElement | null} */ (document.getElementById('tarot-spread-layout'));
+    const spreadControls = /** @type {HTMLElement | null} */ (document.getElementById('tarot-spread-controls'));
+    const controlsToggle = /** @type {HTMLButtonElement | null} */ (document.getElementById('tarot-controls-toggle'));
 
     /* Collapsing hides every setup control but keeps the deal status live region
        (a hidden live region is never announced) and the re-expand toggle. */
-    const collapsibleControls = spreadControls
+    const collapsibleControls = /** @type {HTMLElement[]} */ (spreadControls
         ? Array.from(spreadControls.children).filter((node) => node !== dealStatus && node !== controlsToggle)
-        : [];
+        : []);
 
     const setControlsCollapsed = (collapsed, { moveFocus = false } = {}) => {
         if (!spreadLayout || !spreadControls || !controlsToggle) {
@@ -627,6 +636,9 @@
     /* Covers the full staggered riffle: 360ms + 6 cards x 6ms stagger = 396ms. */
     const DECK_ANIMATION_MS = 400;
 
+    /** @typedef {Record<string, *>} TarotCard */
+    /** @typedef {Record<string, *>} TarotSpreadPosition */
+
     /*
      * deal:     placed entries, in spread position order (index === position index).
      * deck:     the shuffled 78-card deck backing the face-down fan (empty until shuffled).
@@ -634,6 +646,7 @@
      * mode:     'shuffle' (shuffle/cut stage, then auto-deal; the default) or 'fan' (pick card by card).
      * shuffles/cuts: how many times the deck on the shuffle stage has been shuffled or cut.
      */
+    /** @type {{ spreadId: string | null, deal: Array<{ position: TarotSpreadPosition, card: TarotCard, reversed: boolean, revealed: boolean }>, deck: TarotCard[], nextPick: number, mode: string, shuffles: number }} */
     const state = {
         spreadId: SPREADS.length > 0 ? SPREADS[0].id : null,
         deal: [],
@@ -711,7 +724,7 @@
     const refreshRevealOrder = () => {
         const next = nextRevealIndex();
 
-        board.querySelectorAll('.tarot-card-flip').forEach((slot) => {
+        /** @type {NodeListOf<HTMLElement>} */ (board.querySelectorAll('.tarot-card-flip')).forEach((slot) => {
             const index = Number(slot.dataset.slotIndex);
             const entry = state.deal[index];
             const faceDown = Boolean(entry) && !entry.revealed;
@@ -795,6 +808,7 @@
             return;
         }
 
+        /** @param {TransitionEvent} event */
         const onFlipEnd = (event) => {
             if (event.target === inner && event.propertyName === 'transform') {
                 inner.removeEventListener('transitionend', onFlipEnd);
@@ -816,7 +830,7 @@
 
         entry.revealed = true;
 
-        const slot = board.querySelector(`[data-slot-index="${index}"]`);
+        const slot = /** @type {HTMLElement | null} */ (board.querySelector(`[data-slot-index="${index}"]`));
 
         if (slot) {
             slot.classList.add('is-revealed');
@@ -840,21 +854,21 @@
 
     /* ---------- hero reveal dialog (single reveals once the spread is filled) ---------- */
 
-    const heroDialog = document.getElementById('tarot-reading-dialog');
-    const heroCard = document.getElementById('tarot-reveal-card');
-    const heroEyebrow = document.getElementById('tarot-reveal-eyebrow');
-    const heroName = document.getElementById('tarot-reveal-name');
-    const heroOrientation = document.getElementById('tarot-reveal-orientation');
-    const heroPositionLabel = document.getElementById('tarot-reveal-position-label');
-    const heroPosition = document.getElementById('tarot-reveal-position');
-    const heroInterpretation = document.getElementById('tarot-reveal-interpretation');
-    const heroClose = document.getElementById('tarot-reveal-close');
+    const heroDialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('tarot-reading-dialog'));
+    const heroCard = /** @type {HTMLElement} */ (document.getElementById('tarot-reveal-card'));
+    const heroEyebrow = /** @type {HTMLElement} */ (document.getElementById('tarot-reveal-eyebrow'));
+    const heroName = /** @type {HTMLElement} */ (document.getElementById('tarot-reveal-name'));
+    const heroOrientation = /** @type {HTMLElement} */ (document.getElementById('tarot-reveal-orientation'));
+    const heroPositionLabel = /** @type {HTMLElement} */ (document.getElementById('tarot-reveal-position-label'));
+    const heroPosition = /** @type {HTMLElement} */ (document.getElementById('tarot-reveal-position'));
+    const heroInterpretation = /** @type {HTMLElement} */ (document.getElementById('tarot-reveal-interpretation'));
+    const heroClose = /** @type {HTMLButtonElement} */ (document.getElementById('tarot-reveal-close'));
     let heroReturnFocus = null;
 
     const isDealComplete = () => {
         const spread = currentSpread();
 
-        return Boolean(spread) && spread.positions.length > 0 && state.nextPick >= spread.positions.length;
+        return !!spread && spread.positions.length > 0 && state.nextPick >= spread.positions.length;
     };
 
     const closeReadingHero = () => {
@@ -877,7 +891,7 @@
         }
 
         const { position, card, reversed } = entry;
-        heroReturnFocus = board.querySelector(`[data-slot-index="${index}"]`);
+        heroReturnFocus = /** @type {HTMLElement | null} */ (board.querySelector(`[data-slot-index="${index}"]`));
 
         const frame = el('span', `tarot-card tarot-card-static tarot-card-large tarot-reveal-card-frame${reversed ? ' is-reversed' : ''}`);
         frame.append(createCardFace(card, { reversed, lazy: false }));
@@ -927,7 +941,7 @@
 
     /* Marks the next unfilled spot (traditional positions[] order) as the pick target. */
     const highlightNextSlot = () => {
-        board.querySelectorAll('.tarot-slot.is-next').forEach((slot) => {
+        /** @type {NodeListOf<HTMLElement>} */ (board.querySelectorAll('.tarot-slot.is-next')).forEach((slot) => {
             slot.classList.remove('is-next');
             slot.removeAttribute('aria-current');
         });
@@ -938,7 +952,7 @@
             return;
         }
 
-        const slot = board.querySelector(`.tarot-slot-empty[data-slot-index="${state.nextPick}"]`);
+        const slot = /** @type {HTMLElement | null} */ (board.querySelector(`.tarot-slot-empty[data-slot-index="${state.nextPick}"]`));
 
         if (slot) {
             slot.classList.add('is-next');
@@ -956,7 +970,7 @@
         const position = spread ? spread.positions[state.nextPick] : null;
         const total = state.deck.length;
 
-        fan.querySelectorAll('.tarot-fan-card').forEach((button) => {
+        /** @type {NodeListOf<HTMLButtonElement>} */ (fan.querySelectorAll('.tarot-fan-card')).forEach((button) => {
             const number = Number(button.dataset.deckIndex) + 1;
             button.setAttribute('aria-label', position
                 ? `Face-down card ${number} of ${total} — pick to place in Position ${state.nextPick + 1}, ${position.name}`
@@ -1047,7 +1061,7 @@
     const placeSlot = (entry, index, sourceRect, onLanded) => {
         const slot = createPlacedSlot(entry, index);
         const restingZ = slot.style.zIndex;
-        const emptySlot = board.querySelector(`[data-slot-index="${index}"]`);
+        const emptySlot = /** @type {HTMLElement | null} */ (board.querySelector(`[data-slot-index="${index}"]`));
         const animate = Boolean(sourceRect && emptySlot) && !prefersReducedMotion();
 
         if (animate) {
@@ -1208,7 +1222,7 @@
 
         [spreadOptionsRoot, modeOptionsRoot].forEach((root) => {
             if (root) {
-                root.querySelectorAll('input').forEach((input) => {
+                /** @type {NodeListOf<HTMLInputElement>} */ (root.querySelectorAll('input')).forEach((input) => {
                     input.disabled = locked;
                 });
             }
@@ -1349,7 +1363,7 @@
         state.nextPick = index + 1;
 
         const hadFocus = document.activeElement === button;
-        const neighbor = button.nextElementSibling || button.previousElementSibling;
+        const neighbor = /** @type {HTMLElement | null} */ (button.nextElementSibling || button.previousElementSibling);
         // The card is laid down from where it was picked out of the fan.
         const sourceRect = button.getBoundingClientRect();
         button.remove();
@@ -1370,7 +1384,7 @@
 
         if (hadFocus) {
             if (complete) {
-                const firstHidden = board.querySelector('.tarot-card-flip:not(.is-revealed)') || slot;
+                const firstHidden = /** @type {HTMLElement | null} */ (board.querySelector('.tarot-card-flip:not(.is-revealed)')) || slot;
                 firstHidden.focus();
             } else if (neighbor && fan.contains(neighbor)) {
                 neighbor.focus();
@@ -1500,7 +1514,7 @@
             if (hadFocus) {
                 const active = document.activeElement;
                 const focusIdle = !active || active === document.body || !document.contains(active) || deckStage.contains(active);
-                const firstHidden = board.querySelector('.tarot-card-flip:not(.is-revealed)');
+                const firstHidden = /** @type {HTMLElement | null} */ (board.querySelector('.tarot-card-flip:not(.is-revealed)'));
 
                 if (focusIdle && firstHidden) {
                     firstHidden.focus();
@@ -1585,13 +1599,15 @@
         });
 
         spreadOptionsRoot.addEventListener('change', (event) => {
-            if (event.target && event.target.name === 'tarot-spread') {
-                selectSpread(event.target.value);
+            const target = /** @type {HTMLInputElement} */ (event.target);
+
+            if (target && target.name === 'tarot-spread') {
+                selectSpread(target.value);
             }
         });
 
         board.addEventListener('click', (event) => {
-            const slot = event.target.closest('.tarot-card-flip');
+            const slot = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest('.tarot-card-flip'));
 
             if (slot && board.contains(slot)) {
                 const index = Number(slot.dataset.slotIndex);
@@ -1625,7 +1641,7 @@
                 return;
             }
 
-            const button = event.target.closest('.tarot-fan-card');
+            const button = /** @type {HTMLButtonElement | null} */ (/** @type {HTMLElement} */ (event.target).closest('.tarot-fan-card'));
 
             if (button && fan.contains(button)) {
                 pickCard(button);
@@ -1642,13 +1658,15 @@
 
         if (modeOptionsRoot) {
             // Always open in the primary shuffle & cut mode, even if the browser restored a radio.
-            modeOptionsRoot.querySelectorAll('input[name="tarot-deal-mode"]').forEach((input) => {
+            /** @type {NodeListOf<HTMLInputElement>} */ (modeOptionsRoot.querySelectorAll('input[name="tarot-deal-mode"]')).forEach((input) => {
                 input.checked = input.value === state.mode;
             });
 
             modeOptionsRoot.addEventListener('change', (event) => {
-                if (event.target && event.target.name === 'tarot-deal-mode') {
-                    setDealMode(event.target.value);
+                const target = /** @type {HTMLInputElement} */ (event.target);
+
+                if (target && target.name === 'tarot-deal-mode') {
+                    setDealMode(target.value);
                 }
             });
         }

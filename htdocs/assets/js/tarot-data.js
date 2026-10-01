@@ -4,8 +4,14 @@
     const IMAGE_ROOT = '/assets/img/tarot/';
     const CARD_BACK_IMAGE = `${IMAGE_ROOT}card-back.png`;
 
+    /** @param {number} value */
     const pad2 = (value) => String(value).padStart(2, '0');
 
+    /**
+     * @template T
+     * @param {T} value
+     * @returns {Readonly<T>}
+     */
     const deepFreeze = (value) => {
         if (value && typeof value === 'object' && !Object.isFrozen(value)) {
             Object.values(value).forEach(deepFreeze);
@@ -896,6 +902,7 @@
     ]);
 
     // Orientation framing used by the meaning map.
+    /** @type {Readonly<Record<'upright' | 'reversed', TarotOrientation>>} */
     const TAROT_ORIENTATIONS = deepFreeze({
         upright: {
             id: 'upright',

@@ -10,5 +10,5 @@
     "strict": false,
     "skipLibCheck": true
   },
-  "include": ["htdocs/assets/js/**/*.js"]
+  "include": ["htdocs/assets/js/**/*.js", "types/**/*.d.ts"]
 }

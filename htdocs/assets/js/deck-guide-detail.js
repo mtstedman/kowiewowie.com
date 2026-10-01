@@ -21,7 +21,7 @@
         const response = await fetch(url);
 
         if (!response.ok) {
-            const error = new Error(`Request failed: ${response.status}`);
+            const error = /** @type {Error & { status?: number }} */ (new Error(`Request failed: ${response.status}`));
             error.status = response.status;
             throw error;
         }

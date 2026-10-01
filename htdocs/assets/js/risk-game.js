@@ -757,11 +757,11 @@
             && isNeighbor(source, target.id);
 
         elements.startButton.textContent = state.active ? 'Restart game' : 'New game';
-        elements.reinforceButton.disabled = !canReinforce;
-        elements.attackButton.disabled = !canAttack;
-        elements.fortifyButton.disabled = !(canEnterFortify || canFortify);
+        (/** @type {HTMLButtonElement} */ (elements.reinforceButton)).disabled = !canReinforce;
+        (/** @type {HTMLButtonElement} */ (elements.attackButton)).disabled = !canAttack;
+        (/** @type {HTMLButtonElement} */ (elements.fortifyButton)).disabled = !(canEnterFortify || canFortify);
         elements.fortifyButton.textContent = state.phase === 'fortify' ? 'Fortify' : 'Fortify phase';
-        elements.endButton.disabled = !isHumanTurn || state.phase === 'reinforce';
+        (/** @type {HTMLButtonElement} */ (elements.endButton)).disabled = !isHumanTurn || state.phase === 'reinforce';
     };
 
     const renderSummary = () => {

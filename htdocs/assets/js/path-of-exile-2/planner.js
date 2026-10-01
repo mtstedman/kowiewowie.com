@@ -6,37 +6,37 @@ const MIN_SCALE = 0.025;
 const MAX_SCALE = 2.5;
 
 const elements = {
-  status: document.querySelector('#poe2-status'),
-  classSelect: document.querySelector('#poe2-class'),
-  ascendancySelect: document.querySelector('#poe2-ascendancy'),
-  buildControls: document.querySelector('#poe2-build-controls'),
-  searchForm: document.querySelector('#poe2-search'),
-  searchInput: document.querySelector('#poe2-node-query'),
-  searchButton: document.querySelector('#poe2-search button'),
-  passiveTotal: document.querySelector('#poe2-passive-total'),
-  ascendancyTotal: document.querySelector('#poe2-ascendancy-total'),
-  fitButton: document.querySelector('#poe2-fit'),
-  resetButton: document.querySelector('#poe2-reset'),
-  retryButton: document.querySelector('#poe2-retry'),
-  zoomOut: document.querySelector('#poe2-zoom-out'),
-  zoomIn: document.querySelector('#poe2-zoom-in'),
-  treePanel: document.querySelector('.poe2-tree-panel'),
-  tree: document.querySelector('#poe2-tree'),
-  viewport: document.querySelector('#poe2-viewport'),
-  edgeLayer: document.querySelector('#poe2-edges'),
-  nodeLayer: document.querySelector('#poe2-nodes'),
-  detailsTitle: document.querySelector('#poe2-details-title'),
-  nodeMeta: document.querySelector('#poe2-node-meta'),
-  nodeStats: document.querySelector('#poe2-node-stats'),
-  toggleNode: document.querySelector('#poe2-toggle-node'),
-  toggleMustHave: document.querySelector('#poe2-toggle-must-have'),
-  mustHaveLimit: document.querySelector('#poe2-must-have-limit'),
-  mustHaveEmpty: document.querySelector('#poe2-must-have-empty'),
-  mustHaveList: document.querySelector('#poe2-must-have-list'),
-  findRoute: document.querySelector('#poe2-find-route'),
-  clearMustHaves: document.querySelector('#poe2-clear-must-haves'),
-  routeSummary: document.querySelector('#poe2-route-summary'),
-  version: document.querySelector('#poe2-version'),
+  status: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-status')),
+  classSelect: /** @type {HTMLSelectElement} */ (document.querySelector('#poe2-class')),
+  ascendancySelect: /** @type {HTMLSelectElement} */ (document.querySelector('#poe2-ascendancy')),
+  buildControls: /** @type {HTMLFieldSetElement} */ (document.querySelector('#poe2-build-controls')),
+  searchForm: /** @type {HTMLFormElement} */ (document.querySelector('#poe2-search')),
+  searchInput: /** @type {HTMLInputElement} */ (document.querySelector('#poe2-node-query')),
+  searchButton: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-search button')),
+  passiveTotal: /** @type {HTMLElement} */ (document.querySelector('#poe2-passive-total')),
+  ascendancyTotal: /** @type {HTMLElement} */ (document.querySelector('#poe2-ascendancy-total')),
+  fitButton: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-fit')),
+  resetButton: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-reset')),
+  retryButton: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-retry')),
+  zoomOut: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-zoom-out')),
+  zoomIn: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-zoom-in')),
+  treePanel: /** @type {HTMLElement} */ (document.querySelector('.poe2-tree-panel')),
+  tree: /** @type {SVGSVGElement} */ (document.querySelector('#poe2-tree')),
+  viewport: /** @type {SVGGElement} */ (document.querySelector('#poe2-viewport')),
+  edgeLayer: /** @type {SVGGElement} */ (document.querySelector('#poe2-edges')),
+  nodeLayer: /** @type {SVGGElement} */ (document.querySelector('#poe2-nodes')),
+  detailsTitle: /** @type {HTMLHeadingElement} */ (document.querySelector('#poe2-details-title')),
+  nodeMeta: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-node-meta')),
+  nodeStats: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-node-stats')),
+  toggleNode: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-node')),
+  toggleMustHave: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-must-have')),
+  mustHaveLimit: /** @type {HTMLSpanElement} */ (document.querySelector('#poe2-must-have-limit')),
+  mustHaveEmpty: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-must-have-empty')),
+  mustHaveList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-must-have-list')),
+  findRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-find-route')),
+  clearMustHaves: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-must-haves')),
+  routeSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-route-summary')),
+  version: /** @type {HTMLSpanElement} */ (document.querySelector('#poe2-version')),
 };
 
 const state = {
@@ -453,8 +453,12 @@ function updateDetails() {
   elements.toggleMustHave.disabled = isRoot || !state.enabled || state.computing;
 }
 
+/**
+ * @param {Event} event
+ * @returns {string | null | undefined}
+ */
 function nodeIdFromEvent(event) {
-  const group = event.target instanceof Element ? event.target.closest('[data-node-id]') : null;
+  const group = event.target instanceof Element ? /** @type {SVGElement | null} */ (event.target.closest('[data-node-id]')) : null;
   return group ? group.dataset.nodeId : null;
 }
 
@@ -652,6 +656,7 @@ elements.tree.addEventListener('pointermove', (event) => {
   applyTransform();
 });
 
+/** @param {PointerEvent} event */
 function endDrag(event) {
   if (!state.drag || state.drag.pointerId !== event.pointerId) return;
   elements.tree.classList.remove('is-dragging');
@@ -673,7 +678,7 @@ elements.tree.addEventListener('pointercancel', endDrag);
 elements.tree.addEventListener('click', (event) => {
   if (!state.model || state.drag?.moved) return;
   const nodeId = nodeIdFromEvent(event)
-    || document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-node-id]')?.dataset.nodeId;
+    || /** @type {SVGElement | null | undefined} */ (document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-node-id]'))?.dataset.nodeId;
   if (nodeId) selectNode(nodeId);
 });
 

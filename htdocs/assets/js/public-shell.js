@@ -5,7 +5,7 @@
 
     skipLinks.forEach((link) => {
         link.addEventListener('click', (event) => {
-            const targetId = link.hash.slice(1);
+            const targetId = (/** @type {HTMLAnchorElement} */ (link)).hash.slice(1);
             const target = targetId ? document.getElementById(targetId) : null;
 
             if (!target) {

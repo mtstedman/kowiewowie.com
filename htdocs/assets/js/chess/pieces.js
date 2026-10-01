@@ -12,6 +12,8 @@ export const PIECE_TYPES = Object.freeze({
     KING: 'king',
 });
 
+/** @typedef {typeof PIECE_TYPES[keyof typeof PIECE_TYPES]} PieceType */
+
 const FEN_SYMBOLS = Object.freeze({
     pawn: 'p',
     knight: 'n',
@@ -72,6 +74,7 @@ export class Piece {
         this.color = color;
     }
 
+    /** @returns {PieceType} */
     get type() {
         throw new Error('Piece subclasses must define type.');
     }
@@ -97,8 +100,9 @@ export class Piece {
         throw new Error('Piece subclasses must implement pseudoMoves().');
     }
 
+    /** @returns {Piece} */
     clone() {
-        return new this.constructor(this.color);
+        return new (/** @type {new (color: string) => Piece} */ (this.constructor))(this.color);
     }
 }
 

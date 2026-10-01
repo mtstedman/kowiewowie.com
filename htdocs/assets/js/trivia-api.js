@@ -1,6 +1,9 @@
 const API_ROOT = '/api/v1/trivia';
 
 export class TriviaApiError extends Error {
+    /**
+     * @param {{ status?: number, error?: string, message?: string, details?: * }} [options]
+     */
     constructor({ status = 0, error = 'request_failed', message = 'The trivia request failed.', details = null } = {}) {
         super(message);
         this.name = 'TriviaApiError';
@@ -59,7 +62,19 @@ const unwrapPayload = (payload) => {
     return payload;
 };
 
+/**
+ * @typedef {Object} TriviaRequestOptions
+ * @property {string} [method]
+ * @property {*} [body]
+ * @property {Record<string, string>} [headers]
+ */
+
+/**
+ * @param {string} path
+ * @param {TriviaRequestOptions} [options]
+ */
 export const requestTrivia = async (path, { method = 'GET', body, headers = {} } = {}) => {
+    /** @type {RequestInit} */
     const options = {
         method,
         credentials: 'same-origin',
@@ -88,6 +103,9 @@ export const requestTrivia = async (path, { method = 'GET', body, headers = {} }
     return unwrapPayload(payload);
 };
 
+/**
+ * @param {{ limit?: number, offset?: number }} [options]
+ */
 export const listRooms = ({ limit, offset } = {}) => requestTrivia(`/rooms${buildQuery({ limit, offset })}`);
 
 export const createRoom = (payload = {}) => requestTrivia('/rooms', {

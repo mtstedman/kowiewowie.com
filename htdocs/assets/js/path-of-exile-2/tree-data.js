@@ -18,7 +18,11 @@
  * @typedef {{version: string, source: {url: string, commit: string}, classes: ClassOption[],
  *   nodes: PassiveNode[], edges: [string, string][], skippedOverridePairs: number,
  *   raw: Record<string, unknown>}} TreeData
+ * @typedef {Readonly<{prerequisites: Readonly<Record<string, readonly string[]>>,
+ *   choiceParents: Readonly<Record<string, string>>,
+ *   supportEdges: readonly (readonly string[])[]}>} RouteRules
  * @typedef {{nodes: PassiveNode[], edges: [string, string][], rootIds: string[],
+ *   routeRules: RouteRules,
  *   canAllocate(allocatedNodeIds: string[], nodeId: string): boolean,
  *   availableNodeIds(allocatedNodeIds: string[]): Set<string>,
  *   validateAllocation(allocatedNodeIds: string[]): {valid: boolean, reason: string|null},
@@ -175,7 +179,7 @@ function analyzeRaw(raw) {
       x,
       y,
       kind,
-      domain: ascendancyId === null ? 'passive' : 'ascendancy',
+      domain: /** @type {PassiveNode['domain']} */ (ascendancyId === null ? 'passive' : 'ascendancy'),
       ascendancyId,
     };
     nodes.push(node);

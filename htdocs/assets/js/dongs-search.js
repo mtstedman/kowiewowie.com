@@ -7,11 +7,11 @@
 
   const form = root.querySelector('[data-donger-search-form]');
   const input = root.querySelector('[data-donger-search-input]');
-  const clearButton = root.querySelector('[data-donger-search-clear]');
+  const clearButton = /** @type {HTMLButtonElement | null} */ (root.querySelector('[data-donger-search-clear]'));
   const status = root.querySelector('[data-donger-search-status]');
-  const emptyState = root.querySelector('[data-donger-search-empty]');
-  const categories = Array.from(root.querySelectorAll('.donger-category'));
-  const buttons = Array.from(root.querySelectorAll('button[data-donger]'));
+  const emptyState = /** @type {HTMLElement | null} */ (root.querySelector('[data-donger-search-empty]'));
+  const categories = Array.from(/** @type {NodeListOf<HTMLElement>} */ (root.querySelectorAll('.donger-category')));
+  const buttons = Array.from(/** @type {NodeListOf<HTMLButtonElement>} */ (root.querySelectorAll('button[data-donger]')));
   const totalCount = buttons.length;
 
   if (!(input instanceof HTMLInputElement) || !form || !clearButton || !status || !emptyState) {

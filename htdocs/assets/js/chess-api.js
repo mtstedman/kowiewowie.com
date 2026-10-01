@@ -59,7 +59,19 @@ const unwrapPayload = (payload) => {
     return payload;
 };
 
+/**
+ * @typedef {object} ChessRequestOptions
+ * @property {string} [method]
+ * @property {unknown} [body]
+ * @property {Record<string, string>} [headers]
+ */
+
+/**
+ * @param {string} path
+ * @param {ChessRequestOptions} [requestOptions]
+ */
 export const requestChess = async (path, { method = 'GET', body, headers = {} } = {}) => {
+    /** @type {RequestInit} */
     const options = {
         method,
         credentials: 'same-origin',
@@ -88,6 +100,9 @@ export const requestChess = async (path, { method = 'GET', body, headers = {} } 
     return unwrapPayload(payload);
 };
 
+/**
+ * @param {{ limit?: number, offset?: number }} [params]
+ */
 export const listGames = ({ limit, offset } = {}) => requestChess(`/games${buildQuery({ limit, offset })}`);
 
 export const createGame = (payload = {}) => requestChess('/games', {
@@ -135,6 +150,10 @@ export const cancelTakeback = (gameId) => requestChess(`/games/${encodeURICompon
     method: 'DELETE',
 });
 
+/**
+ * @param {string} gameId
+ * @param {{ from?: string, to?: string }} [squares]
+ */
 export const getPromotionOptions = (gameId, { from, to } = {}) => requestChess(
     `/games/${encodeURIComponent(gameId)}/moves/promotions${buildQuery({ from, to })}`,
 );

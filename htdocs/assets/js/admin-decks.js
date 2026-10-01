@@ -1,9 +1,14 @@
 (() => {
-    const root = document.querySelector('[data-deck-editor]');
-    const sectionsRoot = document.querySelector('[data-deck-sections]');
-    const addSection = document.querySelector('[data-add-section]');
-    const searchInput = document.querySelector('[data-card-search-input]');
-    const searchResults = document.querySelector('[data-card-search-results]');
+    /** @typedef {{name: string, cardId: string, imageUrl: string}} AdminDecksCard */
+    /** @typedef {AdminDecksCard & {quantity?: string}} AdminDecksDraggableCard */
+    /** @typedef {{scryfall_id: string, name: string, image_url: string, mana_cost: string, type_line: string, set_name: string, set_code: string, collector_number: string}} AdminDecksSearchCard */
+    /** @typedef {{headers: {Accept: string}, signal: AbortSignal}} AdminDecksSearchRequestOptions */
+
+    const root = /** @type {HTMLElement|null} */ (document.querySelector('[data-deck-editor]'));
+    const sectionsRoot = /** @type {HTMLElement|null} */ (document.querySelector('[data-deck-sections]'));
+    const addSection = /** @type {HTMLElement|null} */ (document.querySelector('[data-add-section]'));
+    const searchInput = /** @type {HTMLInputElement|null} */ (document.querySelector('[data-card-search-input]'));
+    const searchResults = /** @type {HTMLElement|null} */ (document.querySelector('[data-card-search-results]'));
     if (!root || !sectionsRoot || !addSection || !searchInput || !searchResults) {
         return;
     }
@@ -11,12 +16,17 @@
     const SEARCH_DEBOUNCE_MS = 250;
     const DRAG_MIME_TYPE = 'application/x-admin-deck-card';
     const ROW_DRAG_MIME_TYPE = 'application/x-admin-deck-row';
+    /** @type {number|null} */
     let searchTimer = null;
     let currentRequest = 0;
+    /** @type {AbortController|null} */
     let searchController = null;
+    /** @type {AdminDecksDraggableCard|null} */
     let draggedCard = null;
+    /** @type {HTMLElement|null} */
     let draggedRow = null;
 
+    /** @param {unknown} value */
     const escapeHtml = (value) => String(value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -24,14 +34,17 @@
         .replace(/\"/g, '&quot;')
         .replace(/'/g, '&#039;');
 
+    /** @param {string} imageUrl @param {string} name */
     const cardImage = (imageUrl, name) => imageUrl
         ? `<div data-card-image><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(name)} card art" loading="lazy"></div>`
         : '<div data-card-image></div>';
 
+    /** @param {number} sectionIndex @param {number} cardIndex @param {string} [cardId] @param {string} [imageUrl] */
     const hiddenCardFields = (sectionIndex, cardIndex, cardId = '', imageUrl = '') => `
         <input type="hidden" name="deck_sections[${sectionIndex}][cards][${cardIndex}][card_id]" value="${escapeHtml(cardId)}">
         <input type="hidden" name="deck_sections[${sectionIndex}][cards][${cardIndex}][image_url]" value="${escapeHtml(imageUrl)}">`;
 
+    /** @param {number} sectionIndex @param {number} cardIndex @param {string} [quantity] @param {string} [name] @param {string} [cardId] @param {string} [imageUrl] */
     const cardRow = (sectionIndex, cardIndex, quantity = '', name = '', cardId = '', imageUrl = '') => `
         <div class="admin-form-row" data-card-row data-section-index="${sectionIndex}" data-card-index="${cardIndex}" draggable="true">
             ${cardImage(imageUrl, name)}
@@ -47,6 +60,7 @@
             <button type="button" data-remove-card>Remove card</button>
         </div>`;
 
+    /** @param {number} sectionIndex */
     const sectionBlock = (sectionIndex) => `
         <div class="admin-deck-section" data-section data-section-index="${sectionIndex}" data-next-card="1">
             <label>
@@ -58,6 +72,7 @@
             <button type="button" data-remove-section>Remove section</button>
         </div>`;
 
+    /** @param {unknown} value */
     const normalizeQuantity = (value) => {
         const quantity = Number.parseInt(String(value), 10);
         if (!Number.isFinite(quantity) || quantity < 1) {
@@ -69,6 +84,7 @@
     const sections = () => Array.from(sectionsRoot.querySelectorAll('[data-section]'))
         .filter((section) => section instanceof HTMLElement);
 
+    /** @param {HTMLElement} section @param {number} fallbackIndex */
     const sectionLabel = (section, fallbackIndex) => {
         const input = section.querySelector('input[name$="[name]"]');
         const name = input instanceof HTMLInputElement ? input.value.trim() : '';
@@ -94,12 +110,15 @@
         });
     };
 
+    /** @param {string} sectionIndex */
     const findSection = (sectionIndex) => sections()
         .find((section) => (section.dataset.sectionIndex || '') === sectionIndex) || sections()[0] || null;
 
+    /** @param {HTMLElement} list */
     const cardRows = (list) => Array.from(list.querySelectorAll('[data-card-row]'))
         .filter((row) => row instanceof HTMLElement);
 
+    /** @param {HTMLElement} list @param {number} clientY */
     const rowAfterPointer = (list, clientY) => cardRows(list).find((row) => {
         if (row === draggedRow) {
             return false;
@@ -108,6 +127,7 @@
         return clientY < box.top + (box.height / 2);
     }) || null;
 
+    /** @param {HTMLInputElement} input */
     const fieldNameFromInput = (input) => {
         const match = input.name.match(/\[cards\]\[\d+\]\[([^\]]+)\]$/);
         return match ? match[1] : '';
@@ -145,17 +165,20 @@
         refreshSearchResultSectionOptions();
     };
 
+    /** @param {HTMLElement} result @returns {AdminDecksCard} */
     const cardFromResult = (result) => ({
         name: result.dataset.cardName || '',
         cardId: result.dataset.cardId || '',
         imageUrl: result.dataset.imageUrl || '',
     });
 
+    /** @param {HTMLElement} result */
     const searchResultQuantity = (result) => {
         const input = result.querySelector('[data-add-quantity]');
         return normalizeQuantity(input instanceof HTMLInputElement ? input.value : '1');
     };
 
+    /** @param {AdminDecksSearchCard} card */
     const printingDetail = (card) => {
         const details = [];
         const setCode = card.set_code ? card.set_code.toUpperCase() : '';
@@ -172,6 +195,7 @@
         return details.join(' - ');
     };
 
+    /** @param {AdminDecksSearchCard[]} cards @param {string} [message] */
     const renderSearchResults = (cards, message = '') => {
         if (message !== '') {
             searchResults.innerHTML = `<p>${escapeHtml(message)}</p>`;
@@ -213,10 +237,12 @@
             </article>`).join('');
     };
 
+    /** @param {string} [message] */
     const clearSearchResults = (message = 'Search for a card, then add it to a section or drag it into the list.') => {
         searchResults.innerHTML = `<p>${escapeHtml(message)}</p>`;
     };
 
+    /** @param {HTMLElement} section @param {AdminDecksCard} card @param {string} [quantity] @param {HTMLElement|null} [beforeRow] */
     const insertCardIntoSection = (section, card, quantity = '1', beforeRow = null) => {
         const list = section.querySelector('[data-card-list]');
         if (!(list instanceof HTMLElement)) {
@@ -233,6 +259,7 @@
         refreshDeckIndices();
     };
 
+    /** @param {string} query */
     const searchCards = async (query) => {
         const requestId = ++currentRequest;
         if (searchController) {
@@ -242,12 +269,12 @@
         renderSearchResults([], 'Searching...');
 
         try {
-            const response = await fetch(`/api/v1/magic/cards/search?q=${encodeURIComponent(query)}`, {
+            const response = await fetch(`/api/v1/magic/cards/search?q=${encodeURIComponent(query)}`, /** @type {AdminDecksSearchRequestOptions} */ ({
                 headers: {
                     Accept: 'application/json',
                 },
                 signal: searchController.signal,
-            });
+            }));
             if (!response.ok) {
                 throw new Error(`Search failed with status ${response.status}`);
             }

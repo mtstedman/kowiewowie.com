@@ -941,7 +941,7 @@
   });
 
   if (typeof globalThis !== 'undefined') {
-    globalThis.PalworldBreeding = api;
+    (/** @type {typeof globalThis & { PalworldBreeding: typeof api }} */ (globalThis)).PalworldBreeding = api;
   }
   if (typeof module !== 'undefined' && module && typeof module === 'object') {
     module.exports = api;

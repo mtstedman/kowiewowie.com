@@ -52,7 +52,7 @@
   };
 
   root.addEventListener('click', async (event) => {
-    const button = event.target.closest('button[data-donger]');
+    const button = (/** @type {Element} */ (event.target)).closest('button[data-donger]');
 
     if (!(button instanceof HTMLButtonElement) || !root.contains(button)) {
       return;

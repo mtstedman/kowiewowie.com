@@ -1,25 +1,32 @@
 (function () {
     'use strict';
 
-    const form = document.getElementById('palworld-form');
+    /**
+     * @typedef {{
+     *   buildDataset: (db: *, breeding: *) => *,
+     *   findRoute: (dataset: *, request: *) => *
+     * }} PalworldBreedingUiEngine
+     */
+
+    const form = /** @type {HTMLFormElement} */ (document.getElementById('palworld-form'));
     if (!form) return;
 
-    const controls = document.getElementById('palworld-controls');
-    const loadStatus = document.getElementById('palworld-load-status');
-    const routeStatus = document.getElementById('palworld-route-status');
-    const summary = document.getElementById('palworld-route-summary');
-    const tree = document.getElementById('palworld-route-tree');
-    const routeHelp = document.getElementById('palworld-route-help');
-    const results = document.querySelector('.palworld-results');
-    const sourceList = document.getElementById('palworld-sources');
-    const addSourceButton = document.getElementById('palworld-add-source');
-    const submitButton = document.getElementById('palworld-find-route');
-    const excludedList = document.getElementById('palworld-excluded-list');
-    const addons = document.getElementById('palworld-addons');
-    const addonsToggle = document.getElementById('palworld-addons-toggle');
-    const addonsPanel = document.getElementById('palworld-addons-panel');
-    const addonsSummary = document.getElementById('palworld-addons-summary');
-    const traitInputs = Array.from(document.querySelectorAll('.palworld-trait-fields select'));
+    const controls = /** @type {HTMLFieldSetElement} */ (document.getElementById('palworld-controls'));
+    const loadStatus = /** @type {HTMLElement} */ (document.getElementById('palworld-load-status'));
+    const routeStatus = /** @type {HTMLElement} */ (document.getElementById('palworld-route-status'));
+    const summary = /** @type {HTMLElement} */ (document.getElementById('palworld-route-summary'));
+    const tree = /** @type {HTMLElement} */ (document.getElementById('palworld-route-tree'));
+    const routeHelp = /** @type {HTMLElement} */ (document.getElementById('palworld-route-help'));
+    const results = /** @type {HTMLElement} */ (document.querySelector('.palworld-results'));
+    const sourceList = /** @type {HTMLElement} */ (document.getElementById('palworld-sources'));
+    const addSourceButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-add-source'));
+    const submitButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-find-route'));
+    const excludedList = /** @type {HTMLElement} */ (document.getElementById('palworld-excluded-list'));
+    const addons = /** @type {HTMLElement} */ (document.getElementById('palworld-addons'));
+    const addonsToggle = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-addons-toggle'));
+    const addonsPanel = /** @type {HTMLElement} */ (document.getElementById('palworld-addons-panel'));
+    const addonsSummary = /** @type {HTMLElement} */ (document.getElementById('palworld-addons-summary'));
+    const traitInputs = Array.from(/** @type {NodeListOf<HTMLSelectElement>} */ (document.querySelectorAll('.palworld-trait-fields select')));
     const sources = [];
     const excluded = new Set();
     const eggFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
@@ -43,6 +50,13 @@
     const CACHE_READ_TIMEOUT = 6000;
     const CACHE_WRITE_TIMEOUT = 20000;
 
+    /**
+     * @template {keyof HTMLElementTagNameMap} K
+     * @param {K} tag
+     * @param {string} [className]
+     * @param {string} [text]
+     * @returns {HTMLElementTagNameMap[K]}
+     */
     function element(tag, className, text) {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -50,6 +64,12 @@
         return node;
     }
 
+    /**
+     * @param {string} text
+     * @param {(event: MouseEvent) => void} handler
+     * @param {string} [className]
+     * @returns {HTMLButtonElement}
+     */
     function button(text, handler, className) {
         const node = element('button', className, text);
         node.type = 'button';
@@ -124,8 +144,8 @@
     }
 
     function fitRoute() {
-        const stage = tree.firstElementChild;
-        const root = stage && stage.firstElementChild;
+        const stage = /** @type {HTMLElement | null} */ (tree.firstElementChild);
+        const root = stage && /** @type {HTMLElement | null} */ (stage.firstElementChild);
         if (!stage || !root) return;
         const styles = window.getComputedStyle(tree);
         const innerWidth = tree.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
@@ -315,10 +335,10 @@
                 return;
             }
             const onMore = document.activeElement === moreButton;
-            let current = choices.indexOf(document.activeElement);
+            let current = choices.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
             // Focus on a row's location link counts as being on that row's match.
             if (current < 0 && document.activeElement && document.activeElement.classList.contains('palworld-location-link')) {
-                current = choices.indexOf(document.activeElement.parentNode.firstElementChild);
+                current = choices.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement.parentNode.firstElementChild));
             }
             let next = 0;
             if (event.key === 'ArrowUp') next = onMore ? choices.length - 1 : current - 1;
@@ -332,7 +352,7 @@
             if (matches.scrollTop + matches.clientHeight >= matches.scrollHeight - 96) renderBatch();
         });
         wrapper.addEventListener('focusout', function (event) {
-            if (!wrapper.contains(event.relatedTarget)) close();
+            if (!wrapper.contains(/** @type {Node | null} */ (event.relatedTarget))) close();
         });
         wrapper.append(label, input, hint, count, matches, selected);
         host.append(wrapper);
@@ -475,7 +495,7 @@
             window.setTimeout(function () {
                 if (generation !== routeGeneration) return;
                 try {
-                    const result = globalThis.PalworldBreeding.findRoute(dataset, request);
+                    const result = (/** @type {typeof globalThis & { PalworldBreeding: PalworldBreedingUiEngine }} */ (globalThis)).PalworldBreeding.findRoute(dataset, request);
                     if (!result.ok) {
                         routeStatus.textContent = result.message;
                         return;
@@ -546,6 +566,7 @@
     }
 
     // Lets a status message paint before synchronous parsing; the timer covers background tabs.
+    /** @returns {Promise<void>} */
     function yieldToPaint() {
         return new Promise(function (resolve) {
             let done = false;
@@ -713,7 +734,7 @@
             try {
                 const url = new URL(dataUrl(name, revision), window.location.href).href;
                 const entries = performance.getEntriesByName(url, 'resource');
-                const entry = entries[entries.length - 1];
+                const entry = /** @type {PerformanceResourceTiming | undefined} */ (entries[entries.length - 1]);
                 if (entry && Number.isFinite(entry.transferSize)) size = entry.transferSize;
             } catch (error) {
                 size = null;
@@ -786,7 +807,7 @@
 
     async function load() {
         try {
-            const engine = globalThis.PalworldBreeding;
+            const engine = (/** @type {typeof globalThis & { PalworldBreeding: PalworldBreedingUiEngine }} */ (globalThis)).PalworldBreeding;
             if (!engine) throw new Error('The breeding engine did not load.');
             const cache = cacheConfig();
             let ready = null;
@@ -883,7 +904,7 @@
     // Close when focus moves to a control outside the add-ons. A missing relatedTarget
     // (a removed row, a click on plain text) is not a move away, so the panel stays open.
     addons.addEventListener('focusout', function (event) {
-        if (addonsPanel.hidden || !event.relatedTarget || addons.contains(event.relatedTarget)) return;
+        if (addonsPanel.hidden || !event.relatedTarget || addons.contains(/** @type {Node} */ (event.relatedTarget))) return;
         setAddonsOpen(false, false);
     });
     // Close on a press outside. The composed path still includes the add-ons for
@@ -891,7 +912,7 @@
     document.addEventListener('pointerdown', function (event) {
         if (addonsPanel.hidden) return;
         const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
-        if (path.includes(addons) || addons.contains(event.target)) return;
+        if (path.includes(addons) || addons.contains(/** @type {Node | null} */ (event.target))) return;
         setAddonsOpen(false, false);
     });
     traitInputs.forEach(function (input, index) {
