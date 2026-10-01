@@ -450,14 +450,23 @@
         });
     }
 
-    // Passive trait display names from Pal Calc's db.json: English name per entry,
-    // de-duplicated and sorted case-insensitively.
+    // Passive traits in Pal Calc's db.json carry a numeric "Rank" tier (-3..-1 detrimental,
+    // 1-3 positive, 4 = top tier / 4-bar). Only rank-4 passives are listed, so the wanted-trait
+    // dropdowns are tier-filtered: English name per entry, de-duplicated and sorted
+    // case-insensitively. Entries with a missing or non-numeric Rank are excluded.
+    const TOP_PASSIVE_RANK = 4;
+
+    function isTopTierPassive(entry) {
+        return typeof entry.Rank === 'number' && entry.Rank === TOP_PASSIVE_RANK;
+    }
+
     function passiveTraitNames(db) {
         const raw = db && db.PassiveSkills;
         const entries = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
         const names = new Set();
         entries.forEach(function (entry) {
             if (!entry || typeof entry !== 'object') return;
+            if (!isTopTierPassive(entry)) return;
             const localized = entry.LocalizedNames && typeof entry.LocalizedNames === 'object' ? entry.LocalizedNames.en : undefined;
             const name = typeof localized === 'string' && localized.trim() ? localized : entry.Name;
             if (typeof name === 'string' && name.trim()) names.add(name.trim());
