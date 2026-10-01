@@ -65,9 +65,9 @@ $palworldDataSizeLabel = $palworldDataBytes > 0
 
                         <section aria-labelledby="palworld-traits-title">
                             <h3 id="palworld-traits-title">2. Choose your wanted traits</h3>
-                            <p id="palworld-traits-help" class="palworld-help">Select 1 to 4 different passive traits from the dropdowns. Leave unused slots on “No trait”.</p>
+                            <p id="palworld-traits-help" class="palworld-help">Traits are optional. Select 0 to 4 different passive traits from the dropdowns and leave unused slots on “No trait”.</p>
                             <div class="palworld-trait-fields">
-                                <label for="palworld-trait-1">Trait 1<select id="palworld-trait-1" name="trait-1" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
+                                <label for="palworld-trait-1">Trait 1 (optional)<select id="palworld-trait-1" name="trait-1" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
                                 <label for="palworld-trait-2">Trait 2 (optional)<select id="palworld-trait-2" name="trait-2" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
                                 <label for="palworld-trait-3">Trait 3 (optional)<select id="palworld-trait-3" name="trait-3" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
                                 <label for="palworld-trait-4">Trait 4 (optional)<select id="palworld-trait-4" name="trait-4" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
@@ -89,7 +89,7 @@ $palworldDataSizeLabel = $palworldDataBytes > 0
                     <h2 id="palworld-route-title">The path to your pal</h2>
                     <p id="palworld-route-status" role="status" aria-live="polite" aria-atomic="true">Fill in your plan to find a route.</p>
                     <div id="palworld-route-summary" class="palworld-summary" hidden></div>
-                    <p id="palworld-route-help" class="palworld-help" hidden>Read from the top down: your target sits at the top, and each pal branches down to the two parents (joined by ×) that you breed together. Wide routes scroll sideways inside the tree.</p>
+                    <p id="palworld-route-help" class="palworld-help" hidden>Read from the top down: your target sits at the top, and each pal branches down to the two parents (joined by ×) that you breed together. Wide routes shrink to fit when possible and scroll sideways inside the tree when needed.</p>
                     <div id="palworld-route-tree"></div>
                     <section class="palworld-exclusions" aria-labelledby="palworld-excluded-title">
                         <h3 id="palworld-excluded-title">Unavailable helpers</h3>

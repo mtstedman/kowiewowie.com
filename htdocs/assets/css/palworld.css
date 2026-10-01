@@ -343,9 +343,19 @@
     list-style: none;
 }
 
+.palworld-tree-stage {
+    position: relative;
+    margin-inline: auto;
+    overflow: hidden;
+}
+
 .palworld-tree {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: max-content;
-    min-width: 100%;
+    transform: scale(var(--palworld-tree-scale, 1));
+    transform-origin: top left;
 }
 
 .palworld-tree-branch {
@@ -558,8 +568,12 @@
 }
 
 @media (min-width: 1000px) {
+    .page-shell.palworld-shell {
+        width: min(1360px, calc(100% - 40px));
+    }
+
     .palworld-layout {
-        grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr);
+        grid-template-columns: minmax(320px, 0.7fr) minmax(0, 1.3fr);
     }
 
     .palworld-panel {

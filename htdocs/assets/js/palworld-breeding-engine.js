@@ -341,6 +341,11 @@
   }
 
   // Returns the checked request, or a failed RouteResult (ok === false).
+  //
+  // `traits` is the list of wanted traits, at most MAX_TRAITS of them. It may
+  // be empty, which asks for the target species alone; `sources` may then be
+  // empty too, because there is no trait a source pal has to carry. A source
+  // pal may only list traits that are wanted.
   function parseRequest(dataset, request) {
     if (!request || typeof request !== 'object') {
       return invalid('The request must be an object.');
@@ -352,8 +357,8 @@
     }
 
     var traits = request.traits;
-    if (!Array.isArray(traits) || traits.length === 0) {
-      return invalid('Choose at least one wanted trait.');
+    if (!Array.isArray(traits)) {
+      return invalid('The wanted traits must be a list.');
     }
     if (traits.length > MAX_TRAITS) {
       return invalid('Choose at most ' + MAX_TRAITS + ' wanted traits.');
@@ -468,6 +473,12 @@
    * Gender is tracked as a role cost per state. A leaf with a fixed gender
    * fills only that role for free; the other role needs a bred pal, which can
    * be either gender. Helpers and bred pals fill both roles.
+   *
+   * With no wanted traits every species has a single (traitless) state and
+   * the target's state is the goal itself. The target species then gets no
+   * helper leaf, so it has to be bred from the other allowed species unless
+   * a source pal already is the target species. Every breed step costs
+   * 1 / EGG_ODDS[0] eggs and every node in the route has no traits.
    */
   function findRoute(dataset, request) {
     var table = pairTable(dataset);
@@ -488,6 +499,8 @@
     var fullMask = maskCount - 1;
     var stateCount = palCount * maskCount;
     var targetState = (parsed.target << bits) | fullMask;
+    // No wanted traits: the request asks only for the target species.
+    var noTraits = bits === 0;
     var i;
     var state;
     var flags;
@@ -510,7 +523,8 @@
       };
     }
 
-    // A source that already is the target with every wanted trait.
+    // A source that already is the target with every wanted trait. With no
+    // wanted traits that is any source of the target species.
     for (i = 0; i < sources.length; i++) {
       if (((sources[i].pal << bits) | sources[i].mask) === targetState) {
         return { ok: true, totalEggs: 0, stepCount: 0, root: sourceNode(sources[i]) };
@@ -521,9 +535,11 @@
 
     var leaf = new Uint8Array(stateCount);
     for (i = 0; i < palCount; i++) {
-      if (!parsed.excluded[i]) {
-        leaf[i << bits] = LEAF_MALE | LEAF_FEMALE | LEAF_PAIR | LEAF_HELPER;
-      }
+      if (parsed.excluded[i]) continue;
+      // With no wanted traits the target's only state is the goal itself, so
+      // a helper of the target species would make the route pointless.
+      if (noTraits && i === parsed.target) continue;
+      leaf[i << bits] = LEAF_MALE | LEAF_FEMALE | LEAF_PAIR | LEAF_HELPER;
     }
     var sourcesByState = new Map();
     for (i = 0; i < sources.length; i++) {
@@ -812,6 +828,10 @@
     }
 
     if (!settled[targetState]) {
+      if (noTraits) {
+        return fail('no-route', 'No breeding route produces ' + pals[parsed.target].name +
+          ' from these source pals and the allowed helper pals.');
+      }
       return fail('no-route', 'No breeding route produces ' + pals[parsed.target].name +
         ' with every wanted trait from these source pals and the allowed helper pals.');
     }

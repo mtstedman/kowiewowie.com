@@ -27,6 +27,7 @@
     let routeGeneration = 0;
     let attempted = false;
     let palSearchIndex = null;
+    let treeResizeObserver = null;
 
     const PICKER_BATCH = 30;
     const DATA_PATH = '/assets/data/palworld/';
@@ -83,9 +84,26 @@
 
     function clearRoute() {
         tree.replaceChildren();
+        tree.scrollLeft = 0;
+        tree.scrollTop = 0;
         summary.replaceChildren();
         summary.hidden = true;
         routeHelp.hidden = true;
+    }
+
+    function fitRoute() {
+        const stage = tree.firstElementChild;
+        const root = stage && stage.firstElementChild;
+        if (!stage || !root) return;
+        const styles = window.getComputedStyle(tree);
+        const innerWidth = tree.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
+        const naturalWidth = root.scrollWidth;
+        const naturalHeight = root.scrollHeight;
+        if (innerWidth <= 0 || naturalWidth <= 0 || naturalHeight <= 0) return;
+        const scale = Math.min(1, Math.max(0.6, innerWidth / naturalWidth));
+        root.style.setProperty('--palworld-tree-scale', String(scale));
+        stage.style.setProperty('width', (naturalWidth * scale) + 'px');
+        stage.style.setProperty('height', (naturalHeight * scale) + 'px');
     }
 
     function invalidate() {
@@ -337,7 +355,7 @@
 
     // Each branch is an <li> holding the pal's card followed by an ordered list of
     // its two parents, so the accessible hierarchy matches the drawn tree.
-    function renderNode(node, isTarget) {
+    function renderNode(node, isTarget, showEmptyTraitChip) {
         const item = element('li', 'palworld-tree-branch');
         const card = element('article', 'palworld-node palworld-node-' + node.type + (isTarget ? ' palworld-node-target' : ''));
         const typeLabel = node.type === 'breed' ? 'Breed' : node.type === 'source' ? 'Owned pal' : 'Helper pal';
@@ -349,7 +367,7 @@
         chips.setAttribute('aria-label', 'Wanted traits carried');
         const traits = node.type === 'helper' ? [] : node.traits;
         traits.forEach(function (trait) { chips.append(element('li', 'palworld-chip', trait)); });
-        if (!traits.length) chips.append(element('li', 'palworld-chip palworld-chip-empty', 'No wanted traits'));
+        if (!traits.length && showEmptyTraitChip) chips.append(element('li', 'palworld-chip palworld-chip-empty', 'No wanted traits'));
         card.append(chips);
         if (node.type === 'breed') {
             card.append(element('p', 'palworld-eggs', eggFormat.format(node.expectedEggs) + ' expected eggs'));
@@ -367,7 +385,7 @@
         if (node.type === 'breed') {
             const parents = element('ol', 'palworld-parents');
             parents.setAttribute('aria-label', 'Parents bred together for ' + palFor(node.pal).name);
-            node.parents.forEach(function (parent) { parents.append(renderNode(parent, false)); });
+            node.parents.forEach(function (parent) { parents.append(renderNode(parent, false, showEmptyTraitChip)); });
             item.append(parents);
         }
         return item;
@@ -378,10 +396,13 @@
         attempted = true;
         const generation = ++routeGeneration;
         const labels = traitInputs.map(function (input) { return input.value.trim(); });
+        const wantedTraits = labels.filter(Boolean);
         const request = {
             target: targetPicker.key,
-            traits: labels.filter(Boolean),
-            sources: sources.map(function (source) {
+            traits: wantedTraits,
+            sources: sources.filter(function (source) {
+                return wantedTraits.length || source.picker.key;
+            }).map(function (source) {
                 return {
                     id: source.id,
                     pal: source.picker.key,
@@ -409,10 +430,13 @@
                         element('p', '', result.stepCount + (result.stepCount === 1 ? ' breeding step' : ' breeding steps'))
                     );
                     summary.hidden = false;
+                    const stage = element('div', 'palworld-tree-stage');
                     const root = element('ol', 'palworld-tree');
                     root.setAttribute('aria-label', 'Breeding route: the target first, then each pal followed by the two parents bred together to make it');
-                    root.append(renderNode(result.root, true));
-                    tree.append(root);
+                    root.append(renderNode(result.root, true, wantedTraits.length > 0));
+                    stage.append(root);
+                    tree.append(stage);
+                    fitRoute();
                     routeHelp.hidden = false;
                     routeStatus.textContent = 'Route ready. ' + eggFormat.format(result.totalEggs) + ' total expected eggs across ' + result.stepCount + (result.stepCount === 1 ? ' breeding step' : ' breeding steps') + '. The target is at the top of the tree; follow each branch down to the two parents you breed together.';
                 } catch (error) {
@@ -767,8 +791,14 @@
     routeStatus.tabIndex = -1;
     tree.tabIndex = 0;
     tree.setAttribute('role', 'region');
-    tree.setAttribute('aria-label', 'Breeding tree; scroll to explore wider or deeper branches');
+    tree.setAttribute('aria-label', 'Breeding tree; wide routes shrink to fit when possible and scroll sideways when needed');
     tree.setAttribute('aria-describedby', routeHelp.id);
+    if ('ResizeObserver' in globalThis) {
+        treeResizeObserver = new ResizeObserver(fitRoute);
+        treeResizeObserver.observe(tree);
+    } else {
+        window.addEventListener('resize', fitRoute);
+    }
     form.addEventListener('submit', function (event) {
         event.preventDefault();
         runRoute();
