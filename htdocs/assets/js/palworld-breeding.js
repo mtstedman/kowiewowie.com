@@ -82,6 +82,34 @@
         return identity;
     }
 
+    // "Where to find" destinations live on Palworld Database (palworld-db.com). Each per-Pal
+    // page covers wild spawns, Alpha locations and special acquisition (raids, summons, eggs).
+    // Its slug is the English display name lowercased with spaces as hyphens, variant words
+    // kept (e.g. "Chillet Ignis" -> chillet-ignis). Names that do not reduce to a plain ASCII
+    // slug, or unknown keys, link to the full Paldeck roster guide instead of a guessed page.
+    const LOCATION_PAGE_BASE = 'https://www.palworld-db.com/pal/';
+    const LOCATION_FALLBACK_URL = 'https://www.palworld-db.com/guides/list-of-all-pals-in-the-paldeck';
+
+    function locationSlug(name) {
+        if (typeof name !== 'string') return '';
+        const slug = name.trim().toLowerCase().replace(/\s+/g, '-');
+        return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ? slug : '';
+    }
+
+    function locationLink(key) {
+        const pal = palFor(key);
+        const name = pal && typeof pal.name === 'string' && pal.name.trim() ? pal.name.trim() : String(key);
+        const slug = pal ? locationSlug(pal.name) : '';
+        const link = element('a', 'palworld-location-link' + (slug ? '' : ' palworld-location-fallback'), slug ? 'Where to find' : 'Find in Pal list');
+        link.href = slug ? LOCATION_PAGE_BASE + slug : LOCATION_FALLBACK_URL;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.setAttribute('aria-label', slug
+            ? 'Where to find ' + name + ' (opens Palworld Database in a new tab)'
+            : 'Look up where to find ' + name + ' in the full Pal list (opens Palworld Database in a new tab)');
+        return link;
+    }
+
     function clearRoute() {
         tree.replaceChildren();
         tree.scrollLeft = 0;
@@ -167,7 +195,7 @@
         function choose(pal) {
             picker.key = pal.key;
             input.value = pal.name;
-            selected.replaceChildren(palIdentity(pal.key));
+            selected.replaceChildren(palIdentity(pal.key), locationLink(pal.key));
             input.focus();
             close();
             count.textContent = pal.name + ' selected.';
@@ -184,11 +212,12 @@
             const fragment = document.createDocumentFragment();
             found.slice(start, end).forEach(function (entry) {
                 const pal = entry.pal;
-                const item = element('li');
+                const item = element('li', 'palworld-picker-row');
                 const choice = button('', function () { choose(pal); });
                 choice.append(palIdentity(pal.key));
                 if (pal.paldexNo !== null) choice.append(element('span', 'palworld-pal-number', '#' + pal.paldexNo));
-                item.append(choice);
+                // The location link sits beside the selection button, never inside it.
+                item.append(choice, locationLink(pal.key));
                 fragment.append(item);
                 choices.push(choice);
             });
@@ -264,7 +293,11 @@
                 return;
             }
             const onMore = document.activeElement === moreButton;
-            const current = choices.indexOf(document.activeElement);
+            let current = choices.indexOf(document.activeElement);
+            // Focus on a row's location link counts as being on that row's match.
+            if (current < 0 && document.activeElement && document.activeElement.classList.contains('palworld-location-link')) {
+                current = choices.indexOf(document.activeElement.parentNode.firstElementChild);
+            }
             let next = 0;
             if (event.key === 'ArrowUp') next = onMore ? choices.length - 1 : current - 1;
             else if (event.key === 'ArrowDown') next = onMore ? choices.length : current + 1;
@@ -348,7 +381,7 @@
                 runRoute();
                 routeStatus.focus();
             });
-            item.append(palIdentity(key), restore);
+            item.append(palIdentity(key), locationLink(key), restore);
             excludedList.append(item);
         });
     }
@@ -362,7 +395,7 @@
         card.append(element('p', 'palworld-node-type', isTarget ? 'Target · ' + typeLabel : typeLabel));
         const heading = element('h4', 'palworld-node-heading');
         heading.append(palIdentity(node.pal));
-        card.append(heading);
+        card.append(heading, locationLink(node.pal));
         const chips = element('ul', 'palworld-chips');
         chips.setAttribute('aria-label', 'Wanted traits carried');
         const traits = node.type === 'helper' ? [] : node.traits;

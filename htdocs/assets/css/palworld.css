@@ -237,6 +237,51 @@
     border-left: 3px solid var(--accent);
 }
 
+.palworld-picker-selected:not(:empty) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs) var(--space-sm);
+}
+
+/* Picker rows: the selection button fills the row, the location link sits beside it. */
+.palworld-picker-matches .palworld-picker-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.palworld-picker-row > button {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.palworld-location-link {
+    flex-shrink: 0;
+    display: inline-block;
+    padding: 0.15em 0.35em;
+    color: var(--accent);
+    font-size: var(--step--1);
+    line-height: 1.3;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+    white-space: nowrap;
+    border-radius: 4px;
+}
+
+.palworld-location-link::after {
+    content: " \2197";
+}
+
+.palworld-location-link:hover {
+    text-decoration-thickness: 2px;
+}
+
+.palworld-location-fallback {
+    font-style: italic;
+}
+
 .palworld-sources {
     display: grid;
     gap: var(--space-md);
@@ -498,6 +543,11 @@
 
 .palworld-node .palworld-pal-identity {
     display: flex;
+}
+
+.palworld-node .palworld-location-link {
+    align-self: flex-start;
+    margin-top: var(--space-xs);
 }
 
 .palworld-node button {
