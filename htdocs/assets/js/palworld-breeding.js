@@ -824,13 +824,19 @@
     }
 
     // Passive traits in Pal Calc's db.json carry a numeric "Rank" tier (-3..-1 detrimental,
-    // 1-3 positive, 4 = top tier / 4-bar). Only rank-4 passives are listed, so the wanted-trait
-    // dropdowns are tier-filtered: English name per entry, de-duplicated and sorted
-    // case-insensitively. Entries with a missing or non-numeric Rank are excluded.
+    // 1-3 positive, 4 = top tier / 4-bar). The db also holds Rank-4 entries that are not real
+    // in-game passives (untranslated "en Text" placeholders, internal effects, accessory skills
+    // such as "Defense Up Lv. 4"); those have IsStandardPassiveSkill false. So the wanted-trait
+    // dropdowns list only entries whose Rank is the number 4 AND whose IsStandardPassiveSkill is
+    // strictly true (inheritance flags are deliberately ignored: Legend and Lucky are not randomly
+    // inheritable but are real 4-bar passives). English name per entry, de-duplicated and
+    // sorted case-insensitively. Entries with a missing or non-numeric Rank, or a missing or
+    // non-boolean IsStandardPassiveSkill, are excluded.
     const TOP_PASSIVE_RANK = 4;
 
     function isTopTierPassive(entry) {
-        return typeof entry.Rank === 'number' && entry.Rank === TOP_PASSIVE_RANK;
+        return typeof entry.Rank === 'number' && entry.Rank === TOP_PASSIVE_RANK
+            && entry.IsStandardPassiveSkill === true;
     }
 
     function passiveTraitNames(db) {
