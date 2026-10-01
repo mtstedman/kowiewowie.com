@@ -14,9 +14,8 @@
     const controls = /** @type {HTMLFieldSetElement} */ (document.getElementById('palworld-controls'));
     const loadStatus = /** @type {HTMLElement} */ (document.getElementById('palworld-load-status'));
     const routeStatus = /** @type {HTMLElement} */ (document.getElementById('palworld-route-status'));
-    const summary = /** @type {HTMLElement} */ (document.getElementById('palworld-route-summary'));
     const tree = /** @type {HTMLElement} */ (document.getElementById('palworld-route-tree'));
-    const routeHelp = /** @type {HTMLElement} */ (document.getElementById('palworld-route-help'));
+    const summary = /** @type {HTMLElement} */ (document.getElementById('palworld-route-summary'));
     const results = /** @type {HTMLElement} */ (document.querySelector('.palworld-results'));
     const sourceList = /** @type {HTMLElement} */ (document.getElementById('palworld-sources'));
     const addSourceButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-add-source'));
@@ -140,7 +139,6 @@
         tree.scrollTop = 0;
         summary.replaceChildren();
         summary.hidden = true;
-        routeHelp.hidden = true;
     }
 
     function fitRoute() {
@@ -182,6 +180,7 @@
         submitButton.disabled = false;
         if (!attempted) return;
         clearRoute();
+        routeStatus.classList.remove('palworld-visually-hidden');
         routeStatus.textContent = 'Inputs changed. Find a breeding route with your updated plan.';
     }
 
@@ -487,6 +486,7 @@
             excluded: Array.from(excluded)
         };
         clearRoute();
+        routeStatus.classList.remove('palworld-visually-hidden');
         routeStatus.textContent = 'Finding a breeding route…';
         results.setAttribute('aria-busy', 'true');
         submitButton.disabled = true;
@@ -500,20 +500,20 @@
                         routeStatus.textContent = result.message;
                         return;
                     }
-                    summary.append(
-                        element('p', '', eggFormat.format(result.totalEggs) + ' total expected eggs'),
-                        element('p', '', result.stepCount + (result.stepCount === 1 ? ' breeding step' : ' breeding steps'))
-                    );
-                    summary.hidden = false;
                     const stage = element('div', 'palworld-tree-stage');
                     const root = element('ol', 'palworld-tree');
                     root.setAttribute('aria-label', 'Breeding route: the target first, then each pal followed by the two parents bred together to make it');
                     root.append(renderNode(result.root, true, wantedTraits.length > 0));
                     stage.append(root);
                     tree.append(stage);
+                    summary.append(
+                        element('span', '', eggFormat.format(result.totalEggs) + ' total expected eggs'),
+                        element('span', '', result.stepCount + (result.stepCount === 1 ? ' breeding step' : ' breeding steps'))
+                    );
+                    summary.hidden = false;
                     fitRoute();
-                    routeHelp.hidden = false;
-                    routeStatus.textContent = 'Route ready. ' + eggFormat.format(result.totalEggs) + ' total expected eggs across ' + result.stepCount + (result.stepCount === 1 ? ' breeding step' : ' breeding steps') + '. The target is at the top of the tree; follow each branch down to the two parents you breed together.';
+                    routeStatus.classList.add('palworld-visually-hidden');
+                    routeStatus.textContent = 'Breeding route ready.';
                 } catch (error) {
                     clearRoute();
                     routeStatus.textContent = 'Unable to find a route: ' + (error instanceof Error ? error.message : 'Please try again.');
@@ -877,7 +877,6 @@
     tree.tabIndex = 0;
     tree.setAttribute('role', 'region');
     tree.setAttribute('aria-label', 'Breeding tree; wide routes shrink to fit when possible and scroll sideways when needed');
-    tree.setAttribute('aria-describedby', routeHelp.id);
     if ('ResizeObserver' in globalThis) {
         treeResizeObserver = new ResizeObserver(fitRoute);
         treeResizeObserver.observe(tree);

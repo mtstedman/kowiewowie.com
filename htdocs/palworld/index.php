@@ -93,13 +93,10 @@ $palworldDataSizeLabel = $palworldDataBytes > 0
                     </fieldset>
                 </form>
 
-                <section class="palworld-panel palworld-results" aria-labelledby="palworld-route-title" aria-busy="false">
-                    <p class="eyebrow">Your breeding tree</p>
-                    <h2 id="palworld-route-title">The path to your pal</h2>
-                    <p id="palworld-route-status" role="status" aria-live="polite" aria-atomic="true">Fill in your plan to find a route.</p>
-                    <div id="palworld-route-summary" class="palworld-summary" hidden></div>
-                    <p id="palworld-route-help" class="palworld-help" hidden>Read from the top down: your target sits at the top, and each pal branches down to the two parents (joined by ×) that you breed together. Wide routes shrink to fit when possible and scroll sideways inside the tree when needed.</p>
+                <section class="palworld-panel palworld-results" aria-label="Your breeding tree" aria-busy="false">
+                    <p id="palworld-route-status" class="palworld-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
                     <div id="palworld-route-tree"></div>
+                    <footer id="palworld-route-summary" class="palworld-route-summary" hidden></footer>
                     <section class="palworld-exclusions" aria-labelledby="palworld-excluded-title">
                         <h3 id="palworld-excluded-title">Unavailable helpers</h3>
                         <p class="palworld-help">Helpers are pals with none of your wanted traits that you can catch or already own. Choose “Don't have” on a helper to find another route.</p>

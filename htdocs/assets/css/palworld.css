@@ -343,22 +343,6 @@
     margin-top: var(--space-xs);
 }
 
-.palworld-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xs) var(--space-lg);
-    margin-block: var(--space-md);
-    padding: var(--space-sm);
-    border: 1px solid var(--accent);
-    border-radius: var(--palworld-radius);
-    color: var(--accent);
-    font-weight: 700;
-}
-
-.palworld-summary p {
-    margin: 0;
-}
-
 #palworld-route-tree {
     --palworld-link: 1.75rem;
     --palworld-line: 2px;
@@ -374,6 +358,18 @@
 
 #palworld-route-tree:empty {
     display: none;
+}
+
+.palworld-route-summary:not([hidden]) {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-lg);
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--palworld-border);
+    color: var(--muted);
+    font-size: 0.9rem;
 }
 
 /* Top-down family tree: each branch is a card with its two parents below,
