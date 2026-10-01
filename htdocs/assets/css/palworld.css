@@ -270,11 +270,41 @@
     border-radius: 4px;
 }
 
-.palworld-location-link::after {
+/* Each pal carries two location controls: the "Where to find" map trigger and the
+   external "Info" link. */
+.palworld-location {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15em;
+}
+
+/* The trigger is a button that reads as a link; a dotted underline marks it as
+   opening the map in place rather than leaving the page. */
+.palworld-shell button.palworld-location-trigger {
+    display: inline-block;
+    width: auto;
+    min-height: 0;
+    padding: 0.15em 0.35em;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: var(--accent);
+    font-weight: 400;
+    line-height: 1.3;
+    text-align: left;
+    text-decoration: underline dotted;
+    text-underline-offset: 0.15em;
+    white-space: nowrap;
+    cursor: help;
+}
+
+.palworld-location-info::after {
     content: " \2197";
 }
 
-.palworld-location-link:hover {
+.palworld-location-link:hover,
+.palworld-location-trigger[aria-expanded="true"] {
     text-decoration-thickness: 2px;
 }
 
@@ -541,8 +571,7 @@
     display: flex;
 }
 
-.palworld-node .palworld-location-link {
-    align-self: flex-start;
+.palworld-node .palworld-location {
     margin-top: var(--space-xs);
 }
 
@@ -611,6 +640,107 @@
 
 .palworld-credits p {
     margin-block: var(--space-xs);
+}
+
+/* Spawn map popover: one shared element on <body>, fixed to the viewport and placed by
+   the script, so the picker list, the tree stage and the scaled tree can neither clip
+   nor scale it. It sits above the picker matches (z-index 30 inside the bar). */
+.palworld-map-popover {
+    position: fixed;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: min(20rem, calc(100vw - 2rem), max(12rem, calc(100vh - 9rem)));
+    max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--space-sm);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background: var(--panel-solid);
+    color: var(--ink);
+    font-size: var(--step--1);
+    line-height: 1.4;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.palworld-map-popover[hidden] {
+    display: none;
+}
+
+/* A pal found on both maps shows them side by side where the viewport allows. */
+.palworld-map-popover-wide {
+    width: min(36rem, calc(100vw - 2rem));
+}
+
+.palworld-map-popover-title {
+    margin: 0;
+    font-size: var(--step-0);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.palworld-map-popover-status {
+    margin: 0.15em 0 0;
+    color: var(--ink-soft);
+}
+
+.palworld-map-popover-error {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.palworld-map-figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+.palworld-map-figures:empty {
+    display: none;
+}
+
+.palworld-map-figure {
+    min-width: 0;
+    margin: 0;
+}
+
+.palworld-map-figure figcaption {
+    margin-top: 0.25em;
+    color: var(--ink-soft);
+}
+
+.palworld-map-stage {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1;
+    border: 1px solid var(--ink-soft);
+    border-radius: 4px;
+    background: var(--paper);
+}
+
+.palworld-map-stage img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Spawn zone: sized by the script as a share of the map width, never smaller than 7px. */
+.palworld-map-dot {
+    position: absolute;
+    box-sizing: border-box;
+    min-width: 7px;
+    aspect-ratio: 1;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    background: rgba(226, 32, 92, 0.6);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
 }
 
 /* Top control bar: the form sits above the map as one compact row of controls.

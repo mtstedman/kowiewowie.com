@@ -1,0 +1,57 @@
+{
+  "repository": "https://github.com/Nifrendil/pal-atlas",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2026 Ryexha, JenAri",
+  "commit": "ffe467f3c2d538de2328c01433f3179abefd5b9a",
+  "retrievedAt": "2026-10-01",
+  "files": [
+    {
+      "name": "map-palpagos.webp",
+      "url": "https://raw.githubusercontent.com/Nifrendil/pal-atlas/ffe467f3c2d538de2328c01433f3179abefd5b9a/public/maps/palpagos.webp",
+      "bytes": 821538
+    },
+    {
+      "name": "map-worldtree.webp",
+      "url": "https://raw.githubusercontent.com/Nifrendil/pal-atlas/ffe467f3c2d538de2328c01433f3179abefd5b9a/public/maps/worldtree.webp",
+      "bytes": 1081632
+    },
+    {
+      "name": "pal-spawn-zones.json",
+      "url": "https://raw.githubusercontent.com/Nifrendil/pal-atlas/ffe467f3c2d538de2328c01433f3179abefd5b9a/public/data/spawn-zones.json",
+      "bytes": 9014922
+    }
+  ],
+  "spawnData": {
+    "file": "/assets/data/palworld/pal-spawn-zones.json",
+    "shape": "Single-line top-level JSON array of zone objects {id: string (e.g. 'spawn_686_sheepball'), layerId: string (e.g. 'pal_sheepball'), name: string (display name plus spawner tag, e.g. 'Lamball (green_A_SheepBall)'), mapId: 'palpagos' | 'worldtree', x: number, y: number, radius: number (15000 in all sampled zones)}, in Unreal world coordinates; this matches the description given in the task (53861 palpagos zones, 3474 worldtree zones).",
+    "palLayerPrefix": "pal_ — layerId is 'pal_' + the lowercase InternalName used as the breeder key (pal_sheepball = Lamball, pal_weaseldragon = Chillet, pal_weaseldragon_fire = Chillet Ignis; all three are present with 350, 136 and 73 zones). All 262 distinct layerIds start with 'pal_'. One of them, pal_male_ninjaelite01, is a human/NPC spawner, not a pal.",
+    "zoneCount": 57335,
+    "palLayerCount": 262
+  },
+  "maps": [
+    {
+      "mapId": "palpagos",
+      "label": "Palpagos Islands",
+      "image": "/assets/img/palworld/map-palpagos.webp",
+      "width": 4096,
+      "height": 4096,
+      "projection": {
+        "u": { "axis": "y", "scale": 6.902263942e-7, "offset": 0.5 },
+        "v": { "axis": "x", "scale": -6.902263942e-7, "offset": 0.2411651022 }
+      },
+      "projectionSource": "src/lib/coords.ts @ ffe467f: DEFAULT_MAPS.palpagos { worldMinX: -1_099_400, worldMaxX: 349_400, worldMinY: -724_400, worldMaxY: 724_400 } with worldToUv: \"const spanX = cal.worldMaxX - cal.worldMinX; const spanY = cal.worldMaxY - cal.worldMinY; const u = (worldY - cal.worldMinY) / spanY; const v = 1 - (worldX - cal.worldMinX) / spanX;\" Here span = 1448800, so u = (y + 724400) / 1448800 and v = (349400 - x) / 1448800. Margins and offsets are 0 by default (baseCal). Upstream also comments: \"Native map texture size from T_WorldMap / T_TreeMap. MAP_TEXTURE_SIZE = 8192\" and \"4096 WebP stretched into 8192 CRS\", so these fractions apply unchanged to the 4096x4096 image. Sample checks: spawn_57_alpaca (x -289415.2, y 189897.56) gives u 0.631, v 0.441; spawn_686_sheepball (-354643.44, 254394.16) gives u 0.676, v 0.486; spawn_8_weaseldragon_fire (-20924.17, -144309.03) gives u 0.400, v 0.256."
+    },
+    {
+      "mapId": "worldtree",
+      "label": "World Tree",
+      "image": "/assets/img/palworld/map-worldtree.webp",
+      "width": 4096,
+      "height": 4096,
+      "projection": {
+        "u": { "axis": "y", "scale": 2.925713218e-6, "offset": 2.393809776 },
+        "v": { "axis": "x", "scale": -2.925713218e-6, "offset": 2.016250874 }
+      },
+      "projectionSource": "src/lib/coords.ts @ ffe467f: DEFAULT_MAPS.worldtree { worldMinX: 347_351.5, worldMaxX: 689_148.5, worldMinY: -818_197, worldMaxY: -476_400 } with worldToUv: \"const u = (worldY - cal.worldMinY) / spanY; const v = 1 - (worldX - cal.worldMinX) / spanX;\" Here span = 341797 on both axes, so u = (y + 818197) / 341797 and v = (689148.5 - x) / 341797. Margins and offsets are 0 by default; the image is the 4096 WebP from \"4096 WebP stretched into 8192 CRS\". Sample checks: spawn_6971_yeti_grass (x 530795, y -714440) gives u 0.304, v 0.463; spawn_7135_yeti_grass (501340, -553790) gives u 0.774, v 0.549; the zone at (440875, -705850) gives u 0.329, v 0.726."
+    }
+  ]
+}

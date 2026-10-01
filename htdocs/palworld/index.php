@@ -37,6 +37,34 @@ $palworldDataRevision = $palworldRevisionParts === null
 $palworldDataSizeLabel = $palworldDataBytes > 0
     ? 'about ' . number_format($palworldDataBytes / 1000000, 1) . ' MB'
     : 'several MB';
+
+// Spawn map files load only when a "Where to find" map first opens, so they stay out
+// of the revision above. The zone list's modified time versions those requests, and the
+// source record supplies the credit line.
+$palworldMapDataDir = dirname(__DIR__) . '/assets/data/palworld/';
+$palworldMapZonesPath = $palworldMapDataDir . 'pal-spawn-zones.json';
+$palworldMapZonesTime = is_file($palworldMapZonesPath) ? filemtime($palworldMapZonesPath) : false;
+$palworldMapVersion = $palworldMapZonesTime === false ? '' : (string) $palworldMapZonesTime;
+$palworldMapSource = [];
+$palworldMapSourcePath = $palworldMapDataDir . 'pal-map-source.json';
+if (is_file($palworldMapSourcePath)) {
+    $palworldMapSourceJson = file_get_contents($palworldMapSourcePath);
+    $palworldMapSourceData = $palworldMapSourceJson === false ? null : json_decode($palworldMapSourceJson, true);
+    if (is_array($palworldMapSourceData)) {
+        $palworldMapSource = $palworldMapSourceData;
+    }
+}
+$palworldMapField = static function (string $name, string $fallback) use ($palworldMapSource): string {
+    $value = $palworldMapSource[$name] ?? null;
+
+    return is_string($value) && trim($value) !== '' ? trim($value) : $fallback;
+};
+$palworldMapRepository = $palworldMapField('repository', 'https://github.com/Nifrendil/pal-atlas');
+if (preg_match('#^https://[A-Za-z0-9._~/-]+$#', $palworldMapRepository) !== 1) {
+    $palworldMapRepository = 'https://github.com/Nifrendil/pal-atlas';
+}
+$palworldMapLicense = $palworldMapField('license', 'MIT');
+$palworldMapCopyright = $palworldMapField('copyright', 'Copyright (c) 2026 Ryexha, JenAri');
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
 <body>
@@ -54,7 +82,7 @@ $palworldDataSizeLabel = $palworldDataBytes > 0
             <noscript><p class="palworld-notice">Enable JavaScript to load the breeding data and use this planner.</p></noscript>
 
             <div class="palworld-layout">
-                <form id="palworld-form" class="palworld-panel palworld-bar" aria-labelledby="palworld-plan-title" data-palworld-revision="<?= htmlspecialchars($palworldDataRevision, ENT_QUOTES, 'UTF-8') ?>" data-palworld-cache-format="<?= htmlspecialchars((string) $palworldCacheFormat, ENT_QUOTES, 'UTF-8') ?>" data-palworld-data-bytes="<?= htmlspecialchars((string) $palworldDataBytes, ENT_QUOTES, 'UTF-8') ?>" novalidate>
+                <form id="palworld-form" class="palworld-panel palworld-bar" aria-labelledby="palworld-plan-title" data-palworld-revision="<?= htmlspecialchars($palworldDataRevision, ENT_QUOTES, 'UTF-8') ?>" data-palworld-cache-format="<?= htmlspecialchars((string) $palworldCacheFormat, ENT_QUOTES, 'UTF-8') ?>" data-palworld-data-bytes="<?= htmlspecialchars((string) $palworldDataBytes, ENT_QUOTES, 'UTF-8') ?>" data-palworld-map-version="<?= htmlspecialchars($palworldMapVersion, ENT_QUOTES, 'UTF-8') ?>" novalidate>
                     <h2 id="palworld-plan-title" class="palworld-bar-title">Build your plan</h2>
                     <fieldset id="palworld-controls" class="palworld-controls" disabled>
                         <legend class="public-visually-hidden">Breeding plan inputs</legend>
@@ -110,6 +138,7 @@ $palworldDataSizeLabel = $palworldDataBytes > 0
                 <p>Unofficial fan tool. Egg estimates assume parents carry no other passives; actual results vary.</p>
                 <p>Breeding data from <a href="https://github.com/tylercamp/palcalc">Pal Calc</a>. Data version: <span id="palworld-data-version">loading</span>.</p>
                 <p>Thumbnails from <a href="https://palworld.gg/pals">palworld.gg</a>. Pal artwork © Pocketpair.</p>
+                <p>Spawn maps and spawn locations from <a href="<?= htmlspecialchars($palworldMapRepository, ENT_QUOTES, 'UTF-8') ?>">pal-atlas</a>, <?= htmlspecialchars($palworldMapLicense, ENT_QUOTES, 'UTF-8') ?> license. <?= htmlspecialchars($palworldMapCopyright, ENT_QUOTES, 'UTF-8') ?>.</p>
             </aside>
         </main>
 

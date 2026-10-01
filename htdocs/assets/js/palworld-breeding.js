@@ -105,7 +105,7 @@
         return identity;
     }
 
-    // "Where to find" destinations live on Palworld Database (palworld-db.com). Each per-Pal
+    // "Info" destinations live on Palworld Database (palworld-db.com). Each per-Pal
     // page covers wild spawns, Alpha locations and special acquisition (raids, summons, eggs).
     // Its slug is the English display name lowercased with spaces as hyphens, variant words
     // kept (e.g. "Chillet Ignis" -> chillet-ignis). Names that do not reduce to a plain ASCII
@@ -119,18 +119,315 @@
         return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ? slug : '';
     }
 
+    // "Where to find" shows a spawn map hosted on this site. Its two JSON files are fetched
+    // when a map first opens, once for every trigger, and stay out of DATA_FILES, the saved
+    // browser copy and the data revision.
+    const MAP_SOURCE_FILE = 'pal-map-source.json';
+    const MAP_ZONES_FILE = 'pal-spawn-zones.json';
+    const MAP_POPOVER_ID = 'palworld-map-popover';
+    const MAP_OPEN_DELAY = 90;
+    const MAP_CLOSE_DELAY = 160;
+    const MAP_GAP = 8;
+    // The popover sits on <body>, outside the page shell, so it takes these theme tokens with it.
+    const MAP_THEME_TOKENS = ['--accent', '--ink', '--ink-soft', '--paper', '--panel-solid', '--space-xs', '--space-sm', '--step--1', '--step-0'];
+    let mapDataPromise = null;
+    let mapPopover = null;
+    let mapObserver = null;
+    let mapTrigger = null;
+    let mapRequest = 0;
+    let mapFailed = false;
+    let mapOpenTimer = 0;
+    let mapCloseTimer = 0;
+
+    // Only same-origin /assets paths are ever requested (the site CSP is img-src 'self').
+    function mapAssetPath(value) {
+        return typeof value === 'string' && /^\/assets\/[A-Za-z0-9_.\/-]+$/.test(value) && !value.includes('..') ? value : '';
+    }
+
+    function mapAxis(axis) {
+        if (!axis || (axis.axis !== 'x' && axis.axis !== 'y')) return null;
+        if (typeof axis.scale !== 'number' || !isFinite(axis.scale)) return null;
+        if (typeof axis.offset !== 'number' || !isFinite(axis.offset)) return null;
+        return { axis: axis.axis, scale: axis.scale, offset: axis.offset };
+    }
+
+    // Keeps the usable maps and groups the raw zone list by pal key.
+    function buildMapData(source, zones) {
+        if (!source || !Array.isArray(source.maps) || !Array.isArray(zones)) throw new Error('The spawn map data has an unexpected shape.');
+        // palLayerPrefix holds the prefix followed by a prose note ("pal_ — layerId is ..."),
+        // so only its leading identifier is used.
+        const spawnData = source.spawnData;
+        const prefixMatch = /^[a-z0-9_]+/i.exec(spawnData && typeof spawnData.palLayerPrefix === 'string' ? spawnData.palLayerPrefix.trim() : '');
+        const prefix = (prefixMatch ? prefixMatch[0] : 'pal_').toLowerCase();
+        const maps = [];
+        source.maps.forEach(function (map) {
+            if (!map || typeof map.mapId !== 'string' || !map.projection) return;
+            const image = mapAssetPath(map.image);
+            const u = mapAxis(map.projection.u);
+            const v = mapAxis(map.projection.v);
+            if (!image || !u || !v) return;
+            maps.push({
+                mapId: map.mapId,
+                label: typeof map.label === 'string' && map.label.trim() ? map.label.trim() : map.mapId,
+                image: image,
+                width: typeof map.width === 'number' && map.width > 0 ? map.width : 1,
+                height: typeof map.height === 'number' && map.height > 0 ? map.height : 1,
+                u: u,
+                v: v
+            });
+        });
+        if (!maps.length) throw new Error('The spawn map data lists no usable map.');
+        const zonesByKey = new Map();
+        zones.forEach(function (zone) {
+            if (!zone || typeof zone.layerId !== 'string') return;
+            const layer = zone.layerId.toLowerCase();
+            if (!layer.startsWith(prefix)) return;
+            const key = layer.slice(prefix.length);
+            const list = zonesByKey.get(key);
+            if (list) list.push(zone);
+            else zonesByKey.set(key, [zone]);
+        });
+        return { maps: maps, zonesByKey: zonesByKey };
+    }
+
+    async function fetchMapJson(name) {
+        const version = form.dataset.palworldMapVersion;
+        const response = await fetch(DATA_PATH + name + (version ? '?v=' + encodeURIComponent(version) : ''));
+        if (!response.ok) throw new Error('Could not load ' + name + ' (HTTP ' + response.status + ').');
+        return response.json();
+    }
+
+    function loadMapData() {
+        if (!mapDataPromise) {
+            const pending = Promise.all([fetchMapJson(MAP_SOURCE_FILE), fetchMapJson(MAP_ZONES_FILE)]).then(function (files) {
+                return buildMapData(files[0], files[1]);
+            });
+            mapDataPromise = pending;
+            // A failed download is forgotten, so the next open tries again.
+            pending.catch(function () {
+                if (mapDataPromise === pending) mapDataPromise = null;
+            });
+        }
+        return mapDataPromise;
+    }
+
+    function scheduleLocationMapClose() {
+        window.clearTimeout(mapCloseTimer);
+        mapCloseTimer = window.setTimeout(closeLocationMap, MAP_CLOSE_DELAY);
+    }
+
+    // One popover serves every trigger. It is fixed to the viewport on <body> because the
+    // picker list and the tree stage clip their contents and the tree is drawn scaled.
+    function locationMap() {
+        if (mapPopover) return mapPopover;
+        const root = element('div', 'palworld-map-popover');
+        root.id = MAP_POPOVER_ID;
+        root.hidden = true;
+        root.setAttribute('role', 'group');
+        root.setAttribute('aria-label', 'Spawn map');
+        const title = element('p', 'palworld-map-popover-title');
+        const status = element('p', 'palworld-map-popover-status');
+        status.setAttribute('role', 'status');
+        const figures = element('div', 'palworld-map-figures');
+        root.append(title, status, figures);
+        // Pressing the popover must not take focus from the trigger, or the map (and an open
+        // picker list) would close under the pointer.
+        root.addEventListener('mousedown', function (event) { event.preventDefault(); });
+        root.addEventListener('mouseenter', function () { window.clearTimeout(mapCloseTimer); });
+        root.addEventListener('mouseleave', scheduleLocationMapClose);
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== 'Escape' || !mapTrigger) return;
+            // Escape on the focused trigger closes only the map, not the picker list around it.
+            if (document.activeElement === mapTrigger) event.stopPropagation();
+            closeLocationMap();
+        }, true);
+        document.addEventListener('pointerdown', function (event) {
+            const target = /** @type {Node | null} */ (event.target);
+            if (mapTrigger && !mapTrigger.contains(target) && !root.contains(target)) closeLocationMap();
+        }, true);
+        document.addEventListener('scroll', placeLocationMap, true);
+        window.addEventListener('resize', placeLocationMap);
+        // Triggers are rebuilt with the picker list, the tree and the excluded list; a map
+        // whose trigger has gone closes instead of pointing at nothing.
+        mapObserver = new MutationObserver(function () {
+            if (mapTrigger && !mapTrigger.isConnected) closeLocationMap();
+        });
+        document.body.append(root);
+        mapPopover = { root: root, title: title, status: status, figures: figures };
+        return mapPopover;
+    }
+
+    // Beside the trigger when there is room, otherwise below or above it, and always
+    // clamped inside the viewport.
+    function placeLocationMap() {
+        if (!mapTrigger || !mapPopover || mapPopover.root.hidden) return;
+        const root = mapPopover.root;
+        const anchor = mapTrigger.getBoundingClientRect();
+        const viewWidth = document.documentElement.clientWidth;
+        const viewHeight = document.documentElement.clientHeight;
+        const width = root.offsetWidth;
+        const height = root.offsetHeight;
+        let left;
+        let top = anchor.top + anchor.height / 2 - height / 2;
+        if (anchor.right + MAP_GAP + width <= viewWidth - MAP_GAP) {
+            left = anchor.right + MAP_GAP;
+        } else if (anchor.left - MAP_GAP - width >= MAP_GAP) {
+            left = anchor.left - MAP_GAP - width;
+        } else {
+            left = anchor.left + anchor.width / 2 - width / 2;
+            const fitsBelow = anchor.bottom + MAP_GAP + height <= viewHeight - MAP_GAP;
+            const fitsAbove = anchor.top - MAP_GAP - height >= MAP_GAP;
+            top = fitsBelow || !fitsAbove ? anchor.bottom + MAP_GAP : anchor.top - MAP_GAP - height;
+        }
+        left = Math.max(MAP_GAP, Math.min(left, viewWidth - MAP_GAP - width));
+        top = Math.max(MAP_GAP, Math.min(top, viewHeight - MAP_GAP - height));
+        root.style.left = Math.round(left) + 'px';
+        root.style.top = Math.round(top) + 'px';
+    }
+
+    function showLocationMapMessage(text, isError) {
+        const popover = locationMap();
+        mapFailed = isError;
+        popover.status.textContent = text;
+        popover.status.classList.toggle('palworld-map-popover-error', isError);
+        popover.figures.replaceChildren();
+        popover.root.classList.remove('palworld-map-popover-wide');
+    }
+
+    // Draws one figure per map that has spawn zones for the pal: the map image with a dot
+    // per zone, placed and sized as fractions of the image.
+    function renderLocationMap(data, key, name) {
+        const popover = locationMap();
+        const zones = data.zonesByKey.get(String(key).toLowerCase()) || [];
+        const figures = [];
+        let total = 0;
+        data.maps.forEach(function (map) {
+            const stage = element('div', 'palworld-map-stage');
+            const image = element('img');
+            image.alt = '';
+            image.decoding = 'async';
+            stage.append(image);
+            let spots = 0;
+            zones.forEach(function (zone) {
+                if (zone.mapId !== map.mapId) return;
+                const left = map.u.scale * zone[map.u.axis] + map.u.offset;
+                const top = map.v.scale * zone[map.v.axis] + map.v.offset;
+                // Zones that fall off the image (or have no usable position) are skipped.
+                if (!(left >= 0 && left <= 1 && top >= 0 && top <= 1)) return;
+                const radius = typeof zone.radius === 'number' && isFinite(zone.radius) && zone.radius > 0 ? zone.radius * Math.abs(map.u.scale) : 0;
+                const dot = element('span', 'palworld-map-dot');
+                dot.style.left = (left * 100).toFixed(3) + '%';
+                dot.style.top = (top * 100).toFixed(3) + '%';
+                // Diameter as a share of the map width; the stylesheet sets the minimum visible size.
+                dot.style.width = Math.min(100, radius * 200).toFixed(3) + '%';
+                stage.append(dot);
+                spots += 1;
+            });
+            // A map with no zones for this pal is left out, and its image is never requested.
+            if (!spots) return;
+            image.src = map.image;
+            const spotsLabel = spots + (spots === 1 ? ' spawn spot' : ' spawn spots');
+            stage.style.setProperty('aspect-ratio', map.width + ' / ' + map.height);
+            stage.setAttribute('role', 'img');
+            stage.setAttribute('aria-label', map.label + ' map with ' + spotsLabel + ' for ' + name);
+            const caption = element('figcaption', '', map.label + ' · ' + spotsLabel);
+            image.addEventListener('error', function () {
+                caption.textContent = map.label + ' · ' + spotsLabel + ' (map image unavailable)';
+            });
+            const figure = element('figure', 'palworld-map-figure');
+            figure.append(stage, caption);
+            figures.push(figure);
+            total += spots;
+        });
+        mapFailed = false;
+        popover.status.classList.remove('palworld-map-popover-error');
+        popover.status.textContent = total
+            ? total + (total === 1 ? ' spawn spot' : ' spawn spots') + (figures.length > 1 ? ' across ' + figures.length + ' maps' : '')
+            : 'No wild spawn locations recorded. Try Info for other ways to get this pal.';
+        popover.root.classList.toggle('palworld-map-popover-wide', figures.length > 1);
+        popover.figures.replaceChildren.apply(popover.figures, figures);
+    }
+
+    function openLocationMap(trigger, key, name) {
+        window.clearTimeout(mapOpenTimer);
+        window.clearTimeout(mapCloseTimer);
+        if (!trigger || !trigger.isConnected) return;
+        const popover = locationMap();
+        // Already showing this pal: only a failed download is tried again.
+        if (mapTrigger === trigger && !popover.root.hidden && !mapFailed) return;
+        if (mapTrigger && mapTrigger !== trigger) mapTrigger.setAttribute('aria-expanded', 'false');
+        mapTrigger = trigger;
+        mapRequest += 1;
+        const request = mapRequest;
+        trigger.setAttribute('aria-controls', MAP_POPOVER_ID);
+        trigger.setAttribute('aria-expanded', 'true');
+        const theme = window.getComputedStyle(form);
+        MAP_THEME_TOKENS.forEach(function (token) {
+            const value = theme.getPropertyValue(token);
+            if (value) popover.root.style.setProperty(token, value);
+        });
+        popover.title.textContent = name;
+        showLocationMapMessage('Loading spawn map…', false);
+        popover.root.hidden = false;
+        mapObserver.observe(document.body, { childList: true, subtree: true });
+        placeLocationMap();
+        loadMapData().then(function (data) {
+            if (request === mapRequest) renderLocationMap(data, key, name);
+        }).catch(function () {
+            // A missing or broken map never affects pal selection, routing or the tree.
+            if (request === mapRequest) showLocationMapMessage('The spawn map could not be loaded. Open it again to retry.', true);
+        }).then(function () {
+            if (request === mapRequest) placeLocationMap();
+        });
+    }
+
+    function closeLocationMap() {
+        window.clearTimeout(mapOpenTimer);
+        window.clearTimeout(mapCloseTimer);
+        mapRequest += 1;
+        mapFailed = false;
+        if (mapTrigger) mapTrigger.setAttribute('aria-expanded', 'false');
+        mapTrigger = null;
+        if (!mapPopover || mapPopover.root.hidden) return;
+        mapObserver.disconnect();
+        mapPopover.root.hidden = true;
+        mapPopover.figures.replaceChildren();
+    }
+
+    // Two controls per pal: "Where to find" opens the spawn map without navigating, and
+    // "Info" is the external Palworld Database page.
     function locationLink(key) {
         const pal = palFor(key);
         const name = pal && typeof pal.name === 'string' && pal.name.trim() ? pal.name.trim() : String(key);
         const slug = pal ? locationSlug(pal.name) : '';
-        const link = element('a', 'palworld-location-link' + (slug ? '' : ' palworld-location-fallback'), slug ? 'Where to find' : 'Find in Pal list');
-        link.href = slug ? LOCATION_PAGE_BASE + slug : LOCATION_FALLBACK_URL;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.setAttribute('aria-label', slug
-            ? 'Where to find ' + name + ' (opens Palworld Database in a new tab)'
-            : 'Look up where to find ' + name + ' in the full Pal list (opens Palworld Database in a new tab)');
-        return link;
+        const wrapper = element('span', 'palworld-location');
+        const trigger = button('Where to find', function (event) {
+            openLocationMap(event.currentTarget, key, name);
+        }, 'palworld-location-link palworld-location-trigger');
+        trigger.setAttribute('aria-label', 'Where to find ' + name + ' (shows the spawn map)');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.addEventListener('mouseenter', function () {
+            if (mapTrigger === trigger) window.clearTimeout(mapCloseTimer);
+            window.clearTimeout(mapOpenTimer);
+            mapOpenTimer = window.setTimeout(function () { openLocationMap(trigger, key, name); }, MAP_OPEN_DELAY);
+        });
+        trigger.addEventListener('mouseleave', function () {
+            window.clearTimeout(mapOpenTimer);
+            if (mapTrigger === trigger) scheduleLocationMapClose();
+        });
+        trigger.addEventListener('focus', function () { openLocationMap(trigger, key, name); });
+        trigger.addEventListener('blur', function () {
+            if (mapTrigger === trigger) closeLocationMap();
+        });
+        const info = element('a', 'palworld-location-link palworld-location-info' + (slug ? '' : ' palworld-location-fallback'), 'Info');
+        info.href = slug ? LOCATION_PAGE_BASE + slug : LOCATION_FALLBACK_URL;
+        info.target = '_blank';
+        info.rel = 'noopener noreferrer';
+        info.setAttribute('aria-label', slug
+            ? 'Info on ' + name + ' (opens Palworld Database in a new tab)'
+            : 'Info: look up ' + name + ' in the full Pal list (opens Palworld Database in a new tab)');
+        wrapper.append(trigger, info);
+        return wrapper;
     }
 
     function clearRoute() {
@@ -257,7 +554,7 @@
                 const choice = button('', function () { choose(pal); });
                 choice.append(palIdentity(pal.key));
                 if (pal.paldexNo !== null) choice.append(element('span', 'palworld-pal-number', '#' + pal.paldexNo));
-                // The location link sits beside the selection button, never inside it.
+                // The location controls sit beside the selection button, never inside it.
                 item.append(choice, locationLink(pal.key));
                 fragment.append(item);
                 choices.push(choice);
@@ -335,9 +632,10 @@
             }
             const onMore = document.activeElement === moreButton;
             let current = choices.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
-            // Focus on a row's location link counts as being on that row's match.
-            if (current < 0 && document.activeElement && document.activeElement.classList.contains('palworld-location-link')) {
-                current = choices.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement.parentNode.firstElementChild));
+            // Focus on a row's "Where to find" trigger or Info link counts as being on that row's match.
+            if (current < 0 && document.activeElement) {
+                const row = document.activeElement.closest('.palworld-picker-row');
+                if (row) current = choices.indexOf(/** @type {HTMLButtonElement} */ (row.firstElementChild));
             }
             let next = 0;
             if (event.key === 'ArrowUp') next = onMore ? choices.length - 1 : current - 1;
