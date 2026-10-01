@@ -454,12 +454,10 @@
     }
 
     // The closed add-ons trigger reads like a select: it names what is currently set.
-    // Owned pals count once a species is chosen, so an untouched empty row is not counted.
+    // The panel holds only the wanted traits, so the summary counts the chosen traits.
     function updateAddonsSummary() {
         const traitCount = traitInputs.filter(function (input) { return input.value.trim(); }).length;
-        const ownedCount = sources.filter(function (source) { return source.picker.key; }).length;
-        addonsSummary.textContent = (traitCount ? traitCount + (traitCount === 1 ? ' trait' : ' traits') : 'No traits')
-            + ' · ' + (ownedCount ? ownedCount + (ownedCount === 1 ? ' owned pal' : ' owned pals') : 'No owned pals');
+        addonsSummary.textContent = traitCount ? traitCount + (traitCount === 1 ? ' trait' : ' traits') : 'No traits';
     }
 
     // restoreFocus hands focus back to the trigger when it would otherwise be left
@@ -677,7 +675,7 @@
             label.append(checkbox, element('span', '', trait));
             source.traitChoices.append(label);
         });
-        if (!count) source.traitChoices.append(element('p', 'palworld-help', 'Choose your wanted traits from the dropdowns above to mark the ones this pal carries.'));
+        if (!count) source.traitChoices.append(element('p', 'palworld-help', 'Choose your wanted traits under “Add-ons (optional)” to mark the ones this pal carries.'));
     }
 
     function addSource(focus) {

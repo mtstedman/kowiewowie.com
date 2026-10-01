@@ -817,7 +817,7 @@
     font-size: var(--step--1);
 }
 
-/* Add-ons: one select-like trigger whose panel holds the optional inputs. */
+/* Add-ons: one select-like trigger whose panel holds the optional wanted traits. */
 .palworld-addons {
     position: relative;
     display: grid;
@@ -895,6 +895,12 @@
     min-width: 0;
 }
 
+/* Owned pals stay in normal flow below the bar so they are always visible. */
+.palworld-owned {
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--palworld-border);
+}
+
 @media (min-width: 1000px) {
     .page-shell.palworld-shell {
         width: min(1360px, calc(100% - 40px));
@@ -904,9 +910,11 @@
         padding: var(--space-lg);
     }
 
-    /* One row, pushed to the right: target picker, add-ons, submit. */
+    /* One row, pushed to the right: target picker, add-ons, submit. The owned
+       pals wrap onto their own full-width row underneath. */
     .palworld-panel.palworld-bar {
         display: flex;
+        flex-wrap: wrap;
         align-items: flex-end;
         justify-content: flex-end;
         gap: var(--space-md);
@@ -920,13 +928,18 @@
         margin: 0;
     }
 
+    /* The fieldset keeps disabling its controls but adds no box, so its children
+       join the bar row directly and the owned pals can span the whole form. */
     .palworld-bar .palworld-controls {
-        display: flex;
-        flex: 0 1 auto;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        justify-content: flex-end;
-        gap: var(--space-sm) var(--space-md);
+        display: contents;
+    }
+
+    .palworld-bar .palworld-controls > legend {
+        position: absolute;
+    }
+
+    .palworld-bar .palworld-owned {
+        flex: 1 0 100%;
     }
 
     .palworld-bar-target {

@@ -94,7 +94,7 @@ $palworldMapCopyright = $palworldMapField('copyright', 'Copyright (c) 2026 Ryexh
                         <div id="palworld-addons" class="palworld-addons">
                             <span id="palworld-addons-caption" class="palworld-addons-caption">Add-ons (optional)</span>
                             <button id="palworld-addons-toggle" class="palworld-addons-toggle" type="button" aria-expanded="false" aria-controls="palworld-addons-panel" aria-labelledby="palworld-addons-caption palworld-addons-summary">
-                                <span id="palworld-addons-summary" class="palworld-addons-summary">No traits · No owned pals</span>
+                                <span id="palworld-addons-summary" class="palworld-addons-summary">No traits</span>
                             </button>
                             <div id="palworld-addons-panel" class="palworld-addons-panel" role="group" aria-labelledby="palworld-addons-caption" hidden>
                                 <section aria-labelledby="palworld-traits-title">
@@ -107,17 +107,17 @@ $palworldMapCopyright = $palworldMapField('copyright', 'Copyright (c) 2026 Ryexh
                                         <label for="palworld-trait-4">Trait 4 (optional)<select id="palworld-trait-4" name="trait-4" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
                                     </div>
                                 </section>
-
-                                <section aria-labelledby="palworld-owned-title">
-                                    <h3 id="palworld-owned-title">Add the pals you own</h3>
-                                    <p class="palworld-help">Choose each pal's species and the wanted traits it carries. Add separate rows for separate pals, even of the same species.</p>
-                                    <div id="palworld-sources" class="palworld-sources"></div>
-                                    <button id="palworld-add-source" type="button">Add owned pal</button>
-                                </section>
                             </div>
                         </div>
 
                         <button id="palworld-find-route" class="palworld-primary" type="submit">Find breeding route</button>
+
+                        <section class="palworld-owned" aria-labelledby="palworld-owned-title">
+                            <h3 id="palworld-owned-title">Add the pals you own</h3>
+                            <p class="palworld-help">Choose each pal's species and the wanted traits it carries. Add separate rows for separate pals, even of the same species.</p>
+                            <div id="palworld-sources" class="palworld-sources"></div>
+                            <button id="palworld-add-source" type="button">Add owned pal</button>
+                        </section>
                     </fieldset>
                 </form>
 
