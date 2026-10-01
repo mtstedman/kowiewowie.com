@@ -1,0 +1,260 @@
+.sa-catalog {
+    min-width: 0;
+}
+
+.sa-catalog [hidden] {
+    display: none !important;
+}
+
+.sa-catalog a {
+    color: var(--accent);
+    text-underline-offset: 0.2em;
+}
+
+.sa-catalog :is(a, button, input, select, summary):focus-visible {
+    outline: 3px solid var(--accent-warm);
+    outline-offset: 4px;
+}
+
+.sa-coverage,
+.sa-notice,
+.sa-filters {
+    padding: clamp(1rem, 3vw, 1.8rem);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--panel-solid);
+    margin-block: 1.5rem;
+}
+
+.sa-coverage h2,
+.sa-notice h2 {
+    margin-top: 0;
+    font-size: var(--step-2);
+}
+
+.sa-coverage p,
+.sa-coverage li,
+.sa-series-heading p {
+    max-width: 85ch;
+    line-height: 1.65;
+}
+
+.sa-catalog summary {
+    cursor: pointer;
+    color: var(--ink);
+    font-weight: 650;
+    padding-block: 0.65rem;
+}
+
+.sa-catalog details[open] > summary {
+    margin-bottom: 0.5rem;
+}
+
+.sa-catalog li + li {
+    margin-top: 0.65rem;
+}
+
+.sa-filters {
+    display: grid;
+    grid-template-columns: minmax(12rem, 2fr) minmax(9rem, 1fr) minmax(12rem, 1.5fr) auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.sa-filters > div {
+    min-width: 0;
+}
+
+.sa-filters label {
+    display: block;
+    font-size: var(--step--1);
+    font-weight: 650;
+    margin-bottom: 0.5rem;
+}
+
+.sa-filters input,
+.sa-filters select {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0.7rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--paper-strong);
+    color: var(--ink);
+    font: inherit;
+    font-size: 1rem;
+}
+
+.sa-filters input::placeholder {
+    color: var(--muted);
+    opacity: 1;
+}
+
+.sa-catalog button {
+    min-height: 48px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.sa-count {
+    color: var(--ink-soft);
+    margin-block: 1.5rem;
+}
+
+.sa-series {
+    margin-block: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+}
+
+.sa-series-heading {
+    margin-bottom: 1.5rem;
+    overflow-wrap: anywhere;
+}
+
+.sa-series-heading h2 {
+    margin-block: 0.4rem;
+    font-size: var(--step-3);
+}
+
+.sa-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.sa-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--panel-solid);
+}
+
+.sa-image {
+    margin: 0;
+}
+
+.sa-image-frame {
+    display: grid;
+    position: relative;
+    aspect-ratio: 9 / 8;
+    background: #fff;
+    color: #243342;
+}
+
+.sa-image img {
+    grid-area: 1 / 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    object-fit: contain;
+    background: #fff;
+}
+
+.sa-image-placeholder {
+    display: grid;
+    place-items: center;
+    min-height: 10rem;
+    padding: 1rem;
+    text-align: center;
+    background: var(--paper-strong);
+    color: var(--muted);
+    font-size: var(--step--1);
+}
+
+.sa-image-frame .sa-image-placeholder {
+    grid-area: 1 / 1;
+    align-self: end;
+    z-index: 1;
+    min-height: auto;
+    padding: 0.5rem;
+    background: #eef2f6;
+    color: #243342;
+}
+
+.sa-image figcaption {
+    padding: 0.75rem 1rem;
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    line-height: 1.5;
+}
+
+.sa-card-body {
+    padding: 1.2rem;
+    overflow-wrap: anywhere;
+}
+
+.sa-card h3 {
+    margin: 0.35rem 0;
+    font-size: var(--step-2);
+}
+
+.sa-card h4 {
+    margin: 1.25rem 0 0.5rem;
+    font-size: 1rem;
+}
+
+.sa-card p,
+.sa-card li {
+    font-size: var(--step--1);
+    line-height: 1.6;
+}
+
+.sa-variant {
+    color: var(--accent-warm);
+    margin: 0;
+}
+
+.sa-edition,
+.sa-note {
+    color: var(--ink-soft);
+}
+
+.sa-price-block {
+    border-top: 1px solid var(--line);
+    margin-top: 1rem;
+}
+
+.sa-observations,
+.sa-identifiers,
+.sa-sources {
+    padding-left: 1.1rem;
+    overflow-wrap: anywhere;
+}
+
+.sa-observations span {
+    display: block;
+    margin-top: 0.3rem;
+}
+
+.sa-details {
+    border-top: 1px solid var(--line);
+    margin-top: 1rem;
+}
+
+.sa-undocumented {
+    max-width: 28rem;
+    padding: 1rem;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+}
+
+@media (max-width: 1000px) {
+    .sa-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .sa-filters {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sa-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

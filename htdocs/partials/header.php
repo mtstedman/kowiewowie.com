@@ -11,6 +11,7 @@ $publicNavItems = [
     'videos' => ['href' => '/videos/', 'label' => 'Videos'],
     'dongs' => ['href' => '/dongs/', 'label' => 'Dongs'],
     'collectibles' => ['href' => '/collectibles/', 'label' => 'Collectibles'],
+    'sonny-angels' => ['href' => '/sonny-angels/', 'label' => 'Sonny Angels'],
 ];
 
 $publicSectionAliases = [
