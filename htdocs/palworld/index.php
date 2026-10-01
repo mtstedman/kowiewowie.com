@@ -39,13 +39,13 @@ $palworldScriptVersion = static function (string $href): string {
                         </section>
 
                         <section aria-labelledby="palworld-traits-title">
-                            <h3 id="palworld-traits-title">2. Name your wanted traits</h3>
-                            <p id="palworld-traits-help" class="palworld-help">Enter 1 to 4 different passive trait names. Leave unused slots blank.</p>
+                            <h3 id="palworld-traits-title">2. Choose your wanted traits</h3>
+                            <p id="palworld-traits-help" class="palworld-help">Select 1 to 4 different passive traits from the dropdowns. Leave unused slots on “No trait”.</p>
                             <div class="palworld-trait-fields">
-                                <label for="palworld-trait-1">Trait 1<input id="palworld-trait-1" name="trait-1" type="text" autocomplete="off" aria-describedby="palworld-traits-help"></label>
-                                <label for="palworld-trait-2">Trait 2 (optional)<input id="palworld-trait-2" name="trait-2" type="text" autocomplete="off" aria-describedby="palworld-traits-help"></label>
-                                <label for="palworld-trait-3">Trait 3 (optional)<input id="palworld-trait-3" name="trait-3" type="text" autocomplete="off" aria-describedby="palworld-traits-help"></label>
-                                <label for="palworld-trait-4">Trait 4 (optional)<input id="palworld-trait-4" name="trait-4" type="text" autocomplete="off" aria-describedby="palworld-traits-help"></label>
+                                <label for="palworld-trait-1">Trait 1<select id="palworld-trait-1" name="trait-1" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
+                                <label for="palworld-trait-2">Trait 2 (optional)<select id="palworld-trait-2" name="trait-2" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
+                                <label for="palworld-trait-3">Trait 3 (optional)<select id="palworld-trait-3" name="trait-3" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
+                                <label for="palworld-trait-4">Trait 4 (optional)<select id="palworld-trait-4" name="trait-4" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
                             </div>
                         </section>
 

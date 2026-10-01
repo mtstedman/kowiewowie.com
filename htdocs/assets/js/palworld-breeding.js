@@ -15,7 +15,7 @@
     const addSourceButton = document.getElementById('palworld-add-source');
     const submitButton = document.getElementById('palworld-find-route');
     const excludedList = document.getElementById('palworld-excluded-list');
-    const traitInputs = Array.from(document.querySelectorAll('.palworld-trait-fields input'));
+    const traitInputs = Array.from(document.querySelectorAll('.palworld-trait-fields select'));
     const sources = [];
     const excluded = new Set();
     const eggFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
@@ -199,7 +199,7 @@
             label.append(checkbox, element('span', '', trait));
             source.traitChoices.append(label);
         });
-        if (!count) source.traitChoices.append(element('p', 'palworld-help', 'Name your wanted traits above to select the ones this pal carries.'));
+        if (!count) source.traitChoices.append(element('p', 'palworld-help', 'Choose your wanted traits from the dropdowns above to mark the ones this pal carries.'));
     }
 
     function addSource(focus) {
@@ -338,6 +338,37 @@
         });
     }
 
+    // Passive trait display names from Pal Calc's db.json: English name per entry,
+    // de-duplicated and sorted case-insensitively.
+    function passiveTraitNames(db) {
+        const raw = db && db.PassiveSkills;
+        const entries = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
+        const names = new Set();
+        entries.forEach(function (entry) {
+            if (!entry || typeof entry !== 'object') return;
+            const localized = entry.LocalizedNames && typeof entry.LocalizedNames === 'object' ? entry.LocalizedNames.en : undefined;
+            const name = typeof localized === 'string' && localized.trim() ? localized : entry.Name;
+            if (typeof name === 'string' && name.trim()) names.add(name.trim());
+        });
+        return Array.from(names).sort(function (a, b) {
+            return a.localeCompare(b, undefined, { sensitivity: 'base' });
+        });
+    }
+
+    function populateTraitSelects(names) {
+        traitInputs.forEach(function (select) {
+            const blank = element('option', '', 'No trait');
+            blank.value = '';
+            const options = names.map(function (name) {
+                const option = element('option', '', name);
+                option.value = name;
+                return option;
+            });
+            select.replaceChildren(blank, ...options);
+            select.value = '';
+        });
+    }
+
     async function fetchJson(path) {
         const response = await fetch(path);
         if (!response.ok) throw new Error('Could not load ' + path.split('/').pop() + ' (HTTP ' + response.status + ').');
@@ -364,7 +395,10 @@
             const imageUrl = new URL(manifest.image, window.location.origin);
             if (imageUrl.origin !== window.location.origin) throw new Error('Thumbnails must be hosted on this site.');
             spriteImage = imageUrl.href;
+            const traitNames = passiveTraitNames(data[0]);
+            if (!traitNames.length) throw new Error('The breeding data lists no passive traits.');
             dataset = engine.buildDataset(data[0], data[1]);
+            populateTraitSelects(traitNames);
             document.getElementById('palworld-data-version').textContent = dataset.version;
             targetPicker = createPicker(document.getElementById('palworld-target-picker'), 'palworld-target', 'Search target pal');
             addSource(false);
@@ -388,8 +422,16 @@
         runRoute();
     });
     form.addEventListener('input', invalidate);
-    traitInputs.forEach(function (input) {
-        input.addEventListener('input', function () { sources.forEach(refreshSourceTraits); });
+    traitInputs.forEach(function (input, index) {
+        let previous = input.value;
+        input.addEventListener('change', function () {
+            // A different trait in this slot must not inherit the old trait's checkmarks.
+            if (input.value !== previous) {
+                sources.forEach(function (source) { source.traitSlots.delete(index); });
+                previous = input.value;
+            }
+            sources.forEach(refreshSourceTraits);
+        });
     });
     addSourceButton.addEventListener('click', function () { addSource(true); });
     load();
