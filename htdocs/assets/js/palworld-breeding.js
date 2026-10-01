@@ -26,6 +26,17 @@
     let nextSourceId = 0;
     let routeGeneration = 0;
     let attempted = false;
+    let palSearchIndex = null;
+
+    const PICKER_BATCH = 30;
+    const DATA_PATH = '/assets/data/palworld/';
+    const DATA_FILES = ['palcalc-db.json', 'palcalc-breeding.json', 'pal-thumbnails.json'];
+    const CACHE_DB = 'wowiekowie-palworld';
+    const CACHE_STORE = 'datasets';
+    const CACHE_KEY = 'breeding-data';
+    const CACHE_OPEN_TIMEOUT = 3000;
+    const CACHE_READ_TIMEOUT = 6000;
+    const CACHE_WRITE_TIMEOUT = 20000;
 
     function element(tag, className, text) {
         const node = document.createElement(tag);
@@ -86,8 +97,21 @@
         routeStatus.textContent = 'Inputs changed. Find a breeding route with your updated plan.';
     }
 
+    // Search text for every pal, built once on first use. It holds strings only;
+    // choice elements are created per batch while a picker is open.
+    function palSearch() {
+        if (!palSearchIndex) {
+            palSearchIndex = dataset.pals.map(function (pal) {
+                return { pal: pal, search: (pal.name + ' ' + pal.internalName + ' ' + (pal.paldexNo === null ? '' : pal.paldexNo)).toLowerCase() };
+            });
+        }
+        return palSearchIndex;
+    }
+
     // Native buttons keep the searchable picker usable with Tab and Enter.
     // Arrow keys also move between matches without requiring a custom combobox.
+    // Matches are rendered in batches of PICKER_BATCH as the list is scrolled or
+    // navigated, and removed again when the list closes.
     function createPicker(host, id, labelText) {
         const wrapper = element('div', 'palworld-picker');
         const label = element('label', '', labelText);
@@ -109,33 +133,88 @@
         matches.hidden = true;
         const selected = element('div', 'palworld-picker-selected');
         const picker = { key: '', input: input };
-        const entries = dataset.pals.map(function (pal) {
-            const item = element('li');
-            const choice = button('', function () {
-                picker.key = pal.key;
-                input.value = pal.name;
-                selected.replaceChildren(palIdentity(pal.key));
-                input.focus();
-                matches.hidden = true;
-                count.textContent = pal.name + ' selected.';
-                invalidate();
+        const moreItem = element('li', 'palworld-picker-more');
+        let found = [];
+        let choices = [];
+        let generation = 0;
+
+        function close() {
+            generation += 1;
+            matches.hidden = true;
+            matches.replaceChildren();
+            found = [];
+            choices = [];
+        }
+
+        function choose(pal) {
+            picker.key = pal.key;
+            input.value = pal.name;
+            selected.replaceChildren(palIdentity(pal.key));
+            input.focus();
+            close();
+            count.textContent = pal.name + ' selected.';
+            invalidate();
+        }
+
+        // Appends the next batch of matches. The "show more" row stays last until
+        // every match is rendered, so nothing is cut off without a way to reach it.
+        function renderBatch() {
+            const start = choices.length;
+            const end = Math.min(start + PICKER_BATCH, found.length);
+            if (end === start) return;
+            const moreFocused = document.activeElement === moreButton;
+            const fragment = document.createDocumentFragment();
+            found.slice(start, end).forEach(function (entry) {
+                const pal = entry.pal;
+                const item = element('li');
+                const choice = button('', function () { choose(pal); });
+                choice.append(palIdentity(pal.key));
+                if (pal.paldexNo !== null) choice.append(element('span', 'palworld-pal-number', '#' + pal.paldexNo));
+                item.append(choice);
+                fragment.append(item);
+                choices.push(choice);
             });
-            choice.append(palIdentity(pal.key));
-            if (pal.paldexNo !== null) choice.append(element('span', 'palworld-pal-number', '#' + pal.paldexNo));
-            item.append(choice);
-            matches.append(item);
-            return { item: item, choice: choice, search: (pal.name + ' ' + pal.internalName + ' ' + (pal.paldexNo === null ? '' : pal.paldexNo)).toLowerCase() };
+            matches.insertBefore(fragment, moreItem.parentNode === matches ? moreItem : null);
+            const remaining = found.length - end;
+            if (remaining) {
+                moreButton.textContent = 'Show more pals (' + remaining + ' not shown yet)';
+                if (moreItem.parentNode !== matches) matches.append(moreItem);
+            }
+            // Keep keyboard focus inside the list when the row it was on moves on or goes away.
+            if (moreFocused) choices[start].focus();
+            if (!remaining) moreItem.remove();
+        }
+
+        // Renders the rest one batch per task, then moves focus to the last match.
+        function renderRemaining(token) {
+            renderBatch();
+            if (choices.length < found.length) {
+                window.setTimeout(function () {
+                    if (token === generation) renderRemaining(token);
+                }, 0);
+            } else if (choices.length && matches.contains(document.activeElement)) {
+                choices[choices.length - 1].focus();
+            }
+        }
+
+        const moreButton = button('', function () {
+            const start = choices.length;
+            renderBatch();
+            if (choices[start]) choices[start].focus();
         });
+        moreItem.append(moreButton);
 
         function filter() {
             const query = input.value.trim().toLowerCase();
-            let visible = 0;
-            entries.forEach(function (entry) {
-                entry.item.hidden = !entry.search.includes(query);
-                if (!entry.item.hidden) visible += 1;
-            });
+            generation += 1;
+            found = palSearch().filter(function (entry) { return entry.search.includes(query); });
+            choices = [];
+            matches.replaceChildren();
+            matches.scrollTop = 0;
             matches.hidden = false;
-            count.textContent = visible ? visible + ' matching pals.' : 'No matching pals. Try another name.';
+            renderBatch();
+            if (!found.length) count.textContent = 'No matching pals. Try another name.';
+            else count.textContent = found.length + ' matching pals.' + (choices.length < found.length ? ' More load as you scroll or arrow down.' : '');
         }
 
         input.addEventListener('focus', filter);
@@ -148,30 +227,39 @@
             if (event.key === 'ArrowDown' || (event.key === 'Enter' && !matches.hidden)) {
                 event.preventDefault();
                 filter();
-                const first = entries.find(function (entry) { return !entry.item.hidden; });
-                if (first) first.choice.focus();
+                if (choices.length) choices[0].focus();
             } else if (event.key === 'Escape') {
-                matches.hidden = true;
+                close();
             }
         });
         matches.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 event.preventDefault();
                 input.focus();
-                matches.hidden = true;
+                close();
                 return;
             }
             if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
             event.preventDefault();
-            const visible = entries.filter(function (entry) { return !entry.item.hidden; });
-            const current = visible.findIndex(function (entry) { return entry.choice === document.activeElement; });
-            let next = current + (event.key === 'ArrowUp' ? -1 : 1);
-            if (event.key === 'Home') next = 0;
-            if (event.key === 'End') next = visible.length - 1;
-            if (visible.length) visible[Math.max(0, Math.min(next, visible.length - 1))].choice.focus();
+            if (event.key === 'End') {
+                renderRemaining(generation);
+                return;
+            }
+            const onMore = document.activeElement === moreButton;
+            const current = choices.indexOf(document.activeElement);
+            let next = 0;
+            if (event.key === 'ArrowUp') next = onMore ? choices.length - 1 : current - 1;
+            else if (event.key === 'ArrowDown') next = onMore ? choices.length : current + 1;
+            // Stepping past the last rendered match pulls in the next batch first.
+            if (next >= choices.length) renderBatch();
+            if (choices.length) choices[Math.max(0, Math.min(next, choices.length - 1))].focus();
+        });
+        matches.addEventListener('scroll', function () {
+            if (matches.hidden || choices.length >= found.length) return;
+            if (matches.scrollTop + matches.clientHeight >= matches.scrollHeight - 96) renderBatch();
         });
         wrapper.addEventListener('focusout', function (event) {
-            if (!wrapper.contains(event.relatedTarget)) matches.hidden = true;
+            if (!wrapper.contains(event.relatedTarget)) close();
         });
         wrapper.append(label, input, hint, count, matches, selected);
         host.append(wrapper);
@@ -369,41 +457,305 @@
         });
     }
 
-    async function fetchJson(path) {
-        const response = await fetch(path);
-        if (!response.ok) throw new Error('Could not load ' + path.split('/').pop() + ' (HTTP ' + response.status + ').');
-        return response.json();
+    // Lets a status message paint before synchronous parsing; the timer covers background tabs.
+    function yieldToPaint() {
+        return new Promise(function (resolve) {
+            let done = false;
+            function finish() {
+                if (done) return;
+                done = true;
+                resolve();
+            }
+            window.requestAnimationFrame(function () { window.setTimeout(finish, 0); });
+            window.setTimeout(finish, 120);
+        });
+    }
+
+    // The server-derived revision covers all three JSON inputs. Without usable
+    // metadata the planner still works, it just downloads on every visit.
+    function cacheConfig() {
+        const revision = form.dataset.palworldRevision || '';
+        const format = form.dataset.palworldCacheFormat || '';
+        if (!/^[a-f0-9]{16,64}$/.test(revision) || !/^[1-9][0-9]{0,5}$/.test(format)) return null;
+        return { revision: revision, format: Number(format) };
+    }
+
+    // Every cache step is bounded: a missing, blocked, hung or failing store
+    // rejects so the caller can fall back to the network.
+    function openCache() {
+        return new Promise(function (resolve, reject) {
+            let done = false;
+            let timer = 0;
+            function fail(error) {
+                if (done) return;
+                done = true;
+                window.clearTimeout(timer);
+                reject(error);
+            }
+            timer = window.setTimeout(function () { fail(new Error('Opening the saved data timed out.')); }, CACHE_OPEN_TIMEOUT);
+            let request;
+            try {
+                const factory = window.indexedDB;
+                if (!factory) {
+                    fail(new Error('Browser storage is unavailable.'));
+                    return;
+                }
+                request = factory.open(CACHE_DB, 1);
+            } catch (error) {
+                fail(error);
+                return;
+            }
+            request.onupgradeneeded = function () {
+                const db = request.result;
+                if (!db.objectStoreNames.contains(CACHE_STORE)) db.createObjectStore(CACHE_STORE);
+            };
+            request.onblocked = function () { fail(new Error('Browser storage is blocked.')); };
+            request.onerror = function (event) {
+                if (event && typeof event.preventDefault === 'function') event.preventDefault();
+                fail(request.error || new Error('Browser storage could not be opened.'));
+            };
+            request.onsuccess = function () {
+                const db = request.result;
+                if (done) {
+                    // Opened after we gave up: release it so it cannot block later opens.
+                    db.close();
+                    return;
+                }
+                done = true;
+                window.clearTimeout(timer);
+                db.onversionchange = function () { db.close(); };
+                resolve(db);
+            };
+        });
+    }
+
+    // Runs one transaction and resolves with the kept value only after it commits.
+    function cacheTransaction(mode, timeout, work) {
+        return openCache().then(function (db) {
+            return new Promise(function (resolve, reject) {
+                let done = false;
+                let result;
+                let transaction = null;
+                let timer = 0;
+                function finish(error) {
+                    if (done) return;
+                    done = true;
+                    window.clearTimeout(timer);
+                    try { db.close(); } catch (closeError) { /* already closed */ }
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+                timer = window.setTimeout(function () {
+                    try { if (transaction) transaction.abort(); } catch (abortError) { /* already finished */ }
+                    finish(new Error('Browser storage timed out.'));
+                }, timeout);
+                try {
+                    transaction = db.transaction(CACHE_STORE, mode);
+                    transaction.oncomplete = function () { finish(null); };
+                    transaction.onabort = function () { finish(transaction.error || new Error('Browser storage aborted the request.')); };
+                    transaction.onerror = function () { finish(transaction.error || new Error('Browser storage failed.')); };
+                    work(transaction.objectStore(CACHE_STORE), function (value) { result = value; });
+                } catch (error) {
+                    finish(error);
+                }
+            });
+        });
+    }
+
+    function clearCache() {
+        cacheTransaction('readwrite', CACHE_WRITE_TIMEOUT, function (store) { store.clear(); }).catch(function () {});
+    }
+
+    // Resolves with the three raw JSON texts for this revision, or null. Never rejects.
+    function readCache(cache) {
+        return cacheTransaction('readonly', CACHE_READ_TIMEOUT, function (store, keep) {
+            const request = store.get(CACHE_KEY);
+            request.onsuccess = function () { keep(request.result); };
+        }).then(function (record) {
+            if (record === undefined || record === null) return null;
+            if (typeof record !== 'object' || record.format !== cache.format || record.revision !== cache.revision ||
+                typeof record.db !== 'string' || typeof record.breeding !== 'string' || typeof record.thumbnails !== 'string') {
+                // Another revision or an unreadable shape: remove it rather than keep stale data around.
+                clearCache();
+                return null;
+            }
+            return [record.db, record.breeding, record.thumbnails];
+        }).catch(function () { return null; });
+    }
+
+    // One record in one transaction, so a revision is either stored whole or not at all.
+    function writeCache(cache, texts) {
+        return cacheTransaction('readwrite', CACHE_WRITE_TIMEOUT, function (store) {
+            store.clear();
+            store.put({
+                format: cache.format,
+                revision: cache.revision,
+                savedAt: Date.now(),
+                db: texts[0],
+                breeding: texts[1],
+                thumbnails: texts[2]
+            }, CACHE_KEY);
+        });
+    }
+
+    function downloadSize() {
+        const bytes = Number(form.dataset.palworldDataBytes);
+        return Number.isFinite(bytes) && bytes > 0 ? 'about ' + (bytes / 1000000).toFixed(1) + ' MB' : 'several MB';
+    }
+
+    function dataUrl(name, revision) {
+        return DATA_PATH + name + (revision ? '?v=' + encodeURIComponent(revision) : '');
+    }
+
+    async function fetchText(name, revision) {
+        const response = await fetch(dataUrl(name, revision));
+        if (!response.ok) throw new Error('Could not load ' + name + ' (HTTP ' + response.status + ').');
+        return response.text();
+    }
+
+    // Bytes that crossed the network for the three bulk requests. Resource Timing gives
+    // what the browser actually transferred (headers plus compressed body, 0 when its own
+    // HTTP cache answered). Where an entry is missing, the uncompressed payload size stands
+    // in as an upper bound and the result is labelled as an estimate.
+    function measureTransfer(revision, texts) {
+        let bytes = 0;
+        let measured = true;
+        DATA_FILES.forEach(function (name, index) {
+            let size = null;
+            try {
+                const url = new URL(dataUrl(name, revision), window.location.href).href;
+                const entries = performance.getEntriesByName(url, 'resource');
+                const entry = entries[entries.length - 1];
+                if (entry && Number.isFinite(entry.transferSize)) size = entry.transferSize;
+            } catch (error) {
+                size = null;
+            }
+            if (size === null) {
+                measured = false;
+                size = new Blob([texts[index]]).size;
+            }
+            bytes += size;
+        });
+        return { bytes: bytes, measure: measured ? 'resource-timing' : 'payload-size-estimate' };
+    }
+
+    function download(revision) {
+        const size = downloadSize();
+        let received = 0;
+        let active = true;
+        function report() {
+            if (!active) return;
+            loadStatus.textContent = 'Downloading breeding data (' + size + '): ' + received + ' of ' + DATA_FILES.length + ' files received…';
+        }
+        report();
+        return Promise.all(DATA_FILES.map(function (name) {
+            return fetchText(name, revision).then(function (text) {
+                received += 1;
+                report();
+                return text;
+            });
+        })).then(function (texts) {
+            active = false;
+            return texts;
+        }, function (error) {
+            active = false;
+            throw error;
+        });
+    }
+
+    function parsePayloads(texts) {
+        return texts.map(function (text, index) {
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                throw new Error(DATA_FILES[index] + ' is not valid JSON.');
+            }
+        });
+    }
+
+    // Validates the three payloads and builds the dataset without touching page state,
+    // so unusable cached data can be discarded before anything is shown.
+    function prepare(engine, data) {
+        const sprites = data[2];
+        if (!sprites || !sprites.sprites || typeof sprites.sprites !== 'object' ||
+            typeof sprites.image !== 'string' || !sprites.image.startsWith('/') ||
+            !Number.isInteger(sprites.cell) || sprites.cell <= 0 ||
+            !Number.isInteger(sprites.columns) || sprites.columns <= 0 ||
+            !Number.isInteger(sprites.rows) || sprites.rows <= 0) {
+            throw new Error('The thumbnail manifest is unusable.');
+        }
+        const imageUrl = new URL(sprites.image, window.location.origin);
+        if (imageUrl.origin !== window.location.origin) throw new Error('Thumbnails must be hosted on this site.');
+        const traitNames = passiveTraitNames(data[0]);
+        if (!traitNames.length) throw new Error('The breeding data lists no passive traits.');
+        return {
+            manifest: sprites,
+            spriteImage: imageUrl.href,
+            traitNames: traitNames,
+            dataset: engine.buildDataset(data[0], data[1])
+        };
     }
 
     async function load() {
         try {
             const engine = globalThis.PalworldBreeding;
             if (!engine) throw new Error('The breeding engine did not load.');
-            const data = await Promise.all([
-                fetchJson('/assets/data/palworld/palcalc-db.json'),
-                fetchJson('/assets/data/palworld/palcalc-breeding.json'),
-                fetchJson('/assets/data/palworld/pal-thumbnails.json')
-            ]);
-            manifest = data[2];
-            if (!manifest || !manifest.sprites || typeof manifest.sprites !== 'object' ||
-                typeof manifest.image !== 'string' || !manifest.image.startsWith('/') ||
-                !Number.isInteger(manifest.cell) || manifest.cell <= 0 ||
-                !Number.isInteger(manifest.columns) || manifest.columns <= 0 ||
-                !Number.isInteger(manifest.rows) || manifest.rows <= 0) {
-                throw new Error('The thumbnail manifest is unusable.');
+            const cache = cacheConfig();
+            let ready = null;
+            let downloaded = null;
+            if (cache) {
+                loadStatus.textContent = 'Checking this browser for saved breeding data…';
+                const saved = await readCache(cache);
+                if (saved) {
+                    loadStatus.textContent = 'Loading breeding data saved in this browser…';
+                    await yieldToPaint();
+                    try {
+                        ready = prepare(engine, parsePayloads(saved));
+                    } catch (error) {
+                        // Corrupt or incompatible saved data: drop it and download a fresh set.
+                        ready = null;
+                        clearCache();
+                    }
+                }
             }
-            const imageUrl = new URL(manifest.image, window.location.origin);
-            if (imageUrl.origin !== window.location.origin) throw new Error('Thumbnails must be hosted on this site.');
-            spriteImage = imageUrl.href;
-            const traitNames = passiveTraitNames(data[0]);
-            if (!traitNames.length) throw new Error('The breeding data lists no passive traits.');
-            dataset = engine.buildDataset(data[0], data[1]);
-            populateTraitSelects(traitNames);
+            if (!ready) {
+                downloaded = await download(cache ? cache.revision : '');
+                loadStatus.textContent = 'Download complete. Preparing the planner…';
+                await yieldToPaint();
+                ready = prepare(engine, parsePayloads(downloaded));
+            }
+            manifest = ready.manifest;
+            spriteImage = ready.spriteImage;
+            dataset = ready.dataset;
+            populateTraitSelects(ready.traitNames);
             document.getElementById('palworld-data-version').textContent = dataset.version;
             targetPicker = createPicker(document.getElementById('palworld-target-picker'), 'palworld-target', 'Search target pal');
             addSource(false);
             controls.disabled = false;
-            loadStatus.textContent = 'Ready. ' + dataset.pals.length + ' pals available.';
+            // Startup measurements: where the data came from, when controls became usable, and
+            // how many bytes the three bulk requests transferred (0 when no request was made).
+            form.dataset.palworldLoadSource = downloaded ? 'network' : 'cache';
+            form.dataset.palworldReadyMs = String(Math.round(performance.now()));
+            const transfer = downloaded
+                ? measureTransfer(cache ? cache.revision : '', downloaded)
+                : { bytes: 0, measure: 'no-request' };
+            form.dataset.palworldTransferredBytes = String(transfer.bytes);
+            form.dataset.palworldTransferMeasure = transfer.measure;
+            const readyText = 'Ready. ' + dataset.pals.length + ' pals available.';
+            if (!downloaded) {
+                loadStatus.textContent = readyText + ' Loaded from data saved in this browser.';
+                return;
+            }
+            loadStatus.textContent = readyText;
+            if (!cache) return;
+            // Only a fully downloaded and validated set is saved, and only after the controls are usable.
+            window.setTimeout(function () {
+                writeCache(cache, downloaded).then(function () {
+                    loadStatus.textContent = readyText + ' Saved in this browser, so the next visit skips the download.';
+                }, function () {
+                    loadStatus.textContent = readyText + ' This browser could not save the data, so the next visit downloads it again.';
+                });
+            }, 0);
         } catch (error) {
             controls.disabled = true;
             loadStatus.classList.add('palworld-error');

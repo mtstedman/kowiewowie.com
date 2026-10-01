@@ -12,6 +12,31 @@ $palworldScriptVersion = static function (string $href): string {
 
     return htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '?v=' . rawurlencode($version);
 };
+
+// Revision of the three bulk JSON inputs. The browser reuses its saved copy only
+// while this matches; bump the cache format when the saved record shape changes.
+$palworldCacheFormat = 1;
+$palworldDataBytes = 0;
+$palworldRevisionParts = ['cache-format:' . $palworldCacheFormat];
+foreach (['palcalc-db.json', 'palcalc-breeding.json', 'pal-thumbnails.json'] as $palworldDataFile) {
+    $palworldDataPath = dirname(__DIR__) . '/assets/data/palworld/' . $palworldDataFile;
+    $palworldDataSize = is_file($palworldDataPath) ? filesize($palworldDataPath) : false;
+    $palworldDataTime = is_file($palworldDataPath) ? filemtime($palworldDataPath) : false;
+    if ($palworldDataSize === false || $palworldDataTime === false) {
+        // No trustworthy revision: the page falls back to downloading without saving.
+        $palworldRevisionParts = null;
+        $palworldDataBytes = 0;
+        break;
+    }
+    $palworldDataBytes += $palworldDataSize;
+    $palworldRevisionParts[] = $palworldDataFile . ':' . $palworldDataSize . ':' . $palworldDataTime;
+}
+$palworldDataRevision = $palworldRevisionParts === null
+    ? ''
+    : substr(hash('sha256', implode('|', $palworldRevisionParts)), 0, 32);
+$palworldDataSizeLabel = $palworldDataBytes > 0
+    ? 'about ' . number_format($palworldDataBytes / 1000000, 1) . ' MB'
+    : 'several MB';
 ?>
 <?php include dirname(__DIR__) . '/partials/head.php'; ?>
 <body>
@@ -25,11 +50,11 @@ $palworldScriptVersion = static function (string $href): string {
                 <p class="lede">Pick a pal, choose the passives you want, and trace a breeding route from the pals you already own.</p>
             </section>
 
-            <p id="palworld-load-status" class="palworld-notice" role="status" aria-live="polite">Loading breeding data (about 9 MB). This may take a moment.</p>
+            <p id="palworld-load-status" class="palworld-notice" role="status" aria-live="polite">Preparing the breeding planner. The first visit downloads <?= htmlspecialchars($palworldDataSizeLabel, ENT_QUOTES, 'UTF-8') ?> of breeding data; later visits load the copy saved in this browser.</p>
             <noscript><p class="palworld-notice">Enable JavaScript to load the breeding data and use this planner.</p></noscript>
 
             <div class="palworld-layout">
-                <form id="palworld-form" class="palworld-panel" aria-labelledby="palworld-plan-title" novalidate>
+                <form id="palworld-form" class="palworld-panel" aria-labelledby="palworld-plan-title" data-palworld-revision="<?= htmlspecialchars($palworldDataRevision, ENT_QUOTES, 'UTF-8') ?>" data-palworld-cache-format="<?= htmlspecialchars((string) $palworldCacheFormat, ENT_QUOTES, 'UTF-8') ?>" data-palworld-data-bytes="<?= htmlspecialchars((string) $palworldDataBytes, ENT_QUOTES, 'UTF-8') ?>" novalidate>
                     <h2 id="palworld-plan-title">Build your plan</h2>
                     <fieldset id="palworld-controls" class="palworld-controls" disabled>
                         <legend class="public-visually-hidden">Breeding plan inputs</legend>
