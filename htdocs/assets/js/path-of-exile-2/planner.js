@@ -6,6 +6,19 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const MIN_SCALE = 0.01;
 const MAX_SCALE = 2.5;
 
+// Ordinary passive-point budget behind the character-level estimate. The
+// pinned GGG export (0.5.5) describes tree topology only and carries no reward
+// accounting, so these figures follow the 0.5-era community wiki
+// (poe2wiki.net: Passive_skill_tree, Quest_rewards): one passive point per
+// level gained (none at level 1, level cap 100) plus twelve 2-point campaign
+// rewards across Acts 1-4 and the Interludes. Weapon-set capacity reuses those
+// 24 points rather than adding a pool. League/endgame rewards and
+// ascendancy-granted extra passives are deliberately not counted. This is a
+// display estimate only; nothing here limits allocation.
+const CAMPAIGN_PASSIVE_POINTS = 24;
+const MAX_CHARACTER_LEVEL = 100;
+const STANDARD_PASSIVE_BUDGET = MAX_CHARACTER_LEVEL - 1 + CAMPAIGN_PASSIVE_POINTS;
+
 const elements = {
   status: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-status')),
   classSelect: /** @type {HTMLSelectElement} */ (document.querySelector('#poe2-class')),
@@ -16,6 +29,8 @@ const elements = {
   searchButton: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-search button')),
   passiveTotal: /** @type {HTMLElement} */ (document.querySelector('#poe2-passive-total')),
   ascendancyTotal: /** @type {HTMLElement} */ (document.querySelector('#poe2-ascendancy-total')),
+  levelEstimate: /** @type {HTMLElement} */ (document.querySelector('#poe2-level-estimate')),
+  levelEstimateNote: /** @type {HTMLElement} */ (document.querySelector('#poe2-level-estimate-note')),
   fitButton: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-fit')),
   resetButton: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-reset')),
   retryButton: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-retry')),
@@ -107,6 +122,37 @@ function nodeName(nodeId) {
 
 function plural(count, singular, pluralForm = `${singular}s`) {
   return `${count.toLocaleString()} ${count === 1 ? singular : pluralForm}`;
+}
+
+/**
+ * Show the character level implied by `passive` paid passive points when every
+ * ordinary campaign reward is assumed collected, or an unavailable state when
+ * there is no model to cost against.
+ *
+ * @param {number | null} passive Paid passive cost from the model (no ascendancy, no free roots).
+ * @param {string} [unavailableNote] Explanation shown when `passive` is null.
+ */
+function renderLevelEstimate(passive, unavailableNote = 'Level estimate unavailable.') {
+  if (passive === null) {
+    elements.levelEstimate.textContent = '—';
+    elements.levelEstimateNote.textContent = unavailableNote;
+    return;
+  }
+  if (passive > STANDARD_PASSIVE_BUDGET) {
+    const excess = passive - STANDARD_PASSIVE_BUDGET;
+    elements.levelEstimate.textContent = `Over level ${MAX_CHARACTER_LEVEL}`;
+    elements.levelEstimateNote.textContent = `${passive} passive points is ${excess} more than the standard level-${MAX_CHARACTER_LEVEL} budget of ${STANDARD_PASSIVE_BUDGET} (${MAX_CHARACTER_LEVEL - 1} from levels + up to ${CAMPAIGN_PASSIVE_POINTS} campaign-granted).`;
+    return;
+  }
+  const level = Math.max(1, passive - CAMPAIGN_PASSIVE_POINTS + 1);
+  elements.levelEstimate.textContent = `Level ${level}`;
+  if (passive === 0) {
+    elements.levelEstimateNote.textContent = 'Estimated level. No passive points spent yet.';
+  } else if (passive <= CAMPAIGN_PASSIVE_POINTS) {
+    elements.levelEstimateNote.textContent = `Estimated minimum level. ${plural(passive, 'point')} fit within the up to ${CAMPAIGN_PASSIVE_POINTS} campaign-granted passive points, which are earned during the campaign, not at level 1.`;
+  } else {
+    elements.levelEstimateNote.textContent = `Estimated level + up to ${CAMPAIGN_PASSIVE_POINTS} campaign-granted passive points (assumes all are collected).`;
+  }
 }
 
 function plannerUsable() {
@@ -798,6 +844,7 @@ function updateGraphState() {
   const totals = state.model.pointCost([...state.allocated]);
   elements.passiveTotal.textContent = String(totals.passive);
   elements.ascendancyTotal.textContent = String(totals.ascendancy);
+  renderLevelEstimate(totals.passive);
   elements.resetButton.disabled = state.allocated.size === 0;
   renderNetBonuses();
   updateDetails();
@@ -969,6 +1016,7 @@ async function initialize() {
   elements.retryButton.hidden = true;
   elements.treePanel.setAttribute('aria-busy', 'true');
   setStatus('Loading the pinned passive-tree export…');
+  renderLevelEstimate(null, 'Level estimate unavailable while the tree loads.');
   try {
     const data = await loadTree();
     if (!Array.isArray(data.classes) || data.classes.length === 0) {
@@ -983,6 +1031,8 @@ async function initialize() {
       // that message instead of announcing success, leave the controls that
       // need a model disabled, and offer both recoveries: choosing another
       // build or reloading the export.
+      if (state.model) updateGraphState();
+      else renderLevelEstimate(null, 'Level estimate unavailable: no build could be created.');
       elements.buildControls.disabled = false;
       elements.retryButton.hidden = false;
       elements.treePanel.setAttribute('aria-busy', 'false');
@@ -998,6 +1048,7 @@ async function initialize() {
     renderRouteSummary();
     renderNetBonuses();
     setEnabled(false);
+    renderLevelEstimate(null, 'Level estimate unavailable: the passive tree could not be loaded.');
     elements.retryButton.hidden = false;
     elements.treePanel.setAttribute('aria-busy', 'false');
     setStatus(error instanceof Error ? error.message : 'The passive tree could not be loaded.', true);

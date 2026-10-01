@@ -72,7 +72,9 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                     <div class="poe2-totals" aria-label="Allocated point totals">
                         <span><strong id="poe2-passive-total">0</strong> passive</span>
                         <span><strong id="poe2-ascendancy-total">0</strong> ascendancy</span>
+                        <span style="grid-column: 1 / -1;"><strong id="poe2-level-estimate">—</strong> <small id="poe2-level-estimate-note">Level estimate unavailable while the tree loads.</small></span>
                     </div>
+                    <p class="poe2-help">The level estimate counts paid passive points only and assumes all 24 ordinary campaign passive points are collected, plus one point per level gained up to level 100 (123 in total). Those rewards are earned through Acts 1–4 and the Interludes, so a character at that level may not have them all yet. League or endgame bonus points and ascendancy-granted extra passives are not counted, and nothing here limits what you can allocate.</p>
 
                     <div class="poe2-actions">
                         <button id="poe2-fit" type="button" disabled>Fit tree</button>
@@ -137,7 +139,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
             <aside class="poe2-credits" aria-label="Data source and notices">
                 <p><strong>Data:</strong> Grinding Gear Games official passive-tree <span id="poe2-version">export 0.5.5</span>, pinned locally. This does not claim parity with the current live game.</p>
                 <p>Path of Exile 2, passive-tree names, and stat text © Grinding Gear Games. This unofficial fan tool is not affiliated with or endorsed by Grinding Gear Games.</p>
-                <p>Ordinary shared allocations only. Weapon-set allocations, point budgets, attribute choices, items, jewels, and item-granted passives are not modelled.</p>
+                <p>Ordinary shared allocations only. Weapon-set allocations, attribute choices, items, jewels, and item-granted passives are not modelled. Point budgets are not enforced: the estimated level is a guide based on one passive point per level gained plus up to 24 ordinary campaign-granted points, and allocations beyond that standard budget are flagged rather than blocked.</p>
             </aside>
         </main>
 
