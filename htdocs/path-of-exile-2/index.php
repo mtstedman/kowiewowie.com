@@ -72,6 +72,13 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         <div id="poe2-route-summary" class="poe2-route-summary" hidden></div>
                     </section>
 
+                    <section class="poe2-bonuses" aria-labelledby="poe2-bonuses-title">
+                        <h3 id="poe2-bonuses-title">Net bonuses</h3>
+                        <div id="poe2-bonus-summary" class="poe2-bonus-summary" aria-live="polite">
+                            <p class="poe2-bonus-empty">No passives allocated yet.</p>
+                        </div>
+                    </section>
+
                     <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom. Select a node to inspect, allocate or mark it as a must-have.</p>
                 </aside>
 

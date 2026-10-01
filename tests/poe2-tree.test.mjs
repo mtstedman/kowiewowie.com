@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { buildAllocationModel, normalizeTree } from '../htdocs/assets/js/path-of-exile-2/tree-data.js';
+import { buildAllocationModel, normalizeTree, summarizeRouteBonuses } from '../htdocs/assets/js/path-of-exile-2/tree-data.js';
 import { findMinimalRoute, MAX_MUST_HAVES } from '../htdocs/assets/js/path-of-exile-2/optimizer.js';
 import { performance } from 'node:perf_hooks';
 
@@ -411,4 +411,221 @@ test('routing metadata is a frozen snapshot and proof limits fail without a heur
   raw.nodes[8].unlockConstraint = { nodes: prerequisites };
   const limited = assertRouteFailure(syntheticModel(raw), ['8']);
   assert.match(limited.reason, /minimum.*cannot be guaranteed/i);
+});
+
+// ---- Route bonus summary -------------------------------------------------
+
+const EMPTY_SUMMARY = { totals: [], unsummed: [], keystones: [], notables: [] };
+const BONUS_NUMBER = /(?<![\w.])[+-]?\d+(?:\.\d+)?(?![\d.])/g;
+const bonusNumbers = (line) => line.match(BONUS_NUMBER) || [];
+const bonusWording = (line) => line.replace(BONUS_NUMBER, (match) => (/^[+-]/.test(match) ? '±#' : '#'));
+const statLines = (node) => node.stats.flatMap((stat) => stat.split(/\r?\n/)).filter((line) => line.trim() !== '');
+
+// Independent check that every allocated line is represented: single-number
+// lines by a total of the same wording whose value is the sum, the rest
+// verbatim with their exact occurrence count.
+function assertLinesAccounted(summary, nodes) {
+  const sums = new Map();
+  const verbatim = new Map();
+  for (const node of nodes) {
+    for (const line of statLines(node)) {
+      const numbers = bonusNumbers(line);
+      if (numbers.length === 1) {
+        const key = bonusWording(line);
+        sums.set(key, (sums.get(key) || 0) + Number(numbers[0]));
+      } else {
+        verbatim.set(line, (verbatim.get(line) || 0) + 1);
+      }
+    }
+  }
+  assert.equal(summary.totals.length, sums.size);
+  for (const total of summary.totals) {
+    const key = bonusWording(total);
+    assert.ok(sums.has(key), `unexpected total ${total}`);
+    const [number] = bonusNumbers(total);
+    assert.ok(Math.abs(Number(number) - sums.get(key)) < 1e-9, `${total} should total ${sums.get(key)}`);
+  }
+  assert.deepEqual(
+    summary.unsummed.slice().sort((a, b) => (a.text < b.text ? -1 : 1)),
+    Array.from(verbatim, ([text, count]) => ({ text, count })).sort((a, b) => (a.text < b.text ? -1 : 1)),
+  );
+}
+
+const namedOf = (nodes, kind) => nodes.filter((node) => node.kind === kind)
+  .map((node) => ({ id: node.id, name: node.name }))
+  .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.id < b.id ? -1 : 1));
+
+function formatSum(line, times) {
+  const [number] = bonusNumbers(line);
+  const index = line.search(BONUS_NUMBER);
+  const decimals = number.includes('.') ? number.length - number.indexOf('.') - 1 : 0;
+  const total = Number((Number(number) * times).toFixed(decimals)) + 0;
+  const signed = /^[+-]/.test(number);
+  return `${line.slice(0, index)}${signed && total >= 0 ? '+' : ''}${total}${line.slice(index + number.length)}`;
+}
+
+const bonusData = normalizeTree(freshRaw());
+const bonusClassIds = bonusData.classes.slice(0, 2).map((option) => option.id);
+
+test('route bonus summary covers at least two real classes', () => {
+  assert.equal(bonusClassIds.length, 2);
+  assert.notEqual(bonusClassIds[0], bonusClassIds[1]);
+});
+
+for (const classId of bonusClassIds) {
+  test(`route bonus summary: ${classId} empty route returns four empty arrays`, () => {
+    const model = buildAllocationModel(bonusData, classId, null);
+    assert.deepEqual(summarizeRouteBonuses(model, []), EMPTY_SUMMARY);
+  });
+
+  test(`route bonus summary: ${classId} sums repeated real single-number stats`, () => {
+    const model = buildAllocationModel(bonusData, classId, null);
+    const groups = new Map();
+    for (const node of model.nodes) {
+      if (node.kind !== 'small' || model.rootIds.includes(node.id)) continue;
+      const lines = statLines(node);
+      if (lines.length !== 1 || bonusNumbers(lines[0]).length !== 1) continue;
+      if (!groups.has(lines[0])) groups.set(lines[0], []);
+      groups.get(lines[0]).push(node.id);
+    }
+    const [line, ids] = Array.from(groups).filter(([, members]) => members.length >= 3)
+      .sort(([a], [b]) => (a < b ? -1 : 1))[0] || [];
+    assert.ok(line, `${classId} has a single-number stat repeated on three small passives`);
+    const chosen = ids.slice().sort().slice(0, 3);
+    const summary = summarizeRouteBonuses(model, chosen);
+    assert.deepEqual(summary, { totals: [formatSum(line, 3)], unsummed: [], keystones: [], notables: [] });
+  });
+
+  test(`route bonus summary: ${classId} real route with a keystone and a notable includes travel nodes`, () => {
+    const model = buildAllocationModel(bonusData, classId, null);
+    const distances = supportDistances(model);
+    const pick = (kind, minimum) => model.nodes
+      .filter((node) => node.kind === kind && node.domain === 'passive' && distances.get(node.id) >= minimum
+        && model.routeRules.prerequisites[node.id] === undefined && model.routeRules.choiceParents[node.id] === undefined)
+      .sort((a, b) => distances.get(a.id) - distances.get(b.id) || (a.id < b.id ? -1 : 1))[0];
+    const keystone = pick('keystone', 1);
+    const notable = pick('notable', 2);
+    assert.ok(keystone && notable, `${classId} has a reachable keystone and notable`);
+    const route = assertRoute(model, [keystone.id, notable.id]);
+    const byId = new Map(model.nodes.map((node) => [node.id, node]));
+    const allocated = route.nodeIds.map((id) => byId.get(id));
+    const travel = allocated.filter((node) => node.kind === 'small' && statLines(node).length > 0);
+    assert.ok(travel.length > 0, 'route has travel passives with stats');
+
+    const summary = summarizeRouteBonuses(model, route.nodeIds);
+    assert.ok(summary.keystones.some((entry) => entry.id === keystone.id && entry.name === keystone.name));
+    assert.ok(summary.notables.some((entry) => entry.id === notable.id && entry.name === notable.name));
+    assert.deepEqual(summary.keystones, namedOf(allocated, 'keystone'));
+    assert.deepEqual(summary.notables, namedOf(allocated, 'notable'));
+    assertLinesAccounted(summary, allocated);
+
+    // Removing the travel nodes must change the totals: their stats are counted.
+    const travelIds = new Set(travel.map((node) => node.id));
+    const withoutTravel = summarizeRouteBonuses(model, route.nodeIds.filter((id) => !travelIds.has(id)));
+    assert.notDeepEqual({ totals: withoutTravel.totals, unsummed: withoutTravel.unsummed },
+      { totals: summary.totals, unsummed: summary.unsummed });
+    assert.deepEqual(summarizeRouteBonuses(model, route.nodeIds.slice().reverse()), summary);
+  });
+}
+
+test('route bonus summary uses real resolved override stats and names', () => {
+  const baseById = new Map(bonusData.nodes.map((node) => [node.id, node]));
+  let checked = 0;
+  for (const { classId, ascendancyId, model } of allModels(bonusData)) {
+    const node = model.nodes.find((candidate) => !model.rootIds.includes(candidate.id)
+      && candidate.stats.length > 0
+      && JSON.stringify(candidate.stats) !== JSON.stringify(baseById.get(candidate.id).stats));
+    if (!node) continue;
+    checked += 1;
+    const label = `${classId} / ${ascendancyId} node ${node.id}`;
+    const summary = summarizeRouteBonuses(model, [node.id]);
+    assertLinesAccounted(summary, [node]);
+    const named = node.kind === 'keystone' ? summary.keystones : node.kind === 'notable' ? summary.notables : [];
+    if (node.kind === 'keystone' || node.kind === 'notable') assert.deepEqual(named, [{ id: node.id, name: node.name }], label);
+    const resolved = new Set(statLines(node));
+    for (const line of statLines(baseById.get(node.id))) {
+      if (resolved.has(line)) continue;
+      assert.ok(!summary.unsummed.some((entry) => entry.text === line), `${label}: base line ${line} leaked`);
+    }
+  }
+  assert.ok(checked > 0, 'the installed export resolves at least one override');
+});
+
+function bonusExport() {
+  const raw = syntheticExport();
+  raw.nodes[1].stats = ['+10 to Strength', '8% increased Attack Speed', 'Adds 1 to 5 Fire Damage'];
+  raw.nodes[2].stats = ['+10 to Strength', '12% increased Attack Speed', 'Cannot be Stunned'];
+  raw.nodes[2].name = 'Zeta Notable';
+  raw.nodes[2].isNotable = true;
+  raw.nodes[3].stats = ['+10 to Strength', '-4% to Fire Resistance', '+1.5% to Fire Resistance',
+    'Adds 1 to 5 Fire Damage', '10% reduced Attack Speed'];
+  raw.nodes[3].name = 'Alpha Notable';
+  raw.nodes[3].isNotable = true;
+  raw.nodes[4].stats = ['+5 to Dexterity', '0.2% of Damage Leeched as Life', 'Cannot be Stunned'];
+  raw.nodes[4].name = 'Keystone Four';
+  raw.nodes[4].isKeystone = true;
+  return raw;
+}
+
+test('route bonus summary sums matching wording, keeps fallbacks and orders attributes first', () => {
+  const model = syntheticModel(bonusExport());
+  const input = Object.freeze(['4', '2', '1', '3', '2', '4', '1']);
+  const before = JSON.stringify(model.nodes);
+  const summary = summarizeRouteBonuses(model, input);
+  assert.deepEqual(summary, {
+    totals: [
+      '+5 to Dexterity',
+      '+30 to Strength',
+      '20% increased Attack Speed',
+      '0.2% of Damage Leeched as Life',
+      '10% reduced Attack Speed',
+      '-2.5% to Fire Resistance',
+    ],
+    unsummed: [
+      { text: 'Adds 1 to 5 Fire Damage', count: 2 },
+      { text: 'Cannot be Stunned', count: 2 },
+    ],
+    keystones: [{ id: '4', name: 'Keystone Four' }],
+    notables: [{ id: '3', name: 'Alpha Notable' }, { id: '2', name: 'Zeta Notable' }],
+  });
+  assert.deepEqual(input, ['4', '2', '1', '3', '2', '4', '1']);
+  assert.equal(JSON.stringify(model.nodes), before);
+  assert.deepEqual(summarizeRouteBonuses(model, ['1', '2', '3', '4']), summary);
+  assert.deepEqual(summarizeRouteBonuses(model, input), summary);
+});
+
+test('route bonus summary resolves class and ascendancy overrides from the model', () => {
+  const raw = bonusExport();
+  raw.skillOverrides = {
+    100: { name: 'Class Override', stats: ['+7 to Dexterity', 'Class Only Effect'] },
+    101: { name: 'Ascendancy Override', stats: ['+3 to Intelligence'] },
+  };
+  raw.classes[0].overridePairs = { 1: 100 };
+  raw.classes[0].ascendancies[0].overridePairs = { 1: 101 };
+  raw.nodes[1].isNotable = true;
+  const classModel = syntheticModel(raw);
+  assert.deepEqual(summarizeRouteBonuses(classModel, ['1']), {
+    totals: ['+7 to Dexterity'],
+    unsummed: [{ text: 'Class Only Effect', count: 1 }],
+    keystones: [],
+    notables: [{ id: '1', name: 'Class Override' }],
+  });
+  const ascendancyModel = syntheticModel(raw, 'Test1');
+  assert.deepEqual(summarizeRouteBonuses(ascendancyModel, ['1', '1']), {
+    totals: ['+3 to Intelligence'],
+    unsummed: [],
+    keystones: [],
+    notables: [{ id: '1', name: 'Ascendancy Override' }],
+  });
+});
+
+test('route bonus summary includes free allocated passives and rejects unknown input', () => {
+  const raw = syntheticExport();
+  raw.nodes[11].stats = ['+4 to Intelligence'];
+  raw.nodes[12].stats = ['+4 to Intelligence'];
+  const model = syntheticModel(raw, 'Test1');
+  assert.deepEqual(summarizeRouteBonuses(model, ['11', '12']).totals, ['+8 to Intelligence']);
+  assert.throws(() => summarizeRouteBonuses(model, ['missing']), TREE_ERROR);
+  assert.throws(() => summarizeRouteBonuses(model, null), TypeError);
+  assert.throws(() => summarizeRouteBonuses(model, [1]), TypeError);
 });

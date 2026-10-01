@@ -1,4 +1,4 @@
-import { loadTree, buildAllocationModel } from './tree-data.js';
+import { loadTree, buildAllocationModel, summarizeRouteBonuses } from './tree-data.js';
 import { findMinimalRoute, MAX_MUST_HAVES } from './optimizer.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -36,6 +36,7 @@ const elements = {
   findRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-find-route')),
   clearMustHaves: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-must-haves')),
   routeSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-route-summary')),
+  bonusSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-bonus-summary')),
   version: /** @type {HTMLSpanElement} */ (document.querySelector('#poe2-version')),
 };
 
@@ -140,6 +141,59 @@ function renderRouteSummary() {
     note.className = 'poe2-route-summary__note';
     note.textContent = 'Must-haves or allocations changed since this route was computed. Find the route again to update it.';
     elements.routeSummary.append(note);
+  }
+}
+
+function renderNetBonuses() {
+  elements.bonusSummary.replaceChildren();
+  if (!state.model || state.allocated.size === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'poe2-bonus-empty';
+    empty.textContent = 'No passives allocated yet.';
+    elements.bonusSummary.append(empty);
+    return;
+  }
+
+  const summary = summarizeRouteBonuses(state.model, [...state.allocated]);
+  const groups = [
+    { title: 'Summed totals', entries: summary.totals },
+    { title: 'Preserved stat lines', entries: summary.unsummed },
+    { title: 'Keystones', entries: summary.keystones },
+    { title: 'Notables', entries: summary.notables },
+  ];
+
+  for (const group of groups) {
+    if (group.entries.length === 0) continue;
+    const section = document.createElement('section');
+    section.className = 'poe2-bonus-group';
+    const heading = document.createElement('h4');
+    heading.textContent = group.title;
+    const list = document.createElement('ul');
+    list.className = 'poe2-bonus-list';
+    for (const entry of group.entries) {
+      const item = document.createElement('li');
+      const text = document.createElement('span');
+      text.className = 'poe2-bonus-text';
+      text.textContent = typeof entry === 'string' ? entry : ('text' in entry ? entry.text : entry.name);
+      item.append(text);
+      if (typeof entry !== 'string' && 'count' in entry && entry.count > 1) {
+        const count = document.createElement('span');
+        count.className = 'poe2-bonus-count';
+        count.textContent = `×${entry.count}`;
+        count.setAttribute('aria-label', `repeated ${entry.count} times`);
+        item.append(count);
+      }
+      list.append(item);
+    }
+    section.append(heading, list);
+    elements.bonusSummary.append(section);
+  }
+
+  if (elements.bonusSummary.childElementCount === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'poe2-bonus-empty';
+    empty.textContent = 'The allocated passives have no listed bonuses.';
+    elements.bonusSummary.append(empty);
   }
 }
 
@@ -402,6 +456,7 @@ function updateGraphState() {
   elements.passiveTotal.textContent = String(totals.passive);
   elements.ascendancyTotal.textContent = String(totals.ascendancy);
   elements.resetButton.disabled = state.allocated.size === 0;
+  renderNetBonuses();
   updateDetails();
 }
 
@@ -565,6 +620,7 @@ async function initialize() {
     state.mustHaves = new Set();
     state.route = null;
     renderRouteSummary();
+    renderNetBonuses();
     setEnabled(false);
     elements.retryButton.hidden = false;
     elements.treePanel.setAttribute('aria-busy', 'false');

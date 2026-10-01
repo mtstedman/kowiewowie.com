@@ -946,3 +946,101 @@ export function buildAllocationModel(data, classId, ascendancyId) {
     pointCost,
   };
 }
+
+// One stat number: an optional explicit sign (not glued to a preceding word,
+// so "Non-Keystone" or "x-2" stay text) followed by an integer or decimal.
+const STAT_NUMBER_PATTERN = /(?<![\w.])([+-]?)(\d+(?:\.\d+)?)(?![\d.])/g;
+const ATTRIBUTE_LINE_PATTERN = /^[+-]?\d+(?:\.\d+)?%? (?:increased |reduced )?(?:to )?(?:all )?(?:Strength|Dexterity|Intelligence|Attributes)\b/;
+
+function compareText(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
+function compareStatLines(a, b) {
+  const attributeOrder = Number(!ATTRIBUTE_LINE_PATTERN.test(a)) - Number(!ATTRIBUTE_LINE_PATTERN.test(b));
+  if (attributeOrder !== 0) return attributeOrder;
+  const wordingA = a.replace(STAT_NUMBER_PATTERN, '#').toLowerCase();
+  const wordingB = b.replace(STAT_NUMBER_PATTERN, '#').toLowerCase();
+  return compareText(wordingA, wordingB) || compareText(a, b);
+}
+
+/**
+ * Net bonuses of an allocation. Every distinct allocated node contributes its
+ * resolved (override-applied) stats from `model.nodes`. Lines holding exactly
+ * one number are summed with other lines of identical wording; lines with no
+ * number or several numbers are kept verbatim and counted. Keystones and
+ * notables are also listed by name; their stats still count above.
+ *
+ * @param {ReturnType<typeof buildAllocationModel>} model
+ * @param {readonly string[]} nodeIds
+ * @returns {{ totals: string[], unsummed: { text: string, count: number }[],
+ *   keystones: { id: string, name: string }[], notables: { id: string, name: string }[] }}
+ */
+export function summarizeRouteBonuses(model, nodeIds) {
+  if (!isRecord(model) || !Array.isArray(model.nodes)) {
+    throw new TypeError('PoE2 passive tree: summarizeRouteBonuses: model must be an allocation model.');
+  }
+  if (!Array.isArray(nodeIds)) {
+    throw new TypeError('PoE2 passive tree: summarizeRouteBonuses: node IDs must be an array.');
+  }
+  for (const id of nodeIds) {
+    if (typeof id !== 'string') {
+      throw new TypeError(`PoE2 passive tree: summarizeRouteBonuses: node ID ${describe(id)} is not a string.`);
+    }
+  }
+  const nodesById = new Map(model.nodes.map((node) => [node.id, node]));
+  const seen = new Set();
+  const sums = new Map();
+  const verbatim = new Map();
+  const keystones = [];
+  const notables = [];
+
+  for (const id of nodeIds) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const node = nodesById.get(id);
+    if (node === undefined) fail(`summarizeRouteBonuses: node ${id} is not part of this allocation model.`);
+    if (node.kind === 'keystone') keystones.push({ id, name: node.name });
+    else if (node.kind === 'notable') notables.push({ id, name: node.name });
+
+    for (const stat of Array.isArray(node.stats) ? node.stats : []) {
+      if (typeof stat !== 'string') continue;
+      for (const line of stat.split(/\r?\n/)) {
+        if (line.trim() === '') continue;
+        const numbers = Array.from(line.matchAll(STAT_NUMBER_PATTERN));
+        if (numbers.length !== 1) {
+          verbatim.set(line, (verbatim.get(line) || 0) + 1);
+          continue;
+        }
+        const [match, sign, digits] = numbers[0];
+        const signed = sign !== '';
+        const before = line.slice(0, numbers[0].index);
+        const after = line.slice(numbers[0].index + match.length);
+        const key = `${signed ? '±' : ''}\u0000${before}\u0000${after}`;
+        const decimals = digits.includes('.') ? digits.length - digits.indexOf('.') - 1 : 0;
+        const value = Number(digits) * (sign === '-' ? -1 : 1);
+        const entry = sums.get(key);
+        if (entry) {
+          entry.total += value;
+          entry.decimals = Math.max(entry.decimals, decimals);
+        } else {
+          sums.set(key, { before, after, signed, total: value, decimals });
+        }
+      }
+    }
+  }
+
+  const totals = Array.from(sums.values(), ({ before, after, signed, total, decimals }) => {
+    const rounded = Number(total.toFixed(decimals)) + 0;
+    const number = String(rounded);
+    return `${before}${signed && rounded >= 0 ? '+' : ''}${number}${after}`;
+  }).sort(compareStatLines);
+  const unsummed = Array.from(verbatim, ([text, count]) => ({ text, count }))
+    .sort((a, b) => compareStatLines(a.text, b.text));
+  const byName = (a, b) => compareText(a.name, b.name) || compareText(a.id, b.id);
+  keystones.sort(byName);
+  notables.sort(byName);
+  return { totals, unsummed, keystones, notables };
+}

@@ -407,3 +407,71 @@
         min-height: 480px;
     }
 }
+
+.poe2-bonuses {
+    display: grid;
+    min-width: 0;
+    gap: 0.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--surface-edge);
+}
+
+.poe2-bonuses h3,
+.poe2-bonuses h4,
+.poe2-bonuses p {
+    margin: 0;
+}
+
+.poe2-bonuses h3 {
+    color: var(--ink);
+    font-size: 1rem;
+}
+
+.poe2-bonus-summary,
+.poe2-bonus-group {
+    display: grid;
+    min-width: 0;
+    gap: 0.45rem;
+}
+
+.poe2-bonus-group h4 {
+    color: var(--poe2-gold);
+    font-size: 0.86rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.poe2-bonus-list {
+    display: grid;
+    min-width: 0;
+    gap: 0.35rem;
+    margin: 0;
+    padding-left: 1.15rem;
+    color: var(--ink-soft);
+    font-size: 0.86rem;
+}
+
+.poe2-bonus-list li,
+.poe2-bonus-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.poe2-bonus-count {
+    margin-left: 0.4rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.poe2-bonus-empty {
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-style: italic;
+}
+
+@media (max-width: 480px) {
+    .poe2-bonus-list {
+        padding-left: 1rem;
+    }
+}
