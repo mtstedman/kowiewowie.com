@@ -464,11 +464,15 @@
    * or a helper for a traitless state of a species that is not excluded) at
    * no cost, or by a bred pal.
    *
-   * Breeding two states is a hyperedge whose cost is the sum of its two
-   * parents plus the eggs for the child, so the cheapest tree for every state
-   * comes from a shortest-hyperpath pass (Knuth's generalisation of
-   * Dijkstra): states are settled in order of cost and each newly settled
-   * state is combined with everything settled before it.
+   * Breeding two states is a hyperedge whose cost is the breed steps of its
+   * two parents plus one, so the shortest tree (fewest breed steps in total)
+   * for every state comes from a shortest-hyperpath pass (Knuth's
+   * generalisation of Dijkstra): states are settled in order of steps and
+   * each newly settled state is combined with everything settled before it.
+   * Among trees with equal steps the lower Paldeck numbers of the parents
+   * win (comparePals order), then fewer expected eggs, then the parents'
+   * trait masks and roles, so the choice is deterministic. Expected eggs are
+   * tracked alongside and reported for the chosen tree.
    *
    * Gender is tracked as a role cost per state. A leaf with a fixed gender
    * fills only that role for free; the other role needs a bred pal, which can
@@ -570,7 +574,7 @@
 
     var INF = Infinity;
     var bredEggs = new Float64Array(stateCount).fill(INF);  // cost units
-    var bredSteps = new Float64Array(stateCount);
+    var bredSteps = new Float64Array(stateCount).fill(INF);
     var parentA = new Int32Array(stateCount);
     var parentB = new Int32Array(stateCount);
     var parentMode = new Uint8Array(stateCount);
@@ -586,16 +590,15 @@
     var activeCount = 0;
     var isActive = new Uint8Array(stateCount);
 
-    // Binary heap ordered by eggs, then steps, then state number.
+    // Binary heap ordered by steps, then state number. Pal numbers and eggs
+    // only break ties between routes to the same state, which are all offered
+    // before that state can be popped (see offer), so they are not heap keys.
     var heapState = [];
-    var heapEggs = [];
     var heapSteps = [];
     var topState = 0;
-    var topEggs = 0;
     var topSteps = 0;
 
     function heapLess(a, b) {
-      if (heapEggs[a] !== heapEggs[b]) return heapEggs[a] < heapEggs[b];
       if (heapSteps[a] !== heapSteps[b]) return heapSteps[a] < heapSteps[b];
       return heapState[a] < heapState[b];
     }
@@ -604,18 +607,14 @@
       var s = heapState[a];
       heapState[a] = heapState[b];
       heapState[b] = s;
-      var e = heapEggs[a];
-      heapEggs[a] = heapEggs[b];
-      heapEggs[b] = e;
       var t = heapSteps[a];
       heapSteps[a] = heapSteps[b];
       heapSteps[b] = t;
     }
 
-    function heapPush(pushState, eggs, steps) {
+    function heapPush(pushState, steps) {
       var at = heapState.length;
       heapState.push(pushState);
-      heapEggs.push(eggs);
       heapSteps.push(steps);
       while (at > 0) {
         var parent = (at - 1) >> 1;
@@ -628,14 +627,11 @@
     function heapPop() {
       var last = heapState.length - 1;
       topState = heapState[0];
-      topEggs = heapEggs[0];
       topSteps = heapSteps[0];
       var s = heapState.pop();
-      var e = heapEggs.pop();
       var t = heapSteps.pop();
       if (last > 0) {
         heapState[0] = s;
-        heapEggs[0] = e;
         heapSteps[0] = t;
         var at = 0;
         for (;;) {
@@ -651,43 +647,54 @@
       }
     }
 
-    // Offers one way to breed `child`. a <= b are the parent states. Lower
-    // eggs win, then fewer steps, then lower parent states (lower pal index).
+    // Whether parents a <= b (by state) with the given eggs and mode beat the
+    // recorded route to `child` that has the same number of steps. Lower pal
+    // numbers win first: the lower parent species, then the higher one (pals
+    // are indexed in comparePals order, so a lower index is a lower Paldeck
+    // number, with variants and unnumbered pals after). Then fewer eggs, then
+    // the lower trait masks of the parent states, then the parent roles.
+    function betterParents(child, eggs, a, b, mode) {
+      var currentA = parentA[child];
+      var currentB = parentB[child];
+      var speciesA = a >> bits;
+      var currentSpeciesA = currentA >> bits;
+      if (speciesA !== currentSpeciesA) return speciesA < currentSpeciesA;
+      var speciesB = b >> bits;
+      var currentSpeciesB = currentB >> bits;
+      if (speciesB !== currentSpeciesB) return speciesB < currentSpeciesB;
+      var currentEggs = bredEggs[child];
+      if (eggs !== currentEggs) return eggs < currentEggs;
+      if (a !== currentA) return a < currentA;
+      if (b !== currentB) return b < currentB;
+      return mode < parentMode[child];
+    }
+
+    // Offers one way to breed `child`. a <= b are the parent states. Fewer
+    // breed steps win, then lower pal numbers for the parents, then fewer
+    // eggs (see betterParents).
+    //
+    // A child always has more steps than either parent, so when a state with
+    // s steps is popped every state with fewer steps is already settled and
+    // expanded: every s-step route to it has been offered and its tie-breaks
+    // are final. Same-step replacements therefore update the state in place
+    // and keep its heap entry; only fewer steps push a new entry.
     function offer(child, eggs, steps, a, b, mode) {
       if (settled[child]) return;
       // A bred copy is never needed where leaves already fill every role.
       if ((leaf[child] & 7) === 7) return;
-      if (child !== targetState) {
-        // Anything that already costs as much as a known route to the target
-        // cannot be part of a better one.
-        var bound = bredEggs[targetState];
-        if (eggs > bound || (eggs === bound && steps >= bredSteps[targetState])) return;
-      }
-      var currentEggs = bredEggs[child];
-      if (eggs > currentEggs) return;
-      if (eggs === currentEggs) {
-        var currentSteps = bredSteps[child];
-        if (steps > currentSteps) return;
-        if (steps === currentSteps) {
-          var currentA = parentA[child];
-          if (a > currentA) return;
-          if (a === currentA) {
-            var currentB = parentB[child];
-            if (b > currentB) return;
-            if (b === currentB && mode >= parentMode[child]) return;
-          }
-          parentA[child] = a;
-          parentB[child] = b;
-          parentMode[child] = mode;
-          return;
-        }
-      }
+      // Any route through another state needs at least one more step, so a
+      // state that already takes as many steps as a known route to the target
+      // cannot be part of a better one.
+      if (child !== targetState && steps >= bredSteps[targetState]) return;
+      var currentSteps = bredSteps[child];
+      if (steps > currentSteps) return;
+      if (steps === currentSteps && !betterParents(child, eggs, a, b, mode)) return;
       bredEggs[child] = eggs;
       bredSteps[child] = steps;
       parentA[child] = a;
       parentB[child] = b;
       parentMode[child] = mode;
-      heapPush(child, eggs, steps);
+      if (steps < currentSteps) heapPush(child, steps);
     }
 
     // Pairs state `x`, newly usable as male and/or female at the given cost,
@@ -759,7 +766,7 @@
       return pairChild[species * (species + 1) / 2 + species];
     }
 
-    // ---- leaves first (cost 0), then bred states in order of cost -------
+    // ---- leaves first (no steps), then bred states by fewest steps -----
 
     var species;
     var selfChild;
@@ -790,21 +797,26 @@
     while (heapState.length > 0) {
       heapPop();
       state = topState;
-      if (settled[state] || topEggs !== bredEggs[state] || topSteps !== bredSteps[state]) continue;
+      // Entries superseded by a route with fewer steps are stale.
+      if (settled[state] || topSteps !== bredSteps[state]) continue;
       settled[state] = 1;
+      // Every route to the target with as few steps has been offered, so its
+      // recorded route is the best one.
       if (state === targetState) break;
 
+      // Same-step replacements may have changed the eggs after the push.
+      var stateEggs = bredEggs[state];
       flags = leaf[state];
       var newMale = !(flags & LEAF_MALE);
       var newFemale = !(flags & LEAF_FEMALE);
       if (newMale || newFemale) {
-        expand(state, topEggs, topSteps, newMale, newFemale);
+        expand(state, stateEggs, topSteps, newMale, newFemale);
         if (newMale) {
-          maleEggs[state] = topEggs;
+          maleEggs[state] = stateEggs;
           maleSteps[state] = topSteps;
         }
         if (newFemale) {
-          femaleEggs[state] = topEggs;
+          femaleEggs[state] = stateEggs;
           femaleSteps[state] = topSteps;
         }
         activate(state);
@@ -819,9 +831,9 @@
           var weight = EGG_UNITS[BIT_COUNT[mask]];
           var selfState = (selfChild << bits) | mask;
           if (flags & (LEAF_MALE | LEAF_FEMALE)) {
-            offer(selfState, topEggs + weight, topSteps + 1, state, state, MODE_SELF_LEAF_BRED);
+            offer(selfState, stateEggs + weight, topSteps + 1, state, state, MODE_SELF_LEAF_BRED);
           } else {
-            offer(selfState, 2 * topEggs + weight, 2 * topSteps + 1, state, state, MODE_SELF_BRED);
+            offer(selfState, 2 * stateEggs + weight, 2 * topSteps + 1, state, state, MODE_SELF_BRED);
           }
         }
       }
