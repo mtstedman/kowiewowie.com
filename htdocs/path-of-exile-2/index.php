@@ -84,7 +84,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
 
                     <section class="poe2-must-haves" aria-labelledby="poe2-must-have-title">
                         <h3 id="poe2-must-have-title">Must-have passives</h3>
-                        <p class="poe2-help">Select a node and choose <strong>Mark must-have</strong>, then find the shortest route that reaches every marked passive. Up to <span id="poe2-must-have-limit">8</span> nodes.</p>
+                        <p class="poe2-help">Select a node and choose <strong>Mark must-have</strong>, then find the shortest route that reaches every marked passive. There is no limit on how many you mark; very large sets get a short route that is not proven shortest.</p>
                         <p id="poe2-must-have-empty" class="poe2-must-have-empty">No must-have passives marked yet.</p>
                         <ul id="poe2-must-have-list" class="poe2-must-have-list" aria-label="Marked must-have passives" hidden></ul>
                         <div class="poe2-actions">
@@ -102,7 +102,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         </div>
                     </section>
 
-                    <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom. Select a node to inspect, allocate or mark it as a must-have.</p>
+                    <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom. Select a node to inspect, allocate or mark it as a must-have. After a route is found, clicking a node connects it to the allocated tree.</p>
                 </aside>
 
                 <section class="poe2-panel poe2-tree-panel" aria-labelledby="poe2-tree-title" aria-busy="true">

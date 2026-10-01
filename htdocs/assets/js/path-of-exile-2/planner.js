@@ -1,5 +1,5 @@
 import { loadTree, buildAllocationModel, summarizeRouteBonuses } from './tree-data.js';
-import { findMinimalRoute, MAX_MUST_HAVES } from './optimizer.js';
+import { findMinimalRoute, findConnection } from './optimizer.js';
 import { listBuilds, createBuild, updateBuild, deleteBuild } from './builds-api.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -46,7 +46,6 @@ const elements = {
   nodeStats: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-node-stats')),
   toggleNode: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-node')),
   toggleMustHave: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-must-have')),
-  mustHaveLimit: /** @type {HTMLSpanElement} */ (document.querySelector('#poe2-must-have-limit')),
   mustHaveEmpty: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-must-have-empty')),
   mustHaveList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-must-have-list')),
   findRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-find-route')),
@@ -79,7 +78,8 @@ const state = {
   rootIds: new Set(),
   // Node IDs the user requires in the computed route, in marking order.
   mustHaves: new Set(),
-  // Summary of the last computed route: { nodeCount, passive, ascendancy, stale } or null.
+  // Summary of the last computed route: { nodeCount, passive, ascendancy, exact, stale } or null.
+  // `exact` is false when the route is not proven shortest.
   route: null,
   computing: false,
   enabled: false,
@@ -446,10 +446,17 @@ function renderRouteSummary() {
   if (!route) return;
   const title = document.createElement('p');
   title.className = 'poe2-route-summary__title';
-  title.textContent = route.stale ? 'Last computed route (out of date)' : 'Shortest route';
+  if (route.stale) title.textContent = 'Last computed route (out of date)';
+  else title.textContent = route.exact ? 'Shortest route' : 'Route found (not proven shortest)';
   const counts = document.createElement('p');
   counts.textContent = `${plural(route.nodeCount, 'route node')}: ${plural(route.passive, 'passive point')} and ${plural(route.ascendancy, 'ascendancy point')}.`;
   elements.routeSummary.append(title, counts);
+  if (!route.exact && !route.stale) {
+    const note = document.createElement('p');
+    note.className = 'poe2-route-summary__note';
+    note.textContent = 'This set is too large for the exact search, so the route is short but not proven shortest.';
+    elements.routeSummary.append(note);
+  }
   if (route.stale) {
     const note = document.createElement('p');
     note.className = 'poe2-route-summary__note';
@@ -521,10 +528,6 @@ function invalidateRoute() {
 function setMustHave(nodeId, marked) {
   if (!state.model || !state.nodeById.has(nodeId) || state.rootIds.has(nodeId)) return;
   if (marked === state.mustHaves.has(nodeId)) return;
-  if (marked && state.mustHaves.size >= MAX_MUST_HAVES) {
-    setStatus(`You can mark at most ${MAX_MUST_HAVES} must-have passives. Remove one first.`, true);
-    return;
-  }
   if (marked) state.mustHaves.add(nodeId);
   else state.mustHaves.delete(nodeId);
   const parts = state.nodeElements.get(nodeId);
@@ -576,7 +579,7 @@ async function computeRoute() {
   state.computing = true;
   renderMustHaves();
   updateDetails();
-  setStatus(`Computing the shortest route through ${plural(mustHaves.length, 'must-have passive')}…`);
+  setStatus(`Computing a route through ${plural(mustHaves.length, 'must-have passive')}…`);
   try {
     await nextPaint();
     // The build may have changed while the status painted.
@@ -590,14 +593,19 @@ async function computeRoute() {
     }
     setAllocation(new Set(result.nodeIds));
     updateGraphState();
+    // Only an exact result is proven shortest; the fallback is disclosed as such.
+    const exact = result.exact === true;
     state.route = {
       nodeCount: result.nodeIds.length,
       passive: result.pointCost.passive,
       ascendancy: result.pointCost.ascendancy,
+      exact,
       stale: false,
     };
     renderRouteSummary();
-    setStatus(`Shortest route found: ${plural(result.nodeIds.length, 'node')} allocated.`);
+    setStatus(exact
+      ? `Shortest route found: ${plural(result.nodeIds.length, 'node')} allocated.`
+      : `Route found, but not proven shortest: ${plural(result.nodeIds.length, 'node')} allocated.`);
   } finally {
     state.computing = false;
     renderMustHaves();
@@ -916,6 +924,22 @@ function selectNode(nodeId, focus = false) {
   if (focus && parts) parts.group.focus({ preventScroll: true });
 }
 
+/** @param {string} nodeId */
+function activateNode(nodeId) {
+  selectNode(nodeId);
+  if (!state.model || !state.nodeById.has(nodeId) || state.route === null
+    || state.computing || state.rootIds.has(nodeId) || state.allocated.has(nodeId)) return;
+  const result = findConnection(state.model, [...state.allocated], nodeId);
+  if (!result.ok) {
+    setStatus(result.reason || 'That node could not be connected to the allocated tree.', true);
+    return;
+  }
+  setAllocation(new Set([...state.allocated, ...result.nodeIds]));
+  updateGraphState();
+  invalidateRoute();
+  setStatus(`${nodeName(nodeId)} allocated with ${plural(result.nodeIds.length - 1, 'connecting node')} added.`);
+}
+
 function centerNode(nodeId) {
   const node = state.nodeById.get(nodeId);
   if (!node) return;
@@ -1101,7 +1125,6 @@ elements.toggleMustHave.addEventListener('click', () => {
 elements.findRoute.addEventListener('click', computeRoute);
 elements.clearMustHaves.addEventListener('click', clearMustHaves);
 elements.clearRoute.addEventListener('click', clearRoute);
-elements.mustHaveLimit.textContent = String(MAX_MUST_HAVES);
 elements.fitButton.addEventListener('click', fitTree);
 elements.retryButton.addEventListener('click', initialize);
 elements.resetButton.addEventListener('click', () => {
@@ -1175,18 +1198,18 @@ elements.tree.addEventListener('click', (event) => {
   if (!state.model || state.drag?.moved) return;
   const nodeId = nodeIdFromEvent(event)
     || /** @type {SVGElement | null | undefined} */ (document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-node-id]'))?.dataset.nodeId;
-  if (nodeId) selectNode(nodeId);
+  if (nodeId) activateNode(nodeId);
 });
 
 elements.tree.addEventListener('keydown', (event) => {
   if (!state.model) return;
   if (event.target !== elements.tree) {
-    // Enter or Space on a focused node selects it.
+    // Enter or Space on a focused node follows the same path as a click.
     if (event.key !== 'Enter' && event.key !== ' ') return;
     const nodeId = nodeIdFromEvent(event);
     if (!nodeId) return;
     event.preventDefault();
-    selectNode(nodeId);
+    activateNode(nodeId);
     return;
   }
   const { width, height } = svgSize();

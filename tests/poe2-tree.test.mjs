@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildAllocationModel, normalizeTree, summarizeRouteBonuses } from '../htdocs/assets/js/path-of-exile-2/tree-data.js';
-import { findMinimalRoute, MAX_MUST_HAVES } from '../htdocs/assets/js/path-of-exile-2/optimizer.js';
+import { findMinimalRoute } from '../htdocs/assets/js/path-of-exile-2/optimizer.js';
 import { performance } from 'node:perf_hooks';
 
 const TREE_TEXT = readFileSync(new URL('../htdocs/assets/data/path-of-exile-2/tree.json', import.meta.url), 'utf8');
@@ -304,17 +304,16 @@ test('optimizer connects a real main-tree passive and an ascendancy passive', ()
   assertRoute(model, [regionTargets(model)[0], ascendancy.id]);
 });
 
-test('optimizer handles the maximum real-tree must-have count within ten seconds', () => {
-  assert.ok(Number.isInteger(MAX_MUST_HAVES));
-  assert.ok(MAX_MUST_HAVES >= 8);
+test('optimizer solves eight real-tree must-haves exactly within ten seconds', () => {
   const targets = mainCandidates.slice().sort((a, b) => a.id.localeCompare(b.id))
-    .slice(0, MAX_MUST_HAVES).map((node) => node.id);
-  assert.equal(targets.length, MAX_MUST_HAVES);
+    .slice(0, 8).map((node) => node.id);
+  assert.equal(targets.length, 8);
   const start = performance.now();
   const result = findMinimalRoute(mainModel, targets);
   const elapsed = performance.now() - start;
   assertRoute(mainModel, targets, result);
-  assert.ok(elapsed < 10000, `maximum-size search took ${elapsed}ms`);
+  assert.equal(result.exact, true);
+  assert.ok(elapsed < 10000, `eight-target search took ${elapsed}ms`);
 });
 
 test('optimizer empty and root-only input returns zero cost', () => {
@@ -324,14 +323,28 @@ test('optimizer empty and root-only input returns zero cost', () => {
   assert.deepEqual(findMinimalRoute(model, [...model.rootIds, ...model.rootIds]), expected);
 });
 
-test('optimizer rejects malformed, unavailable, over-limit, incompatible and unreachable inputs', () => {
+test('optimizer rejects malformed, unavailable, incompatible and unreachable inputs', () => {
   const model = syntheticModel();
   for (const input of [null, {}, '1', [1], ['0', null], ['missing'], ['6', '7'], ['14']]) {
     assertRouteFailure(model, input);
   }
-  const tooMany = mainCandidates.slice(0, MAX_MUST_HAVES + 1).map((node) => node.id);
-  assert.ok(assertRouteFailure(mainModel, tooMany).reason.includes(String(MAX_MUST_HAVES)));
   assertRouteFailure(null, []);
+});
+
+test('optimizer routes a large real-tree must-have set within ten seconds', () => {
+  const rules = mainModel.routeRules;
+  // Plain passives only, so the targets are mutually compatible.
+  const targets = mainCandidates
+    .filter((node) => rules.choiceParents[node.id] === undefined && rules.prerequisites[node.id] === undefined)
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .slice(0, 24).map((node) => node.id);
+  assert.equal(targets.length, 24);
+  const start = performance.now();
+  const result = findMinimalRoute(mainModel, targets);
+  const elapsed = performance.now() - start;
+  assertRoute(mainModel, targets, result);
+  assert.equal(typeof result.exact, 'boolean');
+  assert.ok(elapsed < 10000, `large-set search took ${elapsed}ms`);
 });
 
 test('optimizer matches exhaustive minima on a branching export with choices and prerequisites', () => {
@@ -391,7 +404,7 @@ test('optimizer never uses the Oracle disconnected-allocation shortcut to omit a
   assertRouteFailure(model, ['14']);
 });
 
-test('routing metadata is a frozen snapshot and proof limits fail without a heuristic route', () => {
+test('routing metadata is a frozen snapshot and oversized forced sets take a disclosed fallback route', () => {
   const model = syntheticModel();
   assert.ok(Object.isFrozen(model.routeRules));
   assert.ok(Object.isFrozen(model.routeRules.prerequisites));
@@ -409,8 +422,11 @@ test('routing metadata is a frozen snapshot and proof limits fail without a heur
     prerequisites.push(id);
   }
   raw.nodes[8].unlockConstraint = { nodes: prerequisites };
-  const limited = assertRouteFailure(syntheticModel(raw), ['8']);
-  assert.match(limited.reason, /minimum.*cannot be guaranteed/i);
+  const result = assertRoute(syntheticModel(raw), ['8']);
+  for (const id of ['8', ...prerequisites.map(String)]) {
+    assert.ok(result.nodeIds.includes(id), `missing ${id}`);
+  }
+  assert.equal(result.exact, false);
 });
 
 // ---- Route bonus summary -------------------------------------------------
