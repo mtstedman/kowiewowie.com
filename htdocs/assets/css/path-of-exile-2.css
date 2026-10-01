@@ -262,6 +262,108 @@
     border-color: var(--poe2-gold);
 }
 
+.poe2-detail-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.5rem;
+}
+
+.poe2-details #poe2-toggle-must-have {
+    border-color: #f472b6;
+}
+
+.poe2-node.is-must-have circle {
+    stroke: #f472b6;
+    stroke-width: 6;
+    stroke-dasharray: 10 6;
+}
+
+.poe2-must-haves {
+    display: grid;
+    gap: 0.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--surface-edge);
+}
+
+.poe2-must-haves h3,
+.poe2-must-haves p {
+    margin: 0;
+}
+
+.poe2-must-haves h3 {
+    color: var(--ink);
+    font-size: 1rem;
+}
+
+.poe2-must-have-empty {
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-style: italic;
+}
+
+.poe2-must-have-list {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.poe2-must-have-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+}
+
+.poe2-panel .poe2-must-have-focus {
+    overflow: hidden;
+    border-left: 4px solid #f472b6;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.poe2-panel .poe2-must-have-remove {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+}
+
+.poe2-route-summary {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--poe2-gold);
+    border-radius: 6px;
+    background: rgba(231, 189, 104, 0.1);
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+}
+
+.poe2-must-have-list[hidden],
+.poe2-route-summary[hidden] {
+    display: none;
+}
+
+.poe2-route-summary__title {
+    color: var(--poe2-gold);
+    font-weight: 850;
+}
+
+.poe2-route-summary.is-stale {
+    border-color: var(--surface-edge-strong);
+    background: rgba(0, 0, 0, 0.22);
+    opacity: 0.85;
+}
+
+.poe2-route-summary.is-stale .poe2-route-summary__title {
+    color: var(--muted);
+}
+
+.poe2-route-summary__note {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
 .poe2-credits {
     padding: 1rem;
     color: var(--muted);

@@ -16,7 +16,8 @@
  * @typedef {{id: string, name: string, stats: string[], x: number, y: number, kind: string,
  *   domain: 'passive'|'ascendancy', ascendancyId: string|null}} PassiveNode
  * @typedef {{version: string, source: {url: string, commit: string}, classes: ClassOption[],
- *   nodes: PassiveNode[], edges: [string, string][], raw: Record<string, unknown>}} TreeData
+ *   nodes: PassiveNode[], edges: [string, string][], skippedOverridePairs: number,
+ *   raw: Record<string, unknown>}} TreeData
  * @typedef {{nodes: PassiveNode[], edges: [string, string][], rootIds: string[],
  *   canAllocate(allocatedNodeIds: string[], nodeId: string): boolean,
  *   availableNodeIds(allocatedNodeIds: string[]): Set<string>,
@@ -206,7 +207,11 @@ function analyzeRaw(raw) {
 
   // ---- Classes, ascendancies and their override maps -----------------------
   // `overridePairs` is exported as `[]` when empty and as an object map
-  // (original node ID -> skillOverrides ID) otherwise.
+  // (original node ID -> skillOverrides ID) otherwise. A well-formed node ID
+  // that is absent from "nodes" is a dangling optional reference (the pinned
+  // export has two, on Druid): its override is still validated, but the pair
+  // is skipped and counted rather than failing the whole tree (see SOURCE.md).
+  let skippedOverridePairs = 0;
   const readOverridePairs = (value, context) => {
     const pairs = new Map();
     if (value === undefined || value === null) return pairs;
@@ -216,9 +221,10 @@ function analyzeRaw(raw) {
     }
     if (!isRecord(value)) fail(`${context} "overridePairs" must be an object map of node ID to override ID.`);
     for (const [nodeKey, overrideValue] of Object.entries(value)) {
-      if (nodeKey === ROOT_KEY || !hasOwn(rawNodes, nodeKey)) {
+      if (nodeKey === ROOT_KEY || !NODE_KEY_PATTERN.test(nodeKey)) {
         fail(`${context} "overridePairs" references missing node ${describe(nodeKey)}.`);
       }
+      const dangling = !hasOwn(rawNodes, nodeKey);
       const overrideId = typeof overrideValue === 'string' || Number.isInteger(overrideValue) ? String(overrideValue) : null;
       if (overrideId === null || !hasOwn(skillOverrides, overrideId)) {
         fail(`${context} "overridePairs" maps node ${nodeKey} to ${describe(overrideValue)}, which is missing from "skillOverrides".`);
@@ -229,11 +235,16 @@ function analyzeRaw(raw) {
       if (entry.name !== undefined && entry.name !== null && typeof entry.name !== 'string') {
         fail(`"skillOverrides" entry ${overrideId} has a malformed name ${describe(entry.name)}.`);
       }
+      const stats = entry.stats === undefined || entry.stats === null
+        ? null
+        : readStringList(entry.stats, `"skillOverrides" entry ${overrideId} "stats"`);
+      if (dangling) {
+        skippedOverridePairs += 1;
+        continue;
+      }
       pairs.set(nodeKey, {
         name: typeof entry.name === 'string' ? entry.name : null,
-        stats: entry.stats === undefined || entry.stats === null
-          ? null
-          : readStringList(entry.stats, `"skillOverrides" entry ${overrideId} "stats"`),
+        stats,
       });
     }
     return pairs;
@@ -416,6 +427,7 @@ function analyzeRaw(raw) {
     constraints,
     keystonesInRadius,
     choiceParents,
+    skippedOverridePairs,
   };
   analysisCache.set(raw, analysis);
   return analysis;
@@ -473,6 +485,7 @@ export function normalizeTree(raw) {
     })),
     nodes: analysis.nodes.map((node) => ({ ...node, stats: node.stats.slice() })),
     edges: analysis.edges.map((edge) => [edge[0], edge[1]]),
+    skippedOverridePairs: analysis.skippedOverridePairs,
     raw,
   };
 }
@@ -904,10 +917,25 @@ export function buildAllocationModel(data, classId, ascendancyId) {
     return { passive, ascendancy };
   };
 
+  // Frozen snapshots keep routing consumers out of the mutable rule closures.
+  const routeRules = Object.freeze({
+    prerequisites: Object.freeze(Object.fromEntries(
+      Array.from(constraintOf, ([id, required]) => [id, Object.freeze(required.slice())]),
+    )),
+    choiceParents: Object.freeze(Object.fromEntries(parentOf)),
+    supportEdges: Object.freeze(edges.flatMap(([from, to]) => {
+      const directed = [];
+      if (supports(from, members.get(to))) directed.push(Object.freeze([from, to]));
+      if (supports(to, members.get(from))) directed.push(Object.freeze([to, from]));
+      return directed;
+    })),
+  });
+
   return {
     nodes: Array.from(members.values()),
     edges,
     rootIds: rootIds.slice(),
+    routeRules,
     canAllocate,
     availableNodeIds,
     validateAllocation,

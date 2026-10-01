@@ -18,7 +18,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
             <section class="hero hero-compact poe2-hero">
                 <p class="eyebrow">Path of Exile 2 / Passive planner</p>
                 <h1>Trace a path through the passive tree.</h1>
-                <p class="lede">Choose a class and ascendancy, inspect the pinned export, and test allocations with the tree's existing rule model.</p>
+                <p class="lede">Choose a class and ascendancy, inspect the pinned export, and test allocations with the tree's existing rule model. Mark the passives you must have and the planner finds the shortest legal route that reaches all of them.</p>
             </section>
 
             <p id="poe2-status" class="poe2-notice" role="status" aria-live="polite" aria-atomic="true">Loading the passive tree…</p>
@@ -60,7 +60,19 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         <button id="poe2-retry" type="button" hidden>Retry loading</button>
                     </div>
 
-                    <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom. Select a node to inspect it.</p>
+                    <section class="poe2-must-haves" aria-labelledby="poe2-must-have-title">
+                        <h3 id="poe2-must-have-title">Must-have passives</h3>
+                        <p class="poe2-help">Select a node and choose <strong>Mark must-have</strong>, then find the shortest route that reaches every marked passive. Up to <span id="poe2-must-have-limit">8</span> nodes.</p>
+                        <p id="poe2-must-have-empty" class="poe2-must-have-empty">No must-have passives marked yet.</p>
+                        <ul id="poe2-must-have-list" class="poe2-must-have-list" aria-label="Marked must-have passives" hidden></ul>
+                        <div class="poe2-actions">
+                            <button id="poe2-find-route" type="button" disabled>Find shortest route</button>
+                            <button id="poe2-clear-must-haves" type="button" disabled>Clear must-haves</button>
+                        </div>
+                        <div id="poe2-route-summary" class="poe2-route-summary" hidden></div>
+                    </section>
+
+                    <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom. Select a node to inspect, allocate or mark it as a must-have.</p>
                 </aside>
 
                 <section class="poe2-panel poe2-tree-panel" aria-labelledby="poe2-tree-title" aria-busy="true">
@@ -87,7 +99,10 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                     <h2 id="poe2-details-title">Select a node</h2>
                     <p id="poe2-node-meta" class="poe2-node-meta">Choose any visible node to see its stats and allocation state.</p>
                     <ul id="poe2-node-stats" class="poe2-node-stats"></ul>
-                    <button id="poe2-toggle-node" type="button" disabled>Allocate node</button>
+                    <div class="poe2-detail-actions">
+                        <button id="poe2-toggle-node" type="button" disabled>Allocate node</button>
+                        <button id="poe2-toggle-must-have" type="button" aria-pressed="false" disabled>Mark must-have</button>
+                    </div>
                 </aside>
             </section>
 

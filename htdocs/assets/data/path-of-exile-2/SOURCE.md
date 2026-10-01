@@ -100,9 +100,19 @@ Line numbers refer to the installed, pretty-printed `tree.json`.
 - Errors (all `Error` with a `PoE2 passive tree:` prefix): non-object export or sections;
   non-numeric node key or `skill` ≠ key; non-finite `x`/`y`; non-string name/stats;
   `in`/`out`, edge, `unlockConstraint`, `keystonesInRadius`, `multipleChoiceParent`,
-  `classStartIndex` or `overridePairs` references that do not resolve; duplicate start nodes;
+  `classStartIndex` or `overridePairs` override IDs that do not resolve; duplicate start nodes;
   a released class without a start node. `loadTree` adds descriptive errors for network
   failures, non-2xx responses and invalid JSON.
+- **Dangling `overridePairs` are skipped and counted, not fatal.** The pinned export has 74
+  `overridePairs` entries; two of them, both on class **Druid** — `"55194": 57601` and
+  `"19680": 40837` (`tree.json` lines 569 and 571) — name node IDs that do not exist in `nodes`,
+  while both override targets exist in `skillOverrides`. Such a pair (key is a well-formed
+  numeric node ID, not `"root"`, absent from `nodes`) still has its override ID and
+  `skillOverrides` entry validated, but it is left out of the class/ascendancy override map and
+  counted in `TreeData.skippedOverridePairs` (2 for the pinned export, 0 when none). It
+  therefore never changes any node. Everything else about `overridePairs` still throws: a
+  non-object or non-empty array, a `"root"` or malformed key, an override ID missing from
+  `skillOverrides`, or a malformed `skillOverrides` entry.
 
 ## Offered classes and ascendancies
 

@@ -1,4 +1,5 @@
 import { loadTree, buildAllocationModel } from './tree-data.js';
+import { findMinimalRoute, MAX_MUST_HAVES } from './optimizer.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const MIN_SCALE = 0.025;
@@ -28,6 +29,13 @@ const elements = {
   nodeMeta: document.querySelector('#poe2-node-meta'),
   nodeStats: document.querySelector('#poe2-node-stats'),
   toggleNode: document.querySelector('#poe2-toggle-node'),
+  toggleMustHave: document.querySelector('#poe2-toggle-must-have'),
+  mustHaveLimit: document.querySelector('#poe2-must-have-limit'),
+  mustHaveEmpty: document.querySelector('#poe2-must-have-empty'),
+  mustHaveList: document.querySelector('#poe2-must-have-list'),
+  findRoute: document.querySelector('#poe2-find-route'),
+  clearMustHaves: document.querySelector('#poe2-clear-must-haves'),
+  routeSummary: document.querySelector('#poe2-route-summary'),
   version: document.querySelector('#poe2-version'),
 };
 
@@ -42,6 +50,12 @@ const state = {
   // null means it must be recomputed (see currentAvailability).
   available: null,
   rootIds: new Set(),
+  // Node IDs the user requires in the computed route, in marking order.
+  mustHaves: new Set(),
+  // Summary of the last computed route: { nodeCount, passive, ascendancy, stale } or null.
+  route: null,
+  computing: false,
+  enabled: false,
   selectedId: null,
   classId: null,
   ascendancyId: null,
@@ -56,6 +70,7 @@ function setStatus(message, error = false) {
 }
 
 function setEnabled(enabled) {
+  state.enabled = enabled;
   elements.buildControls.disabled = !enabled;
   elements.searchInput.disabled = !enabled;
   elements.searchButton.disabled = !enabled;
@@ -63,6 +78,152 @@ function setEnabled(enabled) {
   elements.resetButton.disabled = !enabled;
   elements.zoomIn.disabled = !enabled;
   elements.zoomOut.disabled = !enabled;
+  if (!enabled) elements.toggleMustHave.disabled = true;
+  renderMustHaves();
+}
+
+function nodeName(nodeId) {
+  return state.nodeById.get(nodeId)?.name || `Node ${nodeId}`;
+}
+
+function plural(count, singular, pluralForm = `${singular}s`) {
+  return `${count.toLocaleString()} ${count === 1 ? singular : pluralForm}`;
+}
+
+function renderMustHaves() {
+  const usable = state.enabled && Boolean(state.model) && !state.computing;
+  elements.mustHaveList.replaceChildren();
+  for (const nodeId of state.mustHaves) {
+    const name = nodeName(nodeId);
+    const item = document.createElement('li');
+
+    const focusButton = document.createElement('button');
+    focusButton.type = 'button';
+    focusButton.className = 'poe2-must-have-focus';
+    focusButton.textContent = name;
+    focusButton.setAttribute('aria-label', `Show ${name} on the tree`);
+    focusButton.disabled = !usable;
+    focusButton.addEventListener('click', () => centerNode(nodeId));
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'poe2-must-have-remove';
+    removeButton.textContent = 'Remove';
+    removeButton.setAttribute('aria-label', `Remove ${name} from must-have passives`);
+    removeButton.disabled = !usable;
+    removeButton.addEventListener('click', () => setMustHave(nodeId, false));
+
+    item.append(focusButton, removeButton);
+    elements.mustHaveList.append(item);
+  }
+  const empty = state.mustHaves.size === 0;
+  elements.mustHaveList.hidden = empty;
+  elements.mustHaveEmpty.hidden = !empty;
+  elements.findRoute.disabled = !usable || empty;
+  elements.clearMustHaves.disabled = !usable || empty;
+}
+
+function renderRouteSummary() {
+  const route = state.route;
+  elements.routeSummary.replaceChildren();
+  elements.routeSummary.hidden = !route;
+  elements.routeSummary.classList.toggle('is-stale', Boolean(route?.stale));
+  if (!route) return;
+  const title = document.createElement('p');
+  title.className = 'poe2-route-summary__title';
+  title.textContent = route.stale ? 'Last computed route (out of date)' : 'Shortest route';
+  const counts = document.createElement('p');
+  counts.textContent = `${plural(route.nodeCount, 'route node')}: ${plural(route.passive, 'passive point')} and ${plural(route.ascendancy, 'ascendancy point')}.`;
+  elements.routeSummary.append(title, counts);
+  if (route.stale) {
+    const note = document.createElement('p');
+    note.className = 'poe2-route-summary__note';
+    note.textContent = 'Must-haves or allocations changed since this route was computed. Find the route again to update it.';
+    elements.routeSummary.append(note);
+  }
+}
+
+// Called whenever must-haves or allocations change outside route computation.
+function invalidateRoute() {
+  if (!state.route || state.route.stale) return;
+  state.route.stale = true;
+  renderRouteSummary();
+}
+
+function setMustHave(nodeId, marked) {
+  if (!state.model || !state.nodeById.has(nodeId) || state.rootIds.has(nodeId)) return;
+  if (marked === state.mustHaves.has(nodeId)) return;
+  if (marked && state.mustHaves.size >= MAX_MUST_HAVES) {
+    setStatus(`You can mark at most ${MAX_MUST_HAVES} must-have passives. Remove one first.`, true);
+    return;
+  }
+  if (marked) state.mustHaves.add(nodeId);
+  else state.mustHaves.delete(nodeId);
+  const parts = state.nodeElements.get(nodeId);
+  if (parts) paintNode(nodeId, parts, currentAvailability());
+  renderMustHaves();
+  invalidateRoute();
+  updateDetails();
+  setStatus(`${nodeName(nodeId)} ${marked ? 'marked as' : 'removed from'} must-have passives.`);
+}
+
+function clearMustHaves() {
+  if (state.mustHaves.size === 0) return;
+  const ids = [...state.mustHaves];
+  state.mustHaves.clear();
+  if (state.model) {
+    const available = currentAvailability();
+    for (const id of ids) {
+      const parts = state.nodeElements.get(id);
+      if (parts) paintNode(id, parts, available);
+    }
+  }
+  renderMustHaves();
+  invalidateRoute();
+  updateDetails();
+  setStatus('All must-have passives cleared.');
+}
+
+function nextPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => setTimeout(resolve, 0));
+  });
+}
+
+async function computeRoute() {
+  if (!state.model || state.computing || state.mustHaves.size === 0) return;
+  const model = state.model;
+  const mustHaves = [...state.mustHaves];
+  state.computing = true;
+  renderMustHaves();
+  updateDetails();
+  setStatus(`Computing the shortest route through ${plural(mustHaves.length, 'must-have passive')}…`);
+  try {
+    await nextPaint();
+    // The build may have changed while the status painted.
+    if (state.model !== model) return;
+    const result = findMinimalRoute(model, mustHaves);
+    if (!result.ok) {
+      state.route = null;
+      renderRouteSummary();
+      setStatus(result.reason || 'No route could be found for these must-have passives.', true);
+      return;
+    }
+    setAllocation(new Set(result.nodeIds));
+    updateGraphState();
+    state.route = {
+      nodeCount: result.nodeIds.length,
+      passive: result.pointCost.passive,
+      ascendancy: result.pointCost.ascendancy,
+      stale: false,
+    };
+    renderRouteSummary();
+    setStatus(`Shortest route found: ${plural(result.nodeIds.length, 'node')} allocated.`);
+  } finally {
+    state.computing = false;
+    renderMustHaves();
+    updateDetails();
+  }
 }
 
 function replaceOptions(select, options) {
@@ -222,6 +383,7 @@ function paintNode(id, parts, available) {
   parts.group.classList.toggle('is-allocated', allocated);
   parts.group.classList.toggle('is-available', available.has(id));
   parts.group.classList.toggle('is-selected', selected);
+  parts.group.classList.toggle('is-must-have', state.mustHaves.has(id));
   setAttributeIfChanged(parts.group, 'aria-pressed', String(allocated || isRoot));
   setAttributeIfChanged(parts.group, 'tabindex', selected || isRoot ? '0' : '-1');
   if (parts.label.textContent !== labelText) parts.label.textContent = labelText;
@@ -263,6 +425,8 @@ function updateDetails() {
     elements.nodeMeta.textContent = 'Choose any visible node to see its stats and allocation state.';
     elements.toggleNode.textContent = 'Allocate node';
     elements.toggleNode.disabled = true;
+    elements.toggleMustHave.textContent = 'Mark must-have';
+    elements.toggleMustHave.disabled = true;
     return;
   }
 
@@ -283,6 +447,10 @@ function updateDetails() {
   }
   elements.toggleNode.textContent = isRoot ? 'Starting node' : isAllocated ? 'Remove node' : 'Allocate node';
   elements.toggleNode.disabled = isRoot;
+  const isMustHave = state.mustHaves.has(node.id);
+  elements.toggleMustHave.textContent = isRoot ? 'Start node' : isMustHave ? 'Unmark must-have' : 'Mark must-have';
+  elements.toggleMustHave.setAttribute('aria-pressed', String(isMustHave));
+  elements.toggleMustHave.disabled = isRoot || !state.enabled || state.computing;
 }
 
 function nodeIdFromEvent(event) {
@@ -323,6 +491,7 @@ function tryAllocationChange() {
   }
   setAllocation(candidate);
   updateGraphState();
+  invalidateRoute();
   const node = state.nodeById.get(nodeId);
   setStatus(`${node.name || `Node ${nodeId}`} ${removing ? 'removed' : 'allocated'}.`);
 }
@@ -344,6 +513,9 @@ function rebuildModel(classId, ascendancyId, announce = true) {
   state.ascendancyId = nextAscendancyId;
   state.rootIds = new Set(nextModel.rootIds);
   setAllocation(new Set());
+  state.mustHaves = new Set();
+  state.route = null;
+  renderRouteSummary();
   state.selectedId = nextModel.rootIds[0] || null;
   setEnabled(true);
   elements.retryButton.hidden = true;
@@ -386,6 +558,9 @@ async function initialize() {
     state.data = null;
     state.model = null;
     state.available = null;
+    state.mustHaves = new Set();
+    state.route = null;
+    renderRouteSummary();
     setEnabled(false);
     elements.retryButton.hidden = false;
     elements.treePanel.setAttribute('aria-busy', 'false');
@@ -421,6 +596,13 @@ elements.searchForm.addEventListener('submit', (event) => {
 });
 
 elements.toggleNode.addEventListener('click', tryAllocationChange);
+elements.toggleMustHave.addEventListener('click', () => {
+  if (state.computing || !state.selectedId) return;
+  setMustHave(state.selectedId, !state.mustHaves.has(state.selectedId));
+});
+elements.findRoute.addEventListener('click', computeRoute);
+elements.clearMustHaves.addEventListener('click', clearMustHaves);
+elements.mustHaveLimit.textContent = String(MAX_MUST_HAVES);
 elements.fitButton.addEventListener('click', fitTree);
 elements.retryButton.addEventListener('click', initialize);
 elements.resetButton.addEventListener('click', () => {
@@ -432,6 +614,7 @@ elements.resetButton.addEventListener('click', () => {
   }
   setAllocation(new Set());
   updateGraphState();
+  invalidateRoute();
   setStatus('All allocated nodes reset. Starting nodes remain implicit and free.');
 });
 
