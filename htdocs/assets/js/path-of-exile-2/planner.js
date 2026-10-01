@@ -400,7 +400,7 @@ function edgeArcPath(from, to, arc) {
   return `M ${from.x} ${from.y} A ${radius} ${radius} 0 0 ${sweep} ${to.x} ${to.y}`;
 }
 
-function buildGraph() {
+function buildGraph(focusNodeId = null) {
   elements.edgeLayer.replaceChildren();
   elements.nodeLayer.replaceChildren();
   state.nodeElements.clear();
@@ -489,7 +489,14 @@ function buildGraph() {
   state.renderedScale = null;
   applyTransform();
   updateGraphState();
-  requestAnimationFrame(fitTree);
+  requestAnimationFrame(() => {
+    fitTree();
+    // A whole-tree fit can leave a specific node of interest (e.g. a newly
+    // selected ascendancy's start node) far from the viewport center, since
+    // ascendancy clusters sit well outside the main tree's bounds. Re-center
+    // on that node after the fit settles so it isn't overridden by it.
+    if (focusNodeId) centerNode(focusNodeId);
+  });
 }
 
 // Every change to the allocation goes through here so the availability derived
@@ -690,7 +697,10 @@ function rebuildModel(classId, ascendancyId, announce = true) {
   state.selectedId = nextModel.rootIds[0] || null;
   setEnabled(true);
   elements.retryButton.hidden = true;
-  buildGraph();
+  const ascendancyStart = nextAscendancyId
+    ? nextModel.nodes.find((node) => node.kind === 'ascendancyStart' && nextModel.rootIds.includes(node.id))
+    : null;
+  buildGraph(ascendancyStart ? ascendancyStart.id : null);
   elements.treePanel.setAttribute('aria-busy', 'false');
   if (announce) {
     const className = selectedClass()?.name || classId;
