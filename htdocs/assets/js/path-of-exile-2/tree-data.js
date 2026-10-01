@@ -15,9 +15,10 @@
  * @typedef {{id: string, name: string, ascendancies: {id: string, name: string}[]}} ClassOption
  * @typedef {{id: string, name: string, stats: string[], x: number, y: number, kind: string,
  *   domain: 'passive'|'ascendancy', ascendancyId: string|null}} PassiveNode
+ * @typedef {{orbit: number, orbitX: number, orbitY: number}} EdgeArc
  * @typedef {{version: string, source: {url: string, commit: string}, classes: ClassOption[],
  *   nodes: PassiveNode[], edges: [string, string][], skippedOverridePairs: number,
- *   raw: Record<string, unknown>}} TreeData
+ *   raw: Record<string, unknown>, edgeArcs: (EdgeArc|null)[]}} TreeData
  * @typedef {Readonly<{prerequisites: Readonly<Record<string, readonly string[]>>,
  *   choiceParents: Readonly<Record<string, string>>,
  *   supportEdges: readonly (readonly string[])[]}>} RouteRules
@@ -26,8 +27,10 @@
  *   canAllocate(allocatedNodeIds: string[], nodeId: string): boolean,
  *   availableNodeIds(allocatedNodeIds: string[]): Set<string>,
  *   validateAllocation(allocatedNodeIds: string[]): {valid: boolean, reason: string|null},
- *   pointCost(allocatedNodeIds: string[]): {passive: number, ascendancy: number}}} AllocationModel
+ *   pointCost(allocatedNodeIds: string[]): {passive: number, ascendancy: number},
+ *   edgeArcs: (EdgeArc|null)[]}} AllocationModel
  *
+ * edgeArcs is index-aligned with edges; null denotes a straight connection.
  * PassiveNode.kind is one of: 'classStart', 'ascendancyStart', 'keystone',
  * 'notable', 'jewelSocket', 'small', 'mastery' (image-only cluster art, never
  * allocatable) or 'placeholder' (unreleased node exported with `"id": null`).
@@ -355,12 +358,18 @@ function analyzeRaw(raw) {
   // ---- Edges: official connection list, minus the synthetic root -----------
   /** @type {[string, string][]} */
   const edges = [];
+  // Parallel to edges: geometry is optional and never changes connectivity.
+  /** @type {(EdgeArc|null)[]} */
+  const edgeArcs = [];
   raw.edges.forEach((edge, edgeIndex) => {
     if (!isRecord(edge)) fail(`edge #${edgeIndex} must be an object.`);
     const from = nodeRef(edge.from, `edge #${edgeIndex} "from"`);
     const to = nodeRef(edge.to, `edge #${edgeIndex} "to"`);
     if (from === ROOT_KEY || to === ROOT_KEY) return;
     edges.push([from, to]);
+    edgeArcs.push(Number.isFinite(edge.orbit) && Number.isFinite(edge.orbitX) && Number.isFinite(edge.orbitY)
+      ? { orbit: edge.orbit, orbitX: edge.orbitX, orbitY: edge.orbitY }
+      : null);
   });
 
   // ---- Offered classes and ascendancies -------------------------------------
@@ -432,6 +441,7 @@ function analyzeRaw(raw) {
     keystonesInRadius,
     choiceParents,
     skippedOverridePairs,
+    edgeArcs,
   };
   analysisCache.set(raw, analysis);
   return analysis;
@@ -491,6 +501,7 @@ export function normalizeTree(raw) {
     edges: analysis.edges.map((edge) => [edge[0], edge[1]]),
     skippedOverridePairs: analysis.skippedOverridePairs,
     raw,
+    edgeArcs: analysis.edgeArcs.map((arc) => arc ? { ...arc } : null),
   };
 }
 
@@ -609,10 +620,12 @@ export function buildAllocationModel(data, classId, ascendancyId) {
   // ---- Connections among members -------------------------------------------
   /** @type {[string, string][]} */
   const edges = [];
+  /** @type {(EdgeArc|null)[]} */
+  const edgeArcs = [];
   const neighbours = new Map();
   for (const id of members.keys()) neighbours.set(id, []);
   const seenEdges = new Set();
-  for (const edge of data.edges) {
+  for (const [edgeIndex, edge] of data.edges.entries()) {
     if (!Array.isArray(edge) || edge.length !== 2) fail(`TreeData edge ${describe(edge)} is malformed.`);
     const [from, to] = edge;
     if (!members.has(from) || !members.has(to) || from === to) continue;
@@ -620,6 +633,8 @@ export function buildAllocationModel(data, classId, ascendancyId) {
     if (seenEdges.has(edgeKey)) continue;
     seenEdges.add(edgeKey);
     edges.push([from, to]);
+    const arc = data.edgeArcs?.[edgeIndex];
+    edgeArcs.push(arc ? { ...arc } : null);
     neighbours.get(from).push(to);
     neighbours.get(to).push(from);
   }
@@ -944,6 +959,7 @@ export function buildAllocationModel(data, classId, ascendancyId) {
     availableNodeIds,
     validateAllocation,
     pointCost,
+    edgeArcs,
   };
 }
 

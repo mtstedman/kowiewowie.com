@@ -68,6 +68,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         <div class="poe2-actions">
                             <button id="poe2-find-route" type="button" disabled>Find shortest route</button>
                             <button id="poe2-clear-must-haves" type="button" disabled>Clear must-haves</button>
+                            <button id="poe2-clear-route" type="button" disabled>Clear route</button>
                         </div>
                         <div id="poe2-route-summary" class="poe2-route-summary" hidden></div>
                     </section>

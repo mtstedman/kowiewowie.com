@@ -2,7 +2,7 @@ import { loadTree, buildAllocationModel, summarizeRouteBonuses } from './tree-da
 import { findMinimalRoute, MAX_MUST_HAVES } from './optimizer.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const MIN_SCALE = 0.025;
+const MIN_SCALE = 0.01;
 const MAX_SCALE = 2.5;
 
 const elements = {
@@ -35,6 +35,7 @@ const elements = {
   mustHaveList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-must-have-list')),
   findRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-find-route')),
   clearMustHaves: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-must-haves')),
+  clearRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-route')),
   routeSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-route-summary')),
   bonusSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-bonus-summary')),
   version: /** @type {HTMLSpanElement} */ (document.querySelector('#poe2-version')),
@@ -62,6 +63,8 @@ const state = {
   ascendancyId: null,
   view: { x: 0, y: 0, scale: 1 },
   bounds: null,
+  fitScale: MIN_SCALE,
+  renderedScale: null,
   drag: null,
 };
 
@@ -91,8 +94,17 @@ function plural(count, singular, pluralForm = `${singular}s`) {
   return `${count.toLocaleString()} ${count === 1 ? singular : pluralForm}`;
 }
 
+function plannerUsable() {
+  return state.enabled && Boolean(state.model) && !state.computing;
+}
+
+// Clear route needs a usable planner and a computed route to clear.
+function syncClearRoute() {
+  elements.clearRoute.disabled = !plannerUsable() || !state.route;
+}
+
 function renderMustHaves() {
-  const usable = state.enabled && Boolean(state.model) && !state.computing;
+  const usable = plannerUsable();
   elements.mustHaveList.replaceChildren();
   for (const nodeId of state.mustHaves) {
     const name = nodeName(nodeId);
@@ -122,6 +134,7 @@ function renderMustHaves() {
   elements.mustHaveEmpty.hidden = !empty;
   elements.findRoute.disabled = !usable || empty;
   elements.clearMustHaves.disabled = !usable || empty;
+  syncClearRoute();
 }
 
 function renderRouteSummary() {
@@ -129,6 +142,7 @@ function renderRouteSummary() {
   elements.routeSummary.replaceChildren();
   elements.routeSummary.hidden = !route;
   elements.routeSummary.classList.toggle('is-stale', Boolean(route?.stale));
+  syncClearRoute();
   if (!route) return;
   const title = document.createElement('p');
   title.className = 'poe2-route-summary__title';
@@ -238,6 +252,17 @@ function clearMustHaves() {
   setStatus('All must-have passives cleared.');
 }
 
+// Drops the computed route and its allocation; must-haves are kept so the
+// route can be found again.
+function clearRoute() {
+  if (!state.model || state.computing || !state.route) return;
+  setAllocation(new Set());
+  state.route = null;
+  renderRouteSummary();
+  updateGraphState();
+  setStatus('Route cleared. Allocations reset; must-have passives are kept.');
+}
+
 function nextPaint() {
   return new Promise((resolve) => {
     requestAnimationFrame(() => setTimeout(resolve, 0));
@@ -305,6 +330,18 @@ function populateAscendancies(preferredId = '') {
 function applyTransform() {
   const { x, y, scale } = state.view;
   elements.viewport.setAttribute('transform', `translate(${x} ${y}) scale(${scale})`);
+  // Panning changes only the viewport transform. Resize glyphs only on zoom.
+  if (state.renderedScale === scale) return;
+  state.renderedScale = scale;
+  const density = Math.min(1, scale / 0.025);
+  elements.tree.style.setProperty('--poe2-node-stroke', String(0.4 * density));
+  elements.tree.style.setProperty('--poe2-edge-stroke', String(0.35 * density));
+  for (const parts of state.nodeElements.values()) {
+    const radius = Math.max(parts.radius, Math.max(0.55, parts.screenRadius * density) / scale);
+    parts.circle.setAttribute('r', String(radius));
+    if (parts.kindRing) parts.kindRing.setAttribute('r', String(radius * 0.55));
+    parts.label.setAttribute('y', String(-radius - 14));
+  }
 }
 
 function svgSize() {
@@ -315,11 +352,13 @@ function svgSize() {
 function fitTree() {
   if (!state.bounds) return;
   const { width, height } = svgSize();
-  const padding = 80;
+  const padding = Math.min(32, width / 4, height / 4);
   const worldWidth = Math.max(state.bounds.maxX - state.bounds.minX, 1);
   const worldHeight = Math.max(state.bounds.maxY - state.bounds.minY, 1);
   const scale = Math.min((width - padding) / worldWidth, (height - padding) / worldHeight);
-  state.view.scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+  // A lower clamp would crop the tree on narrow panels instead of fitting it.
+  state.fitScale = Math.min(MAX_SCALE, scale);
+  state.view.scale = state.fitScale;
   state.view.x = width / 2 - ((state.bounds.minX + state.bounds.maxX) / 2) * state.view.scale;
   state.view.y = height / 2 - ((state.bounds.minY + state.bounds.maxY) / 2) * state.view.scale;
   applyTransform();
@@ -328,7 +367,7 @@ function fitTree() {
 function zoomAt(factor, screenX, screenY) {
   if (!state.model) return;
   const oldScale = state.view.scale;
-  const nextScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, oldScale * factor));
+  const nextScale = Math.max(Math.min(MIN_SCALE, state.fitScale), Math.min(MAX_SCALE, oldScale * factor));
   if (nextScale === oldScale) return;
   const worldX = (screenX - state.view.x) / oldScale;
   const worldY = (screenY - state.view.y) / oldScale;
@@ -345,6 +384,22 @@ function nodeRadius(node) {
   return 21;
 }
 
+// Export coordinates are rounded, so allow a small absolute radius error.
+// SVG's positive sweep follows the positive cross product in its y-down axes.
+function edgeArcPath(from, to, arc) {
+  if (!arc || !Number.isFinite(arc.orbitX) || !Number.isFinite(arc.orbitY)) return null;
+  const ax = from.x - arc.orbitX;
+  const ay = from.y - arc.orbitY;
+  const bx = to.x - arc.orbitX;
+  const by = to.y - arc.orbitY;
+  const radius = Math.hypot(ax, ay);
+  const endRadius = Math.hypot(bx, by);
+  const chord = Math.hypot(to.x - from.x, to.y - from.y);
+  if (radius === 0 || chord === 0 || chord > 2 * radius || Math.abs(radius - endRadius) > 0.2) return null;
+  const sweep = ax * by - ay * bx >= 0 ? 1 : 0;
+  return `M ${from.x} ${from.y} A ${radius} ${radius} 0 0 ${sweep} ${to.x} ${to.y}`;
+}
+
 function buildGraph() {
   elements.edgeLayer.replaceChildren();
   elements.nodeLayer.replaceChildren();
@@ -357,25 +412,34 @@ function buildGraph() {
   let maxX = -Infinity;
   let maxY = -Infinity;
   for (const node of state.model.nodes) {
-    minX = Math.min(minX, node.x);
-    minY = Math.min(minY, node.y);
-    maxX = Math.max(maxX, node.x);
-    maxY = Math.max(maxY, node.y);
+    // Measure the actual main-tree extent for this model. Ascendancies remain
+    // at their exported positions and in the rendered/searchable node set.
+    if (node.domain !== 'passive') continue;
+    const radius = nodeRadius(node);
+    minX = Math.min(minX, node.x - radius);
+    minY = Math.min(minY, node.y - radius);
+    maxX = Math.max(maxX, node.x + radius);
+    maxY = Math.max(maxY, node.y + radius);
   }
   state.bounds = { minX, minY, maxX, maxY };
 
   const edgeFragment = document.createDocumentFragment();
-  for (const [fromId, toId] of state.model.edges) {
+  for (const [edgeIndex, [fromId, toId]] of state.model.edges.entries()) {
     const from = state.nodeById.get(fromId);
     const to = state.nodeById.get(toId);
-    const line = document.createElementNS(SVG_NS, 'line');
-    line.setAttribute('class', 'poe2-edge');
-    line.setAttribute('x1', String(from.x));
-    line.setAttribute('y1', String(from.y));
-    line.setAttribute('x2', String(to.x));
-    line.setAttribute('y2', String(to.y));
-    edgeFragment.append(line);
-    state.edgeElements.push({ element: line, fromId, toId });
+    const path = edgeArcPath(from, to, state.model.edgeArcs?.[edgeIndex]);
+    const edge = document.createElementNS(SVG_NS, path ? 'path' : 'line');
+    edge.setAttribute('class', 'poe2-edge');
+    if (path) {
+      edge.setAttribute('d', path);
+    } else {
+      edge.setAttribute('x1', String(from.x));
+      edge.setAttribute('y1', String(from.y));
+      edge.setAttribute('x2', String(to.x));
+      edge.setAttribute('y2', String(to.y));
+    }
+    edgeFragment.append(edge);
+    state.edgeElements.push({ element: edge, fromId, toId });
   }
   elements.edgeLayer.append(edgeFragment);
 
@@ -385,8 +449,13 @@ function buildGraph() {
   for (const node of state.model.nodes) {
     const isRoot = state.rootIds.has(node.id);
     const radius = nodeRadius(node);
+    const kindClass = { notable: 'is-notable', keystone: 'is-keystone', jewelSocket: 'is-jewel-socket' }[node.kind];
+    // At 0.01 zoom, even two largest markers plus their outlines fit inside
+    // the 2px gap between neighbours 200 world units apart.
+    const screenRadius = isRoot || node.kind === 'keystone' ? 2.25
+      : node.kind === 'notable' ? 2 : node.kind === 'jewelSocket' ? 1.8 : 1.5;
     const group = document.createElementNS(SVG_NS, 'g');
-    group.setAttribute('class', `poe2-node${isRoot ? ' is-root' : ''}${node.domain === 'ascendancy' ? ' is-ascendancy' : ''}`);
+    group.setAttribute('class', `poe2-node${kindClass ? ` ${kindClass}` : ''}${isRoot ? ' is-root' : ''}${node.domain === 'ascendancy' ? ' is-ascendancy' : ''}`);
     group.setAttribute('transform', `translate(${node.x} ${node.y})`);
     group.setAttribute('role', 'button');
     group.setAttribute('tabindex', isRoot ? '0' : '-1');
@@ -394,8 +463,19 @@ function buildGraph() {
     group.dataset.nodeId = node.id;
 
     const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('class', 'poe2-node-body');
     circle.setAttribute('r', String(radius));
     group.append(circle);
+
+    // The inner kind outline keeps its colour when state changes recolour
+    // the outer circle (including allocated ascendancy must-have nodes).
+    let kindRing = null;
+    if (kindClass) {
+      kindRing = document.createElementNS(SVG_NS, 'circle');
+      kindRing.setAttribute('class', 'poe2-node-kind');
+      kindRing.setAttribute('r', String(radius * 0.55));
+      group.append(kindRing);
+    }
 
     const label = document.createElementNS(SVG_NS, 'text');
     label.setAttribute('y', String(-radius - 14));
@@ -403,9 +483,11 @@ function buildGraph() {
     group.append(label);
 
     nodeFragment.append(group);
-    state.nodeElements.set(node.id, { group, label });
+    state.nodeElements.set(node.id, { group, label, circle, kindRing, radius, screenRadius });
   }
   elements.nodeLayer.append(nodeFragment);
+  state.renderedScale = null;
+  applyTransform();
   updateGraphState();
   requestAnimationFrame(fitTree);
 }
@@ -544,15 +626,45 @@ function tryAllocationChange() {
   const removing = candidate.delete(nodeId);
   if (!removing) candidate.add(nodeId);
   const validation = state.model.validateAllocation([...candidate]);
+  let next = candidate;
   if (!validation.valid) {
-    setStatus(validation.reason || 'That allocation is not legal.', true);
-    return;
+    next = removing ? prunedAllocation(candidate) : null;
+    if (!next) {
+      setStatus(validation.reason || 'That allocation is not legal.', true);
+      return;
+    }
   }
-  setAllocation(candidate);
+  setAllocation(next);
   updateGraphState();
   invalidateRoute();
   const node = state.nodeById.get(nodeId);
-  setStatus(`${node.name || `Node ${nodeId}`} ${removing ? 'removed' : 'allocated'}.`);
+  const name = node.name || `Node ${nodeId}`;
+  const dependents = candidate.size - next.size;
+  if (dependents > 0) {
+    setStatus(`${name} removed, along with ${plural(dependents, 'dependent node')} no longer connected to a start.`);
+  } else {
+    setStatus(`${name} ${removing ? 'removed' : 'allocated'}.`);
+  }
+}
+
+// The largest legal subset of `remaining`: grow a kept set from empty, adding
+// one node the model currently allows at a time, until nothing more can be
+// added. Returns null when the result does not validate.
+function prunedAllocation(remaining) {
+  const kept = new Set();
+  for (;;) {
+    const available = state.model.availableNodeIds([...kept]);
+    let added = false;
+    for (const id of remaining) {
+      if (!kept.has(id) && available.has(id)) {
+        kept.add(id);
+        added = true;
+        break;
+      }
+    }
+    if (!added) break;
+  }
+  return state.model.validateAllocation([...kept]).valid ? kept : null;
 }
 
 function rebuildModel(classId, ascendancyId, announce = true) {
@@ -662,6 +774,7 @@ elements.toggleMustHave.addEventListener('click', () => {
 });
 elements.findRoute.addEventListener('click', computeRoute);
 elements.clearMustHaves.addEventListener('click', clearMustHaves);
+elements.clearRoute.addEventListener('click', clearRoute);
 elements.mustHaveLimit.textContent = String(MAX_MUST_HAVES);
 elements.fitButton.addEventListener('click', fitTree);
 elements.retryButton.addEventListener('click', initialize);
@@ -673,8 +786,9 @@ elements.resetButton.addEventListener('click', () => {
     return;
   }
   setAllocation(new Set());
+  state.route = null;
+  renderRouteSummary();
   updateGraphState();
-  invalidateRoute();
   setStatus('All allocated nodes reset. Starting nodes remain implicit and free.');
 });
 
