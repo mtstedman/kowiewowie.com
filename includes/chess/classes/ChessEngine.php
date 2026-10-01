@@ -105,6 +105,27 @@ final class ChessEngine
         }
     }
 
+    /**
+     * Legal moves for game-tree search: no SAN decoration, and every move carries the
+     * position reached after it. The given board is not modified. Unlike the array-result
+     * methods above, this throws when the position cannot be searched (e.g. a missing king).
+     *
+     * @return list<array{uci: string, from: string, to: string, promotion: ?string, afterBoard: Board}>
+     */
+    public function searchMoves(Board $board): array
+    {
+        return array_map(
+            static fn (array $move): array => [
+                'uci' => $move['uci'],
+                'from' => $move['from'],
+                'to' => $move['to'],
+                'promotion' => $move['promotion'],
+                'afterBoard' => $move['afterBoard'],
+            ],
+            $this->collectLegalMoves($board),
+        );
+    }
+
     private function coerceBoard(string|Board $position): Board
     {
         return $position instanceof Board ? $position->copy() : Board::fromFen($position);
