@@ -132,145 +132,242 @@
     text-transform: none;
 }
 
-.risk-map {
-    position: relative;
-    min-height: 540px;
-    overflow: hidden;
-    border: 1px solid rgba(248, 209, 108, 0.34);
-    border-radius: 8px;
-    background:
-        radial-gradient(circle at 72% 20%, rgba(248, 209, 108, 0.12), transparent 24%),
-        linear-gradient(160deg, rgba(12, 50, 64, 0.95), var(--risk-ocean));
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 -44px 90px rgba(0, 0, 0, 0.28);
+.risk-scoreboard .risk-scoreboard-cards {
+    min-height: 0;
+    padding: 0 0.2rem;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 0.72rem;
 }
 
-.risk-map-art {
-    position: absolute;
-    inset: 0;
+.risk-owner-glyph {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.risk-scoreboard .risk-owner-glyph {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.owner-human .risk-owner-glyph,
+.risk-owner-glyph.owner-human {
+    color: var(--risk-human);
+}
+
+.owner-ai .risk-owner-glyph,
+.risk-owner-glyph.owner-ai {
+    color: var(--risk-ai);
+}
+
+.owner-neutral .risk-owner-glyph,
+.risk-owner-glyph.owner-neutral {
+    color: #e8dcc0;
+}
+
+/* Board */
+
+.risk-map {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid rgba(248, 209, 108, 0.34);
+    border-radius: 8px;
+    background: var(--risk-ocean);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.risk-board-svg {
+    display: block;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.96;
-    pointer-events: none;
+    min-width: 760px;
+    height: auto;
+    font-family: inherit;
     user-select: none;
 }
 
-.risk-territory-layer {
-    position: absolute;
-    inset: 0;
+.risk-board-svg.is-waiting .risk-land,
+.risk-board-svg.is-waiting .risk-marker {
+    cursor: progress;
 }
 
-.risk-territory {
-    --owner-color: var(--risk-neutral);
-    --owner-rgb: var(--risk-neutral-rgb);
-    position: absolute;
-    left: var(--x);
-    top: var(--y);
-    width: clamp(118px, 11vw, 150px);
-    min-height: 58px;
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) 34px;
-    gap: 0.45rem;
-    align-items: center;
-    padding: 0.48rem 0.54rem;
-    border: 2px solid rgba(var(--owner-rgb), 0.52);
-    border-radius: 8px;
-    background:
-        linear-gradient(135deg, rgba(var(--owner-rgb), 0.22), rgba(5, 14, 28, 0.86) 58%),
-        rgba(5, 14, 28, 0.72);
-    color: var(--risk-ink);
-    font: inherit;
-    text-align: left;
+.risk-land {
     cursor: pointer;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 14px 26px -18px rgba(0, 0, 0, 0.96), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-    transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease, background 160ms ease, opacity 160ms ease;
+    transition: filter 160ms ease, stroke 160ms ease, stroke-width 160ms ease;
 }
 
-.risk-territory:hover:not(:disabled),
-.risk-territory:focus-visible:not(:disabled),
-.risk-territory.is-actionable {
-    border-color: var(--accent-warm);
-    transform: translate(-50%, -52%);
-    box-shadow: 0 0 0 2px rgba(249, 248, 113, 0.24), 0 18px 30px -20px rgba(0, 0, 0, 0.95);
+.risk-land:hover,
+.risk-land.is-detail {
+    filter: brightness(1.14);
 }
 
-.risk-territory.is-selected {
-    border-color: #ffffff;
-    box-shadow: 0 0 0 2px rgba(var(--owner-rgb), 0.36), 0 0 24px rgba(var(--owner-rgb), 0.26);
+.risk-land.is-placeable {
+    filter: brightness(1.08) saturate(1.1);
 }
 
-.risk-territory.is-targeted {
-    border-color: var(--accent-strong);
-    box-shadow: 0 0 0 2px rgba(255, 43, 214, 0.3), 0 0 24px rgba(255, 43, 214, 0.22);
+.risk-land.is-legal {
+    stroke: #f9f871;
+    stroke-width: 3;
+    stroke-dasharray: 7 4;
+    filter: brightness(1.2);
 }
 
-.risk-territory.is-disabled {
-    cursor: wait;
-    opacity: 0.72;
+.risk-land.is-source {
+    stroke: #ffffff;
+    stroke-width: 4;
+    stroke-dasharray: none;
+    filter: brightness(1.25);
 }
 
-.risk-territory.owner-human {
-    --owner-color: var(--risk-human);
-    --owner-rgb: var(--risk-human-rgb);
+.risk-land.is-target {
+    stroke: #ff2bd6;
+    stroke-width: 4;
+    stroke-dasharray: 2 3;
+    filter: brightness(1.18) saturate(1.2);
 }
 
-.risk-territory.owner-ai {
-    --owner-color: var(--risk-ai);
-    --owner-rgb: var(--risk-ai-rgb);
+.risk-marker {
+    --owner-fill: #64748b;
+    --owner-ink: #f7fbff;
+    cursor: pointer;
+    outline: none;
 }
 
-.risk-territory.owner-neutral {
-    --owner-color: var(--risk-neutral);
-    --owner-rgb: var(--risk-neutral-rgb);
+.risk-marker.owner-human {
+    --owner-fill: var(--risk-human);
+    --owner-ink: #04121c;
 }
 
-.risk-territory-emblem {
-    width: 28px;
-    height: 28px;
-    color: var(--owner-color);
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55));
+.risk-marker.owner-ai {
+    --owner-fill: var(--risk-ai);
+    --owner-ink: #1c0409;
 }
 
-.risk-territory-label {
-    min-width: 0;
-    display: grid;
-    gap: 0.1rem;
+.risk-marker.owner-neutral {
+    --owner-fill: #e8dcc0;
+    --owner-ink: #1b1607;
 }
 
-.risk-territory-name {
-    overflow: hidden;
-    color: #ffffff;
-    font-size: 0.82rem;
+.risk-marker-shape {
+    fill: var(--owner-fill);
+    stroke: #071923;
+    stroke-width: 2;
+    transition: fill 160ms ease;
+}
+
+.risk-marker-count {
+    fill: var(--owner-ink);
+    font-size: 12.5px;
     font-weight: 900;
-    line-height: 1.1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    pointer-events: none;
 }
 
-.risk-territory-meta {
-    overflow: hidden;
+.risk-marker-name {
+    fill: #ffffff;
+    font-size: 9.5px;
+    font-weight: 800;
+    paint-order: stroke;
+    stroke: rgba(4, 12, 20, 0.85);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+.risk-marker-badge {
+    fill: #ffffff;
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: 0.08em;
+    paint-order: stroke;
+    stroke: #071923;
+    stroke-width: 3px;
+    pointer-events: none;
+}
+
+.risk-marker-ring {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 3;
+}
+
+.risk-marker:hover .risk-marker-ring {
+    stroke: rgba(255, 255, 255, 0.55);
+}
+
+.risk-marker.is-placeable .risk-marker-ring {
+    stroke: rgba(248, 209, 108, 0.75);
+    stroke-dasharray: 1 3;
+    stroke-linecap: round;
+}
+
+.risk-marker.is-legal .risk-marker-ring {
+    stroke: #f9f871;
+    stroke-dasharray: 5 3;
+    animation: risk-ring-pulse 1.4s ease-in-out infinite;
+}
+
+.risk-marker.is-source .risk-marker-ring {
+    stroke: #ffffff;
+    stroke-width: 4;
+    stroke-dasharray: none;
+    animation: none;
+}
+
+.risk-marker.is-target .risk-marker-ring {
+    stroke: #ff2bd6;
+    stroke-width: 4;
+    stroke-dasharray: 3 2;
+    animation: none;
+}
+
+.risk-marker.is-source .risk-marker-badge {
+    fill: #ffffff;
+}
+
+.risk-marker.is-target .risk-marker-badge {
+    fill: #ffb3f0;
+}
+
+.risk-marker:focus-visible .risk-marker-ring {
+    stroke: #7dd3fc;
+    stroke-width: 5;
+    stroke-dasharray: none;
+}
+
+.risk-map.is-fallback .risk-marker-name {
+    font-size: 11px;
+}
+
+@keyframes risk-ring-pulse {
+    0%,
+    100% {
+        stroke-opacity: 1;
+    }
+
+    50% {
+        stroke-opacity: 0.35;
+    }
+}
+
+.risk-map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    margin: 0.65rem 0 0;
     color: var(--ink-soft);
-    font-size: 0.66rem;
-    font-weight: 850;
-    line-height: 1.1;
-    text-overflow: ellipsis;
-    text-transform: uppercase;
-    white-space: nowrap;
+    font-size: 0.78rem;
+    font-weight: 750;
 }
 
-.risk-territory-armies {
-    min-width: 32px;
-    min-height: 32px;
+.risk-map-legend > span {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(var(--owner-rgb), 0.5);
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.28);
-    color: var(--owner-color);
-    font-size: 1rem;
-    font-weight: 950;
+    gap: 0.3rem;
 }
 
 .risk-status-message,
@@ -288,6 +385,203 @@
     min-height: 0;
     margin-top: 0.75rem;
 }
+
+/* Dice tray */
+
+.risk-dice-tray {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.75rem 1rem;
+    margin-top: 1rem;
+    padding: 0.9rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(248, 209, 108, 0.12), transparent 60%),
+        rgba(5, 14, 28, 0.66);
+}
+
+.risk-dice-tray h3,
+.risk-dice-comparisons,
+.risk-dice-result {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+.risk-dice-side {
+    min-width: 0;
+    display: grid;
+    gap: 0.45rem;
+    align-content: start;
+}
+
+.risk-dice-label {
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    font-weight: 850;
+    overflow-wrap: anywhere;
+}
+
+.risk-dice-row {
+    min-height: 52px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.risk-die {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    padding: 6px;
+    border-radius: 9px;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25), 0 6px 14px -8px rgba(0, 0, 0, 0.9);
+}
+
+.risk-die i {
+    width: 8px;
+    height: 8px;
+    place-self: center;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0;
+}
+
+.risk-die-attack {
+    background: linear-gradient(145deg, #ef4444, #b91c1c);
+    color: #ffffff;
+}
+
+.risk-die-defend {
+    background: linear-gradient(145deg, #ffffff, #d6dde6);
+    color: #0b1622;
+}
+
+.risk-die.is-idle {
+    opacity: 0.32;
+}
+
+.risk-die[data-value="1"] i:nth-child(5),
+.risk-die[data-value="2"] i:nth-child(3),
+.risk-die[data-value="2"] i:nth-child(7),
+.risk-die[data-value="3"] i:nth-child(3),
+.risk-die[data-value="3"] i:nth-child(5),
+.risk-die[data-value="3"] i:nth-child(7),
+.risk-die[data-value="4"] i:nth-child(1),
+.risk-die[data-value="4"] i:nth-child(3),
+.risk-die[data-value="4"] i:nth-child(7),
+.risk-die[data-value="4"] i:nth-child(9),
+.risk-die[data-value="5"] i:nth-child(1),
+.risk-die[data-value="5"] i:nth-child(3),
+.risk-die[data-value="5"] i:nth-child(5),
+.risk-die[data-value="5"] i:nth-child(7),
+.risk-die[data-value="5"] i:nth-child(9),
+.risk-die[data-value="6"] i:nth-child(1),
+.risk-die[data-value="6"] i:nth-child(3),
+.risk-die[data-value="6"] i:nth-child(4),
+.risk-die[data-value="6"] i:nth-child(6),
+.risk-die[data-value="6"] i:nth-child(7),
+.risk-die[data-value="6"] i:nth-child(9) {
+    opacity: 1;
+}
+
+.risk-die.is-rolling {
+    animation: risk-die-tumble 420ms ease-in-out infinite;
+}
+
+.risk-die-defend.is-rolling {
+    animation-delay: -140ms;
+}
+
+.risk-die.is-win {
+    outline: 3px solid #f9f871;
+    outline-offset: 2px;
+}
+
+.risk-die.is-loss {
+    opacity: 0.62;
+    filter: grayscale(0.45);
+}
+
+.risk-die.is-unused {
+    opacity: 0.38;
+}
+
+.risk-die.is-win::after,
+.risk-die.is-loss::after {
+    position: absolute;
+    right: -7px;
+    bottom: -7px;
+    width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #071923;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.risk-die.is-win::after {
+    content: "\2713";
+    border: 2px solid #f9f871;
+}
+
+.risk-die.is-loss::after {
+    content: "\2715";
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+@keyframes risk-die-tumble {
+    0% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    25% {
+        transform: translateY(-10px) rotate(90deg);
+    }
+
+    50% {
+        transform: translateY(0) rotate(180deg);
+    }
+
+    75% {
+        transform: translateY(-6px) rotate(270deg);
+    }
+
+    100% {
+        transform: translateY(0) rotate(360deg);
+    }
+}
+
+.risk-dice-comparisons {
+    display: grid;
+    gap: 0.25rem;
+    padding-left: 1.2rem;
+    color: var(--ink);
+    font-size: 0.85rem;
+    font-weight: 750;
+}
+
+.risk-dice-comparisons:empty {
+    display: none;
+}
+
+.risk-dice-result {
+    padding: 0.6rem 0.7rem;
+    border-left: 4px solid #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--ink-soft);
+    font-weight: 750;
+}
+
+/* Command panel */
 
 .risk-command-panel {
     display: grid;
@@ -321,6 +615,11 @@
     background: linear-gradient(135deg, rgba(74, 222, 128, 0.24), rgba(248, 209, 108, 0.16));
 }
 
+.risk-button-attack {
+    border-color: #ef4444;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.28), rgba(10, 32, 44, 0.9));
+}
+
 .risk-button:hover:not(:disabled),
 .risk-button:focus-visible:not(:disabled) {
     border-color: var(--accent-warm);
@@ -333,6 +632,7 @@
     cursor: not-allowed;
 }
 
+.risk-subpanel,
 .risk-territory-card,
 .risk-log-panel {
     display: grid;
@@ -343,6 +643,276 @@
     background: rgba(5, 14, 28, 0.58);
 }
 
+.risk-subpanel[hidden] {
+    display: none;
+}
+
+.risk-subpanel h3,
+.risk-subpanel p {
+    margin: 0;
+}
+
+.risk-subpanel-alert {
+    border-color: var(--accent-warm);
+    box-shadow: 0 0 0 2px rgba(248, 209, 108, 0.18);
+}
+
+.risk-dice-choice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.risk-dice-choice legend {
+    width: 100%;
+    margin-bottom: 0.35rem;
+    padding: 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 850;
+}
+
+.risk-dice-choice label {
+    min-width: 52px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.6rem;
+    border: 2px solid var(--surface-edge-strong);
+    border-radius: 6px;
+    background: rgba(10, 32, 44, 0.88);
+    color: var(--ink);
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.risk-dice-choice label:has(input:checked) {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.risk-dice-choice label:has(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.risk-inline-field {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.risk-inline-field label {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 850;
+}
+
+.risk-inline-field input[type="number"] {
+    width: 5rem;
+    min-height: 44px;
+    padding: 0.4rem 0.5rem;
+    border: 2px solid var(--surface-edge-strong);
+    border-radius: 6px;
+    background: rgba(5, 14, 28, 0.9);
+    color: var(--ink);
+    font: inherit;
+    font-weight: 900;
+}
+
+.risk-inline-field input[type="number"]:disabled {
+    opacity: 0.5;
+}
+
+.risk-check {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    font-weight: 750;
+}
+
+.risk-check input {
+    width: 20px;
+    height: 20px;
+}
+
+/* Cards */
+
+.risk-trade-value,
+.risk-hand-help {
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.risk-hand {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.risk-hand-empty {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.risk-card {
+    width: 96px;
+    min-height: 92px;
+    display: grid;
+    align-content: start;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    border: 2px solid rgba(248, 209, 108, 0.45);
+    border-radius: 8px;
+    background: linear-gradient(170deg, rgba(248, 209, 108, 0.16), rgba(5, 14, 28, 0.9));
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.risk-card::before {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.risk-card-infantry::before {
+    content: "\265F";
+}
+
+.risk-card-cavalry::before {
+    content: "\265E";
+}
+
+.risk-card-artillery::before {
+    content: "\2738";
+}
+
+.risk-card-wild::before {
+    content: "\2605";
+}
+
+.risk-card[aria-pressed="true"] {
+    border-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(255, 43, 214, 0.45);
+    transform: translateY(-3px);
+}
+
+.risk-card[aria-pressed="true"] .risk-card-type::after {
+    content: " ✓";
+}
+
+.risk-card-type {
+    color: var(--accent-warm);
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.risk-card-name {
+    font-size: 0.78rem;
+    font-weight: 850;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.risk-card-owned {
+    color: var(--risk-human);
+    font-size: 0.66rem;
+    font-weight: 850;
+}
+
+/* Selection */
+
+.risk-selection-figure {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background:
+        radial-gradient(circle at 30% 30%, rgba(248, 209, 108, 0.25), transparent 55%),
+        linear-gradient(160deg, #123c4a, #071923);
+}
+
+.risk-selection-figure img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+.risk-selection-figure.is-art-missing img {
+    display: none;
+}
+
+.risk-selection-figure.is-art-missing {
+    background:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 10px, transparent 10px 20px),
+        radial-gradient(circle at 30% 30%, rgba(248, 209, 108, 0.25), transparent 55%),
+        linear-gradient(160deg, #123c4a, #071923);
+}
+
+.risk-selection-shape {
+    position: absolute;
+    top: 8%;
+    right: 5%;
+    width: 46%;
+    height: 70%;
+    overflow: visible;
+    filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.65));
+    pointer-events: none;
+}
+
+.risk-selection-land {
+    stroke: #ffffff;
+    stroke-width: 3px;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.risk-selection-land.owner-human {
+    stroke: var(--risk-human);
+}
+
+.risk-selection-land.owner-ai {
+    stroke: var(--risk-ai);
+}
+
+.risk-selection-land.owner-neutral {
+    stroke: #e8dcc0;
+    stroke-dasharray: 6 3;
+}
+
+.risk-selection-figure figcaption {
+    position: absolute;
+    left: 0.5rem;
+    bottom: 0.5rem;
+    max-width: calc(100% - 1rem);
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    background: rgba(4, 12, 20, 0.82);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 850;
+}
+
 .risk-selection-list {
     display: grid;
     gap: 0.42rem;
@@ -351,7 +921,7 @@
 
 .risk-selection-list div {
     display: grid;
-    grid-template-columns: minmax(6.25rem, auto) minmax(0, 1fr);
+    grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr);
     gap: 0.6rem;
 }
 
@@ -370,7 +940,7 @@
 .risk-log {
     display: grid;
     gap: 0.45rem;
-    max-height: 244px;
+    max-height: 260px;
     margin: 0;
     padding-left: 1.25rem;
     overflow: auto;
@@ -386,24 +956,29 @@
     color: var(--accent-warm);
 }
 
-@media (max-width: 1080px) {
-    .risk-territory {
-        width: clamp(104px, 14vw, 132px);
-        grid-template-columns: 24px minmax(0, 1fr) 30px;
-        min-height: 52px;
-        padding: 0.42rem;
-    }
+/* Rules */
 
-    .risk-territory-emblem {
-        width: 24px;
-        height: 24px;
-    }
+.risk-rules h2 {
+    margin: 0.2rem 0 1rem;
+}
 
-    .risk-territory-armies {
-        min-width: 28px;
-        min-height: 28px;
-        font-size: 0.92rem;
-    }
+.risk-rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.9rem 1.2rem;
+}
+
+.risk-rules-grid h3 {
+    margin: 0 0 0.3rem;
+    color: var(--accent-warm);
+    font-size: 0.95rem;
+}
+
+.risk-rules-grid p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
 @media (max-width: 940px) {
@@ -417,7 +992,9 @@
     }
 
     .risk-command-panel > .risk-panel-heading,
-    .risk-command-panel > .risk-actions {
+    .risk-command-panel > .risk-actions,
+    .risk-command-panel > .risk-subpanel-alert,
+    .risk-command-panel > .risk-check {
         grid-column: 1 / -1;
     }
 }
@@ -427,56 +1004,52 @@
         display: grid;
     }
 
-    .risk-map {
-        min-height: 680px;
-    }
-
-    .risk-territory {
-        width: min(42vw, 138px);
-    }
-
-    .risk-territory-name {
-        font-size: 0.78rem;
+    .risk-board-svg {
+        min-width: 680px;
     }
 
     .risk-command-panel {
         grid-template-columns: 1fr;
     }
 
-    .risk-actions {
+    .risk-dice-tray {
         grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 430px) {
-    .risk-map {
-        min-height: 620px;
+    .risk-board-svg {
+        min-width: 620px;
     }
 
-    .risk-territory {
-        width: min(23vw, 96px);
-        min-height: 48px;
-        grid-template-columns: minmax(0, 1fr) 26px;
-        gap: 0.3rem;
-        padding: 0.38rem;
+    .risk-actions {
+        grid-template-columns: 1fr;
     }
 
-    .risk-territory[data-territory="harbor"] {
-        top: 92%;
-    }
-
-    .risk-territory-emblem,
-    .risk-territory-meta {
-        display: none;
-    }
-
-    .risk-territory-armies {
-        min-width: 26px;
-        min-height: 26px;
+    .risk-die {
+        width: 40px;
+        height: 40px;
+        padding: 5px;
     }
 
     .risk-selection-list div {
         grid-template-columns: 1fr;
         gap: 0.1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .risk-die.is-rolling,
+    .risk-marker.is-legal .risk-marker-ring {
+        animation: none;
+    }
+
+    .risk-land,
+    .risk-marker-shape {
+        transition: none;
+    }
+
+    .risk-card[aria-pressed="true"] {
+        transform: none;
     }
 }

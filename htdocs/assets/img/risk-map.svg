@@ -1,51 +1,115 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-labelledby="title desc">
-  <title id="title">Risk command map</title>
-  <desc id="desc">A stylized tactical island map with connected regions, coastlines, routes, and landmarks for the browser Risk game.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" aria-labelledby="risk-map-title risk-map-desc">
+  <title id="risk-map-title">Classic Risk world board</title>
+  <desc id="risk-map-desc">Original vector world board with the 42 classic Risk territories in six continents: North America, South America, Europe, Africa, Asia and Australia. Dashed lines mark sea routes, including the Alaska to Kamchatka route across the top edge.</desc>
   <defs>
-    <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="risk-ocean-fill" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#123c4a"/>
       <stop offset="0.54" stop-color="#0d2d3b"/>
       <stop offset="1" stop-color="#071923"/>
     </linearGradient>
-    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#d9c179"/>
-      <stop offset="0.48" stop-color="#8fb876"/>
-      <stop offset="1" stop-color="#7f6a4b"/>
-    </linearGradient>
-    <linearGradient id="south" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#d9a15c"/>
-      <stop offset="0.48" stop-color="#a66c55"/>
-      <stop offset="1" stop-color="#5e4f4a"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.34"/>
-    </filter>
-    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
-      <path d="M64 0H0v64" fill="none" stroke="#ffffff" stroke-opacity="0.055" stroke-width="1"/>
+    <pattern id="risk-grid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M50 0H0v50" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
     </pattern>
+    <filter id="risk-land-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
   </defs>
-  <rect width="1000" height="700" fill="url(#ocean)"/>
-  <rect width="1000" height="700" fill="url(#grid)"/>
-  <path d="M78 154c52-72 156-102 248-82 78 17 106 76 166 86 57 10 102-28 165-12 80 21 144 101 144 184 0 77-53 126-37 190 13 54 68 84 59 116-9 33-78 29-151 18-85-13-117-39-187-34-90 7-127 55-201 34-57-16-67-55-127-66-62-11-98 20-122-3-32-30 25-84 18-165-7-85-79-120-66-186 5-26 23-51 91-80Z" fill="url(#land)" filter="url(#shadow)" opacity="0.94"/>
-  <path d="M248 406c48-35 112-22 145 13 39 42 26 100 68 126 43 27 91-14 146 12 42 20 73 68 66 111-86 9-178 11-273 5-109-7-204-25-281-49 10-65 58-166 129-218Z" fill="url(#south)" opacity="0.86"/>
-  <path d="M139 186c51-43 139-58 194-20 55 39 29 98 80 127 57 33 114-23 175 16 55 36 51 107 88 128 28 16 64 1 101-20" fill="none" stroke="#fff6c9" stroke-opacity="0.18" stroke-width="18" stroke-linecap="round"/>
-  <path d="M180 520c71-47 142-36 190 5 48 42 88 79 164 66 68-12 87-59 153-49 50 8 85 43 110 74" fill="none" stroke="#5b4638" stroke-opacity="0.22" stroke-width="20" stroke-linecap="round"/>
-  <g fill="none" stroke="#f8d16c" stroke-opacity="0.38" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 12">
-    <path d="M360 98 180 196 390 231 632 168 750 329 490 350 230 343 300 483 585 483 690 600"/>
-    <path d="M180 196 230 343 490 350 585 483 380 602 210 588"/>
-    <path d="M490 350 750 329 585 483 690 600 380 602"/>
+  <rect width="1000" height="700" fill="url(#risk-ocean-fill)"/>
+  <rect width="1000" height="700" fill="url(#risk-grid)"/>
+
+  <g class="risk-sea-links" aria-hidden="true" fill="none" stroke="#f8d16c" stroke-opacity="0.75" stroke-width="2.5" stroke-dasharray="6 6" stroke-linecap="round">
+    <path data-link="alaska kamchatka" d="M50 72C120-8 860-8 930 52"/>
+    <path data-link="northwest-territory greenland" d="M250 64L284 68"/>
+    <path data-link="ontario greenland" d="M234 144L292 98"/>
+    <path data-link="quebec greenland" d="M290 124L312 116"/>
+    <path data-link="greenland iceland" d="M366 80L398 96"/>
+    <path data-link="iceland great-britain" d="M414 110L432 134"/>
+    <path data-link="iceland scandinavia" d="M436 96L482 96"/>
+    <path data-link="great-britain scandinavia" d="M450 148L496 138"/>
+    <path data-link="great-britain northern-europe" d="M450 176L474 192"/>
+    <path data-link="great-britain western-europe" d="M436 198L452 216"/>
+    <path data-link="western-europe north-africa" d="M450 288L446 304"/>
+    <path data-link="southern-europe north-africa" d="M500 286L490 302"/>
+    <path data-link="southern-europe egypt" d="M532 276L538 306"/>
+    <path data-link="brazil north-africa" d="M342 428L414 360"/>
+    <path data-link="east-africa middle-east" d="M604 390L612 352"/>
+    <path data-link="east-africa madagascar" d="M600 446L600 490"/>
+    <path data-link="south-africa madagascar" d="M566 520L588 520"/>
+    <path data-link="kamchatka japan" d="M936 150L930 174"/>
+    <path data-link="mongolia japan" d="M880 206L914 206"/>
+    <path data-link="siam indonesia" d="M796 410L818 438"/>
+    <path data-link="indonesia new-guinea" d="M860 454L892 446"/>
+    <path data-link="indonesia western-australia" d="M836 476L852 512"/>
+    <path data-link="new-guinea western-australia" d="M906 460L884 500"/>
+    <path data-link="new-guinea eastern-australia" d="M930 464L926 496"/>
   </g>
-  <g fill="#f7fbff" opacity="0.2">
-    <circle cx="88" cy="102" r="2"/>
-    <circle cx="880" cy="126" r="2.4"/>
-    <circle cx="912" cy="436" r="1.8"/>
-    <circle cx="132" cy="632" r="2.2"/>
-    <circle cx="504" cy="72" r="1.8"/>
-    <circle cx="822" cy="612" r="2.6"/>
+
+  <g class="risk-continent-labels" aria-hidden="true" fill="#f7fbff" fill-opacity="0.78" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">
+    <text x="500" y="28" text-anchor="middle" fill="#f8d16c" font-size="10">ALASKA ⇄ KAMCHATKA SEA ROUTE</text>
+    <text x="24" y="372">NORTH AMERICA</text>
+    <text x="24" y="387" font-size="10">+5 ARMIES</text>
+    <text x="228" y="600" text-anchor="end">SOUTH AMERICA</text>
+    <text x="228" y="615" text-anchor="end" font-size="10">+2 ARMIES</text>
+    <text x="446" y="50" text-anchor="middle">EUROPE +5</text>
+    <text x="442" y="470" text-anchor="middle">AFRICA +3</text>
+    <text x="986" y="292" text-anchor="end">ASIA +7</text>
+    <text x="900" y="660" text-anchor="middle">AUSTRALIA +2</text>
   </g>
-  <g fill="#071923" opacity="0.22">
-    <path d="M305 82c27 33 36 72 27 118-36-34-74-43-119-28 22-42 52-72 92-90Z"/>
-    <path d="M628 128c35 35 52 75 51 121-39-29-83-37-133-23 19-44 46-77 82-98Z"/>
-    <path d="M574 438c36 28 57 63 64 105-48-21-92-18-132 9 6-44 29-82 68-114Z"/>
+
+  <g class="risk-lands" aria-hidden="true" stroke="#08161f" stroke-width="1.6" stroke-linejoin="round" filter="url(#risk-land-shadow)">
+    <g data-continent="north-america" fill="#d9aa4f">
+      <path id="risk-land-alaska" data-territory="alaska" d="M22 80L96 66L100 142L84 160L62 156L34 178L42 142L20 118Z"/>
+      <path id="risk-land-northwest-territory" data-territory="northwest-territory" d="M96 66L152 54L206 46L252 60L242 104L236 142L170 142L100 142Z"/>
+      <path id="risk-land-greenland" data-territory="greenland" d="M275 30L345 22L380 40L360 92L322 128L296 104L282 62Z"/>
+      <path id="risk-land-alberta" data-territory="alberta" d="M100 142L170 142L172 212L112 212L84 160Z"/>
+      <path id="risk-land-ontario" data-territory="ontario" d="M170 142L236 142L244 146L242 178L236 214L196 213L172 212Z"/>
+      <path id="risk-land-quebec" data-territory="quebec" d="M244 146L282 120L306 148L294 194L264 214L236 214L242 178Z"/>
+      <path id="risk-land-western-united-states" data-territory="western-united-states" d="M112 212L172 212L196 213L190 250L176 290L150 304L118 292L100 250Z"/>
+      <path id="risk-land-eastern-united-states" data-territory="eastern-united-states" d="M196 213L236 214L264 214L272 236L252 266L236 292L230 322L218 300L196 302L176 290L190 250Z"/>
+      <path id="risk-land-central-america" data-territory="central-america" d="M118 292L150 304L176 290L196 302L186 330L200 352L214 370L206 378L180 356L150 334L124 312Z"/>
+    </g>
+    <g data-continent="south-america" fill="#c8674a">
+      <path id="risk-land-venezuela" data-territory="venezuela" d="M206 378L214 370L248 372L286 384L296 402L262 410L230 412L210 400Z"/>
+      <path id="risk-land-peru" data-territory="peru" d="M210 400L230 412L262 410L256 450L270 490L250 500L226 470L212 432Z"/>
+      <path id="risk-land-brazil" data-territory="brazil" d="M262 410L296 402L330 420L352 446L340 486L310 520L286 530L270 490L256 450Z"/>
+      <path id="risk-land-argentina" data-territory="argentina" d="M250 500L270 490L286 530L310 520L290 560L270 610L252 640L240 610L238 550Z"/>
+    </g>
+    <g data-continent="europe" fill="#6f8fd0">
+      <path id="risk-land-iceland" data-territory="iceland" d="M392 92L418 82L438 96L422 112L398 110Z"/>
+      <path id="risk-land-great-britain" data-territory="great-britain" d="M420 150L436 128L452 140L450 172L440 198L422 198L430 176L418 166Z"/>
+      <path id="risk-land-scandinavia" data-territory="scandinavia" d="M480 70L520 58L548 70L540 110L530 150L516 170L500 152L492 120L478 100Z"/>
+      <path id="risk-land-ukraine" data-territory="ukraine" d="M548 70L600 60L640 74L640 130L636 180L628 230L600 250L572 236L552 206L540 184L530 150L540 110Z"/>
+      <path id="risk-land-northern-europe" data-territory="northern-europe" d="M470 188L500 176L516 170L530 150L540 184L552 206L522 220L486 222L468 206Z"/>
+      <path id="risk-land-western-europe" data-territory="western-europe" d="M468 206L486 222L492 250L478 280L446 290L436 262L446 234L452 212Z"/>
+      <path id="risk-land-southern-europe" data-territory="southern-europe" d="M486 222L522 220L552 206L572 236L560 262L540 280L518 268L500 286L478 280L492 250Z"/>
+    </g>
+    <g data-continent="africa" fill="#a97d52">
+      <path id="risk-land-north-africa" data-territory="north-africa" d="M420 320L450 300L486 300L520 306L530 350L520 400L490 420L456 410L426 380L412 350Z"/>
+      <path id="risk-land-egypt" data-territory="egypt" d="M520 306L560 304L580 322L574 352L530 350Z"/>
+      <path id="risk-land-east-africa" data-territory="east-africa" d="M530 350L574 352L590 380L616 410L598 440L572 470L546 470L536 440L520 400Z"/>
+      <path id="risk-land-congo" data-territory="congo" d="M490 420L520 400L536 440L546 470L520 490L492 478L484 446Z"/>
+      <path id="risk-land-south-africa" data-territory="south-africa" d="M492 478L520 490L546 470L572 470L566 520L540 570L512 580L498 540Z"/>
+      <path id="risk-land-madagascar" data-territory="madagascar" d="M592 500L606 488L614 520L600 556L586 540Z"/>
+    </g>
+    <g data-continent="asia" fill="#7aa95a">
+      <path id="risk-land-ural" data-territory="ural" d="M640 74L684 64L694 110L700 160L690 190L636 180L640 130Z"/>
+      <path id="risk-land-siberia" data-territory="siberia" d="M684 64L740 50L770 60L772 110L764 150L746 186L718 184L700 160L694 110Z"/>
+      <path id="risk-land-yakutsk" data-territory="yakutsk" d="M770 60L840 52L860 70L850 110L772 110Z"/>
+      <path id="risk-land-kamchatka" data-territory="kamchatka" d="M840 52L910 48L970 64L976 110L948 150L920 140L900 170L880 150L850 110L860 70Z"/>
+      <path id="risk-land-irkutsk" data-territory="irkutsk" d="M772 110L850 110L880 150L860 170L810 172L764 150Z"/>
+      <path id="risk-land-mongolia" data-territory="mongolia" d="M764 150L810 172L860 170L880 150L900 170L880 210L840 228L790 226L746 186Z"/>
+      <path id="risk-land-japan" data-territory="japan" d="M916 182L934 172L942 200L928 242L912 238L922 210Z"/>
+      <path id="risk-land-afghanistan" data-territory="afghanistan" d="M636 180L690 190L704 214L700 248L670 266L640 258L628 230Z"/>
+      <path id="risk-land-china" data-territory="china" d="M690 190L700 160L718 184L746 186L790 226L840 228L850 262L820 300L780 310L744 300L716 276L700 248L704 214Z"/>
+      <path id="risk-land-middle-east" data-territory="middle-east" d="M560 262L572 236L600 250L628 230L640 258L670 266L664 300L640 330L610 350L592 334L580 322L560 304Z"/>
+      <path id="risk-land-india" data-territory="india" d="M670 266L700 248L716 276L744 300L740 330L720 370L700 400L684 370L664 330L664 300Z"/>
+      <path id="risk-land-siam" data-territory="siam" d="M744 300L780 310L796 340L786 380L800 410L784 414L766 380L748 350L740 330Z"/>
+    </g>
+    <g data-continent="australia" fill="#a56fb2">
+      <path id="risk-land-indonesia" data-territory="indonesia" d="M800 440L828 432L860 452L846 474L812 470Z"/>
+      <path id="risk-land-new-guinea" data-territory="new-guinea" d="M890 432L940 430L962 452L932 464L896 458Z"/>
+      <path id="risk-land-western-australia" data-territory="western-australia" d="M840 520L880 500L900 510L904 580L870 600L838 590L824 556Z"/>
+      <path id="risk-land-eastern-australia" data-territory="eastern-australia" d="M880 500L920 494L948 510L966 546L958 590L930 620L904 606L904 580L900 510Z"/>
+    </g>
   </g>
 </svg>
