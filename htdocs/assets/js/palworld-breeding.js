@@ -9,6 +9,7 @@
     const routeStatus = document.getElementById('palworld-route-status');
     const summary = document.getElementById('palworld-route-summary');
     const tree = document.getElementById('palworld-route-tree');
+    const routeHelp = document.getElementById('palworld-route-help');
     const results = document.querySelector('.palworld-results');
     const sourceList = document.getElementById('palworld-sources');
     const addSourceButton = document.getElementById('palworld-add-source');
@@ -73,6 +74,7 @@
         tree.replaceChildren();
         summary.replaceChildren();
         summary.hidden = true;
+        routeHelp.hidden = true;
     }
 
     function invalidate() {
@@ -210,16 +212,7 @@
         traits.append(element('legend', '', 'Wanted traits carried'));
         const traitChoices = element('div', 'palworld-trait-choices');
         traits.append(traitChoices);
-        const genderLabel = element('label', '', 'Gender (optional)');
-        genderLabel.htmlFor = id + '-gender';
-        const gender = element('select');
-        gender.id = id + '-gender';
-        [['', 'Unknown'], ['male', 'Male'], ['female', 'Female']].forEach(function (entry) {
-            const option = element('option', '', entry[1]);
-            option.value = entry[0];
-            gender.append(option);
-        });
-        const source = { id: id, row: row, picker: picker, gender: gender, traitChoices: traitChoices, traitSlots: new Set() };
+        const source = { id: id, row: row, picker: picker, traitChoices: traitChoices, traitSlots: new Set() };
         const remove = button('Remove owned pal ' + number, function () {
             const index = sources.indexOf(source);
             sources.splice(index, 1);
@@ -229,7 +222,7 @@
             if (next) next.picker.input.focus();
             else addSourceButton.focus();
         }, 'palworld-remove');
-        row.append(traits, genderLabel, gender, remove);
+        row.append(traits, remove);
         sources.push(source);
         sourceList.append(row);
         refreshSourceTraits(source);
@@ -254,20 +247,16 @@
         });
     }
 
-    function genderName(gender) {
-        return gender === 'male' ? 'Male' : gender === 'female' ? 'Female' : 'Either gender';
-    }
-
-    function renderNode(node, requiredGender) {
+    // Each branch is an <li> holding the pal's card followed by an ordered list of
+    // its two parents, so the accessible hierarchy matches the drawn tree.
+    function renderNode(node, isTarget) {
         const item = element('li', 'palworld-tree-branch');
-        const card = element('article', 'palworld-node palworld-node-' + node.type);
+        const card = element('article', 'palworld-node palworld-node-' + node.type + (isTarget ? ' palworld-node-target' : ''));
         const typeLabel = node.type === 'breed' ? 'Breed' : node.type === 'source' ? 'Owned pal' : 'Helper pal';
-        card.append(element('p', 'palworld-node-type', typeLabel));
+        card.append(element('p', 'palworld-node-type', isTarget ? 'Target · ' + typeLabel : typeLabel));
         const heading = element('h4', 'palworld-node-heading');
         heading.append(palIdentity(node.pal));
         card.append(heading);
-        if (requiredGender) card.append(element('p', 'palworld-gender', 'Required as parent: ' + genderName(requiredGender)));
-        if (node.type === 'source') card.append(element('p', 'palworld-help', 'Gender: ' + (node.gender ? genderName(node.gender) : 'Unknown')));
         const chips = element('ul', 'palworld-chips');
         chips.setAttribute('aria-label', 'Wanted traits carried');
         const traits = node.type === 'helper' ? [] : node.traits;
@@ -276,9 +265,6 @@
         card.append(chips);
         if (node.type === 'breed') {
             card.append(element('p', 'palworld-eggs', eggFormat.format(node.expectedEggs) + ' expected eggs'));
-            if (node.parentGenders.some(function (gender) { return gender !== null; })) {
-                card.append(element('p', 'palworld-help', 'Required parents: ' + genderName(node.parentGenders[0]) + ' × ' + genderName(node.parentGenders[1])));
-            }
         } else if (node.type === 'helper') {
             const excludeButton = button("Don't have", function () {
                 excluded.add(node.pal);
@@ -292,8 +278,8 @@
         item.append(card);
         if (node.type === 'breed') {
             const parents = element('ol', 'palworld-parents');
-            parents.setAttribute('aria-label', 'Parents of ' + palFor(node.pal).name);
-            node.parents.forEach(function (parent, index) { parents.append(renderNode(parent, node.parentGenders[index])); });
+            parents.setAttribute('aria-label', 'Parents bred together for ' + palFor(node.pal).name);
+            node.parents.forEach(function (parent) { parents.append(renderNode(parent, false)); });
             item.append(parents);
         }
         return item;
@@ -311,8 +297,7 @@
                 return {
                     id: source.id,
                     pal: source.picker.key,
-                    traits: Array.from(source.traitSlots).map(function (index) { return labels[index]; }).filter(Boolean),
-                    gender: source.gender.value || null
+                    traits: Array.from(source.traitSlots).map(function (index) { return labels[index]; }).filter(Boolean)
                 };
             }),
             excluded: Array.from(excluded)
@@ -337,10 +322,11 @@
                     );
                     summary.hidden = false;
                     const root = element('ol', 'palworld-tree');
-                    root.setAttribute('aria-label', 'Breeding route, target followed by its parents');
-                    root.append(renderNode(result.root, null));
+                    root.setAttribute('aria-label', 'Breeding route: the target first, then each pal followed by the two parents bred together to make it');
+                    root.append(renderNode(result.root, true));
                     tree.append(root);
-                    routeStatus.textContent = 'Route ready. ' + eggFormat.format(result.totalEggs) + ' total expected eggs across ' + result.stepCount + ' breeding steps. Read from the target down to its parents.';
+                    routeHelp.hidden = false;
+                    routeStatus.textContent = 'Route ready. ' + eggFormat.format(result.totalEggs) + ' total expected eggs across ' + result.stepCount + (result.stepCount === 1 ? ' breeding step' : ' breeding steps') + '. The target is at the top of the tree; follow each branch down to the two parents you breed together.';
                 } catch (error) {
                     clearRoute();
                     routeStatus.textContent = 'Unable to find a route: ' + (error instanceof Error ? error.message : 'Please try again.');
@@ -395,7 +381,8 @@
     routeStatus.tabIndex = -1;
     tree.tabIndex = 0;
     tree.setAttribute('role', 'region');
-    tree.setAttribute('aria-label', 'Breeding tree; scroll to explore longer branches');
+    tree.setAttribute('aria-label', 'Breeding tree; scroll to explore wider or deeper branches');
+    tree.setAttribute('aria-describedby', routeHelp.id);
     form.addEventListener('submit', function (event) {
         event.preventDefault();
         runRoute();

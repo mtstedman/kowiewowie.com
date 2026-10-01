@@ -315,38 +315,138 @@
 }
 
 #palworld-route-tree {
+    --palworld-link: 1.75rem;
+    --palworld-line: 2px;
+    --palworld-card: 13rem;
     max-width: 100%;
-    overflow-x: auto;
-    padding: var(--space-xs);
+    overflow: auto;
+    overscroll-behavior-x: contain;
+    padding: var(--space-md) var(--space-sm);
+    border: 1px solid var(--palworld-border);
+    border-radius: var(--palworld-radius);
+    background: var(--paper);
 }
 
 #palworld-route-tree:empty {
     display: none;
 }
 
+/* Top-down family tree: each branch is a card with its two parents below,
+   joined by a bracket connector and a decorative "×" pair marker. */
 .palworld-tree,
 .palworld-parents {
-    display: grid;
-    gap: var(--space-md);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
+.palworld-tree {
+    width: max-content;
+    min-width: 100%;
+}
+
 .palworld-tree-branch {
-    min-width: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     margin: 0;
+    padding-inline: var(--space-sm);
+}
+
+.palworld-tree > .palworld-tree-branch {
+    padding-inline: 0;
 }
 
 .palworld-parents {
-    margin-top: var(--space-sm);
-    margin-left: var(--space-xs);
-    padding-left: var(--space-sm);
-    border-left: 2px solid var(--accent);
+    position: relative;
+    padding-top: var(--palworld-link);
+}
+
+/* Stem from the offspring card down to its parent pair. */
+.palworld-parents::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: var(--palworld-link);
+    margin-left: calc(var(--palworld-line) / -2);
+    border-left: var(--palworld-line) solid var(--accent);
+}
+
+/* Pair marker where the stem meets the parents' bracket. */
+.palworld-parents::after {
+    content: "×";
+    content: "×" / "";
+    position: absolute;
+    z-index: 1;
+    top: var(--palworld-link);
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    box-sizing: border-box;
+    border: var(--palworld-line) solid var(--accent);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--accent);
+    font-size: var(--step--1);
+    font-weight: 700;
+    line-height: 1;
+    transform: translate(-50%, -50%);
+}
+
+.palworld-parents > .palworld-tree-branch {
+    padding-top: var(--palworld-link);
+}
+
+.palworld-parents > .palworld-tree-branch::before,
+.palworld-parents > .palworld-tree-branch::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: var(--palworld-link);
+    box-sizing: border-box;
+    border-top: var(--palworld-line) solid var(--accent);
+}
+
+.palworld-parents > .palworld-tree-branch::before {
+    left: 0;
+}
+
+.palworld-parents > .palworld-tree-branch::after {
+    left: 50%;
+}
+
+.palworld-parents > .palworld-tree-branch:first-child::before {
+    border-top: 0;
+}
+
+.palworld-parents > .palworld-tree-branch:first-child::after {
+    left: calc(50% - var(--palworld-line) / 2);
+    width: calc(50% + var(--palworld-line) / 2);
+    border-left: var(--palworld-line) solid var(--accent);
+    border-top-left-radius: var(--palworld-radius);
+}
+
+.palworld-parents > .palworld-tree-branch:last-child::before {
+    width: calc(50% + var(--palworld-line) / 2);
+    border-right: var(--palworld-line) solid var(--accent);
+    border-top-right-radius: var(--palworld-radius);
+}
+
+.palworld-parents > .palworld-tree-branch:last-child::after {
+    border: 0;
 }
 
 .palworld-node {
-    min-width: 190px;
+    box-sizing: border-box;
+    width: var(--palworld-card);
     padding: var(--space-sm);
     border: 1px solid var(--palworld-border);
     border-radius: var(--palworld-radius);
@@ -358,6 +458,16 @@
     border-top: 3px solid var(--accent);
 }
 
+.palworld-node-helper {
+    border-style: dashed;
+}
+
+.palworld-node-target {
+    width: calc(var(--palworld-card) + 2rem);
+    border: 3px solid var(--accent);
+    box-shadow: 0 0 0 4px var(--paper), 0 0 0 6px var(--accent);
+}
+
 .palworld-node-type {
     margin: 0 0 var(--space-xs);
     color: var(--ink-soft);
@@ -365,9 +475,23 @@
     font-weight: 700;
 }
 
+.palworld-node-target .palworld-node-type {
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
 .palworld-node-heading {
     margin: 0;
     font-size: var(--step-1);
+}
+
+.palworld-node .palworld-pal-identity {
+    display: flex;
+}
+
+.palworld-node button {
+    width: 100%;
 }
 
 .palworld-chips {
@@ -394,9 +518,8 @@
     color: var(--ink-soft);
 }
 
-.palworld-eggs,
-.palworld-gender {
-    margin-block: var(--space-xs);
+.palworld-eggs {
+    margin-block: var(--space-xs) 0;
     color: var(--accent);
     font-size: var(--step--1);
     font-weight: 700;
@@ -451,5 +574,21 @@
 
     .palworld-panel {
         padding: var(--space-sm);
+    }
+}
+
+@media (max-width: 600px) {
+    #palworld-route-tree {
+        --palworld-link: 1.5rem;
+        --palworld-card: 11rem;
+        padding-inline: var(--space-xs);
+    }
+
+    .palworld-tree-branch {
+        padding-inline: var(--space-xs);
+    }
+
+    .palworld-node-target {
+        width: calc(var(--palworld-card) + 1rem);
     }
 }

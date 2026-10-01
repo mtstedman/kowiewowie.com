@@ -51,7 +51,7 @@ $palworldScriptVersion = static function (string $href): string {
 
                         <section aria-labelledby="palworld-owned-title">
                             <h3 id="palworld-owned-title">3. Add the pals you own</h3>
-                            <p class="palworld-help">Choose each pal's species and the wanted traits it carries. Add separate rows for separate pals, even of the same species. Gender is optional.</p>
+                            <p class="palworld-help">Choose each pal's species and the wanted traits it carries. Add separate rows for separate pals, even of the same species.</p>
                             <div id="palworld-sources" class="palworld-sources"></div>
                             <button id="palworld-add-source" type="button">Add owned pal</button>
                         </section>
@@ -64,6 +64,7 @@ $palworldScriptVersion = static function (string $href): string {
                     <h2 id="palworld-route-title">The path to your pal</h2>
                     <p id="palworld-route-status" role="status" aria-live="polite" aria-atomic="true">Fill in your plan to find a route.</p>
                     <div id="palworld-route-summary" class="palworld-summary" hidden></div>
+                    <p id="palworld-route-help" class="palworld-help" hidden>Read from the top down: your target sits at the top, and each pal branches down to the two parents (joined by ×) that you breed together. Wide routes scroll sideways inside the tree.</p>
                     <div id="palworld-route-tree"></div>
                     <section class="palworld-exclusions" aria-labelledby="palworld-excluded-title">
                         <h3 id="palworld-excluded-title">Unavailable helpers</h3>
