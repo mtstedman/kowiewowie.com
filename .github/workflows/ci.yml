@@ -46,6 +46,9 @@ jobs:
       - name: Run public UX accessibility regressions
         run: php tests/public-ux-accessibility.php
 
+      - name: Validate Sonny Angels catalog assets and prices
+        run: php tests/sonny-angels-catalog.php
+
       - name: Run murder trivia regressions
         run: |
           php tests/trivia-question-catalog.php

@@ -23,6 +23,12 @@ function saUrl(string $value): bool
         && !empty($parts['host']) && !isset($parts['user']) && !isset($parts['pass']);
 }
 
+function saImageUrl(string $value): bool
+{
+    return preg_match('#^/assets/images/sonny-angels/[A-Za-z0-9_./()@%+,&-]+$#D', $value) === 1
+        && !str_contains($value, '/./') && !str_contains($value, '/../');
+}
+
 function saDate($value): bool
 {
     if (!is_string($value) || !preg_match('/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/D', $value, $parts)) {
@@ -126,7 +132,7 @@ function saImage(array $images, string $name, bool $seriesOnly = false): void
 {
     $selected = null;
     foreach ($images as $image) {
-        if (saUrl($image['url']) && saUrl($image['sourceUrl'])) {
+        if (saImageUrl($image['url']) && saUrl($image['sourceUrl'])) {
             $selected = $image;
             break;
         }
@@ -254,7 +260,7 @@ require __DIR__ . '/../partials/head.php';
                 <h2 id="sa-coverage-title">A growing catalog, with known gaps</h2>
                 <p>Catalog checked <time datetime="<?= saEscape($catalog['checkedAt']) ?>"><?= saEscape($catalog['checkedAt']) ?></time> · <?= count($catalog['figures']) ?> figures · <?= count($seriesById) ?> series.</p>
                 <p><?= saEscape($catalog['coverage']['summary']) ?></p>
-                <p>Images are linked from the catalog’s sources. Image/name pairings have not been visually verified; external images may become unavailable.</p>
+                <p>Catalog images are hosted locally, with links back to their original sources. Image/name pairings have not been visually verified.</p>
                 <details>
                     <summary>Coverage gaps and catalog sources</summary>
                     <ul><?php foreach ($catalog['coverage']['gaps'] as $gap): ?><li><?= saEscape($gap) ?></li><?php endforeach; ?></ul>
