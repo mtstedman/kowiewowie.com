@@ -126,6 +126,15 @@
           "sha256": "818ed56ff53ff25c2dd82cf3f52834b71e978214e02e67a4f8699a0807835d4f"
         }
       ]
+    },
+    {
+      "version": 15,
+      "updates": [
+        {
+          "file": "updates/014_unified_collectibles.sql",
+          "sha256": "759c880948f471c649f971a095ad0fe721b9fc7d5c629ea47747981a41bf7d03"
+        }
+      ]
     }
   ]
 }

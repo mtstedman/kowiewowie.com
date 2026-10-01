@@ -132,8 +132,9 @@ classifications, positions, and directed moves.
 
 ## Collectibles catalog sync
 
-The Skullpanda and Nommi catalog tables are filled by a server-side pull from
-public storefront pages. Apply the schema first, then run the sync:
+The unified Skullpanda, Nommi, and Sonny Angel catalog is filled by two
+server-side storefront pulls plus the versioned Sonny data file. Apply the
+schema first, then run the sync:
 
 ```bash
 php docs/postgres/db-version-minter.php
@@ -152,6 +153,7 @@ products are upserted by `(source_key, external_id)`.
 | -------------- | ---------- | ---------------------------------------------------------------------- | -------- |
 | `popmart-us`   | skullpanda | Official Pop Mart US store, `https://www.popmart.com/us/collection/skullpanda` | USD      |
 | `toysez-nommi` | nommi      | TOYSEZ (third-party Shopify retailer), `https://toysez.com/collections/nommi`   | USD      |
+| `sonny-angels-catalog` | sonny-angel | Versioned, sourced catalog in `htdocs/assets/data/sonny-angels.json` | Mixed |
 
 - **Skullpanda** walks the collection pages (`?page=N`, at most 30) and then
   reads each product page for its main image and figure names. A `(Secret)`
@@ -163,6 +165,10 @@ products are upserted by `(source_key, external_id)`.
   Shopify feed: the first request uses `<collection>/products.json?limit=250`,
   then later requests add `&page=N` until an empty or short page (at most 20),
   keeping products whose title, vendor, or tags contain `nommi`.
+- **Sonny Angel** imports the locally versioned catalog and locally hosted
+  images into the same searchable database shelf. A figure's representative
+  market price prefers sold evidence, then asking price, then retail; the kind,
+  observation date, and source URL remain attached to that price.
 
 Checked on 2026-10-01 for the Nommi source: a full production sync returned
 166 products tagged `Nommi`, each with a `cdn.shopify.com` image and no named
@@ -172,9 +178,10 @@ rate limits the redundant `page=1` query shape, so the sync omits it for the
 first request and stops immediately when that first page is short. A full
 production Pop Mart sync returned 82 Skullpanda products and 58 named variants.
 
-Prices are the retail listing prices shown by each store at sync time, stored
-in minor units with the store currency; they are not live and are not market
-or resale values. Images are stored as remote HTTPS URLs and are not copied.
+Prices are stored in minor units with the observed currency. Storefront prices
+are retail listings, while Sonny prices retain whether they are retail, asking,
+or sold evidence and link to the observation source. Sonny images are local;
+the two storefront catalogs retain their remote HTTPS image URLs.
 
 Requests use HTTPS only, wait at least one second between requests to the same
 host, and time out after 20 seconds, so a full run takes a few minutes. A daily

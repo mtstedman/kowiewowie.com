@@ -9,7 +9,7 @@ const [nginxConfig, lobbyPhp, gamePhp] = await Promise.all([
     read('htdocs/chess/game.php'),
 ]);
 
-const expectedCsp = "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data: https://cards.scryfall.io https://prod-global-biz.popmart.com https://cdn.shopify.com; object-src 'none'";
+const expectedCsp = "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data: https://cards.scryfall.io https://prod-global-biz.popmart.com https://prod-america-res.popmart.com https://cdn.shopify.com; object-src 'none'";
 assert.ok(nginxConfig.includes(`Content-Security-Policy "${expectedCsp}"`), 'nginx CSP keeps the same-origin no-inline boundary');
 assert.equal(nginxConfig.includes("'unsafe-inline'"), false, 'nginx CSP does not allow inline script execution');
 

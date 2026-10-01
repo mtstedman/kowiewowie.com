@@ -138,20 +138,28 @@ final class Application
                     : substr($query, 0, 100);
             }
             $brand = trim((string) ($request->query['brand'] ?? ''));
-            if ($brand !== '' && !in_array($brand, ['skullpanda', 'nommi'], true)) {
-                throw new ApiException(422, 'validation_error', 'brand must be skullpanda or nommi.', [
-                    'brand' => 'Use skullpanda or nommi.',
+            if ($brand !== '' && !in_array($brand, ['skullpanda', 'nommi', 'sonny-angel'], true)) {
+                throw new ApiException(422, 'validation_error', 'brand must be skullpanda, nommi, or sonny-angel.', [
+                    'brand' => 'Use skullpanda, nommi, or sonny-angel.',
+                ]);
+            }
+            $sort = trim((string) ($request->query['sort'] ?? 'name-asc'));
+            $sorts = ['name-asc', 'name-desc', 'price-asc', 'price-desc', 'newest', 'oldest'];
+            if (!in_array($sort, $sorts, true)) {
+                throw new ApiException(422, 'validation_error', 'sort is not supported.', [
+                    'sort' => 'Use name-asc, name-desc, price-asc, price-desc, newest, or oldest.',
                 ]);
             }
             $limit = max(1, min(100, isset($request->query['limit']) ? (int) $request->query['limit'] : 48));
             $offset = max(0, isset($request->query['offset']) ? (int) $request->query['offset'] : 0);
-            $result = $this->collectibles->search($query === '' ? null : $query, $brand === '' ? null : $brand, $limit, $offset);
+            $result = $this->collectibles->search($query === '' ? null : $query, $brand === '' ? null : $brand, $sort, $limit, $offset);
 
             return Response::json([
                 'data' => $result['items'],
                 'meta' => [
                     'limit' => $limit,
                     'offset' => $offset,
+                    'sort' => $sort,
                     'count' => count($result['items']),
                     'total' => $result['total'],
                     'last_synced_at' => $result['last_synced_at'],
@@ -715,4 +723,3 @@ final class Application
         ];
     }
 }
-

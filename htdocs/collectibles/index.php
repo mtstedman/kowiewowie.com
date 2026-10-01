@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Collectibles - wowiekowie.com';
-$metaDescription = 'Browse every SKULLPANDA and Nommi blind box series, figure variant, secret, image, and price.';
+$metaDescription = 'Browse Sonny Angel, SKULLPANDA, and Nommi series, figures, secrets, images, and sourced prices in one catalog.';
 $pageStyles = ['/assets/css/collectibles.css'];
 ?>
 <?php include __DIR__ . '/../partials/head.php'; ?>
@@ -15,8 +15,8 @@ $pageStyles = ['/assets/css/collectibles.css'];
         <main>
             <section class="hero hero-compact" aria-labelledby="collectibles-title">
                 <p class="eyebrow">Blind box shelf</p>
-                <h1 id="collectibles-title">Every SKULLPANDA and Nommi, secrets included.</h1>
-                <p class="lede">Search series and figure names, flip between lines, and peek at each variant before the box gets shaken.</p>
+                <h1 id="collectibles-title">Every Sonny Angel, SKULLPANDA, and Nommi—one shelf.</h1>
+                <p class="lede">Search every line, compare sourced prices, sort by price or time, and peek at each variant before the box gets shaken.</p>
                 <div class="hero-actions">
                     <a class="text-link" href="/">Home base</a>
                 </div>
@@ -48,8 +48,24 @@ $pageStyles = ['/assets/css/collectibles.css'];
                                 <input type="radio" name="brand" value="nommi">
                                 <span>Nommi</span>
                             </label>
+                            <label class="collectibles-filter-option">
+                                <input type="radio" name="brand" value="sonny-angel">
+                                <span>Sonny Angel</span>
+                            </label>
                         </div>
                     </fieldset>
+                    <div class="collectibles-sort">
+                        <label for="collectibles-sort">Sort</label>
+                        <select id="collectibles-sort" name="sort">
+                            <option value="name-asc">Name A–Z</option>
+                            <option value="name-desc">Name Z–A</option>
+                            <option value="price-asc">Price: low to high</option>
+                            <option value="price-desc">Price: high to low</option>
+                            <option value="newest">Newest first</option>
+                            <option value="oldest">Oldest first</option>
+                        </select>
+                    </div>
+                    <button id="collectibles-export-pdf" class="button collectibles-export" type="button">Export PDF</button>
                 </form>
 
                 <div class="collectibles-meta">

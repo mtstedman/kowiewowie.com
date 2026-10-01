@@ -19,6 +19,7 @@ final class PopMartCollectionSource
     public const CURRENCY = 'USD';
     public const HOST = 'www.popmart.com';
     public const IMAGE_HOST = 'prod-global-biz.popmart.com';
+    public const AMERICA_IMAGE_HOST = 'prod-america-res.popmart.com';
 
     private const ORIGIN = 'https://www.popmart.com';
     private const COLLECTION_URL = 'https://www.popmart.com/us/collection/skullpanda';
@@ -228,10 +229,10 @@ final class PopMartCollectionSource
             }
         }
 
-        // Fall back to the first CDN image in page order, taking the widest
+        // Fall back to the first product CDN image in page order, taking the widest
         // rendition of that same file that the page itself references.
         $haystack = str_replace('\\/', '/', $html);
-        $matched = preg_match_all('~https://prod-global-biz\.popmart\.com/[^\s"\'<>\\\\)`]+~i', $haystack, $matches);
+        $matched = preg_match_all('~https://(?:prod-global-biz|prod-america-res)\.popmart\.com/[^\s"\'<>\\\\)`]+~i', $haystack, $matches);
         if ($matched === false || $matched < 1) {
             return null;
         }
@@ -507,7 +508,7 @@ final class PopMartCollectionSource
         if (
             !is_array($parts)
             || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
-            || strtolower((string) ($parts['host'] ?? '')) !== self::IMAGE_HOST
+            || !in_array(strtolower((string) ($parts['host'] ?? '')), [self::IMAGE_HOST, self::AMERICA_IMAGE_HOST], true)
             || preg_match('~\.(?:jpe?g|png|webp|gif|avif)$~i', (string) ($parts['path'] ?? '')) !== 1
         ) {
             return null;

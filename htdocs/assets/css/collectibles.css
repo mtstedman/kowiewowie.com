@@ -16,7 +16,7 @@
 
 .collectibles-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(14rem, 1fr) auto minmax(11rem, auto) auto;
   align-items: end;
   gap: 1rem;
   width: 100%;
@@ -36,7 +36,8 @@
 }
 
 .collectibles-search label,
-.collectibles-filter legend {
+.collectibles-filter legend,
+.collectibles-sort label {
   margin: 0;
   padding: 0;
   color: var(--ink-soft);
@@ -72,6 +73,25 @@
   box-shadow: var(--shadow-sm), 0 0 0 4px rgba(0, 245, 255, 0.14);
   outline: 2px solid transparent;
   outline-offset: 3px;
+}
+
+.collectibles-sort {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.collectibles-sort select {
+  min-height: 3.25rem;
+  padding: 0.65rem 2.5rem 0.65rem 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-tint);
+  color: var(--ink);
+  font: inherit;
+}
+
+.collectibles-export {
+  min-height: 3.25rem;
 }
 
 .collectibles-filter {
@@ -219,6 +239,11 @@
   object-fit: cover;
 }
 
+.collectible-card[data-brand="sonny-angel"] :is(.collectible-card-image, .collectible-variant-image) {
+  object-fit: contain;
+  background: #fff;
+}
+
 .collectible-card-summary {
   display: grid;
   gap: 0.35rem;
@@ -251,6 +276,12 @@
 .collectible-price.is-unavailable {
   color: var(--ink-soft);
   font-weight: 600;
+}
+
+.collectible-release {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
 }
 
 .collectible-source {
@@ -328,6 +359,11 @@
   font-size: 0.85rem;
 }
 
+.collectible-price-source {
+  color: var(--accent);
+  text-underline-offset: 0.15em;
+}
+
 .collectibles-more {
   display: flex;
   justify-content: center;
@@ -336,6 +372,12 @@
 .collectibles-more .button[disabled] {
   opacity: 0.7;
   cursor: progress;
+}
+
+@media (max-width: 1100px) {
+  .collectibles-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -347,7 +389,7 @@
 
   .collectibles-filter-options {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .collectibles-filter-option span {
@@ -358,6 +400,74 @@
 
   .collectibles-more .button {
     width: 100%;
+  }
+}
+
+@page {
+  size: letter portrait;
+  margin: 0.45in;
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    color: #111;
+    background: #fff;
+    font-size: 9pt;
+  }
+
+  .site-header,
+  .page-shell > footer,
+  .collectibles-controls,
+  .collectibles-meta,
+  .collectibles-more,
+  .hero-actions {
+    display: none !important;
+  }
+
+  .hero {
+    min-height: 0;
+    padding-block: 0 0.2in;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .hero::before,
+  .hero::after {
+    display: none;
+  }
+
+  .hero h1,
+  .hero p,
+  .collectible-card,
+  .collectible-title,
+  .collectible-variant-name {
+    color: #111;
+  }
+
+  .collectibles-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.12in;
+  }
+
+  .collectible-card {
+    break-inside: avoid;
+    padding: 0.1in;
+    border: 1px solid #999;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .collectible-card-header {
+    grid-template-columns: 0.75in minmax(0, 1fr);
+  }
+
+  .collectible-variant-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

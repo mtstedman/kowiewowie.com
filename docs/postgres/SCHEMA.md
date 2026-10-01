@@ -1,9 +1,9 @@
-<!-- schema-version: 14 -->
+<!-- schema-version: 15 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 14**. `migration-chain.json` is the ordered,
+current release pin is **version 15**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -31,11 +31,12 @@ per-file execution ledger.
 | 12 | `012_trivia_mini_games.sql` | Expanded Killing Floor trials with poison chalices, sword boxes, and crypt runes |
 | 13 | `013_collectibles_catalog.sql` | Cached SKULLPANDA and Nommi collectible series products and their figure variants |
 | 14 | `013_palworld_breeding.sql` | Indexed Palworld pals, breeding pairs, passive skills, and dataset provenance |
+| 15 | `014_unified_collectibles.sql` | Sonny Angel catalog support, release-year sorting, and sourced price metadata |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 14 inventory
+## Current version 15 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -265,15 +266,16 @@ dataset.
 
 ## Collectibles catalog
 
-The collectibles tables cache a server-side pull of Pop Mart SKULLPANDA and
-Nommi blind-box lines. They are a refreshable catalog snapshot, not
+The collectibles tables cache Pop Mart SKULLPANDA, Nommi, and the versioned
+Sonny Angel catalog. They are a refreshable catalog snapshot, not
 user-authored content, and use `bigint` identity keys rather than UUIDs.
 
 `collectible_products` stores one series-level product per upstream listing:
-`id` (identity primary key), `brand` (`skullpanda` or `nommi`), `source_key`
+`id` (identity primary key), `brand` (`skullpanda`, `nommi`, or `sonny-angel`), `source_key`
 naming the upstream source, the source's `external_id`, `title`,
 `product_url`, optional `image_url`, optional `price_cents`, optional
-`currency`, and `first_seen_at`/`last_seen_at` timestamps (both default to
+`currency`, optional price kind/source/date metadata, optional `release_year`,
+and `first_seen_at`/`last_seen_at` timestamps (both default to
 `now()`). `(source_key, external_id)` is unique so refreshes upsert the same
 row and advance `last_seen_at`. The `brand` index supports per-line listing.
 
@@ -281,7 +283,8 @@ row and advance `last_seen_at`. The `brand` index supports per-line listing.
 (identity primary key), `product_id` referencing `collectible_products(id)`
 with `ON DELETE CASCADE`, `name`, `is_secret` (default `false`) for secret or
 chase figures, optional `image_url`, optional `price_cents`, optional
-`currency`, and display `position` (default `0`). `(product_id, name)` is
+`currency`, optional price kind/source/date metadata, and display `position`
+(default `0`). `(product_id, name)` is
 unique.
 
 `price_cents` is a non-negative integer amount in currency minor units, paired

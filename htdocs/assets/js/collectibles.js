@@ -6,7 +6,9 @@
     const BRANDS = {
         skullpanda: 'SKULLPANDA',
         nommi: 'Nommi',
+        'sonny-angel': 'Sonny Angel',
     };
+    const SORTS = new Set(['name-asc', 'name-desc', 'price-asc', 'price-desc', 'newest', 'oldest']);
 
     const form = document.getElementById('collectibles-form');
     const searchInput = document.getElementById('collectibles-search-input');
@@ -14,6 +16,8 @@
     const updatedElement = document.getElementById('collectibles-updated');
     const resultsElement = document.getElementById('collectibles-results');
     const loadMoreButton = document.getElementById('collectibles-load-more');
+    const sortSelect = document.getElementById('collectibles-sort');
+    const exportButton = document.getElementById('collectibles-export-pdf');
 
     if (
         !(form instanceof HTMLFormElement)
@@ -22,6 +26,8 @@
         || !(updatedElement instanceof HTMLElement)
         || !(resultsElement instanceof HTMLElement)
         || !(loadMoreButton instanceof HTMLButtonElement)
+        || !(sortSelect instanceof HTMLSelectElement)
+        || !(exportButton instanceof HTMLButtonElement)
     ) {
         return;
     }
@@ -32,6 +38,7 @@
     const state = {
         q: '',
         brand: '',
+        sort: 'name-asc',
         loaded: 0,
         total: 0,
         requestToken: 0,
@@ -47,6 +54,8 @@
         return Object.prototype.hasOwnProperty.call(BRANDS, brand) ? brand : '';
     };
 
+    const normalizeSort = (value) => SORTS.has(String(value ?? '')) ? String(value) : 'name-asc';
+
     const isHttpsUrl = (value) => {
         if (typeof value !== 'string' || !value.startsWith('https://')) {
             return false;
@@ -58,6 +67,12 @@
             return false;
         }
     };
+
+    const isSafeImageUrl = (value) => isHttpsUrl(value)
+        || (typeof value === 'string'
+            && /^\/assets\/images\/sonny-angels\/[A-Za-z0-9_./()@%+,&-]+$/.test(value)
+            && !value.includes('/../')
+            && !value.includes('/./'));
 
     const formatPrice = (cents, currency) => {
         if (typeof cents !== 'number' || !Number.isFinite(cents) || typeof currency !== 'string' || currency.trim() === '') {
@@ -112,7 +127,7 @@
     };
 
     const createImage = (url, altText, className) => {
-        if (!isHttpsUrl(url)) {
+        if (!isSafeImageUrl(url)) {
             return null;
         }
 
@@ -121,8 +136,10 @@
         image.alt = altText;
         image.loading = 'lazy';
         image.decoding = 'async';
-        image.referrerPolicy = 'no-referrer';
-        image.setAttribute('referrerpolicy', 'no-referrer');
+        if (isHttpsUrl(url)) {
+            image.referrerPolicy = 'no-referrer';
+            image.setAttribute('referrerpolicy', 'no-referrer');
+        }
         image.addEventListener('error', () => {
             const wrapper = image.parentElement;
             image.remove();
@@ -200,7 +217,19 @@
 
         const ownPrice = formatPrice(safeVariant.price_cents, safeVariant.currency);
         if (ownPrice !== null) {
-            body.append(createElement('span', 'collectible-variant-price', ownPrice));
+            const kind = ['retail', 'asking', 'sold'].includes(safeVariant.price_kind) ? safeVariant.price_kind : '';
+            const price = createElement('span', 'collectible-variant-price', `${ownPrice}${kind ? ` ${kind}` : ''}`);
+            if (isHttpsUrl(safeVariant.price_source_url)) {
+                const source = createElement('a', 'collectible-price-source', 'Price source');
+                source.href = safeVariant.price_source_url;
+                source.target = '_blank';
+                source.rel = 'noopener noreferrer';
+                if (typeof safeVariant.price_observed_on === 'string' && safeVariant.price_observed_on !== '') {
+                    source.textContent = `${kind || 'price'} · ${safeVariant.price_observed_on}`;
+                }
+                price.append(' · ', source);
+            }
+            body.append(price);
         } else if (productPrice !== null) {
             body.append(createElement('span', 'collectible-variant-price is-inherited', `${productPrice} per blind box`));
         }
@@ -215,6 +244,7 @@
         const label = brandLabel(safeProduct.brand);
         const variants = Array.isArray(safeProduct.variants) ? safeProduct.variants : [];
         const productPrice = formatPrice(safeProduct.price_cents, safeProduct.currency);
+        const productPriceKind = ['retail', 'asking', 'sold'].includes(safeProduct.price_kind) ? safeProduct.price_kind : '';
 
         const card = createElement('article', 'collectible-card');
         const brandKey = normalizeBrand(safeProduct.brand);
@@ -240,10 +270,14 @@
         heading.tabIndex = -1;
         summary.append(heading);
 
+        if (Number.isInteger(safeProduct.release_year)) {
+            summary.append(createElement('p', 'collectible-release', `Released ${safeProduct.release_year}`));
+        }
+
         summary.append(createElement(
             'p',
             productPrice === null ? 'collectible-price is-unavailable' : 'collectible-price',
-            productPrice === null ? 'Price unavailable' : `${productPrice} per blind box`
+            productPrice === null ? 'Price unavailable' : `${productPrice}${productPriceKind ? ` ${productPriceKind}` : ' per blind box'}`
         ));
 
         if (isHttpsUrl(safeProduct.product_url)) {
@@ -312,7 +346,7 @@
             try {
                 const payload = await response.json();
                 if (payload && typeof payload === 'object' && payload.details && typeof payload.details === 'object' && payload.details.brand) {
-                    return 'That line filter is not available. Choose All, Skullpanda, or Nommi.';
+                    return 'That line filter is not available. Choose All, Skullpanda, Nommi, or Sonny Angel.';
                 }
             } catch (error) {
                 // Fall through to the generic search message.
@@ -328,11 +362,15 @@
         const params = new URLSearchParams(window.location.search);
         params.delete('q');
         params.delete('brand');
+        params.delete('sort');
         if (state.q !== '') {
             params.set('q', state.q);
         }
         if (state.brand !== '') {
             params.set('brand', state.brand);
+        }
+        if (state.sort !== 'name-asc') {
+            params.set('sort', state.sort);
         }
 
         const query = params.toString();
@@ -371,6 +409,7 @@
         if (state.brand !== '') {
             params.set('brand', state.brand);
         }
+        params.set('sort', state.sort);
         params.set('limit', String(PAGE_SIZE));
         params.set('offset', String(offset));
 
@@ -460,13 +499,15 @@
         const q = normalizeQuery(searchInput.value);
         const checked = brandInputs.find((input) => input.checked);
         const brand = normalizeBrand(checked ? checked.value : '');
+        const sort = normalizeSort(sortSelect.value);
 
-        if (q === state.q && brand === state.brand && state.loaded > 0) {
+        if (q === state.q && brand === state.brand && sort === state.sort && state.loaded > 0) {
             return;
         }
 
         state.q = q;
         state.brand = brand;
+        state.sort = sort;
         load(true);
     };
 
@@ -492,6 +533,11 @@
         });
     });
 
+    sortSelect.addEventListener('change', () => {
+        cancelDebounce();
+        applyFormState();
+    });
+
     form.addEventListener('submit', (event) => {
         event.preventDefault();
         cancelDebounce();
@@ -506,10 +552,40 @@
         load(false);
     });
 
+    let printTitle = null;
+    const restorePrint = () => {
+        if (printTitle === null) return;
+        document.title = printTitle;
+        printTitle = null;
+        document.documentElement.classList.remove('collectibles-printing');
+        exportButton.disabled = false;
+        exportButton.removeAttribute('aria-busy');
+        exportButton.textContent = 'Export PDF';
+    };
+    window.addEventListener('afterprint', restorePrint);
+    exportButton.addEventListener('click', async () => {
+        if (state.loading) return;
+        exportButton.disabled = true;
+        exportButton.setAttribute('aria-busy', 'true');
+        exportButton.textContent = 'Preparing PDF…';
+        let previousLoaded = -1;
+        while (state.loaded < state.total && state.loaded !== previousLoaded) {
+            previousLoaded = state.loaded;
+            await load(false);
+        }
+        printTitle = document.title;
+        document.title = 'Collectibles catalog';
+        document.documentElement.classList.add('collectibles-printing');
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        window.print();
+    });
+
     const initialParams = new URLSearchParams(window.location.search);
     state.q = normalizeQuery(initialParams.get('q'));
     state.brand = normalizeBrand(initialParams.get('brand'));
+    state.sort = normalizeSort(initialParams.get('sort'));
     searchInput.value = state.q;
+    sortSelect.value = state.sort;
     brandInputs.forEach((input) => {
         input.checked = normalizeBrand(input.value) === state.brand;
     });

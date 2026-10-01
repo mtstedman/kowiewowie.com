@@ -9,7 +9,7 @@ use PDOException;
 use Throwable;
 
 /**
- * Pulls the Skullpanda and Nommi catalogs from their storefront sources and
+ * Pulls the Skullpanda, Nommi, and Sonny Angel catalogs from their sources and
  * stores them through CollectiblesRepository::upsertSourceCatalog.
  *
  * Sources run independently: one that fails or returns no products is reported
@@ -29,17 +29,17 @@ final class CollectiblesSync
 
     private CollectiblesRepository $repository;
 
-    /** @var list<PopMartCollectionSource|ShopifyCollectionSource> */
+    /** @var list<PopMartCollectionSource|ShopifyCollectionSource|SonnyAngelCatalogSource> */
     private array $sources;
 
     /**
-     * @param list<PopMartCollectionSource|ShopifyCollectionSource>|null $sources Defaults to defaultSources().
+     * @param list<PopMartCollectionSource|ShopifyCollectionSource|SonnyAngelCatalogSource>|null $sources Defaults to defaultSources().
      */
     public function __construct(CollectiblesRepository $repository, ?array $sources = null)
     {
         $sources ??= self::defaultSources();
         foreach ($sources as $source) {
-            if (!$source instanceof PopMartCollectionSource && !$source instanceof ShopifyCollectionSource) {
+            if (!$source instanceof PopMartCollectionSource && !$source instanceof ShopifyCollectionSource && !$source instanceof SonnyAngelCatalogSource) {
                 throw new InvalidArgumentException('Unsupported collectible source.');
             }
         }
@@ -49,9 +49,9 @@ final class CollectiblesSync
     }
 
     /**
-     * One Skullpanda source and one Nommi source, both on hard-coded hosts.
+     * Two storefront sources and the versioned local Sonny Angel catalog.
      *
-     * @return list<PopMartCollectionSource|ShopifyCollectionSource>
+     * @return list<PopMartCollectionSource|ShopifyCollectionSource|SonnyAngelCatalogSource>
      */
     public static function defaultSources(?CollectibleHttpClient $http = null): array
     {
@@ -67,6 +67,7 @@ final class CollectiblesSync
                 self::NOMMI_CURRENCY,
                 self::NOMMI_KEYWORD,
             ),
+            new SonnyAngelCatalogSource(dirname(__DIR__, 3) . '/htdocs/assets/data/sonny-angels.json'),
         ];
     }
 
@@ -137,8 +138,8 @@ final class CollectiblesSync
      * Normalize raw source products into the upsertSourceCatalog shape.
      *
      * Text is entity-decoded, tag-stripped, whitespace-collapsed and capped at
-     * 300 characters; URLs must be absolute https (a bad image becomes null, a
-     * product without an https product_url is skipped); currencies are
+     * 300 characters; product URLs must be absolute https while images may be
+     * absolute https or a safe local Sonny asset; currencies are
      * upper-case ISO codes; variants are de-duplicated by name per product.
      *
      * @param array<mixed> $products
@@ -184,9 +185,12 @@ final class CollectiblesSync
                 $variants[] = [
                     'name' => $name,
                     'is_secret' => ($variant['is_secret'] ?? false) === true,
-                    'image_url' => self::httpsUrlOrNull($variant['image_url'] ?? null),
+                    'image_url' => self::imageUrlOrNull($variant['image_url'] ?? null),
                     'price_cents' => self::centsOrNull($variant['price_cents'] ?? null),
                     'currency' => self::currencyOrNull($variant['currency'] ?? null),
+                    'price_kind' => self::priceKindOrNull($variant['price_kind'] ?? null),
+                    'price_source_url' => self::httpsUrlOrNull($variant['price_source_url'] ?? null),
+                    'price_observed_on' => self::dateOrNull($variant['price_observed_on'] ?? null),
                 ];
             }
 
@@ -194,9 +198,13 @@ final class CollectiblesSync
                 'external_id' => $externalId,
                 'title' => $title,
                 'product_url' => $productUrl,
-                'image_url' => self::httpsUrlOrNull($product['image_url'] ?? null),
+                'image_url' => self::imageUrlOrNull($product['image_url'] ?? null),
                 'price_cents' => self::centsOrNull($product['price_cents'] ?? null),
                 'currency' => self::currencyOrNull($product['currency'] ?? null),
+                'price_kind' => self::priceKindOrNull($product['price_kind'] ?? null),
+                'price_source_url' => self::httpsUrlOrNull($product['price_source_url'] ?? null),
+                'price_observed_on' => self::dateOrNull($product['price_observed_on'] ?? null),
+                'release_year' => self::releaseYearOrNull($product['release_year'] ?? null),
                 'variants' => $variants,
             ];
         }
@@ -280,6 +288,17 @@ final class CollectiblesSync
         return strtolower((string) parse_url($url, PHP_URL_SCHEME)) === 'https' ? $url : null;
     }
 
+    public static function imageUrlOrNull(mixed $value): ?string
+    {
+        if (is_string($value)
+            && preg_match('#^/assets/images/sonny-angels/[A-Za-z0-9_./()@%+,&-]+$#D', $value) === 1
+            && !str_contains($value, '/../') && !str_contains($value, '/./')) {
+            return $value;
+        }
+
+        return self::httpsUrlOrNull($value);
+    }
+
     private static function centsOrNull(mixed $value): ?int
     {
         return is_int($value) && $value >= 0 ? $value : null;
@@ -294,6 +313,26 @@ final class CollectiblesSync
         $currency = strtoupper(trim($value));
 
         return preg_match('/^[A-Z]{3}$/', $currency) === 1 ? $currency : null;
+    }
+
+    private static function priceKindOrNull(mixed $value): ?string
+    {
+        return is_string($value) && in_array($value, ['retail', 'asking', 'sold'], true) ? $value : null;
+    }
+
+    private static function dateOrNull(mixed $value): ?string
+    {
+        if (!is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/D', $value) !== 1) {
+            return null;
+        }
+        [$year, $month, $day] = array_map('intval', explode('-', $value));
+
+        return checkdate($month, $day, $year) ? $value : null;
+    }
+
+    private static function releaseYearOrNull(mixed $value): ?int
+    {
+        return is_int($value) && $value >= 2000 && $value <= 2100 ? $value : null;
     }
 
     private static function validUtf8(string $value): string

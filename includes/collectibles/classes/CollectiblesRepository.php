@@ -37,16 +37,18 @@ final class CollectiblesRepository
         if ($products === []) {
             throw new InvalidArgumentException('The product list must not be empty.');
         }
-        if (!in_array($brand, ['skullpanda', 'nommi'], true)) {
-            throw new InvalidArgumentException('The brand must be skullpanda or nommi.');
+        if (!in_array($brand, ['skullpanda', 'nommi', 'sonny-angel'], true)) {
+            throw new InvalidArgumentException('The brand must be skullpanda, nommi, or sonny-angel.');
         }
 
         foreach ($products as $product) {
             $this->assertHttpsUrl($product['product_url']);
-            $this->assertHttpsUrl($product['image_url']);
+            $this->assertImageUrl($product['image_url']);
             foreach ($product['variants'] as $variant) {
-                $this->assertHttpsUrl($variant['image_url']);
+                $this->assertImageUrl($variant['image_url']);
+                $this->assertHttpsUrl($variant['price_source_url'] ?? null);
             }
+            $this->assertHttpsUrl($product['price_source_url'] ?? null);
         }
 
         $productStatement = $this->pdo->prepare(<<<'SQL'
@@ -58,7 +60,11 @@ final class CollectiblesRepository
                 product_url,
                 image_url,
                 price_cents,
-                currency
+                currency,
+                price_kind,
+                price_source_url,
+                price_observed_on,
+                release_year
             ) VALUES (
                 :brand,
                 :source_key,
@@ -67,7 +73,11 @@ final class CollectiblesRepository
                 :product_url,
                 :image_url,
                 :price_cents,
-                :currency
+                :currency,
+                :price_kind,
+                :price_source_url,
+                :price_observed_on,
+                :release_year
             )
             ON CONFLICT (source_key, external_id) DO UPDATE SET
                 title = EXCLUDED.title,
@@ -75,6 +85,10 @@ final class CollectiblesRepository
                 image_url = EXCLUDED.image_url,
                 price_cents = EXCLUDED.price_cents,
                 currency = EXCLUDED.currency,
+                price_kind = EXCLUDED.price_kind,
+                price_source_url = EXCLUDED.price_source_url,
+                price_observed_on = EXCLUDED.price_observed_on,
+                release_year = EXCLUDED.release_year,
                 last_seen_at = now()
             RETURNING id
         SQL);
@@ -90,6 +104,9 @@ final class CollectiblesRepository
                 image_url,
                 price_cents,
                 currency,
+                price_kind,
+                price_source_url,
+                price_observed_on,
                 position
             ) VALUES (
                 :product_id,
@@ -98,6 +115,9 @@ final class CollectiblesRepository
                 :image_url,
                 :price_cents,
                 :currency,
+                :price_kind,
+                :price_source_url,
+                :price_observed_on,
                 :position
             )
         SQL);
@@ -115,14 +135,14 @@ final class CollectiblesRepository
                     'image_url' => $product['image_url'],
                     'price_cents' => $product['price_cents'],
                     'currency' => $product['currency'],
+                    'price_kind' => $product['price_kind'] ?? null,
+                    'price_source_url' => $product['price_source_url'] ?? null,
+                    'price_observed_on' => $product['price_observed_on'] ?? null,
+                    'release_year' => $product['release_year'] ?? null,
                 ]);
                 $productId = $productStatement->fetchColumn();
                 if ($productId === false) {
                     throw new \RuntimeException('The collectible product row could not be saved.');
-                }
-
-                if ($product['variants'] === []) {
-                    continue;
                 }
 
                 $deleteVariantsStatement->execute(['product_id' => (string) $productId]);
@@ -133,6 +153,9 @@ final class CollectiblesRepository
                     $variantStatement->bindValue(':image_url', $variant['image_url'], $variant['image_url'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
                     $variantStatement->bindValue(':price_cents', $variant['price_cents'], $variant['price_cents'] === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
                     $variantStatement->bindValue(':currency', $variant['currency'], $variant['currency'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+                    $variantStatement->bindValue(':price_kind', $variant['price_kind'] ?? null, ($variant['price_kind'] ?? null) === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+                    $variantStatement->bindValue(':price_source_url', $variant['price_source_url'] ?? null, ($variant['price_source_url'] ?? null) === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+                    $variantStatement->bindValue(':price_observed_on', $variant['price_observed_on'] ?? null, ($variant['price_observed_on'] ?? null) === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
                     $variantStatement->bindValue(':position', $position, PDO::PARAM_INT);
                     $variantStatement->execute();
                     $variantCount++;
@@ -156,7 +179,7 @@ final class CollectiblesRepository
      *     last_synced_at: ?string
      * }
      */
-    public function search(?string $query, ?string $brand, int $limit, int $offset): array
+    public function search(?string $query, ?string $brand, string $sort, int $limit, int $offset): array
     {
         $conditions = [];
         $parameters = [];
@@ -181,6 +204,15 @@ final class CollectiblesRepository
             $parameters['brand'] = $brand;
         }
         $where = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions);
+        $effectivePrice = 'COALESCE(p.price_cents, (SELECT min(sort_variant.price_cents) FROM collectible_variants sort_variant WHERE sort_variant.product_id = p.id))';
+        $orderBy = match ($sort) {
+            'name-desc' => 'p.title DESC, p.id DESC',
+            'price-asc' => $effectivePrice . ' ASC NULLS LAST, p.title, p.id',
+            'price-desc' => $effectivePrice . ' DESC NULLS LAST, p.title, p.id',
+            'newest' => 'p.release_year DESC NULLS LAST, p.last_seen_at DESC, p.title, p.id',
+            'oldest' => 'p.release_year ASC NULLS LAST, p.first_seen_at ASC, p.title, p.id',
+            default => 'p.title, p.id',
+        };
 
         $summaryStatement = $this->pdo->prepare(sprintf(<<<'SQL'
             SELECT
@@ -202,14 +234,19 @@ final class CollectiblesRepository
                 p.image_url,
                 p.price_cents,
                 p.currency,
+                p.price_kind,
+                p.price_source_url,
+                p.price_observed_on,
+                p.release_year,
                 p.source_key,
-                p.last_seen_at
+                p.last_seen_at,
+                %s AS sort_price_cents
             FROM collectible_products p
             %s
-            ORDER BY p.brand, p.title, p.id
+            ORDER BY %s
             LIMIT :limit
             OFFSET :offset
-        SQL, $where));
+        SQL, $effectivePrice, $where, $orderBy));
         $this->bindSearchParameters($itemsStatement, $parameters);
         $itemsStatement->bindValue(':limit', $limit, PDO::PARAM_INT);
         $itemsStatement->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -228,6 +265,11 @@ final class CollectiblesRepository
                 'image_url' => $row['image_url'] === null ? null : (string) $row['image_url'],
                 'price_cents' => $row['price_cents'] === null ? null : (int) $row['price_cents'],
                 'currency' => $row['currency'] === null ? null : (string) $row['currency'],
+                'price_kind' => $row['price_kind'] === null ? null : (string) $row['price_kind'],
+                'price_source_url' => $row['price_source_url'] === null ? null : (string) $row['price_source_url'],
+                'price_observed_on' => $row['price_observed_on'] === null ? null : (string) $row['price_observed_on'],
+                'release_year' => $row['release_year'] === null ? null : (int) $row['release_year'],
+                'sort_price_cents' => $row['sort_price_cents'] === null ? null : (int) $row['sort_price_cents'],
                 'source_key' => (string) $row['source_key'],
                 'last_seen_at' => $this->formatTimestamp((string) $row['last_seen_at']),
                 'variants' => [],
@@ -246,7 +288,10 @@ final class CollectiblesRepository
                     is_secret,
                     image_url,
                     price_cents,
-                    currency
+                    currency,
+                    price_kind,
+                    price_source_url,
+                    price_observed_on
                 FROM collectible_variants
                 WHERE product_id IN (%s)
                 ORDER BY position, id
@@ -264,6 +309,9 @@ final class CollectiblesRepository
                     'image_url' => $row['image_url'] === null ? null : (string) $row['image_url'],
                     'price_cents' => $row['price_cents'] === null ? null : (int) $row['price_cents'],
                     'currency' => $row['currency'] === null ? null : (string) $row['currency'],
+                    'price_kind' => $row['price_kind'] === null ? null : (string) $row['price_kind'],
+                    'price_source_url' => $row['price_source_url'] === null ? null : (string) $row['price_source_url'],
+                    'price_observed_on' => $row['price_observed_on'] === null ? null : (string) $row['price_observed_on'],
                 ];
             }
         }
@@ -285,6 +333,18 @@ final class CollectiblesRepository
         if (filter_var($url, FILTER_VALIDATE_URL) === false || strtolower((string) parse_url($url, PHP_URL_SCHEME)) !== 'https') {
             throw new InvalidArgumentException('Collectible product and image URLs must use HTTPS.');
         }
+    }
+
+    private function assertImageUrl(?string $url): void
+    {
+        if ($url === null) {
+            return;
+        }
+        if (preg_match('#^/assets/images/sonny-angels/[A-Za-z0-9_./()@%+,&-]+$#D', $url) === 1
+            && !str_contains($url, '/../') && !str_contains($url, '/./')) {
+            return;
+        }
+        $this->assertHttpsUrl($url);
     }
 
     /** @param array<string, string> $parameters */
