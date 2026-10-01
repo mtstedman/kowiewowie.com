@@ -243,8 +243,17 @@
         const title = typeof safeProduct.title === 'string' && safeProduct.title.trim() !== '' ? safeProduct.title.trim() : 'Untitled series';
         const label = brandLabel(safeProduct.brand);
         const variants = Array.isArray(safeProduct.variants) ? safeProduct.variants : [];
-        const productPrice = formatPrice(safeProduct.price_cents, safeProduct.currency);
-        const productPriceKind = ['retail', 'asking', 'sold'].includes(safeProduct.price_kind) ? safeProduct.price_kind : '';
+        const fallbackPrice = variants
+            .filter((variant) => variant && typeof variant === 'object' && typeof variant.price_cents === 'number' && typeof variant.currency === 'string')
+            .sort((left, right) => left.price_cents - right.price_cents)[0] || null;
+        const productPrice = formatPrice(
+            typeof safeProduct.price_cents === 'number' ? safeProduct.price_cents : fallbackPrice?.price_cents,
+            typeof safeProduct.currency === 'string' ? safeProduct.currency : fallbackPrice?.currency
+        );
+        const productPriceKind = ['retail', 'asking', 'sold'].includes(safeProduct.price_kind)
+            ? safeProduct.price_kind
+            : (fallbackPrice && ['retail', 'asking', 'sold'].includes(fallbackPrice.price_kind) ? fallbackPrice.price_kind : '');
+        const priceIsFromVariant = typeof safeProduct.price_cents !== 'number' && fallbackPrice !== null;
 
         const card = createElement('article', 'collectible-card');
         const brandKey = normalizeBrand(safeProduct.brand);
@@ -277,7 +286,9 @@
         summary.append(createElement(
             'p',
             productPrice === null ? 'collectible-price is-unavailable' : 'collectible-price',
-            productPrice === null ? 'Price unavailable' : `${productPrice}${productPriceKind ? ` ${productPriceKind}` : ' per blind box'}`
+            productPrice === null
+                ? 'Price unavailable'
+                : `${priceIsFromVariant ? 'From ' : ''}${productPrice}${productPriceKind ? ` ${productPriceKind}` : ' per blind box'}`
         ));
 
         if (isHttpsUrl(safeProduct.product_url)) {

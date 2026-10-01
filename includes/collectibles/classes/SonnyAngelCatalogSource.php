@@ -149,7 +149,7 @@ final class SonnyAngelCatalogSource
      */
     private static function lowestRetailPrice(array $figures): array
     {
-        $best = null;
+        $byCurrency = [];
         foreach ($figures as $figure) {
             foreach (is_array($figure['prices'] ?? null) ? $figure['prices'] : [] as $price) {
                 if (!is_array($price) || ($price['kind'] ?? null) !== 'retail' || !is_numeric($price['amount'] ?? null)) {
@@ -161,13 +161,18 @@ final class SonnyAngelCatalogSource
                     'price_source_url' => is_string($price['sourceUrl'] ?? null) ? $price['sourceUrl'] : null,
                     'price_observed_on' => is_string($price['date'] ?? null) ? $price['date'] : null,
                 ];
-                if ($best === null || $candidate['price_cents'] < $best['price_cents']) {
-                    $best = $candidate;
+                $currency = $candidate['currency'];
+                if ($currency !== null && (!isset($byCurrency[$currency]) || $candidate['price_cents'] < $byCurrency[$currency]['price_cents'])) {
+                    $byCurrency[$currency] = $candidate;
                 }
             }
         }
 
-        return $best ?? ['price_cents' => null, 'currency' => null, 'price_source_url' => null, 'price_observed_on' => null];
+        // Prefer USD when a series has observations in more than one currency;
+        // never compare raw minor-unit values across currencies.
+        $best = $byCurrency['USD'] ?? reset($byCurrency);
+
+        return is_array($best) ? $best : ['price_cents' => null, 'currency' => null, 'price_source_url' => null, 'price_observed_on' => null];
     }
 
     private static function firstImage(mixed $images): ?string
