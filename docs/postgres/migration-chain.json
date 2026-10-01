@@ -117,6 +117,15 @@
           "sha256": "9677f1cc66023656f3b5ed756dcc48f5299bedb23609a6f1f1bcf8b92f4ad72a"
         }
       ]
+    },
+    {
+      "version": 14,
+      "updates": [
+        {
+          "file": "updates/013_palworld_breeding.sql",
+          "sha256": "818ed56ff53ff25c2dd82cf3f52834b71e978214e02e67a4f8699a0807835d4f"
+        }
+      ]
     }
   ]
 }

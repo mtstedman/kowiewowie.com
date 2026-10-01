@@ -1,9 +1,9 @@
-<!-- schema-version: 13 -->
+<!-- schema-version: 14 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 13**. `migration-chain.json` is the ordered,
+current release pin is **version 14**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -30,11 +30,12 @@ per-file execution ledger.
 | 11 | `011_trivia_murder_party.sql` | Killing-floor minigames, ghosts, multi-select prompts, and the final body race |
 | 12 | `012_trivia_mini_games.sql` | Expanded Killing Floor trials with poison chalices, sword boxes, and crypt runes |
 | 13 | `013_collectibles_catalog.sql` | Cached SKULLPANDA and Nommi collectible series products and their figure variants |
+| 14 | `013_palworld_breeding.sql` | Indexed Palworld pals, breeding pairs, passive skills, and dataset provenance |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 13 inventory
+## Current version 14 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -53,6 +54,8 @@ their full basenames are already stored in production's migration ledger.
 - Open deck: `open_deck_slots`, `open_deck_set_nominations`,
   `open_deck_fill_votes`, and `open_deck_eviction_votes`
 - Collectibles: `collectible_products` and `collectible_variants`
+- Palworld breeding: `palworld_dataset`, `palworld_pals`,
+  `palworld_breeding_pairs`, and `palworld_passive_skills`
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -211,6 +214,54 @@ fills the slot with the next eligible vote winner if one exists. If no eligible
 winner has fill votes, the slot returns to `open` with all nomination and vote
 history preserved. Closed slots reject nominations, fill votes, resolution, and
 eviction votes until reopened through the scheduler API.
+
+## Palworld breeding
+
+The Palworld tables hold the breeding calculator's dataset server-side so pair,
+child, and pal lookups are answered by indexes instead of scanning the full
+breeding table in the browser. Like the collectibles catalog, they are a
+replaceable imported snapshot rather than user-authored content and use integer
+keys rather than UUIDs. The migration creates schema only; it inserts no pal or
+breeding rows.
+
+`palworld_dataset` is a singleton provenance row (`id` is a `smallint` primary
+key constrained to `1`) recording the source `data_version`, the dataset
+`revision` (a lowercase 64-character hex SHA-256), the imported `pal_count` and
+`breeding_row_count`, and `imported_at` (defaults to `now()`).
+
+`palworld_pals` stores one row per pal: `id` (identity primary key),
+`pal_key`, `internal_name`, display `name`, optional `paldex_no`, `is_variant`
+(default `false`), and `in_pal_database`. A check requires
+`pal_key = lower(internal_name)`.
+
+`palworld_breeding_pairs` stores one row per source breeding-table row, keyed
+by its 1-based `source_row`. `parent1_pal_id`, `parent2_pal_id`, and
+`child_pal_id` each reference `palworld_pals(id)` with `ON DELETE CASCADE`;
+`parent1_gender` and `parent2_gender` are each `WILDCARD`, `MALE`, or
+`FEMALE`.
+
+`palworld_passive_skills` stores passive skills: `id` (identity primary key),
+`name`, and `rank`.
+
+### Indexes and the queries they serve
+
+| Index | Columns | Query served |
+| --- | --- | --- |
+| `palworld_pals_pal_key_key` (unique) | `palworld_pals (pal_key)` | Resolve a pal by its key; also enforces one row per key on import |
+| `palworld_pals_name_idx` | `palworld_pals (lower(name))` | Case-insensitive pal lookup by display name |
+| `palworld_breeding_pairs_parents_idx` | `(parent1_pal_id, parent2_pal_id)` | Child of a pair given in stored parent order; all pairs with a given first parent; backs the `parent1_pal_id` foreign key |
+| `palworld_breeding_pairs_parents_reverse_idx` | `(parent2_pal_id, parent1_pal_id)` | The same pair lookup with the parents in the opposite order; all pairs with a given second parent; backs the `parent2_pal_id` foreign key |
+| `palworld_breeding_pairs_child_idx` | `(child_pal_id)` | Reverse lookup: every parent pair that breeds a given child; backs the `child_pal_id` foreign key |
+| `palworld_passive_skills_rank_name_idx` | `palworld_passive_skills (rank, name)` | List passive skills by rank, ordered by name |
+
+Because breeding is symmetric, a pair lookup queries
+`parent1_pal_id = :a AND parent2_pal_id = :b` or
+`parent1_pal_id = :b AND parent2_pal_id = :a`; each branch is served by one of
+the two composite parent indexes. Every foreign-key column leads an index, so
+pal deletes cascade without sequential scans.
+
+Run `php database/seed-palworld.php` after minting the schema to load the
+dataset.
 
 ## Collectibles catalog
 
