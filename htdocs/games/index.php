@@ -45,6 +45,13 @@ $metaDescription = 'Board games and per-game strategy notes from wowiekowie.com.
                         <p>Reinforce, attack, fortify, and outlast the table on a compact command map.</p>
                         <a class="text-link" href="/risk/" aria-label="Play Risk">Play risk <span aria-hidden="true">-&gt;</span></a>
                     </article>
+
+                    <article class="games-feature-card">
+                        <span class="feature-number">Breeding planner</span>
+                        <h3>Palworld</h3>
+                        <p>Combine your pals' passive traits and find a breeding route to your next partner.</p>
+                        <a class="text-link" href="/palworld/" aria-label="Open the Palworld breeding optimizer">Plan a breeding route <span aria-hidden="true">-&gt;</span></a>
+                    </article>
                 </div>
 
                 <div class="section-heading games-content-heading">

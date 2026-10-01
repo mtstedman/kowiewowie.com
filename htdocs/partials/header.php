@@ -17,6 +17,7 @@ $publicSectionAliases = [
     'risk' => 'games',
     'chess' => 'games',
     'trivia' => 'games',
+    'palworld' => 'games',
 ];
 
 $gameSubNavItems = [
@@ -24,6 +25,7 @@ $gameSubNavItems = [
     'chess' => ['href' => '/chess/', 'label' => 'Chess'],
     'trivia' => ['href' => '/trivia/', 'label' => 'Murder Trivia Party'],
     'risk' => ['href' => '/risk/', 'label' => 'Risk'],
+    'palworld' => ['href' => '/palworld/', 'label' => 'Palworld'],
 ];
 
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
