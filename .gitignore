@@ -10,3 +10,6 @@
 
 .posse/
 .posse-worktrees/
+
+# Node tooling (typecheck)
+node_modules/
