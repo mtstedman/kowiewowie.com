@@ -15,6 +15,10 @@
     const addSourceButton = document.getElementById('palworld-add-source');
     const submitButton = document.getElementById('palworld-find-route');
     const excludedList = document.getElementById('palworld-excluded-list');
+    const addons = document.getElementById('palworld-addons');
+    const addonsToggle = document.getElementById('palworld-addons-toggle');
+    const addonsPanel = document.getElementById('palworld-addons-panel');
+    const addonsSummary = document.getElementById('palworld-addons-summary');
     const traitInputs = Array.from(document.querySelectorAll('.palworld-trait-fields select'));
     const sources = [];
     const excluded = new Set();
@@ -134,7 +138,25 @@
         stage.style.setProperty('height', (naturalHeight * scale) + 'px');
     }
 
+    // The closed add-ons trigger reads like a select: it names what is currently set.
+    // Owned pals count once a species is chosen, so an untouched empty row is not counted.
+    function updateAddonsSummary() {
+        const traitCount = traitInputs.filter(function (input) { return input.value.trim(); }).length;
+        const ownedCount = sources.filter(function (source) { return source.picker.key; }).length;
+        addonsSummary.textContent = (traitCount ? traitCount + (traitCount === 1 ? ' trait' : ' traits') : 'No traits')
+            + ' · ' + (ownedCount ? ownedCount + (ownedCount === 1 ? ' owned pal' : ' owned pals') : 'No owned pals');
+    }
+
+    // restoreFocus hands focus back to the trigger when it would otherwise be left
+    // on a control inside the panel that is about to be hidden.
+    function setAddonsOpen(open, restoreFocus) {
+        if (!open && restoreFocus && addonsPanel.contains(document.activeElement)) addonsToggle.focus();
+        addonsPanel.hidden = !open;
+        addonsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
     function invalidate() {
+        updateAddonsSummary();
         routeGeneration += 1;
         results.setAttribute('aria-busy', 'false');
         submitButton.disabled = false;
@@ -843,9 +865,35 @@
     }
     form.addEventListener('submit', function (event) {
         event.preventDefault();
+        // The open add-ons panel would cover the route it just asked for.
+        setAddonsOpen(false, true);
         runRoute();
     });
     form.addEventListener('input', invalidate);
+    addonsToggle.addEventListener('click', function () {
+        setAddonsOpen(addonsPanel.hidden, false);
+    });
+    // Capture phase: decide before a picker inside the panel closes its own match list,
+    // so Escape closes an open list first and the panel only on the next press.
+    addons.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape' || addonsPanel.hidden) return;
+        if (addonsPanel.querySelector('.palworld-picker-matches:not([hidden])')) return;
+        setAddonsOpen(false, true);
+    }, true);
+    // Close when focus moves to a control outside the add-ons. A missing relatedTarget
+    // (a removed row, a click on plain text) is not a move away, so the panel stays open.
+    addons.addEventListener('focusout', function (event) {
+        if (addonsPanel.hidden || !event.relatedTarget || addons.contains(event.relatedTarget)) return;
+        setAddonsOpen(false, false);
+    });
+    // Close on a press outside. The composed path still includes the add-ons for
+    // controls that remove themselves from the page while handling the press.
+    document.addEventListener('pointerdown', function (event) {
+        if (addonsPanel.hidden) return;
+        const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+        if (path.includes(addons) || addons.contains(event.target)) return;
+        setAddonsOpen(false, false);
+    });
     traitInputs.forEach(function (input, index) {
         let previous = input.value;
         input.addEventListener('change', function () {

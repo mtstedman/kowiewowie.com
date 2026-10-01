@@ -54,32 +54,41 @@ $palworldDataSizeLabel = $palworldDataBytes > 0
             <noscript><p class="palworld-notice">Enable JavaScript to load the breeding data and use this planner.</p></noscript>
 
             <div class="palworld-layout">
-                <form id="palworld-form" class="palworld-panel" aria-labelledby="palworld-plan-title" data-palworld-revision="<?= htmlspecialchars($palworldDataRevision, ENT_QUOTES, 'UTF-8') ?>" data-palworld-cache-format="<?= htmlspecialchars((string) $palworldCacheFormat, ENT_QUOTES, 'UTF-8') ?>" data-palworld-data-bytes="<?= htmlspecialchars((string) $palworldDataBytes, ENT_QUOTES, 'UTF-8') ?>" novalidate>
-                    <h2 id="palworld-plan-title">Build your plan</h2>
+                <form id="palworld-form" class="palworld-panel palworld-bar" aria-labelledby="palworld-plan-title" data-palworld-revision="<?= htmlspecialchars($palworldDataRevision, ENT_QUOTES, 'UTF-8') ?>" data-palworld-cache-format="<?= htmlspecialchars((string) $palworldCacheFormat, ENT_QUOTES, 'UTF-8') ?>" data-palworld-data-bytes="<?= htmlspecialchars((string) $palworldDataBytes, ENT_QUOTES, 'UTF-8') ?>" novalidate>
+                    <h2 id="palworld-plan-title" class="palworld-bar-title">Build your plan</h2>
                     <fieldset id="palworld-controls" class="palworld-controls" disabled>
                         <legend class="public-visually-hidden">Breeding plan inputs</legend>
-                        <section aria-labelledby="palworld-target-title">
-                            <h3 id="palworld-target-title">1. Pick your target</h3>
+                        <section class="palworld-bar-target" aria-labelledby="palworld-target-title">
+                            <h3 id="palworld-target-title" class="palworld-visually-hidden">Pick your target</h3>
                             <div id="palworld-target-picker"></div>
                         </section>
 
-                        <section aria-labelledby="palworld-traits-title">
-                            <h3 id="palworld-traits-title">2. Choose your wanted traits</h3>
-                            <p id="palworld-traits-help" class="palworld-help">Traits are optional. Select 0 to 4 different passive traits from the dropdowns and leave unused slots on “No trait”.</p>
-                            <div class="palworld-trait-fields">
-                                <label for="palworld-trait-1">Trait 1 (optional)<select id="palworld-trait-1" name="trait-1" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
-                                <label for="palworld-trait-2">Trait 2 (optional)<select id="palworld-trait-2" name="trait-2" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
-                                <label for="palworld-trait-3">Trait 3 (optional)<select id="palworld-trait-3" name="trait-3" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
-                                <label for="palworld-trait-4">Trait 4 (optional)<select id="palworld-trait-4" name="trait-4" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
-                            </div>
-                        </section>
+                        <div id="palworld-addons" class="palworld-addons">
+                            <span id="palworld-addons-caption" class="palworld-addons-caption">Add-ons (optional)</span>
+                            <button id="palworld-addons-toggle" class="palworld-addons-toggle" type="button" aria-expanded="false" aria-controls="palworld-addons-panel" aria-labelledby="palworld-addons-caption palworld-addons-summary">
+                                <span id="palworld-addons-summary" class="palworld-addons-summary">No traits · No owned pals</span>
+                            </button>
+                            <div id="palworld-addons-panel" class="palworld-addons-panel" role="group" aria-labelledby="palworld-addons-caption" hidden>
+                                <section aria-labelledby="palworld-traits-title">
+                                    <h3 id="palworld-traits-title">Choose your wanted traits</h3>
+                                    <p id="palworld-traits-help" class="palworld-help">Traits are optional. Select 0 to 4 different passive traits from the dropdowns and leave unused slots on “No trait”.</p>
+                                    <div class="palworld-trait-fields">
+                                        <label for="palworld-trait-1">Trait 1 (optional)<select id="palworld-trait-1" name="trait-1" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
+                                        <label for="palworld-trait-2">Trait 2 (optional)<select id="palworld-trait-2" name="trait-2" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
+                                        <label for="palworld-trait-3">Trait 3 (optional)<select id="palworld-trait-3" name="trait-3" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
+                                        <label for="palworld-trait-4">Trait 4 (optional)<select id="palworld-trait-4" name="trait-4" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
+                                    </div>
+                                </section>
 
-                        <section aria-labelledby="palworld-owned-title">
-                            <h3 id="palworld-owned-title">3. Add the pals you own</h3>
-                            <p class="palworld-help">Choose each pal's species and the wanted traits it carries. Add separate rows for separate pals, even of the same species.</p>
-                            <div id="palworld-sources" class="palworld-sources"></div>
-                            <button id="palworld-add-source" type="button">Add owned pal</button>
-                        </section>
+                                <section aria-labelledby="palworld-owned-title">
+                                    <h3 id="palworld-owned-title">Add the pals you own</h3>
+                                    <p class="palworld-help">Choose each pal's species and the wanted traits it carries. Add separate rows for separate pals, even of the same species.</p>
+                                    <div id="palworld-sources" class="palworld-sources"></div>
+                                    <button id="palworld-add-source" type="button">Add owned pal</button>
+                                </section>
+                            </div>
+                        </div>
+
                         <button id="palworld-find-route" class="palworld-primary" type="submit">Find breeding route</button>
                     </fieldset>
                 </form>
