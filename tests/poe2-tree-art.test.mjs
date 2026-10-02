@@ -46,7 +46,7 @@ test('every drawable passive in the export has an icon, and every icon fits its 
   for (const [x, y, iconW, iconH] of TREE_ART.icons) assert.ok(x + iconW <= w && y + iconH <= h);
 });
 
-test('every playable class and ascendancy has art positioned in tree coordinates', () => {
+test('every playable class and ascendancy has art and a recorded cluster centre', () => {
   const data = JSON.parse(readFileSync(new URL('../database/data/poe2-passive-tree/data.json', import.meta.url), 'utf8'));
   for (const option of data.classes.filter((entry) => (entry.ascendancies || []).length > 0)) {
     const art = TREE_ART.classes[option.name];
@@ -54,8 +54,8 @@ test('every playable class and ascendancy has art positioned in tree coordinates
     for (const ascendancy of option.ascendancies) {
       const placed = art.ascendancies[ascendancy.id];
       assert.ok(placed, `${ascendancy.id} has art`);
-      // Ascendancy clusters sit outside the main tree, beyond 12,000 world units.
-      assert.ok(Math.hypot(placed.x, placed.y) > 12000, `${ascendancy.id} art sits at its cluster`);
+      // Export coordinates put each cluster beyond the main tree; the planner moves it to the origin.
+      assert.ok(Math.hypot(placed.x, placed.y) > 12000, `${ascendancy.id} records its cluster centre`);
     }
   }
 });

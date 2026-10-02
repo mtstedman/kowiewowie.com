@@ -10,7 +10,7 @@ import * as optimizer from './optimizer.js?v=a6b98e12335a';
 // @ts-ignore
 import * as buildsApi from './builds-api.js?v=c1e91d3fb8a2';
 // @ts-ignore
-import * as treeArt from './tree-art.js?v=2d6281b738ba';
+import * as treeArt from './tree-art.js?v=f3d660112b74';
 
 const { loadTree, buildAllocationModel, summarizeRouteBonuses } = /** @type {typeof import('./tree-data.js')} */ (treeData);
 const { findMinimalRoute, findConnection } = /** @type {typeof import('./optimizer.js')} */ (optimizer);
@@ -900,20 +900,28 @@ function spriteImage(image, rect, className) {
   return element;
 }
 
-// The start ring, the selected class's illustration inside it, and the
-// selected ascendancy's illustration behind its cluster, as in the game.
+// Inside the start ring: the selected ascendancy's illustration under its
+// moved cluster, else the class's own. Both sheets are pre-cut circles.
 function renderBackdrop() {
   elements.backdrop.replaceChildren();
   const classArt = TREE_ART.classes[state.classId];
   const classSheet = TREE_ART.images.classes[state.classId];
   if (classArt && classSheet) {
-    elements.backdrop.append(artUse(classSheet, classArt.base.rect, 'poe2-class-art', classArt.base.x, classArt.base.y));
     const ascendancy = classArt.ascendancies[state.ascendancyId];
-    if (ascendancy) {
-      elements.backdrop.append(artUse(classSheet, ascendancy.rect, 'poe2-ascendancy-art', ascendancy.x, ascendancy.y));
-    }
+    elements.backdrop.append(ascendancy
+      ? artUse(classSheet, ascendancy.rect, 'poe2-ascendancy-art')
+      : artUse(classSheet, classArt.base.rect, 'poe2-class-art'));
   }
   elements.backdrop.append(artUse(TREE_ART.images.groupBackground, TREE_ART.startRing, 'poe2-start-ring'));
+}
+
+// The game shows the selected ascendancy inside the start ring, not at its
+// export position beyond the main tree: its cluster centre (start node plus
+// ascendancy offset) moves onto the origin, which puts the ascendancy start
+// just inside its class start. Only drawing moves; the model is untouched.
+function ascendancyShift() {
+  const ascendancy = TREE_ART.classes[state.classId]?.ascendancies[state.ascendancyId];
+  return ascendancy ? { x: ascendancy.x, y: ascendancy.y } : null;
 }
 
 // Export coordinates are rounded, so allow a small absolute radius error.
@@ -938,17 +946,19 @@ function buildGraph(focusNodeId = null) {
   elements.nodeLayer.replaceChildren();
   state.nodeElements.clear();
   state.edgeElements = [];
-  state.nodeById = new Map(state.model.nodes.map((node) => [node.id, node]));
+  const shift = ascendancyShift();
+  const drawnNodes = state.model.nodes.map((node) => (shift && node.domain === 'ascendancy'
+    ? { ...node, x: node.x - shift.x, y: node.y - shift.y }
+    : node));
+  state.nodeById = new Map(drawnNodes.map((node) => [node.id, node]));
   renderBackdrop();
 
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  for (const node of state.model.nodes) {
-    // Measure every rendered node. The model holds only the selected
-    // ascendancy, whose cluster sits outside the main tree at its exported
-    // position, so a passive-only extent left it off-screen after a fit.
+  for (const node of drawnNodes) {
+    // Measure every drawn node, the selected ascendancy included.
     const radius = nodeRadius(node);
     minX = Math.min(minX, node.x - radius);
     minY = Math.min(minY, node.y - radius);
@@ -964,7 +974,9 @@ function buildGraph(focusNodeId = null) {
     // The class-to-ascendancy link only joins the two allocation trees; the
     // game draws no line across the map for it.
     if (from.domain !== to.domain) continue;
-    const path = edgeArcPath(from, to, state.model.edgeArcs?.[edgeIndex]);
+    let arc = state.model.edgeArcs?.[edgeIndex];
+    if (arc && shift && from.domain === 'ascendancy') arc = { ...arc, orbitX: arc.orbitX - shift.x, orbitY: arc.orbitY - shift.y };
+    const path = edgeArcPath(from, to, arc);
     const edge = document.createElementNS(SVG_NS, path ? 'path' : 'line');
     edge.setAttribute('class', 'poe2-edge');
     if (path) {
@@ -983,7 +995,7 @@ function buildGraph(focusNodeId = null) {
   // Root and ascendancy membership never change within a model, so those
   // classes are written once here. Selection is delegated to the tree element.
   const nodeFragment = document.createDocumentFragment();
-  for (const node of state.model.nodes) {
+  for (const node of drawnNodes) {
     const isRoot = state.rootIds.has(node.id);
     const radius = nodeRadius(node);
     const kindClass = { notable: 'is-notable', keystone: 'is-keystone', jewelSocket: 'is-jewel-socket' }[node.kind];
@@ -1045,10 +1057,9 @@ function buildGraph(focusNodeId = null) {
   updateGraphState();
   requestAnimationFrame(() => {
     fitTree();
-    // A whole-tree fit can leave a specific node of interest (e.g. a newly
-    // selected ascendancy's start node) far from the viewport center, since
-    // ascendancy clusters sit well outside the main tree's bounds. Re-center
-    // on that node after the fit settles so it isn't overridden by it.
+    // Zoom onto a node of interest (e.g. a newly selected ascendancy's start
+    // node inside the start ring) after the fit settles, so the fit doesn't
+    // override it.
     if (focusNodeId) centerNode(focusNodeId);
   });
 }

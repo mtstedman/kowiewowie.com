@@ -112,9 +112,10 @@ export function buildTreeArt() {
   const backgroundTile = background.frames['background:Background2'];
   if (!startRing || !backgroundTile) fail('the start ring or background tile frame is missing.');
 
-  // Class sheets hold the base illustration as Class0, then each ascendancy in export order.
-  // Base art centres on the class image offset from the tree origin; ascendancy art centres
-  // on its start node moved by the ascendancy offset, which is its cluster's group centre.
+  // Class sheets hold the base illustration as Class0, then each ascendancy in export order,
+  // each pre-cut to a circle that fills the start ring at the tree origin. For an ascendancy
+  // the manifest also records its cluster centre in export coordinates (start node moved by
+  // the ascendancy offset); the planner draws the cluster moved so that point is the origin.
   const startById = new Map(Object.entries(data.nodes)
     .filter(([, node]) => node.isAscendancyStart && node.ascendancyId)
     .map(([, node]) => [node.ascendancyId, node]));
@@ -147,10 +148,7 @@ export function buildTreeArt() {
         y: round(start.y + Number(host.offsetY || 0)),
       };
     }
-    classes[option.name] = {
-      base: { rect: rect(frameFor(0)), x: round(Number(option.image_offset_x || 0)), y: round(Number(option.image_offset_y || 0)) },
-      ascendancies,
-    };
+    classes[option.name] = { base: { rect: rect(frameFor(0)) }, ascendancies };
   }
 
   const manifest = {
