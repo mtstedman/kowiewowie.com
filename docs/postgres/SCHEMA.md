@@ -1,9 +1,9 @@
-<!-- schema-version: 17 -->
+<!-- schema-version: 18 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 17**. `migration-chain.json` is the ordered,
+current release pin is **version 18**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -34,11 +34,12 @@ per-file execution ledger.
 | 15 | `014_unified_collectibles.sql` | Sonny Angel catalog support, release-year sorting, and sourced price metadata |
 | 16 | `015_poe2_saved_builds.sql` | Path of Exile 2 saved passive-tree builds owned by a registered user or guest browser identity |
 | 17 | `016_poe2_passive_tree.sql` | Indexed Path of Exile 2 passive-tree exports: versions, classes, ascendancies, nodes, edges, unlock and radius lists, and overrides |
+| 18 | `017_poe2_considered_nodes.sql` | Path of Exile 2 saved builds keep a list of considered passive node IDs |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 17 inventory
+## Current version 18 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -213,8 +214,10 @@ the 100-build limit; builds that do not fit stay with the guest.
 Each row carries a 1-64 character `character_name` and a 1-80 character
 `build_name` (both measured after trimming), the planner `class_id`, an
 optional `ascendancy_id`, and the passive-tree `tree_version` it was built
-against. `allocated_node_ids` and `must_have_node_ids` store the allocated and
-must-have passive node IDs as `jsonb` arrays (both default to `[]`).
+against. `allocated_node_ids`, `must_have_node_ids` and `considered_node_ids`
+store the allocated, must-have and considered passive node IDs as `jsonb`
+arrays (all default to `[]`). Considered passives are ones kept for later and
+play no part in routing.
 `created_at` and `updated_at` default to `now()`, and the
 `poe2_saved_builds_set_updated_at` trigger refreshes `updated_at` on every
 update. The partial indexes

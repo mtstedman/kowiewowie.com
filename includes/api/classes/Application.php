@@ -856,7 +856,7 @@ final class Application
         }
 
         $wireFields = get_object_vars($wire);
-        foreach (['allocated_node_ids', 'must_have_node_ids'] as $field) {
+        foreach (['allocated_node_ids', 'must_have_node_ids', 'considered_node_ids'] as $field) {
             if (array_key_exists($field, $wireFields)) {
                 $input[$field] = $wireFields[$field];
             }

@@ -444,6 +444,14 @@
     animation: poe2-halo-pulse 1.8s ease-in-out infinite;
 }
 
+/* Considered passives: a quieter teal dashed ring that does not pulse. */
+.poe2-node-halo.is-considered {
+    fill: rgba(45, 212, 191, 0.16);
+    stroke: #2dd4bf;
+    stroke-dasharray: 6 4;
+    animation: none;
+}
+
 @keyframes poe2-halo-pulse {
     50% {
         fill-opacity: 0.55;
@@ -482,6 +490,11 @@
 .poe2-tree.is-art .poe2-node.has-art.is-selected .poe2-node-body {
     stroke: #ffffff;
     stroke-width: 2.5px;
+}
+
+.poe2-tree.is-art .poe2-node.has-art.is-considered .poe2-node-body {
+    stroke: #2dd4bf;
+    stroke-width: 2px;
 }
 
 .poe2-tree.is-art .poe2-node.has-art.is-must-have .poe2-node-body {
@@ -556,6 +569,27 @@
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* The name gets its own row so two actions fit the narrow panel. */
+.poe2-considered-details .poe2-must-have-list li {
+    grid-template-columns: 1fr 1fr;
+}
+
+.poe2-panel .poe2-considered-details .poe2-must-have-focus {
+    grid-column: 1 / -1;
+}
+
+.poe2-must-have-details > button {
+    width: 100%;
+}
+
+.poe2-panel .poe2-considered-details .poe2-must-have-focus {
+    border-left-color: #2dd4bf;
+}
+
+.poe2-details #poe2-toggle-considered {
+    border-color: #2dd4bf;
 }
 
 .poe2-panel .poe2-must-have-remove {

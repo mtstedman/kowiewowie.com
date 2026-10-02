@@ -58,12 +58,17 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
 
                     <section class="poe2-must-haves" aria-labelledby="poe2-must-have-title">
                         <h3 id="poe2-must-have-title">Must-have passives</h3>
-                        <p id="poe2-must-have-empty" class="poe2-must-have-empty">Select a node and choose <strong>Mark must-have</strong>. Marked passives glow pink on the tree.</p>
+                        <p id="poe2-must-have-empty" class="poe2-must-have-empty">Select a node and choose <strong>Mark must-have</strong>, or <strong>Consider</strong> to keep it for later. Must-haves glow pink on the tree; considered passives get a teal ring.</p>
                         <button id="poe2-find-route" type="button" disabled>Find shortest route</button>
                         <details id="poe2-must-have-details" class="poe2-must-have-details" hidden>
                             <summary>Marked passives (<span id="poe2-must-have-count">0</span>)</summary>
                             <ul id="poe2-must-have-list" class="poe2-must-have-list" aria-label="Marked must-have passives"></ul>
                             <button id="poe2-clear-must-haves" type="button" disabled>Clear must-haves</button>
+                        </details>
+                        <details id="poe2-considered-details" class="poe2-must-have-details poe2-considered-details" hidden>
+                            <summary>Considered passives (<span id="poe2-considered-count">0</span>)</summary>
+                            <ul id="poe2-considered-list" class="poe2-must-have-list" aria-label="Considered passives"></ul>
+                            <button id="poe2-clear-considered" type="button" disabled>Clear considered</button>
                         </details>
                         <div id="poe2-route-summary" class="poe2-route-summary" hidden></div>
                         <button id="poe2-clear-route" type="button" disabled>Clear route</button>
@@ -123,6 +128,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                     <div class="poe2-detail-actions">
                         <button id="poe2-toggle-node" type="button" disabled>Allocate node</button>
                         <button id="poe2-toggle-must-have" type="button" aria-pressed="false" disabled>Mark must-have</button>
+                        <button id="poe2-toggle-considered" type="button" aria-pressed="false" disabled>Consider</button>
                     </div>
 
                     <section class="poe2-bonuses" aria-labelledby="poe2-bonuses-title">

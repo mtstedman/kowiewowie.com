@@ -90,6 +90,11 @@ const elements = {
   nodeStats: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-node-stats')),
   toggleNode: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-node')),
   toggleMustHave: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-must-have')),
+  toggleConsidered: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-considered')),
+  consideredDetails: /** @type {HTMLDetailsElement} */ (document.querySelector('#poe2-considered-details')),
+  consideredCount: /** @type {HTMLElement} */ (document.querySelector('#poe2-considered-count')),
+  consideredList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-considered-list')),
+  clearConsidered: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-considered')),
   mustHaveEmpty: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-must-have-empty')),
   mustHaveList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-must-have-list')),
   mustHaveDetails: /** @type {HTMLDetailsElement} */ (document.querySelector('#poe2-must-have-details')),
@@ -125,6 +130,9 @@ const state = {
   rootIds: new Set(),
   // Node IDs the user requires in the computed route, in marking order.
   mustHaves: new Set(),
+  // Node IDs kept for later: shown on the tree and saved with builds, never
+  // routed. A node is a must-have or considered, not both.
+  considered: new Set(),
   // Summary of the last computed route: { nodeCount, passive, ascendancy, exact, stale } or null.
   // `exact` is false when the route is not proven shortest.
   route: null,
@@ -163,7 +171,10 @@ function setEnabled(enabled) {
   elements.resetButton.disabled = !enabled;
   elements.zoomIn.disabled = !enabled;
   elements.zoomOut.disabled = !enabled;
-  if (!enabled) elements.toggleMustHave.disabled = true;
+  if (!enabled) {
+    elements.toggleMustHave.disabled = true;
+    elements.toggleConsidered.disabled = true;
+  }
   renderMustHaves();
   syncSavedBuildControls();
 }
@@ -347,6 +358,7 @@ function currentBuildSnapshot(names) {
     tree_version: state.data.version,
     allocated_node_ids: [...state.allocated],
     must_have_node_ids: [...state.mustHaves],
+    considered_node_ids: [...state.considered],
   };
 }
 
@@ -445,6 +457,8 @@ function loadSavedBuild(build) {
     setAllocation(new Set(build.allocated_node_ids));
     const modelNodeIds = new Set(state.model.nodes.map((node) => node.id));
     state.mustHaves = new Set(build.must_have_node_ids.filter((nodeId) => modelNodeIds.has(nodeId)));
+    state.considered = new Set((build.considered_node_ids || [])
+      .filter((nodeId) => modelNodeIds.has(nodeId) && !state.mustHaves.has(nodeId)));
     state.route = null;
     renderRouteSummary();
     updateGraphState();
@@ -524,8 +538,52 @@ function renderMustHaves() {
   elements.mustHaveEmpty.hidden = !empty;
   elements.findRoute.disabled = !usable || empty;
   elements.clearMustHaves.disabled = !usable || empty;
+  renderConsidered();
   syncClearRoute();
   syncSavedBuildControls();
+}
+
+// Collapsed like the must-haves; each entry can be shown, promoted to a
+// must-have or dropped.
+function renderConsidered() {
+  const usable = plannerUsable();
+  elements.consideredList.replaceChildren();
+  for (const nodeId of state.considered) {
+    const name = nodeName(nodeId);
+    const item = document.createElement('li');
+
+    const focusButton = document.createElement('button');
+    focusButton.type = 'button';
+    focusButton.className = 'poe2-must-have-focus';
+    focusButton.textContent = name;
+    focusButton.setAttribute('aria-label', `Show ${name} on the tree`);
+    focusButton.disabled = !usable;
+    focusButton.addEventListener('click', () => centerNode(nodeId));
+
+    const promoteButton = document.createElement('button');
+    promoteButton.type = 'button';
+    promoteButton.className = 'poe2-must-have-remove';
+    promoteButton.textContent = 'Must-have';
+    promoteButton.setAttribute('aria-label', `Make ${name} a must-have passive`);
+    promoteButton.disabled = !usable;
+    promoteButton.addEventListener('click', () => setMustHave(nodeId, true));
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'poe2-must-have-remove';
+    removeButton.textContent = 'Remove';
+    removeButton.setAttribute('aria-label', `Remove ${name} from considered passives`);
+    removeButton.disabled = !usable;
+    removeButton.addEventListener('click', () => setConsidered(nodeId, false));
+
+    item.append(focusButton, promoteButton, removeButton);
+    elements.consideredList.append(item);
+  }
+  const empty = state.considered.size === 0;
+  elements.consideredDetails.hidden = empty;
+  if (empty) elements.consideredDetails.open = false;
+  elements.consideredCount.textContent = state.considered.size.toLocaleString();
+  elements.clearConsidered.disabled = !usable || empty;
 }
 
 function renderRouteSummary() {
@@ -619,14 +677,48 @@ function invalidateRoute() {
 function setMustHave(nodeId, marked) {
   if (!state.model || !state.nodeById.has(nodeId) || state.rootIds.has(nodeId)) return;
   if (marked === state.mustHaves.has(nodeId)) return;
-  if (marked) state.mustHaves.add(nodeId);
-  else state.mustHaves.delete(nodeId);
+  if (marked) {
+    state.mustHaves.add(nodeId);
+    state.considered.delete(nodeId);
+  } else {
+    state.mustHaves.delete(nodeId);
+  }
   const parts = state.nodeElements.get(nodeId);
   if (parts) paintNode(nodeId, parts, currentAvailability());
   renderMustHaves();
   invalidateRoute();
   updateDetails();
   setStatus(`${nodeName(nodeId)} ${marked ? 'marked as' : 'removed from'} must-have passives.`);
+}
+
+function setConsidered(nodeId, marked) {
+  if (!state.model || !state.nodeById.has(nodeId) || state.rootIds.has(nodeId)) return;
+  if (marked === state.considered.has(nodeId)) return;
+  const wasMustHave = marked && state.mustHaves.delete(nodeId);
+  if (marked) state.considered.add(nodeId);
+  else state.considered.delete(nodeId);
+  const parts = state.nodeElements.get(nodeId);
+  if (parts) paintNode(nodeId, parts, currentAvailability());
+  renderMustHaves();
+  if (wasMustHave) invalidateRoute();
+  updateDetails();
+  setStatus(`${nodeName(nodeId)} ${marked ? 'added to' : 'removed from'} considered passives.`);
+}
+
+function clearConsidered() {
+  if (state.considered.size === 0) return;
+  const ids = [...state.considered];
+  state.considered.clear();
+  if (state.model) {
+    const available = currentAvailability();
+    for (const id of ids) {
+      const parts = state.nodeElements.get(id);
+      if (parts) paintNode(id, parts, available);
+    }
+  }
+  renderMustHaves();
+  updateDetails();
+  setStatus(`${plural(ids.length, 'considered passive')} cleared.`);
 }
 
 function clearMustHaves() {
@@ -1163,15 +1255,19 @@ function paintNode(id, parts, available) {
     }
   }
   const mustHave = state.mustHaves.has(id);
+  const considered = state.considered.has(id);
   parts.group.classList.toggle('is-must-have', mustHave);
+  parts.group.classList.toggle('is-considered', considered);
   // Halos are created only for marked nodes, so the full tree carries none.
-  if (mustHave && !parts.halo) {
+  if ((mustHave || considered) && !parts.halo) {
     const shown = shownRadius(parts, Number(parts.circle.getAttribute('r')), elements.tree.classList.contains('is-art'));
     parts.halo = document.createElementNS(SVG_NS, 'circle');
-    parts.halo.setAttribute('class', 'poe2-node-halo');
     parts.halo.setAttribute('r', String(haloRadius(shown, state.view.scale)));
     parts.group.prepend(parts.halo);
-  } else if (!mustHave && parts.halo) {
+  }
+  if (parts.halo && (mustHave || considered)) {
+    setAttributeIfChanged(parts.halo, 'class', considered ? 'poe2-node-halo is-considered' : 'poe2-node-halo');
+  } else if (parts.halo) {
     parts.halo.remove();
     parts.halo = null;
   }
@@ -1221,6 +1317,8 @@ function updateDetails() {
     elements.toggleNode.disabled = true;
     elements.toggleMustHave.textContent = 'Mark must-have';
     elements.toggleMustHave.disabled = true;
+    elements.toggleConsidered.textContent = 'Consider';
+    elements.toggleConsidered.disabled = true;
     return;
   }
 
@@ -1246,6 +1344,10 @@ function updateDetails() {
   elements.toggleMustHave.textContent = isRoot ? 'Start node' : isMustHave ? 'Unmark must-have' : 'Mark must-have';
   elements.toggleMustHave.setAttribute('aria-pressed', String(isMustHave));
   elements.toggleMustHave.disabled = isRoot || !state.enabled || state.computing;
+  const isConsidered = state.considered.has(node.id);
+  elements.toggleConsidered.textContent = isRoot ? 'Start node' : isConsidered ? 'Remove from considered' : 'Consider';
+  elements.toggleConsidered.setAttribute('aria-pressed', String(isConsidered));
+  elements.toggleConsidered.disabled = isRoot || !state.enabled || state.computing;
 }
 
 function nodeStateLabel(nodeId) {
@@ -1267,7 +1369,8 @@ function renderTooltip(nodeId) {
 
   const meta = document.createElement('p');
   meta.className = 'poe2-tooltip__meta';
-  meta.textContent = [nodeKindLabel(node), nodeStateLabel(node.id), state.mustHaves.has(node.id) ? 'Must-have' : '']
+  meta.textContent = [nodeKindLabel(node), nodeStateLabel(node.id),
+    state.mustHaves.has(node.id) ? 'Must-have' : state.considered.has(node.id) ? 'Considered' : '']
     .filter(Boolean).join(' · ');
 
   const stats = document.createElement('ul');
@@ -1433,6 +1536,7 @@ function rebuildModel(classId, ascendancyId, announce = true) {
   state.rootIds = new Set(nextModel.rootIds);
   setAllocation(new Set());
   state.mustHaves = new Set();
+  state.considered = new Set();
   state.route = null;
   renderRouteSummary();
   state.selectedId = nextModel.rootIds[0] || null;
@@ -1484,6 +1588,7 @@ async function initialize() {
     state.model = null;
     state.available = null;
     state.mustHaves = new Set();
+    state.considered = new Set();
     state.route = null;
     renderRouteSummary();
     renderNetBonuses();
@@ -1538,6 +1643,11 @@ elements.toggleMustHave.addEventListener('click', () => {
   if (state.computing || !state.selectedId) return;
   setMustHave(state.selectedId, !state.mustHaves.has(state.selectedId));
 });
+elements.toggleConsidered.addEventListener('click', () => {
+  if (state.computing || !state.selectedId) return;
+  setConsidered(state.selectedId, !state.considered.has(state.selectedId));
+});
+elements.clearConsidered.addEventListener('click', clearConsidered);
 elements.findRoute.addEventListener('click', computeRoute);
 elements.clearMustHaves.addEventListener('click', clearMustHaves);
 elements.clearRoute.addEventListener('click', clearRoute);

@@ -25,7 +25,7 @@ final class Poe2BuildRepository
     private const NODE_ID_PATTERN = '/\A[A-Za-z0-9_.:-]{1,32}\z/';
     private const UUID_PATTERN = '/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/';
     private const COLUMNS = 'id, user_id, guest_profile_id, character_name, build_name, class_id, ascendancy_id, '
-        . 'tree_version, allocated_node_ids, must_have_node_ids, created_at, updated_at';
+        . 'tree_version, allocated_node_ids, must_have_node_ids, considered_node_ids, created_at, updated_at';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -83,9 +83,10 @@ final class Poe2BuildRepository
 
             $statement = $this->pdo->prepare(
                 'INSERT INTO poe2_saved_builds (' . $column . ', character_name, build_name, class_id, ascendancy_id,'
-                . ' tree_version, allocated_node_ids, must_have_node_ids)'
+                . ' tree_version, allocated_node_ids, must_have_node_ids, considered_node_ids)'
                 . ' VALUES (:owner_id, :character_name, :build_name, :class_id, :ascendancy_id,'
-                . ' :tree_version, CAST(:allocated_node_ids AS jsonb), CAST(:must_have_node_ids AS jsonb))'
+                . ' :tree_version, CAST(:allocated_node_ids AS jsonb), CAST(:must_have_node_ids AS jsonb),'
+                . " COALESCE(CAST(:considered_node_ids AS jsonb), '[]'::jsonb))"
                 . ' RETURNING ' . self::COLUMNS
             );
             $statement->execute(['owner_id' => $ownerId] + $this->writeParameters($fields));
@@ -131,7 +132,8 @@ final class Poe2BuildRepository
     }
 
     /**
-     * Full replace of every writable field.
+     * Full replace of every writable field, except that an absent considered list keeps the
+     * stored one: clients from before that field existed must not wipe it.
      *
      * @param array{type: string, id: string} $owner
      * @param array<string, mixed> $input
@@ -151,7 +153,8 @@ final class Poe2BuildRepository
             . ' ascendancy_id = :ascendancy_id,'
             . ' tree_version = :tree_version,'
             . ' allocated_node_ids = CAST(:allocated_node_ids AS jsonb),'
-            . ' must_have_node_ids = CAST(:must_have_node_ids AS jsonb)'
+            . ' must_have_node_ids = CAST(:must_have_node_ids AS jsonb),'
+            . ' considered_node_ids = COALESCE(CAST(:considered_node_ids AS jsonb), considered_node_ids)'
             . ' WHERE id = :id AND ' . $column . ' = :owner_id'
             . ' RETURNING ' . self::COLUMNS
         );
@@ -278,7 +281,7 @@ final class Poe2BuildRepository
 
     /**
      * @param array<string, mixed> $input
-     * @return array{character_name: string, build_name: string, class_id: string, ascendancy_id: ?string, tree_version: string, allocated_node_ids: list<string>, must_have_node_ids: list<string>}
+     * @return array{character_name: string, build_name: string, class_id: string, ascendancy_id: ?string, tree_version: string, allocated_node_ids: list<string>, must_have_node_ids: list<string>, considered_node_ids: ?list<string>}
      */
     private function normalizeInput(array $input): array
     {
@@ -294,6 +297,10 @@ final class Poe2BuildRepository
             'tree_version' => $this->textField($input, 'tree_version', 32, $errors),
             'allocated_node_ids' => $this->nodeIdList($input, 'allocated_node_ids', self::MAX_ALLOCATED_NODE_IDS, $errors),
             'must_have_node_ids' => $this->nodeIdList($input, 'must_have_node_ids', self::MAX_MUST_HAVE_NODE_IDS, $errors),
+            // Optional, for clients from before the considered list existed; null means "not sent".
+            'considered_node_ids' => array_key_exists('considered_node_ids', $input)
+                ? $this->nodeIdList($input, 'considered_node_ids', self::MAX_ALLOCATED_NODE_IDS, $errors)
+                : null,
         ];
 
         if ($errors !== []) {
@@ -370,7 +377,7 @@ final class Poe2BuildRepository
     }
 
     /**
-     * @param array{character_name: string, build_name: string, class_id: string, ascendancy_id: ?string, tree_version: string, allocated_node_ids: list<string>, must_have_node_ids: list<string>} $fields
+     * @param array{character_name: string, build_name: string, class_id: string, ascendancy_id: ?string, tree_version: string, allocated_node_ids: list<string>, must_have_node_ids: list<string>, considered_node_ids: ?list<string>} $fields
      * @return array<string, ?string>
      */
     private function writeParameters(array $fields): array
@@ -383,6 +390,9 @@ final class Poe2BuildRepository
             'tree_version' => $fields['tree_version'],
             'allocated_node_ids' => json_encode($fields['allocated_node_ids'], JSON_THROW_ON_ERROR),
             'must_have_node_ids' => json_encode($fields['must_have_node_ids'], JSON_THROW_ON_ERROR),
+            'considered_node_ids' => $fields['considered_node_ids'] === null
+                ? null
+                : json_encode($fields['considered_node_ids'], JSON_THROW_ON_ERROR),
         ];
     }
 
@@ -402,6 +412,7 @@ final class Poe2BuildRepository
             'tree_version' => (string) $row['tree_version'],
             'allocated_node_ids' => $this->decodeNodeIds($row['allocated_node_ids']),
             'must_have_node_ids' => $this->decodeNodeIds($row['must_have_node_ids']),
+            'considered_node_ids' => $this->decodeNodeIds($row['considered_node_ids']),
             'created_at' => (string) $row['created_at'],
             'updated_at' => (string) $row['updated_at'],
         ];
