@@ -514,6 +514,22 @@
     font-size: 1rem;
 }
 
+.poe2-must-have-details > summary {
+    cursor: pointer;
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-weight: 750;
+}
+
+.poe2-must-have-details[open] > summary,
+.poe2-must-have-details .poe2-must-have-list {
+    margin-bottom: 0.6rem;
+}
+
+.poe2-must-have-details[hidden] {
+    display: none;
+}
+
 .poe2-must-have-empty {
     color: var(--muted);
     font-size: 0.86rem;

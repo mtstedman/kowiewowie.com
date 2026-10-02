@@ -92,6 +92,8 @@ const elements = {
   toggleMustHave: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-must-have')),
   mustHaveEmpty: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-must-have-empty')),
   mustHaveList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-must-have-list')),
+  mustHaveDetails: /** @type {HTMLDetailsElement} */ (document.querySelector('#poe2-must-have-details')),
+  mustHaveCount: /** @type {HTMLElement} */ (document.querySelector('#poe2-must-have-count')),
   findRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-find-route')),
   clearMustHaves: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-must-haves')),
   clearRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-route')),
@@ -513,8 +515,12 @@ function renderMustHaves() {
     item.append(focusButton, removeButton);
     elements.mustHaveList.append(item);
   }
+  // The list stays collapsed unless opened: the tree's halos already show the
+  // marks, and a long list would push the route controls out of reach.
   const empty = state.mustHaves.size === 0;
-  elements.mustHaveList.hidden = empty;
+  elements.mustHaveDetails.hidden = empty;
+  if (empty) elements.mustHaveDetails.open = false;
+  elements.mustHaveCount.textContent = state.mustHaves.size.toLocaleString();
   elements.mustHaveEmpty.hidden = !empty;
   elements.findRoute.disabled = !usable || empty;
   elements.clearMustHaves.disabled = !usable || empty;
@@ -1290,6 +1296,12 @@ function selectNode(nodeId, focus = false) {
 /** @param {string} nodeId */
 function activateNode(nodeId) {
   selectNode(nodeId);
+  // Clicking an allocated node removes it (and anything it alone connected),
+  // the same as "Remove node", so trimming a route takes one click per node.
+  if (state.model && state.allocated.has(nodeId) && !state.rootIds.has(nodeId) && !state.computing) {
+    tryAllocationChange();
+    return;
+  }
   if (!state.model || !state.nodeById.has(nodeId) || state.route === null
     || state.computing || state.rootIds.has(nodeId) || state.allocated.has(nodeId)) return;
   const result = findConnection(state.model, [...state.allocated], nodeId);

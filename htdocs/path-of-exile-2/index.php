@@ -59,16 +59,17 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                     <section class="poe2-must-haves" aria-labelledby="poe2-must-have-title">
                         <h3 id="poe2-must-have-title">Must-have passives</h3>
                         <p id="poe2-must-have-empty" class="poe2-must-have-empty">Select a node and choose <strong>Mark must-have</strong>. Marked passives glow pink on the tree.</p>
-                        <ul id="poe2-must-have-list" class="poe2-must-have-list" aria-label="Marked must-have passives" hidden></ul>
-                        <div class="poe2-actions">
-                            <button id="poe2-find-route" type="button" disabled>Find shortest route</button>
+                        <button id="poe2-find-route" type="button" disabled>Find shortest route</button>
+                        <details id="poe2-must-have-details" class="poe2-must-have-details" hidden>
+                            <summary>Marked passives (<span id="poe2-must-have-count">0</span>)</summary>
+                            <ul id="poe2-must-have-list" class="poe2-must-have-list" aria-label="Marked must-have passives"></ul>
                             <button id="poe2-clear-must-haves" type="button" disabled>Clear must-haves</button>
-                            <button id="poe2-clear-route" type="button" disabled>Clear route</button>
-                        </div>
+                        </details>
                         <div id="poe2-route-summary" class="poe2-route-summary" hidden></div>
+                        <button id="poe2-clear-route" type="button" disabled>Clear route</button>
                         <details class="poe2-more">
                             <summary>How routes are found</summary>
-                            <p class="poe2-help">The planner finds the shortest route that reaches every marked passive. There is no limit on how many you mark; very large sets get a short route that is not proven shortest. After a route is found, clicking a node connects it to the allocated tree.</p>
+                            <p class="poe2-help">The planner finds the shortest route that reaches every marked passive. There is no limit on how many you mark; very large sets get a short route that is not proven shortest. After a route is found, clicking a node connects it to the allocated tree, and clicking an allocated node removes it.</p>
                         </details>
                     </section>
 
@@ -101,7 +102,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
 
                     <details class="poe2-more">
                         <summary>Controls</summary>
-                        <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom; zoom in to see each passive's icon. Hover over a node to see what it does; select it to inspect, allocate or mark it as a must-have.</p>
+                        <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom; zoom in to see each passive's icon. Hover over a node to see what it does; select it to inspect, allocate or mark it as a must-have. Clicking an allocated node removes it.</p>
                     </details>
                 </aside>
 
