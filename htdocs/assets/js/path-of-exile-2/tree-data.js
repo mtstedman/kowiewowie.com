@@ -1,22 +1,24 @@
 /**
  * Path of Exile 2 passive-tree model (shared contract `poe2-tree-model`).
  *
- * Consumes the pinned official export installed at
- * /assets/data/path-of-exile-2/tree.json without modifying it. Provenance,
- * the evidence behind every exclusion and the allocation-rule semantics
- * implemented here are recorded in
- * htdocs/assets/data/path-of-exile-2/SOURCE.md — keep the two in step.
+ * The pinned official export is imported into PostgreSQL (poe2_tree_* tables)
+ * and served by GET /api/v1/poe2/tree in the export's own field layout,
+ * trimmed to the fields read here. Provenance, the evidence behind every
+ * exclusion and the allocation-rule semantics implemented here are recorded
+ * in database/data/poe2-passive-tree/SOURCE.md — keep the two in step.
  *
- * Exports (and nothing else):
+ * Exports:
  *   loadTree(url?)                                  -> Promise<TreeData>
- *   normalizeTree(raw)                              -> TreeData
+ *   normalizeTree(raw, source?)                     -> TreeData
  *   buildAllocationModel(data, classId, ascendancyId) -> AllocationModel
+ *   summarizeRouteBonuses(model, nodeIds)           -> bonus summary
  *
  * @typedef {{id: string, name: string, ascendancies: {id: string, name: string}[]}} ClassOption
  * @typedef {{id: string, name: string, stats: string[], x: number, y: number, kind: string,
  *   domain: 'passive'|'ascendancy', ascendancyId: string|null}} PassiveNode
  * @typedef {{orbit: number, orbitX: number, orbitY: number}} EdgeArc
- * @typedef {{version: string, source: {url: string, commit: string}, classes: ClassOption[],
+ * @typedef {{version: string, url: string, commit: string}} TreeSource
+ * @typedef {{version: string|null, source: {url: string, commit: string}|null, classes: ClassOption[],
  *   nodes: PassiveNode[], edges: [string, string][], skippedOverridePairs: number,
  *   raw: Record<string, unknown>, edgeArcs: (EdgeArc|null)[]}} TreeData
  * @typedef {Readonly<{prerequisites: Readonly<Record<string, readonly string[]>>,
@@ -36,15 +38,9 @@
  * allocatable) or 'placeholder' (unreleased node exported with `"id": null`).
  */
 
-// The export carries no version field of its own, so the pinned identity lives
-// here and must be updated together with tree.json (see SOURCE.md, "Refresh").
-const PINNED_SOURCE = Object.freeze({
-  version: '0.5.5',
-  url: 'https://raw.githubusercontent.com/grindinggear/poe2-skilltree-export/bd87e6512c92b868542eddfb1ba4ea8b6dc2da36/data.json',
-  commit: 'bd87e6512c92b868542eddfb1ba4ea8b6dc2da36',
-});
-
-const DEFAULT_TREE_URL = '/assets/data/path-of-exile-2/tree.json';
+// The export carries no version field of its own; the API reports the pinned
+// version and source recorded when it was imported (see SOURCE.md, "Refresh").
+const DEFAULT_TREE_URL = '/api/v1/poe2/tree';
 
 // Synthetic hub that joins the six class starts. It has no skill hash and no
 // coordinates, so it is never a PassiveNode and never traversable.
@@ -448,7 +444,10 @@ function analyzeRaw(raw) {
 }
 
 /**
- * Fetch and normalize the same-origin pinned export.
+ * Fetch the imported tree from the same-origin API and normalize it.
+ *
+ * The API answers `{data: {version, source: {url, commit, sha256}, tree}}`,
+ * where `tree` uses the export's field layout.
  *
  * @param {string} [url]
  * @returns {Promise<TreeData>}
@@ -458,7 +457,7 @@ export async function loadTree(url = DEFAULT_TREE_URL) {
   if (target === '') fail('loadTree requires a non-empty URL.');
   let response;
   try {
-    response = await fetch(target, { credentials: 'same-origin' });
+    response = await fetch(target, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
   } catch (error) {
     throw new Error(`PoE2 passive tree: could not load ${target}: ${messageOf(error)}`, { cause: error });
   }
@@ -466,13 +465,21 @@ export async function loadTree(url = DEFAULT_TREE_URL) {
     const status = response ? `HTTP ${response.status} ${response.statusText || ''}`.trim() : 'no response';
     throw new Error(`PoE2 passive tree: could not load ${target}: ${status}.`);
   }
-  let raw;
+  let body;
   try {
-    raw = await response.json();
+    body = await response.json();
   } catch (error) {
     throw new Error(`PoE2 passive tree: ${target} is not valid JSON: ${messageOf(error)}`, { cause: error });
   }
-  return normalizeTree(raw);
+  const payload = isRecord(body) ? body.data : null;
+  if (!isRecord(payload) || !isRecord(payload.tree) || !isRecord(payload.source)) {
+    fail(`${target} did not return a passive-tree payload.`);
+  }
+  return normalizeTree(payload.tree, {
+    version: payload.version,
+    url: payload.source.url,
+    commit: payload.source.commit,
+  });
 }
 
 /**
@@ -481,17 +488,28 @@ export async function loadTree(url = DEFAULT_TREE_URL) {
  * Every keyed node except the coordinate-less synthetic "root" is kept under
  * its upstream numeric ID with its official coordinates, name and stats.
  * `edges` is the official connection list minus the six root edges. `raw` is
- * the untouched export (class/ascendancy overrides and rule metadata live
- * there); use buildAllocationModel() rather than interpreting it.
+ * the export as received (class/ascendancy overrides and rule metadata live
+ * there); use buildAllocationModel() rather than interpreting it. The export
+ * has no version of its own, so `version` and `source` come from `source`
+ * and are null without it.
  *
  * @param {Record<string, unknown>} raw
+ * @param {TreeSource|null} [source]
  * @returns {TreeData}
  */
-export function normalizeTree(raw) {
+export function normalizeTree(raw, source = null) {
+  if (source !== null) {
+    if (
+      !isRecord(source) || typeof source.version !== 'string' || source.version === ''
+      || typeof source.url !== 'string' || typeof source.commit !== 'string'
+    ) {
+      fail(`the tree source must name a version, URL and commit, received ${describe(source)}.`);
+    }
+  }
   const analysis = analyzeRaw(raw);
   return {
-    version: PINNED_SOURCE.version,
-    source: { url: PINNED_SOURCE.url, commit: PINNED_SOURCE.commit },
+    version: source ? source.version : null,
+    source: source ? { url: source.url, commit: source.commit } : null,
     classes: analysis.classes.map((option) => ({
       id: option.id,
       name: option.name,

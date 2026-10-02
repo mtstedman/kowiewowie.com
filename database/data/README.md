@@ -13,3 +13,9 @@ The TSV intentionally stores standard ECO, name, and PGN/SAN interchange data.
 `database/seed-chess-openings.php` derives UCI moves and canonical EPD positions
 with the application's chess engine rather than trusting duplicated generated
 fields.
+
+`poe2-passive-tree/data.json` is an unmodified copy of Grinding Gear Games'
+official Path of Exile 2 passive-tree export; `source.json` pins its version,
+upstream URL, commit and SHA-256, and `SOURCE.md` records provenance, notices
+and the rule semantics. `database/seed-poe2-tree.php` verifies the digest and
+imports it into the `poe2_tree_*` tables.

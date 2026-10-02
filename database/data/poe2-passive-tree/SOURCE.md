@@ -1,8 +1,11 @@
 # Path of Exile 2 passive tree — data source and rule semantics
 
-`tree.json` in this directory is an unmodified copy of Grinding Gear Games' official
-Path of Exile 2 passive skill tree export. It is consumed by
-`htdocs/assets/js/path-of-exile-2/tree-data.js`, which is the only place that interprets it.
+`data.json` in this directory is an unmodified copy of Grinding Gear Games' official
+Path of Exile 2 passive skill tree export. `database/seed-poe2-tree.php` imports it into
+PostgreSQL (the `poe2_tree_*` tables), and `GET /api/v1/poe2/tree` serves it back to the
+planner (see "Database import and API payload" below). The file itself is not served.
+`htdocs/assets/js/path-of-exile-2/tree-data.js` remains the only place that interprets the
+allocation rules.
 
 ## Pinned source
 
@@ -12,7 +15,7 @@ Path of Exile 2 passive skill tree export. It is consumed by
 | Upstream file | `data.json` |
 | Pinned commit | `bd87e6512c92b868542eddfb1ba4ea8b6dc2da36` (commit message / export version `0.5.5`, committed 2026-09-04) |
 | Pinned URL | <https://raw.githubusercontent.com/grindinggear/poe2-skilltree-export/bd87e6512c92b868542eddfb1ba4ea8b6dc2da36/data.json> |
-| Installed as | `htdocs/assets/data/path-of-exile-2/tree.json` (served same-origin at `/assets/data/path-of-exile-2/tree.json`) |
+| Installed as | `database/data/poe2-passive-tree/data.json` (import source; pinned by `source.json` in this directory) |
 | Size | 5,140,821 bytes |
 | SHA-256 | `b52be9c4f17e4114064255ef1b8c58292e9db0e395d95af235a8d3fef0d44642` |
 
@@ -20,7 +23,7 @@ The SHA-256 above was computed over the installed file on 2026-10-01; its byte s
 size of the upstream file at the pinned commit. To re-verify against upstream:
 
 ```sh
-sha256sum htdocs/assets/data/path-of-exile-2/tree.json
+sha256sum database/data/poe2-passive-tree/data.json
 curl -fsSL https://raw.githubusercontent.com/grindinggear/poe2-skilltree-export/bd87e6512c92b868542eddfb1ba4ea8b6dc2da36/data.json | sha256sum
 ```
 
@@ -29,7 +32,8 @@ Both commands must print the digest in the table.
 **Version scope.** The export has no version field of its own (top-level keys: `tree`, `classes`,
 `groups`, `nodes`, `edges`, `skillOverrides`, `jewelSlots`, `min_x`, `min_y`, `max_x`, `max_y`).
 The version, URL and commit reported by `TreeData.version` / `TreeData.source` are the
-`PINNED_SOURCE` constants in `tree-data.js`. The page must present this as "export 0.5.5", not as
+values pinned in `source.json`, which the import records in `poe2_tree_versions` and the API
+reports with the tree. The page must present this as "export 0.5.5", not as
 the current live game: nothing here proves parity with whatever client build is live, and the
 upstream "Releases" page is not a reliable freshness signal (it labels 0.5.2 "Latest").
 
@@ -44,28 +48,33 @@ upstream "Releases" page is not a reliable freshness signal (it labels 0.5.2 "La
 - The upstream repository ships no `LICENSE` file at the pinned commit. Publication by GGG
   establishes provenance, not a redistribution licence. The MIT licences of community tools
   (Path of Building, community viewers) cover their code only and do not license GGG data or art.
-- No GGG artwork is installed here. `tree.json` contains icon paths and some
-  `https://web.poecdn.com/...` image URLs inside `grantedSkill` blobs; the application must not
-  load them (runtime assets stay same-origin, matching the site CSP).
+- No GGG artwork is installed here. `data.json` contains icon paths and some
+  `https://web.poecdn.com/...` image URLs inside `grantedSkill` blobs; they are not imported
+  into the database or served, and the application must not load them (runtime assets stay
+  same-origin, matching the site CSP).
 
 ## Refresh procedure
 
 1. Pick a commit from the upstream history (never follow `main`), note its version from the
    commit message, and download `data.json` from the commit-pinned raw URL byte-for-byte.
-2. Replace `tree.json`, then update the table above (commit, URL, version, size, SHA-256).
-3. Update `PINNED_SOURCE` in `htdocs/assets/js/path-of-exile-2/tree-data.js` to the same
-   version, URL and commit.
+2. Replace `data.json`, then update the table above (commit, URL, version, size, SHA-256)
+   and `source.json` (version, URL, commit, SHA-256). The import refuses a file whose digest
+   does not match `source.json`.
+3. Deploying runs `database/seed-poe2-tree.php`, which stores the new export under its
+   version and makes it current; earlier versions stay in the database.
 4. Re-check every item under "Verified from the pinned export" below against the new file,
    in particular: the class/ascendancy list, `id: null` placeholders, every `isFree` node,
    every `isMultipleChoice*` node, `unlockConstraint` shapes and `keystonesInRadius`.
    `normalizeTree()` throws on malformed IDs/coordinates and dangling references, and
    `buildAllocationModel()` throws if an `isFree` node falls outside the verified pattern, so a
    changed export fails loudly rather than being silently misread.
-5. Run the PoE2 tests.
+5. Run the PoE2 tests: `node --test tests/poe2-tree.test.mjs` against the file, and
+   `php tests/poe2-tree-api.php` against a database, which imports the export and checks
+   that the API payload builds the same allocation models as the file.
 
 ## What the export contains (inspected in the pinned file)
 
-Line numbers refer to the installed, pretty-printed `tree.json`.
+Line numbers refer to the installed, pretty-printed `data.json`.
 
 - `classes` (lines 3–625): 12 entries indexed 0–11 — Marauder, Witch, Ranger, Duelist, Shadow,
   Templar, Warrior, Sorceress, Huntress, Mercenary, Monk, Druid. Classes have no ID field;
@@ -83,11 +92,42 @@ Line numbers refer to the installed, pretty-printed `tree.json`.
   8 Huntress], `50986` → [3 Duelist, 9 Mercenary], `44683` → [4 Shadow, 10 Monk],
   `61525` → [5 Templar, 11 Druid].
 
+## Database import and API payload
+
+`Poe2TreeImporter` checks identifiers, coordinates and references (so no table holds a
+dangling row) and stores, per export version:
+
+- `poe2_tree_classes` / `poe2_tree_ascendancies`: export order, names, and each class's start
+  node (two classes can share one).
+- `poe2_tree_nodes`: skill hash, upstream string `id` (NULL marks a placeholder), name, stats,
+  `x`/`y`, `ascendancyId`, `isFree`, `isMultipleChoice`, the resolved `multipleChoiceParent`
+  of each option, `unlockConstraint.ascendancy`, and `kind` derived with the same precedence
+  as `nodeKind()` in `tree-data.js`.
+- `poe2_tree_node_unlock_requirements` and `poe2_tree_node_keystones_in_radius`: the
+  `unlockConstraint.nodes` and `keystonesInRadius` lists, in export order.
+- `poe2_tree_edges`: every edge except the six root edges, in export order, with orbit geometry.
+- `poe2_tree_skill_overrides` and the class / ascendancy override-pair tables. Override pairs
+  keep their node ID without a foreign key, because the two dangling Druid pairs described
+  below name nodes that do not exist.
+
+Not imported, because nothing in the planner reads them: icons and art, `group`/`orbit`/
+`orbitIndex`, the per-node `in`/`out`/`edges` lists (the edge list carries every connection),
+flavour text, `recipe`, `granted*` attributes and skills, `isGenericAttribute`, `isBlighted`,
+`hideConnection` and point-grant fields.
+
+`GET /api/v1/poe2/tree` rebuilds the export layout from these rows (`classes`, `nodes`,
+`edges`, `skillOverrides`): `kind` becomes the single export flag `nodeKind()` maps back to it,
+start nodes get `classStartIndex` from their classes, and the synthetic root is omitted
+because `normalizeTree()` drops it anyway. `tests/poe2-tree-api.php` checks that the payload
+produces the same `TreeData` (version, classes, nodes, edges, arcs, skipped pairs) and the same
+allocation model for every class and ascendancy as the file does.
+
 ## Normalization (`normalizeTree`)
 
 - `PassiveNode.id` is the upstream node key (the numeric skill hash used by GGG tree URLs), kept
   as a string. `x`/`y`, `name` and `stats` are copied unchanged. The upstream string `id`
-  (e.g. `AscendancyDruid1Notable2`) and all other fields stay available in `TreeData.raw`.
+  (e.g. `AscendancyDruid1Notable2`) and the other imported fields stay available in
+  `TreeData.raw` (the API payload as received).
 - `TreeData.nodes` holds **all 5,152** keyed nodes. Only the synthetic `"root"` is left out,
   because it has no coordinates or skill hash; its six edges are likewise left out of
   `TreeData.edges`. Nothing else is dropped at this level.
@@ -105,7 +145,7 @@ Line numbers refer to the installed, pretty-printed `tree.json`.
   failures, non-2xx responses and invalid JSON.
 - **Dangling `overridePairs` are skipped and counted, not fatal.** The pinned export has 74
   `overridePairs` entries; two of them, both on class **Druid** — `"55194": 57601` and
-  `"19680": 40837` (`tree.json` lines 569 and 571) — name node IDs that do not exist in `nodes`,
+  `"19680": 40837` (`data.json` lines 569 and 571) — name node IDs that do not exist in `nodes`,
   while both override targets exist in `skillOverrides`. Such a pair (key is a well-formed
   numeric node ID, not `"root"`, absent from `nodes`) still has its override ID and
   `skillOverrides` entry validated, but it is left out of the class/ascendancy override map and
@@ -174,7 +214,7 @@ Scope: **ordinary shared allocations only.** Weapon-set allocations are not mode
 
 ### Verified from the pinned export
 
-These rules are read directly from data in `tree.json`.
+These rules are read directly from data in `data.json`.
 
 1. **Class starts.** The class root is the node whose `classStartIndex` contains the class
    index; two classes can share it and differ only by overrides and ascendancies.

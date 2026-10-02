@@ -1,20 +1,38 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildAllocationModel, normalizeTree, summarizeRouteBonuses } from '../htdocs/assets/js/path-of-exile-2/tree-data.js';
 import { findMinimalRoute } from '../htdocs/assets/js/path-of-exile-2/optimizer.js';
 import { performance } from 'node:perf_hooks';
 
-const TREE_TEXT = readFileSync(new URL('../htdocs/assets/data/path-of-exile-2/tree.json', import.meta.url), 'utf8');
+// The pinned export is the database import source; the page loads it from the API.
+const TREE_TEXT = readFileSync(new URL('../database/data/poe2-passive-tree/data.json', import.meta.url), 'utf8');
 const TREE_ERROR = { name: 'Error', message: /^PoE2 passive tree:/ };
 
-test('planner versions the optimizer module so cached exports cannot drift', () => {
-  const planner = readFileSync(new URL('../htdocs/assets/js/path-of-exile-2/planner.js', import.meta.url), 'utf8');
-  assert.match(planner, /from ['"]\.\/optimizer\.js\?v=[^'"]+['"]/);
+test('planner imports every module under its content hash so cached modules cannot drift', () => {
+  const moduleDir = new URL('../htdocs/assets/js/path-of-exile-2/', import.meta.url);
+  const planner = readFileSync(new URL('planner.js', moduleDir), 'utf8');
+  const imports = [...planner.matchAll(/^import [^;]+ from '(\.\/[^'?]+)(\?v=[^']*)?';$/gm)];
+  assert.deepEqual(imports.map(([, path]) => path).sort(), ['./builds-api.js', './optimizer.js', './tree-data.js']);
+  for (const [, path, query] of imports) {
+    const expected = `?v=${createHash('sha256').update(readFileSync(new URL(path, moduleDir))).digest('hex').slice(0, 12)}`;
+    assert.equal(query, expected, `planner.js must import ${path}${expected}`);
+  }
 });
 
 // analyzeRaw caches by object identity, so every case gets its own parse.
 const freshRaw = () => JSON.parse(TREE_TEXT);
+
+test('normalizeTree takes version and source only from the caller', () => {
+  const unversioned = normalizeTree(freshRaw());
+  assert.equal(unversioned.version, null);
+  assert.equal(unversioned.source, null);
+  const versioned = normalizeTree(freshRaw(), { version: '0.5.5', url: 'https://example.test/data.json', commit: 'abc' });
+  assert.equal(versioned.version, '0.5.5');
+  assert.deepEqual(versioned.source, { url: 'https://example.test/data.json', commit: 'abc' });
+  assert.throws(() => normalizeTree(freshRaw(), { version: '', url: '', commit: '' }), TREE_ERROR);
+});
 
 const overrideOwners = (raw) => {
   const owners = [];

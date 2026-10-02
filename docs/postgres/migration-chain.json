@@ -144,6 +144,15 @@
           "sha256": "984d21944211184c11be72acd9543fb5e710e1b31b892f7551bc4d0c340b52a3"
         }
       ]
+    },
+    {
+      "version": 17,
+      "updates": [
+        {
+          "file": "updates/016_poe2_passive_tree.sql",
+          "sha256": "8a74ab8af7b3600897c8ea90af8c3e2869bb125cb4d7745038fa13a88d3cff36"
+        }
+      ]
     }
   ]
 }

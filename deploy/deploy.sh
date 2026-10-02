@@ -97,6 +97,10 @@ sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
     php "$release_dir/docs/postgres/db-version-minter.php"
 sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
     php "$release_dir/database/seed-trivia.php"
+# The PoE 2 planner loads its passive tree from the API, so the pinned export
+# must be imported before the code that requests it is published.
+sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
+    php "$release_dir/database/seed-poe2-tree.php"
 
 # Publish the code and the release's version document only after every database
 # update and the database version marker have committed successfully.

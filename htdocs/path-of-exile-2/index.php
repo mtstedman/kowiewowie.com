@@ -72,7 +72,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                     <div class="poe2-totals" aria-label="Allocated point totals">
                         <span><strong id="poe2-passive-total">0</strong> passive</span>
                         <span><strong id="poe2-ascendancy-total">0</strong> ascendancy</span>
-                        <span style="grid-column: 1 / -1;"><strong id="poe2-level-estimate">—</strong> <small id="poe2-level-estimate-note">Level estimate unavailable while the tree loads.</small></span>
+                        <span class="poe2-totals__estimate"><strong id="poe2-level-estimate">—</strong> <small id="poe2-level-estimate-note">Level estimate unavailable while the tree loads.</small></span>
                     </div>
                     <p class="poe2-help">The level estimate counts paid passive points only and assumes all 24 ordinary campaign passive points are collected, plus one point per level gained up to level 100 (123 in total). Those rewards are earned through Acts 1–4 and the Interludes, so a character at that level may not have them all yet. League or endgame bonus points and ascendancy-granted extra passives are not counted, and nothing here limits what you can allocate.</p>
 
@@ -102,7 +102,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         </div>
                     </section>
 
-                    <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom. Select a node to inspect, allocate or mark it as a must-have. After a route is found, clicking a node connects it to the allocated tree.</p>
+                    <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom. Hover over a node to see what it does; select it to inspect, allocate or mark it as a must-have. After a route is found, clicking a node connects it to the allocated tree.</p>
                 </aside>
 
                 <section class="poe2-panel poe2-tree-panel" aria-labelledby="poe2-tree-title" aria-busy="true">
@@ -122,6 +122,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                             <g id="poe2-nodes"></g>
                         </g>
                     </svg>
+                    <div id="poe2-tooltip" class="poe2-tooltip" aria-hidden="true" hidden></div>
                 </section>
 
                 <aside class="poe2-panel poe2-details" aria-labelledby="poe2-details-title">
@@ -137,7 +138,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
             </section>
 
             <aside class="poe2-credits" aria-label="Data source and notices">
-                <p><strong>Data:</strong> Grinding Gear Games official passive-tree <span id="poe2-version">export 0.5.5</span>, pinned locally. This does not claim parity with the current live game.</p>
+                <p><strong>Data:</strong> Grinding Gear Games official passive-tree <span id="poe2-version">export</span>, pinned and stored in this site's database. This does not claim parity with the current live game.</p>
                 <p>Path of Exile 2, passive-tree names, and stat text © Grinding Gear Games. This unofficial fan tool is not affiliated with or endorsed by Grinding Gear Games.</p>
                 <p>Ordinary shared allocations only. Weapon-set allocations, attribute choices, items, jewels, and item-granted passives are not modelled. Point budgets are not enforced: the estimated level is a guide based on one passive point per level gained plus up to 24 ordinary campaign-granted points, and allocations beyond that standard budget are flagged rather than blocked.</p>
             </aside>

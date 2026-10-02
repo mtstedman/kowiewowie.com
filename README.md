@@ -23,8 +23,10 @@ database/
   seed.php                      Idempotent JSON-to-PostgreSQL import
   seed-trivia.php               Focused trivia-catalog import used by deploys
   seed-chess-openings.php       Validated common-opening graph import
+  seed-poe2-tree.php            Pinned PoE 2 passive-tree import used by deploys
   sync-collectibles.php         Skullpanda/Nommi storefront catalog sync
   data/chess-openings.tsv       Curated CC0 ECO/name/PGN starter catalog
+  data/poe2-passive-tree/       Pinned GGG passive-tree export and provenance
   grant-role.php                User/editor/admin role management
 docs/postgres/
   VERSION                       Schema version pin for this release
@@ -34,6 +36,7 @@ docs/postgres/
   SCHEMA.md                     Versioned schema documentation
 tests/api-smoke.php             Database and API integration checks
 tests/trivia-murder-game.php    Isolated full-game database playthrough
+tests/poe2-tree-api.php         PoE 2 passive-tree import and API checks
 ```
 
 PostgreSQL owns users, OAuth identities, rotating refresh tokens, recipes,
@@ -114,6 +117,7 @@ Then apply the schema and import the current site content:
 php docs/postgres/db-version-minter.php
 php database/seed.php
 php database/seed-chess-openings.php
+php database/seed-poe2-tree.php
 php docs/postgres/db-version-minter.php --status
 ```
 
@@ -121,7 +125,11 @@ The version minter and seed commands are idempotent. The legacy
 `database/migrate.php` command remains as an alias. Content seeding upserts by
 slug, including relational deck cards and guide sections. Use
 `php database/seed-trivia.php` to refresh only the trivia catalog; normal
-deployments run that focused seed automatically. See
+deployments run that focused seed automatically. Deployments also run
+`php database/seed-poe2-tree.php`, which imports the pinned Path of Exile 2
+passive-tree export into the `poe2_tree_*` tables before the planner that
+loads it from `/v1/poe2/tree` is published; re-running it with the same export
+changes nothing. See
 [`docs/postgres/SCHEMA.md`](docs/postgres/SCHEMA.md) for the pinned version,
 complete update chain, and procedure for adding a schema version.
 
@@ -211,6 +219,8 @@ Run the integration checks against the configured PostgreSQL database:
 ```bash
 php tests/api-smoke.php
 php tests/trivia-murder-game.php
+php tests/poe2-tree-api.php
+node --test tests/poe2-tree.test.mjs
 ```
 
 The smoke test covers database health, seeded content, registration, login
@@ -218,7 +228,10 @@ identity, JWT authentication, refresh-token rotation/reuse revocation, OAuth
 configuration gating, and editor-only content writes. It removes its temporary
 records when finished. The Murder Trivia playthrough creates an isolated schema,
 applies the complete migration chain, exercises every game phase and replay, and
-drops the schema when finished.
+drops the schema when finished. The passive-tree check imports the pinned
+export if needed, verifies repeat imports, rejected exports, current-version
+switching and ETag revalidation, then confirms through the planner's own rule
+model that the API payload builds the same allocation models as the export.
 
 ## API surface
 
@@ -231,7 +244,14 @@ GET /v1/magic/decks[/<slug>]
 GET /v1/magic/guides[/<slug>]
 GET /v1/games[/<slug>]
 GET /v1/music[/<slug>]
+GET /v1/poe2/tree
 ```
+
+`/v1/poe2/tree` returns the current imported passive tree as
+`{data: {version, source: {url, commit, sha256}, tree}}`, where `tree` keeps
+the export's field layout trimmed to what the planner reads. It sends a strong
+`ETag` with `Cache-Control: no-cache`, so browsers revalidate and receive
+`304 Not Modified` until a new export is imported.
 
 Authentication:
 

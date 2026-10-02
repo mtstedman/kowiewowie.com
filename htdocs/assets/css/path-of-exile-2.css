@@ -142,6 +142,10 @@
     text-align: center;
 }
 
+.poe2-totals__estimate {
+    grid-column: 1 / -1;
+}
+
 .poe2-totals strong {
     display: block;
     color: var(--poe2-gold);
@@ -155,8 +159,58 @@
 }
 
 .poe2-tree-panel {
+    position: relative;
     padding: 0;
     overflow: hidden;
+}
+
+/* Positioned by planner.js inside the tree panel; never intercepts the pointer. */
+.poe2-tooltip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    width: max-content;
+    max-width: min(22rem, calc(100% - 16px));
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--poe2-gold);
+    border-radius: 6px;
+    background: rgba(5, 11, 22, 0.96);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    pointer-events: none;
+}
+
+.poe2-tooltip[hidden] {
+    display: none;
+}
+
+.poe2-tooltip__title {
+    margin: 0;
+    color: var(--poe2-gold);
+    font-weight: 700;
+}
+
+.poe2-tooltip__meta {
+    margin: 0.15rem 0 0.45rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    opacity: 0.8;
+}
+
+.poe2-tooltip__stats {
+    display: grid;
+    gap: 0.2rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.poe2-tooltip__empty {
+    font-style: italic;
+    opacity: 0.75;
 }
 
 .poe2-panel-heading {

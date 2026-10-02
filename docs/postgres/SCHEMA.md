@@ -1,9 +1,9 @@
-<!-- schema-version: 16 -->
+<!-- schema-version: 17 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 16**. `migration-chain.json` is the ordered,
+current release pin is **version 17**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -33,11 +33,12 @@ per-file execution ledger.
 | 14 | `013_palworld_breeding.sql` | Indexed Palworld pals, breeding pairs, passive skills, and dataset provenance |
 | 15 | `014_unified_collectibles.sql` | Sonny Angel catalog support, release-year sorting, and sourced price metadata |
 | 16 | `015_poe2_saved_builds.sql` | Path of Exile 2 saved passive-tree builds owned by a registered user or guest browser identity |
+| 17 | `016_poe2_passive_tree.sql` | Indexed Path of Exile 2 passive-tree exports: versions, classes, ascendancies, nodes, edges, unlock and radius lists, and overrides |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 16 inventory
+## Current version 17 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -58,7 +59,11 @@ their full basenames are already stored in production's migration ledger.
 - Collectibles: `collectible_products` and `collectible_variants`
 - Palworld breeding: `palworld_dataset`, `palworld_pals`,
   `palworld_breeding_pairs`, and `palworld_passive_skills`
-- Path of Exile 2: `poe2_saved_builds`
+- Path of Exile 2: `poe2_saved_builds`, `poe2_tree_versions`,
+  `poe2_tree_classes`, `poe2_tree_ascendancies`, `poe2_tree_nodes`,
+  `poe2_tree_edges`, `poe2_tree_node_unlock_requirements`,
+  `poe2_tree_node_keystones_in_radius`, `poe2_tree_skill_overrides`,
+  `poe2_tree_class_override_pairs`, and `poe2_tree_ascendancy_override_pairs`
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -212,6 +217,74 @@ must-have passive node IDs as `jsonb` arrays (both default to `[]`).
 update. The partial indexes
 `poe2_saved_builds_user_idx` and `poe2_saved_builds_guest_idx` list an owner's
 builds by most recent update.
+
+## Path of Exile 2 passive tree
+
+The `poe2_tree_*` tables hold the official passive-tree export the planner
+loads from `GET /v1/poe2/tree`, instead of a static JSON file. Like the
+Palworld tables they are an imported snapshot, keyed by integers from the
+export rather than UUIDs. The migration creates schema only;
+`database/seed-poe2-tree.php` imports the export pinned by
+`database/data/poe2-passive-tree/source.json` (deployments run it after the
+version minter). Field semantics are documented in
+`database/data/poe2-passive-tree/SOURCE.md`.
+
+`poe2_tree_versions` has one row per imported export `version` (1-32
+characters, matching `poe2_saved_builds.tree_version`) with its
+`source_url`, 40-hex `source_commit`, 64-hex `source_sha256`, the
+`importer_revision` that wrote it, and `imported_at`. The partial unique
+index `poe2_tree_versions_current_idx` allows at most one row with
+`is_current`; the import sets it on the version it writes. Re-importing the
+same digest with the same importer revision changes nothing. Every other table
+carries `tree_version` as the leading key column and cascades from its version
+row, so replacing or deleting a version removes all of its rows.
+
+- `poe2_tree_classes`: one row per export class, keyed by `class_index`
+  (export order), with a unique `name` and an optional `start_node_id`. Paired
+  classes share a start node, so the class points at the node; that foreign
+  key is deferred because classes are written before nodes.
+- `poe2_tree_ascendancies`: keyed by `ascendancy_id`, with the owning
+  `class_index`, the `position` within that class, and a nullable `name`
+  (NULL marks an unreleased placeholder).
+- `poe2_tree_nodes`: keyed by `node_id` (the skill hash). `export_id` is the
+  upstream string ID and is NULL exactly when `kind` is `placeholder`; `kind`
+  is one of `classStart`, `ascendancyStart`, `mastery`, `keystone`,
+  `jewelSocket`, `notable`, `small`, or `placeholder`. Each row has `name`,
+  `stats` (`text[]`), finite `x`/`y`, an optional `ascendancy_id`, `is_free`,
+  `is_multiple_choice`, the `multiple_choice_parent_id` of an option (a node
+  in the same version), and the `unlock_ascendancy_id` its unlock constraint
+  requires (an ascendancy in the same version). An `ascendancyStart` node
+  must name its ascendancy.
+- `poe2_tree_edges`: keyed by `edge_index` (export position; the six root
+  edges are not stored), connecting `from_node_id` to `to_node_id`, with an
+  optional `orbit` and an `orbit_x`/`orbit_y` arc centre that is either
+  complete or absent.
+- `poe2_tree_node_unlock_requirements` and
+  `poe2_tree_node_keystones_in_radius`: ordered lists keyed by
+  `(node_id, position)`, each entry referencing another node of the version.
+- `poe2_tree_skill_overrides`: replacement records keyed by `override_id`
+  with optional `export_id`, `name`, `stats`, and `ascendancy_id`.
+- `poe2_tree_class_override_pairs` and `poe2_tree_ascendancy_override_pairs`:
+  `(owner, node_id) -> override_id`. `node_id` has no foreign key because the
+  pinned export names two node IDs (on Druid) that are not in its node list.
+
+### Indexes and the queries they serve
+
+| Index | Columns | Query served |
+| --- | --- | --- |
+| `poe2_tree_versions_current_idx` (partial unique) | `poe2_tree_versions (is_current) WHERE is_current` | Find the current version for `/v1/poe2/tree` and its ETag; enforces a single current version |
+| Primary keys | `(tree_version, class_index)`, `(tree_version, ascendancy_id)`, `(tree_version, node_id)`, `(tree_version, edge_index)`, `(tree_version, node_id, position)`, `(tree_version, override_id)`, `(tree_version, <owner>, node_id)` | Every per-version read that builds the API payload, in key order; node lookup by skill hash |
+| `poe2_tree_ascendancies_tree_version_class_index_position_key` (unique) | `(tree_version, class_index, position)` | A class's ascendancies in export order; backs the class foreign key |
+| `poe2_tree_edges_from_idx`, `poe2_tree_edges_to_idx` | `(tree_version, from_node_id)`, `(tree_version, to_node_id)` | A node's connections in either direction; back the edge foreign keys |
+| `poe2_tree_node_unlock_requirements_required_idx` | `(tree_version, required_node_id)` | Nodes unlocked by a given node; backs the requirement foreign key |
+| `poe2_tree_node_keystones_in_radius_keystone_idx` | `(tree_version, keystone_node_id)` | Nodes inside a given keystone's radius; backs the keystone foreign key |
+| `poe2_tree_nodes_choice_parent_idx` (partial) | `(tree_version, multiple_choice_parent_id)` | A multiple-choice hub's options; backs the self-reference |
+| `poe2_tree_nodes_unlock_ascendancy_idx` (partial) | `(tree_version, unlock_ascendancy_id)` | Nodes that require a given ascendancy; backs that foreign key |
+| `poe2_tree_classes_start_node_idx` (partial) | `(tree_version, start_node_id)` | Classes that start at a given node; backs the deferred start-node foreign key |
+| `poe2_tree_class_override_pairs_override_idx`, `poe2_tree_ascendancy_override_pairs_override_idx` | `(tree_version, override_id)` | Owners using a given override; back the override foreign keys |
+
+Every foreign-key column leads an index, so replacing a version cascades
+without sequential scans.
 
 ## Open-deck scheduler
 

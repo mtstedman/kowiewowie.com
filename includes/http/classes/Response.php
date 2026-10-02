@@ -36,13 +36,17 @@ final class Response
     public function send(): never
     {
         http_response_code($this->status);
+        $cacheControl = false;
         foreach ($this->headers as $name => $value) {
             header("{$name}: {$value}");
+            $cacheControl = $cacheControl || strcasecmp($name, 'Cache-Control') === 0;
         }
 
         if ($this->payload !== null) {
             header('Content-Type: application/json; charset=utf-8');
-            header('Cache-Control: no-store');
+            if (!$cacheControl) {
+                header('Cache-Control: no-store');
+            }
             echo json_encode($this->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
 

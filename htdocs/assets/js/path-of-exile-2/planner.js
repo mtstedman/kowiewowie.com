@@ -1,9 +1,18 @@
-import { loadTree, buildAllocationModel, summarizeRouteBonuses } from './tree-data.js';
-// Production caches static JavaScript for seven days. Keep this dependency
-// versioned so a new planner cannot load an older optimizer from browser cache.
-// Bump the token whenever optimizer.js changes its exports.
-import { findMinimalRoute, findConnection } from './optimizer.js?v=20261002-find-connection';
-import { listBuilds, createBuild, updateBuild, deleteBuild } from './builds-api.js';
+// Production caches static JavaScript for seven days and the page versions
+// only this file, so every dependency carries the first 12 hex digits of its
+// own SHA-256. tests/poe2-tree.test.mjs fails when a token is stale and prints
+// the expected one. TypeScript cannot resolve a query-string specifier, so the
+// namespaces are cast to the unversioned modules' types below.
+// @ts-ignore
+import * as treeData from './tree-data.js?v=8011f5c03021';
+// @ts-ignore
+import * as optimizer from './optimizer.js?v=a6b98e12335a';
+// @ts-ignore
+import * as buildsApi from './builds-api.js?v=c1e91d3fb8a2';
+
+const { loadTree, buildAllocationModel, summarizeRouteBonuses } = /** @type {typeof import('./tree-data.js')} */ (treeData);
+const { findMinimalRoute, findConnection } = /** @type {typeof import('./optimizer.js')} */ (optimizer);
+const { listBuilds, createBuild, updateBuild, deleteBuild } = /** @type {typeof import('./builds-api.js')} */ (buildsApi);
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const MIN_SCALE = 0.01;
@@ -21,6 +30,18 @@ const MAX_SCALE = 2.5;
 const CAMPAIGN_PASSIVE_POINTS = 24;
 const MAX_CHARACTER_LEVEL = 100;
 const STANDARD_PASSIVE_BUDGET = MAX_CHARACTER_LEVEL - 1 + CAMPAIGN_PASSIVE_POINTS;
+
+const KIND_LABELS = {
+  classStart: 'Class start',
+  ascendancyStart: 'Ascendancy start',
+  keystone: 'Keystone',
+  notable: 'Notable',
+  jewelSocket: 'Jewel socket',
+  small: 'Passive',
+};
+
+// Gap between the pointer (or focused node) and the tooltip, in CSS pixels.
+const TOOLTIP_OFFSET = 16;
 
 const elements = {
   status: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-status')),
@@ -66,6 +87,7 @@ const elements = {
   savedBuildEmpty: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-saved-build-empty')),
   savedBuildList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-saved-build-list')),
   version: /** @type {HTMLSpanElement} */ (document.querySelector('#poe2-version')),
+  tooltip: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-tooltip')),
 };
 
 const state = {
@@ -98,6 +120,8 @@ const state = {
   fitScale: MIN_SCALE,
   renderedScale: null,
   drag: null,
+  // Node whose tooltip is showing, or null.
+  tooltipNodeId: null,
 };
 
 function setStatus(message, error = false) {
@@ -125,6 +149,22 @@ function nodeName(nodeId) {
 
 function plural(count, singular, pluralForm = `${singular}s`) {
   return `${count.toLocaleString()} ${count === 1 ? singular : pluralForm}`;
+}
+
+// Export stat text marks glossary terms as [Term] or [Term|shown words];
+// display the words a player reads in game.
+function readableStat(text) {
+  return text.replace(/\[([^\]|]*)\|([^\]]*)\]/g, '$2').replace(/\[([^\]|]*)\]/g, '$1');
+}
+
+/** @param {readonly string[]} stats */
+function readableStatLines(stats) {
+  return stats.flatMap((stat) => readableStat(stat).split(/\r?\n/)).filter((line) => line.trim() !== '');
+}
+
+function nodeKindLabel(node) {
+  const label = KIND_LABELS[node.kind] || 'Passive';
+  return node.domain === 'ascendancy' && node.kind !== 'ascendancyStart' ? `Ascendancy ${label.toLowerCase()}` : label;
 }
 
 /**
@@ -498,7 +538,7 @@ function renderNetBonuses() {
       const item = document.createElement('li');
       const text = document.createElement('span');
       text.className = 'poe2-bonus-text';
-      text.textContent = typeof entry === 'string' ? entry : ('text' in entry ? entry.text : entry.name);
+      text.textContent = typeof entry === 'string' ? readableStat(entry) : ('text' in entry ? readableStat(entry.text) : entry.name);
       item.append(text);
       if (typeof entry !== 'string' && 'count' in entry && entry.count > 1) {
         const count = document.createElement('span');
@@ -712,6 +752,7 @@ function edgeArcPath(from, to, arc) {
 }
 
 function buildGraph(focusNodeId = null) {
+  hideTooltip();
   elements.edgeLayer.replaceChildren();
   elements.nodeLayer.replaceChildren();
   state.nodeElements.clear();
@@ -874,6 +915,7 @@ function updateSelectionState(previousId) {
 }
 
 function updateDetails() {
+  if (state.tooltipNodeId) renderTooltip(state.tooltipNodeId);
   const node = state.selectedId ? state.nodeById.get(state.selectedId) : null;
   elements.nodeStats.replaceChildren();
   if (!node) {
@@ -891,12 +933,13 @@ function updateDetails() {
   const canAllocate = currentAvailability().has(node.id);
   elements.detailsTitle.textContent = node.name || `Node ${node.id}`;
   elements.nodeMeta.textContent = `${node.domain === 'ascendancy' ? 'Ascendancy' : 'Passive'} · ${node.kind} · ID ${node.id}${isRoot ? ' · implicit free start' : isAllocated ? ' · allocated' : canAllocate ? ' · available next' : ' · not currently available'}`;
-  for (const stat of node.stats) {
+  const lines = readableStatLines(node.stats);
+  for (const line of lines) {
     const item = document.createElement('li');
-    item.textContent = stat;
+    item.textContent = line;
     elements.nodeStats.append(item);
   }
-  if (node.stats.length === 0) {
+  if (lines.length === 0) {
     const item = document.createElement('li');
     item.textContent = 'No stat text in this export.';
     elements.nodeStats.append(item);
@@ -907,6 +950,69 @@ function updateDetails() {
   elements.toggleMustHave.textContent = isRoot ? 'Start node' : isMustHave ? 'Unmark must-have' : 'Mark must-have';
   elements.toggleMustHave.setAttribute('aria-pressed', String(isMustHave));
   elements.toggleMustHave.disabled = isRoot || !state.enabled || state.computing;
+}
+
+function nodeStateLabel(nodeId) {
+  if (state.rootIds.has(nodeId)) return 'Starting node';
+  if (state.allocated.has(nodeId)) return 'Allocated';
+  return currentAvailability().has(nodeId) ? 'Available next' : 'Not yet reachable';
+}
+
+/** Fill the tooltip for `nodeId`; false (and hidden) when the node is gone. */
+function renderTooltip(nodeId) {
+  const node = state.model ? state.nodeById.get(nodeId) : null;
+  if (!node) {
+    hideTooltip();
+    return false;
+  }
+  const title = document.createElement('p');
+  title.className = 'poe2-tooltip__title';
+  title.textContent = node.name || `Node ${node.id}`;
+
+  const meta = document.createElement('p');
+  meta.className = 'poe2-tooltip__meta';
+  meta.textContent = [nodeKindLabel(node), nodeStateLabel(node.id), state.mustHaves.has(node.id) ? 'Must-have' : '']
+    .filter(Boolean).join(' · ');
+
+  const stats = document.createElement('ul');
+  stats.className = 'poe2-tooltip__stats';
+  for (const line of readableStatLines(node.stats)) {
+    const item = document.createElement('li');
+    item.textContent = line;
+    stats.append(item);
+  }
+  if (stats.childElementCount === 0) {
+    const item = document.createElement('li');
+    item.className = 'poe2-tooltip__empty';
+    item.textContent = 'No stat text in this export.';
+    stats.append(item);
+  }
+  elements.tooltip.replaceChildren(title, meta, stats);
+  return true;
+}
+
+/** Show the tooltip for `nodeId` beside the viewport point (clientX, clientY). */
+function showTooltip(nodeId, clientX, clientY) {
+  if (nodeId !== state.tooltipNodeId || elements.tooltip.hidden) {
+    state.tooltipNodeId = nodeId;
+    if (!renderTooltip(nodeId)) return;
+    elements.tooltip.hidden = false;
+  }
+  // Prefer below-right of the point; flip to stay inside the tree panel.
+  const panel = elements.treePanel.getBoundingClientRect();
+  const width = elements.tooltip.offsetWidth;
+  const height = elements.tooltip.offsetHeight;
+  let left = clientX - panel.left + TOOLTIP_OFFSET;
+  let top = clientY - panel.top + TOOLTIP_OFFSET;
+  if (left + width > panel.width - 8) left = clientX - panel.left - TOOLTIP_OFFSET - width;
+  if (top + height > panel.height - 8) top = clientY - panel.top - TOOLTIP_OFFSET - height;
+  elements.tooltip.style.left = `${Math.max(8, left)}px`;
+  elements.tooltip.style.top = `${Math.max(8, top)}px`;
+}
+
+function hideTooltip() {
+  state.tooltipNodeId = null;
+  elements.tooltip.hidden = true;
 }
 
 /**
@@ -1157,6 +1263,8 @@ elements.zoomOut.addEventListener('click', () => {
 elements.tree.addEventListener('wheel', (event) => {
   if (!state.model) return;
   event.preventDefault();
+  // Zooming moves the tree under the pointer; the next pointermove re-shows it.
+  hideTooltip();
   const rect = elements.tree.getBoundingClientRect();
   zoomAt(event.deltaY < 0 ? 1.16 : 1 / 1.16, event.clientX - rect.left, event.clientY - rect.top);
 }, { passive: false });
@@ -1172,7 +1280,10 @@ elements.tree.addEventListener('pointermove', (event) => {
   if (!state.drag || state.drag.pointerId !== event.pointerId) return;
   const dx = event.clientX - state.drag.startX;
   const dy = event.clientY - state.drag.startY;
-  if (Math.abs(dx) + Math.abs(dy) > 4) state.drag.moved = true;
+  if (Math.abs(dx) + Math.abs(dy) > 4) {
+    state.drag.moved = true;
+    hideTooltip();
+  }
   state.view.x = state.drag.originX + dx;
   state.view.y = state.drag.originY + dy;
   applyTransform();
@@ -1192,6 +1303,29 @@ function endDrag(event) {
 
 elements.tree.addEventListener('pointerup', endDrag);
 elements.tree.addEventListener('pointercancel', endDrag);
+
+// Hover tooltips follow mouse and pen pointers; touch selects a node instead,
+// and the details panel shows the same text.
+elements.tree.addEventListener('pointermove', (event) => {
+  if (!state.model || state.drag || event.pointerType === 'touch') return;
+  const nodeId = nodeIdFromEvent(event);
+  if (nodeId) showTooltip(nodeId, event.clientX, event.clientY);
+  else if (state.tooltipNodeId) hideTooltip();
+});
+
+elements.tree.addEventListener('pointerleave', hideTooltip);
+
+// Keyboard focus on a node shows its tooltip beside the node.
+elements.tree.addEventListener('focusin', (event) => {
+  const nodeId = nodeIdFromEvent(event);
+  if (!state.model || !nodeId || !(event.target instanceof Element) || !event.target.matches(':focus-visible')) return;
+  const rect = event.target.getBoundingClientRect();
+  showTooltip(nodeId, rect.right, rect.top + rect.height / 2);
+});
+
+elements.tree.addEventListener('focusout', () => {
+  if (state.tooltipNodeId && !state.drag) hideTooltip();
+});
 
 // Node selection is delegated to the tree. Panning captures the pointer on
 // pointerdown, and browsers dispatch the click of a captured pointer at the

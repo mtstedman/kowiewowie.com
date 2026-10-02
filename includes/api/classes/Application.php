@@ -19,6 +19,7 @@ use Wowie\Api\Http\Request;
 use Wowie\Api\Http\Response;
 use Wowie\Api\OpenDeck\OpenDeckSchedulerRepository;
 use Wowie\Api\Poe2\Poe2BuildRepository;
+use Wowie\Api\Poe2\Poe2TreeRepository;
 use Wowie\Api\Trivia\TriviaIdentityService;
 use Wowie\Api\Trivia\TriviaRepository;
 
@@ -35,6 +36,7 @@ final class Application
     private readonly TriviaRepository $trivia;
     private readonly OpenDeckSchedulerRepository $openDeck;
     private readonly Poe2BuildRepository $poe2Builds;
+    private readonly Poe2TreeRepository $poe2Tree;
     /** @var array<string, string> */
     private array $chessIdentityResponseHeaders = [];
     /** @var array<string, string> Headers that must survive an auth error response, such as an expired refresh cookie. */
@@ -59,6 +61,7 @@ final class Application
         $this->trivia = new TriviaRepository($pdo);
         $this->openDeck = new OpenDeckSchedulerRepository($pdo);
         $this->poe2Builds = new Poe2BuildRepository($pdo);
+        $this->poe2Tree = new Poe2TreeRepository($pdo);
     }
 
     public function handle(Request $request): Response
@@ -116,7 +119,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/trivia/rooms', '/v1/open-deck/slots', '/v1/poe2/builds'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/trivia/rooms', '/v1/open-deck/slots', '/v1/poe2/tree', '/v1/poe2/builds'],
             ]);
         }
 
@@ -729,6 +732,10 @@ final class Application
      */
     private function dispatchPoe2(Request $request): ?Response
     {
+        if ($request->path === '/v1/poe2/tree') {
+            return $this->poe2TreeResponse($request);
+        }
+
         $isCollection = $request->path === '/v1/poe2/builds';
         $buildId = null;
         if (!$isCollection) {
@@ -782,6 +789,33 @@ final class Application
 
         $this->poe2Builds->delete($owner, $buildId);
         return $this->withChessIdentity(Response::empty(), $identity);
+    }
+
+    /**
+     * The current imported passive tree (shared contract poe2-tree-model). Browsers revalidate
+     * on every load and receive 304 while the imported version is unchanged.
+     */
+    private function poe2TreeResponse(Request $request): Response
+    {
+        if ($request->method !== 'GET') {
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for the PoE 2 passive tree.');
+        }
+        $version = $this->poe2Tree->current();
+        if ($version === null) {
+            throw new ApiException(503, 'poe2_tree_unavailable', 'The passive tree has not been imported yet.');
+        }
+
+        $etag = $this->poe2Tree->etag($version);
+        $headers = ['ETag' => $etag, 'Cache-Control' => 'no-cache'];
+        // nginx weakens the ETag of a gzipped response, so compare weakly.
+        foreach (explode(',', $request->header('if-none-match') ?? '') as $candidate) {
+            $candidate = trim($candidate);
+            if ($candidate === '*' || preg_replace('#^W/#', '', $candidate) === $etag) {
+                return Response::empty(304, $headers);
+            }
+        }
+
+        return Response::json(['data' => $this->poe2Tree->payload($version)], 200, $headers);
     }
 
     /**
