@@ -760,6 +760,7 @@ final class Application
 
         if ($isCollection) {
             if ($request->method === 'GET') {
+                $adoption = $this->adoptGuestPoe2Builds($owner);
                 $builds = $this->poe2Builds->listForOwner($owner);
                 return $this->withChessIdentity(Response::json([
                     'data' => $builds,
@@ -767,7 +768,10 @@ final class Application
                         'count' => count($builds),
                         'limit' => Poe2BuildRepository::MAX_BUILDS_PER_OWNER,
                         'owner' => $owner['type'],
-                    ],
+                    ] + ($adoption === null ? [] : [
+                        'adopted_from_guest' => $adoption['adopted'],
+                        'guest_builds_remaining' => $adoption['remaining'],
+                    ]),
                 ]), $identity);
             }
 
@@ -867,6 +871,27 @@ final class Application
      *
      * @return array{owner: array{type: string, id: string}, response_headers: array<string, string>}
      */
+    /**
+     * Builds saved as a guest follow the visitor into their account: the first build list after
+     * signing in moves them off the guest cookie's profile. Null when there was nothing to move.
+     *
+     * @param array{type: string, id: string} $owner
+     * @return array{adopted: int, remaining: int}|null
+     */
+    private function adoptGuestPoe2Builds(array $owner): ?array
+    {
+        if ($owner['type'] !== 'user') {
+            return null;
+        }
+        $guestProfileId = $this->chessGuests->existingGuestProfileId();
+        if ($guestProfileId === null) {
+            return null;
+        }
+        $adoption = $this->poe2Builds->adoptGuestBuilds($guestProfileId, $owner['id']);
+
+        return $adoption['adopted'] === 0 && $adoption['remaining'] === 0 ? null : $adoption;
+    }
+
     private function resolvePoe2Identity(Request $request): array
     {
         // A malformed or invalid Authorization header still fails with 401 here.

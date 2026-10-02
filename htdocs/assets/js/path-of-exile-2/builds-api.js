@@ -86,6 +86,9 @@ export const listBuilds = async () => {
     return {
         builds: Array.isArray(result?.data) ? result.data : [],
         owner: result?.meta?.owner === 'user' ? 'user' : 'guest',
+        // Set on the first list after signing in when guest builds moved to the account.
+        adoptedFromGuest: Number(result?.meta?.adopted_from_guest) || 0,
+        guestBuildsRemaining: Number(result?.meta?.guest_builds_remaining) || 0,
     };
 };
 

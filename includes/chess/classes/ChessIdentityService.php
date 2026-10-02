@@ -46,6 +46,24 @@ final class ChessIdentityService
         ];
     }
 
+    /**
+     * The active guest profile this request's cookie names, if any. Unlike resolve(), it never
+     * creates, refreshes or re-issues a profile, so a signed-in request leaves no guest footprint.
+     */
+    public function existingGuestProfileId(): ?string
+    {
+        $rawToken = isset($_COOKIE[self::COOKIE_NAME]) && is_string($_COOKIE[self::COOKIE_NAME])
+            ? trim($_COOKIE[self::COOKIE_NAME])
+            : '';
+        if ($rawToken === '' || strlen($rawToken) > 512) {
+            return null;
+        }
+
+        $profile = $this->findActiveProfile(hash('sha256', $rawToken));
+
+        return $profile === null ? null : (string) $profile['id'];
+    }
+
     /** @return array<string, mixed>|null */
     private function findActiveProfile(string $tokenHash): ?array
     {

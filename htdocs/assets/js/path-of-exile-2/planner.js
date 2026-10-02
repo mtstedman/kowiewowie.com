@@ -8,7 +8,7 @@ import * as treeData from './tree-data.js?v=e88a797f3dce';
 // @ts-ignore
 import * as optimizer from './optimizer.js?v=a6b98e12335a';
 // @ts-ignore
-import * as buildsApi from './builds-api.js?v=c1e91d3fb8a2';
+import * as buildsApi from './builds-api.js?v=14de1306bb90';
 // @ts-ignore
 import * as treeArt from './tree-art.js?v=f3d660112b74';
 
@@ -393,7 +393,15 @@ async function refreshSavedBuilds() {
     }
     updateSavedBuildOwner();
     renderSavedBuilds();
-    setSavedBuildStatus(state.savedBuilds.length === 0 ? '' : `${plural(state.savedBuilds.length, 'saved build')} loaded.`);
+    if (result.adoptedFromGuest > 0 || result.guestBuildsRemaining > 0) {
+      const moved = `${plural(result.adoptedFromGuest, 'build')} saved in this browser before you signed in ${result.adoptedFromGuest === 1 ? 'was' : 'were'} added to your account.`;
+      const left = result.guestBuildsRemaining > 0
+        ? ` ${plural(result.guestBuildsRemaining, 'build')} did not fit within the 100-build limit and ${result.guestBuildsRemaining === 1 ? 'stays' : 'stay'} in this browser.`
+        : '';
+      setSavedBuildStatus(`${moved}${left}`);
+    } else {
+      setSavedBuildStatus(state.savedBuilds.length === 0 ? '' : `${plural(state.savedBuilds.length, 'saved build')} loaded.`);
+    }
   } catch (error) {
     state.savedBuildOwner = null;
     updateSavedBuildOwner();

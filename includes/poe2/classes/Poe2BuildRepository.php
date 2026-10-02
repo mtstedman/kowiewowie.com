@@ -165,6 +165,64 @@ final class Poe2BuildRepository
     }
 
     /**
+     * Moves a guest's saved builds to a signed-in user, most recently updated first, up to the
+     * user's free build slots; any that do not fit stay with the guest. It takes the same
+     * per-owner advisory locks as create(), always user before guest, so the limit holds and
+     * concurrent adoptions cannot deadlock.
+     *
+     * @return array{adopted: int, remaining: int}
+     */
+    public function adoptGuestBuilds(string $guestProfileId, string $userId): array
+    {
+        [$guestColumn, $guestId] = $this->ownerFilter(['type' => 'guest', 'id' => $guestProfileId]);
+        [$userColumn, $ownerId] = $this->ownerFilter(['type' => 'user', 'id' => $userId]);
+
+        $ownsTransaction = !$this->pdo->inTransaction();
+        if ($ownsTransaction) {
+            $this->pdo->beginTransaction();
+        }
+
+        try {
+            $lock = $this->pdo->prepare('SELECT pg_advisory_xact_lock(hashtext(:lock_key))');
+            $lock->execute(['lock_key' => 'poe2_saved_builds:' . $userColumn . ':' . $ownerId]);
+            $lock->execute(['lock_key' => 'poe2_saved_builds:' . $guestColumn . ':' . $guestId]);
+
+            $count = $this->pdo->prepare('SELECT count(*) FROM poe2_saved_builds WHERE user_id = :user_id');
+            $count->execute(['user_id' => $ownerId]);
+            $room = max(0, self::MAX_BUILDS_PER_OWNER - (int) $count->fetchColumn());
+
+            $adopted = 0;
+            if ($room > 0) {
+                $move = $this->pdo->prepare(
+                    'UPDATE poe2_saved_builds SET user_id = :user_id, guest_profile_id = NULL'
+                    . ' WHERE id IN (SELECT id FROM poe2_saved_builds WHERE guest_profile_id = :guest_id'
+                    . ' ORDER BY updated_at DESC, id LIMIT :room)'
+                );
+                $move->bindValue('user_id', $ownerId);
+                $move->bindValue('guest_id', $guestId);
+                $move->bindValue('room', $room, PDO::PARAM_INT);
+                $move->execute();
+                $adopted = $move->rowCount();
+            }
+
+            $left = $this->pdo->prepare('SELECT count(*) FROM poe2_saved_builds WHERE guest_profile_id = :guest_id');
+            $left->execute(['guest_id' => $guestId]);
+            $remaining = (int) $left->fetchColumn();
+
+            if ($ownsTransaction) {
+                $this->pdo->commit();
+            }
+        } catch (Throwable $error) {
+            if ($ownsTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
+
+        return ['adopted' => $adopted, 'remaining' => $remaining];
+    }
+
+    /**
      * @param array{type: string, id: string} $owner
      */
     public function delete(array $owner, string $id): void

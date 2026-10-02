@@ -205,7 +205,10 @@ planner. Each build belongs to exactly one owner: either a registered `users`
 row (`user_id`) or a `chess_guest_profiles` browser-cookie identity
 (`guest_profile_id`); a check requires exactly one of the two to be set. Both
 owner foreign keys use `ON DELETE CASCADE`, so a build is removed when its
-owner is deleted.
+owner is deleted. A build changes owner in one case: when a signed-in user
+lists their builds while the browser still carries a guest cookie, the API
+moves that guest's builds to the user, most recently updated first and up to
+the 100-build limit; builds that do not fit stay with the guest.
 
 Each row carries a 1-64 character `character_name` and a 1-80 character
 `build_name` (both measured after trimming), the planner `class_id`, an
