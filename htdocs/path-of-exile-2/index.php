@@ -67,10 +67,6 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         </details>
                         <div id="poe2-route-summary" class="poe2-route-summary" hidden></div>
                         <button id="poe2-clear-route" type="button" disabled>Clear route</button>
-                        <details class="poe2-more">
-                            <summary>How routes are found</summary>
-                            <p class="poe2-help">The planner finds the shortest route that reaches every marked passive. There is no limit on how many you mark; very large sets get a short route that is not proven shortest. After a route is found, clicking a node connects it to the allocated tree, and clicking an allocated node removes it.</p>
-                        </details>
                     </section>
 
                     <div class="poe2-actions">
@@ -98,11 +94,6 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                             <p id="poe2-saved-build-empty" class="poe2-saved-build-empty">No saved builds yet.</p>
                             <ul id="poe2-saved-build-list" class="poe2-saved-build-list" aria-label="Saved builds" hidden></ul>
                         </div>
-                    </details>
-
-                    <details class="poe2-more">
-                        <summary>Controls</summary>
-                        <p class="poe2-help">Drag or use the arrow keys to pan. Use the mouse wheel or the + and − keys to zoom; zoom in to see each passive's icon. Hover over a node to see what it does; select it to inspect, allocate or mark it as a must-have. Clicking an allocated node removes it.</p>
                     </details>
                 </aside>
 
