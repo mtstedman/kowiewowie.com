@@ -1338,7 +1338,9 @@ function activateNode(nodeId) {
     tryAllocationChange();
     return;
   }
-  if (!state.model || !state.nodeById.has(nodeId) || state.route === null
+  // Any allocated tree (a found route, a loaded build or manual picks) is one
+  // to connect to; with nothing allocated a click only selects.
+  if (!state.model || !state.nodeById.has(nodeId) || state.allocated.size === 0
     || state.computing || state.rootIds.has(nodeId) || state.allocated.has(nodeId)) return;
   const result = findConnection(state.model, [...state.allocated], nodeId);
   if (!result.ok) {
@@ -1348,7 +1350,10 @@ function activateNode(nodeId) {
   setAllocation(new Set([...state.allocated, ...result.nodeIds]));
   updateGraphState();
   invalidateRoute();
-  setStatus(`${nodeName(nodeId)} allocated with ${plural(result.nodeIds.length - 1, 'connecting node')} added.`);
+  const connecting = result.nodeIds.length - 1;
+  setStatus(connecting > 0
+    ? `${nodeName(nodeId)} allocated with ${plural(connecting, 'connecting node')} added.`
+    : `${nodeName(nodeId)} allocated.`);
 }
 
 function centerNode(nodeId) {
