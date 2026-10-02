@@ -9,14 +9,32 @@ import * as treeData from './tree-data.js?v=8011f5c03021';
 import * as optimizer from './optimizer.js?v=a6b98e12335a';
 // @ts-ignore
 import * as buildsApi from './builds-api.js?v=c1e91d3fb8a2';
+// @ts-ignore
+import * as treeArt from './tree-art.js?v=2d6281b738ba';
 
 const { loadTree, buildAllocationModel, summarizeRouteBonuses } = /** @type {typeof import('./tree-data.js')} */ (treeData);
 const { findMinimalRoute, findConnection } = /** @type {typeof import('./optimizer.js')} */ (optimizer);
 const { listBuilds, createBuild, updateBuild, deleteBuild } = /** @type {typeof import('./builds-api.js')} */ (buildsApi);
+const { TREE_ART } = /** @type {typeof import('./tree-art.js')} */ (treeArt);
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const MIN_SCALE = 0.01;
 const MAX_SCALE = 2.5;
+// Below this zoom the game's framed icons are a few pixels wide, so nodes are
+// drawn as plain dots; from it on they use the official sprite sheets.
+const ART_MIN_SCALE = 0.12;
+// World units per sprite-sheet pixel: the sheets are exported at half scale.
+const ART_UNITS = 1 / TREE_ART.scale;
+// Frame families by node kind; each has unallocated/can-allocate/allocated art.
+const FRAME_STATES = {
+  PSSkillFrame: ['PSSkillFrame', 'PSSkillFrameHighlighted', 'PSSkillFrameActive'],
+  NotableFrame: ['NotableFrameUnallocated', 'NotableFrameCanAllocate', 'NotableFrameAllocated'],
+  KeystoneFrame: ['KeystoneFrameUnallocated', 'KeystoneFrameCanAllocate', 'KeystoneFrameAllocated'],
+  JewelFrame: ['JewelFrameUnallocated', 'JewelFrameCanAllocate', 'JewelFrameAllocated'],
+  AscendancyFrameNormal: ['AscendancyFrameNormalUnallocated', 'AscendancyFrameNormalCanAllocate', 'AscendancyFrameNormalAllocated'],
+  AscendancyFrameNotable: ['AscendancyFrameNotableUnallocated', 'AscendancyFrameNotableCanAllocate', 'AscendancyFrameNotableAllocated'],
+  AscendancyStartNode: ['AscendancyStartNode', 'AscendancyStartNode', 'AscendancyStartNode'],
+};
 
 // Ordinary passive-point budget behind the character-level estimate. The
 // pinned GGG export (0.5.5) describes tree topology only and carries no reward
@@ -63,6 +81,8 @@ const elements = {
   treePanel: /** @type {HTMLElement} */ (document.querySelector('.poe2-tree-panel')),
   tree: /** @type {SVGSVGElement} */ (document.querySelector('#poe2-tree')),
   viewport: /** @type {SVGGElement} */ (document.querySelector('#poe2-viewport')),
+  artDefs: /** @type {SVGDefsElement} */ (document.querySelector('#poe2-art-defs')),
+  backdrop: /** @type {SVGGElement} */ (document.querySelector('#poe2-backdrop')),
   edgeLayer: /** @type {SVGGElement} */ (document.querySelector('#poe2-edges')),
   nodeLayer: /** @type {SVGGElement} */ (document.querySelector('#poe2-nodes')),
   detailsTitle: /** @type {HTMLHeadingElement} */ (document.querySelector('#poe2-details-title')),
@@ -123,6 +143,9 @@ const state = {
   // Node whose tooltip is showing, or null.
   tooltipNodeId: null,
 };
+
+// The game's background tile; its versioned URL lives in the art manifest.
+elements.tree.style.setProperty('--poe2-tile', `url("${TREE_ART.images.background.url}")`);
 
 function setStatus(message, error = false) {
   elements.status.textContent = message;
@@ -684,22 +707,32 @@ function applyTransform() {
   // Panning changes only the viewport transform. Resize glyphs only on zoom.
   if (state.renderedScale === scale) return;
   state.renderedScale = scale;
+  const showArt = scale >= ART_MIN_SCALE;
+  elements.tree.classList.toggle('is-art', showArt);
   const density = Math.min(1, scale / 0.025);
   elements.tree.style.setProperty('--poe2-node-stroke', String(0.4 * density));
   elements.tree.style.setProperty('--poe2-edge-stroke', String(0.35 * density));
   for (const parts of state.nodeElements.values()) {
     const radius = Math.max(parts.radius, Math.max(0.55, parts.screenRadius * density) / scale);
-    parts.circle.setAttribute('r', String(radius));
+    const shown = shownRadius(parts, radius, showArt);
+    // With art showing, the body circle becomes the hit target and the
+    // selection ring just outside the frame.
+    parts.circle.setAttribute('r', String(shown === radius ? radius : shown * 1.08));
     if (parts.kindRing) parts.kindRing.setAttribute('r', String(radius * 0.55));
-    if (parts.halo) parts.halo.setAttribute('r', String(haloRadius(radius, scale)));
-    parts.label.setAttribute('y', String(-radius - 14));
+    if (parts.halo) parts.halo.setAttribute('r', String(haloRadius(shown, scale)));
+    parts.label.setAttribute('y', String(-shown - 14));
   }
 }
 
-// A must-have halo stays at least 4 screen pixels wider than its node, so it
+// The radius a node is drawn at: its frame when art is showing, else its dot.
+function shownRadius(parts, dotRadius, showArt) {
+  return showArt && parts.artRadius ? parts.artRadius : dotRadius;
+}
+
+// A must-have halo stays at least 6 screen pixels wider than its node, so it
 // still reads at whole-tree zoom where nodes shrink to 2-pixel dots.
 function haloRadius(radius, scale) {
-  return radius + Math.max(radius * 0.45, 4 / scale);
+  return radius + Math.max(radius * 0.3, 6 / scale);
 }
 
 function svgSize() {
@@ -742,6 +775,147 @@ function nodeRadius(node) {
   return 21;
 }
 
+function frameFamily(node) {
+  if (node.kind === 'classStart') return null;
+  if (node.kind === 'ascendancyStart') return 'AscendancyStartNode';
+  if (node.domain === 'ascendancy') return node.kind === 'notable' ? 'AscendancyFrameNotable' : 'AscendancyFrameNormal';
+  if (node.kind === 'keystone') return 'KeystoneFrame';
+  if (node.kind === 'notable') return 'NotableFrame';
+  if (node.kind === 'jewelSocket') return 'JewelFrame';
+  return 'PSSkillFrame';
+}
+
+// One <symbol> per sheet rectangle, created on first use; the large backdrop
+// illustrations are drawn through these so their sheets are never copied.
+const artSymbols = new Map();
+function artSymbol(image, rect) {
+  const key = `${image.url}#${rect.join(',')}`;
+  let id = artSymbols.get(key);
+  if (id) return id;
+  id = `poe2-art-${artSymbols.size}`;
+  const symbol = document.createElementNS(SVG_NS, 'symbol');
+  symbol.id = id;
+  symbol.setAttribute('viewBox', rect.join(' '));
+  const sheet = document.createElementNS(SVG_NS, 'image');
+  sheet.setAttribute('href', image.url);
+  sheet.setAttribute('width', String(image.w));
+  sheet.setAttribute('height', String(image.h));
+  sheet.setAttribute('preserveAspectRatio', 'none');
+  symbol.append(sheet);
+  elements.artDefs.append(symbol);
+  artSymbols.set(key, id);
+  return id;
+}
+
+// A sprite centred on (x, y) in world units, sized from its sheet rectangle.
+function artUse(image, rect, className, x = 0, y = 0) {
+  const use = document.createElementNS(SVG_NS, 'use');
+  const width = rect[2] * ART_UNITS;
+  const height = rect[3] * ART_UNITS;
+  use.setAttribute('class', className);
+  use.setAttribute('href', `#${artSymbol(image, rect)}`);
+  use.setAttribute('x', String(x - width / 2));
+  use.setAttribute('y', String(y - height / 2));
+  use.setAttribute('width', String(width));
+  use.setAttribute('height', String(height));
+  return use;
+}
+
+// Node sprites are cut out of their sheets once each, into data: URLs (the
+// site CSP allows data: images but not blob:). Thousands of <image> elements
+// showing small bitmaps pan far faster than <use>s that crop a whole sheet.
+// Cutting runs in short slices of work so loading never blocks the page.
+const SLICE_BUDGET_MS = 8;
+const artSlices = new Map();
+const sheetLoads = new Map();
+const sliceQueue = [];
+let sliceTimer = 0;
+
+function loadSheet(url) {
+  let load = sheetLoads.get(url);
+  if (!load) {
+    load = new Promise((resolve, reject) => {
+      const sheet = new Image();
+      sheet.onload = () => resolve(sheet);
+      sheet.onerror = () => reject(new Error(`Could not load ${url}`));
+      sheet.src = url;
+    });
+    sheetLoads.set(url, load);
+  }
+  return load;
+}
+
+async function drainSlices() {
+  sliceTimer = 0;
+  const started = performance.now();
+  while (sliceQueue.length > 0 && performance.now() - started < SLICE_BUDGET_MS) {
+    const { key, image, rect } = sliceQueue.shift();
+    let sheet;
+    try {
+      sheet = await loadSheet(image.url);
+    } catch {
+      continue;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = rect[2];
+    canvas.height = rect[3];
+    canvas.getContext('2d').drawImage(sheet, rect[0], rect[1], rect[2], rect[3], 0, 0, rect[2], rect[3]);
+    const url = canvas.toDataURL('image/png');
+    const waiting = artSlices.get(key);
+    artSlices.set(key, url);
+    for (const element of waiting) {
+      if (element.dataset.sprite === key) element.setAttribute('href', url);
+    }
+  }
+  if (sliceQueue.length > 0) sliceTimer = window.setTimeout(drainSlices);
+}
+
+// Points a node <image> at a sprite; it fills in once the sprite is cut.
+function setSprite(element, image, rect) {
+  const key = `${image.url}#${rect.join(',')}`;
+  element.dataset.sprite = key;
+  const slice = artSlices.get(key);
+  if (typeof slice === 'string') {
+    element.setAttribute('href', slice);
+  } else if (slice) {
+    slice.push(element);
+  } else {
+    artSlices.set(key, [element]);
+    sliceQueue.push({ key, image, rect });
+    if (!sliceTimer) sliceTimer = window.setTimeout(drainSlices);
+  }
+}
+
+function spriteImage(image, rect, className) {
+  const element = document.createElementNS(SVG_NS, 'image');
+  const width = rect[2] * ART_UNITS;
+  const height = rect[3] * ART_UNITS;
+  element.setAttribute('class', className);
+  element.setAttribute('x', String(-width / 2));
+  element.setAttribute('y', String(-height / 2));
+  element.setAttribute('width', String(width));
+  element.setAttribute('height', String(height));
+  element.setAttribute('preserveAspectRatio', 'none');
+  setSprite(element, image, rect);
+  return element;
+}
+
+// The start ring, the selected class's illustration inside it, and the
+// selected ascendancy's illustration behind its cluster, as in the game.
+function renderBackdrop() {
+  elements.backdrop.replaceChildren();
+  const classArt = TREE_ART.classes[state.classId];
+  const classSheet = TREE_ART.images.classes[state.classId];
+  if (classArt && classSheet) {
+    elements.backdrop.append(artUse(classSheet, classArt.base.rect, 'poe2-class-art', classArt.base.x, classArt.base.y));
+    const ascendancy = classArt.ascendancies[state.ascendancyId];
+    if (ascendancy) {
+      elements.backdrop.append(artUse(classSheet, ascendancy.rect, 'poe2-ascendancy-art', ascendancy.x, ascendancy.y));
+    }
+  }
+  elements.backdrop.append(artUse(TREE_ART.images.groupBackground, TREE_ART.startRing, 'poe2-start-ring'));
+}
+
 // Export coordinates are rounded, so allow a small absolute radius error.
 // SVG's positive sweep follows the positive cross product in its y-down axes.
 function edgeArcPath(from, to, arc) {
@@ -765,6 +939,7 @@ function buildGraph(focusNodeId = null) {
   state.nodeElements.clear();
   state.edgeElements = [];
   state.nodeById = new Map(state.model.nodes.map((node) => [node.id, node]));
+  renderBackdrop();
 
   let minX = Infinity;
   let minY = Infinity;
@@ -786,6 +961,9 @@ function buildGraph(focusNodeId = null) {
   for (const [edgeIndex, [fromId, toId]] of state.model.edges.entries()) {
     const from = state.nodeById.get(fromId);
     const to = state.nodeById.get(toId);
+    // The class-to-ascendancy link only joins the two allocation trees; the
+    // game draws no line across the map for it.
+    if (from.domain !== to.domain) continue;
     const path = edgeArcPath(from, to, state.model.edgeArcs?.[edgeIndex]);
     const edge = document.createElementNS(SVG_NS, path ? 'path' : 'line');
     edge.setAttribute('class', 'poe2-edge');
@@ -836,13 +1014,30 @@ function buildGraph(focusNodeId = null) {
       group.append(kindRing);
     }
 
+    // Official art: the icon sits under its frame. Both are hidden by CSS
+    // below ART_MIN_SCALE and swapped per allocation state in paintNode.
+    const family = frameFamily(node);
+    const iconIndex = TREE_ART.nodeIcons[node.id];
+    const icon = iconIndex === undefined ? null
+      : spriteImage(TREE_ART.images.skillsDisabled, TREE_ART.icons[iconIndex], 'poe2-node-art poe2-node-icon');
+    const frame = family ? spriteImage(TREE_ART.images.frame, TREE_ART.frames[FRAME_STATES[family][0]], 'poe2-node-art poe2-node-frame') : null;
+    if (icon) group.append(icon);
+    if (frame) {
+      group.append(frame);
+      group.classList.add('has-art');
+    }
+    const artRadius = frame ? Number(frame.getAttribute('width')) / 2 : 0;
+
     const label = document.createElementNS(SVG_NS, 'text');
     label.setAttribute('y', String(-radius - 14));
     if (isRoot) label.textContent = node.name;
     group.append(label);
 
     nodeFragment.append(group);
-    state.nodeElements.set(node.id, { group, label, circle, kindRing, halo: null, radius, screenRadius });
+    state.nodeElements.set(node.id, {
+      group, label, circle, kindRing, halo: null, radius, screenRadius,
+      icon, iconIndex, frame, family, artRadius, artState: 0,
+    });
   }
   elements.nodeLayer.append(nodeFragment);
   state.renderedScale = null;
@@ -885,13 +1080,24 @@ function paintNode(id, parts, available) {
   parts.group.classList.toggle('is-allocated', allocated);
   parts.group.classList.toggle('is-available', available.has(id));
   parts.group.classList.toggle('is-selected', selected);
+  // Art state: 0 unallocated, 1 can allocate, 2 allocated (start nodes count
+  // as allocated). Hrefs change only when the state does.
+  const artState = allocated || isRoot ? 2 : available.has(id) ? 1 : 0;
+  if (artState !== parts.artState) {
+    parts.artState = artState;
+    if (parts.frame) setSprite(parts.frame, TREE_ART.images.frame, TREE_ART.frames[FRAME_STATES[parts.family][artState]]);
+    if (parts.icon) {
+      setSprite(parts.icon, artState === 2 ? TREE_ART.images.skills : TREE_ART.images.skillsDisabled, TREE_ART.icons[parts.iconIndex]);
+    }
+  }
   const mustHave = state.mustHaves.has(id);
   parts.group.classList.toggle('is-must-have', mustHave);
   // Halos are created only for marked nodes, so the full tree carries none.
   if (mustHave && !parts.halo) {
+    const shown = shownRadius(parts, Number(parts.circle.getAttribute('r')), elements.tree.classList.contains('is-art'));
     parts.halo = document.createElementNS(SVG_NS, 'circle');
     parts.halo.setAttribute('class', 'poe2-node-halo');
-    parts.halo.setAttribute('r', String(haloRadius(Number(parts.circle.getAttribute('r')), state.view.scale)));
+    parts.halo.setAttribute('r', String(haloRadius(shown, state.view.scale)));
     parts.group.prepend(parts.halo);
   } else if (!mustHave && parts.halo) {
     parts.halo.remove();

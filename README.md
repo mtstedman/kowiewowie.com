@@ -24,6 +24,7 @@ database/
   seed-trivia.php               Focused trivia-catalog import used by deploys
   seed-chess-openings.php       Validated common-opening graph import
   seed-poe2-tree.php            Pinned PoE 2 passive-tree import used by deploys
+  build-poe2-tree-art.mjs       Generates the PoE 2 planner's art manifest from the pinned sheets
   sync-collectibles.php         Skullpanda/Nommi storefront catalog sync
   data/chess-openings.tsv       Curated CC0 ECO/name/PGN starter catalog
   data/poe2-passive-tree/       Pinned GGG passive-tree export and provenance

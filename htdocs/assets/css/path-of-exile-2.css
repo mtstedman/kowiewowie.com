@@ -4,6 +4,11 @@
     --poe2-panel: rgba(5, 14, 28, 0.84);
 }
 
+/* The planner needs more room than the site's 1180px reading column. */
+.page-shell.poe2-shell {
+    width: min(1760px, calc(100% - 32px));
+}
+
 .poe2-page {
     gap: clamp(1rem, 3vw, 1.6rem);
 }
@@ -32,10 +37,56 @@
 }
 
 .poe2-workspace {
+    --poe2-workspace-height: clamp(560px, calc(100vh - 7rem), 1100px);
     display: grid;
-    grid-template-columns: minmax(230px, 290px) minmax(0, 1fr) minmax(230px, 300px);
+    grid-template-columns: minmax(240px, 290px) minmax(0, 1fr) minmax(240px, 310px);
     gap: 1rem;
-    align-items: start;
+    align-items: stretch;
+    height: var(--poe2-workspace-height);
+}
+
+/* Side panels scroll on their own so the tree stays in view. */
+.poe2-controls,
+.poe2-details {
+    align-content: start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+.poe2-panel-title {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.poe2-more summary,
+.poe2-section > summary {
+    cursor: pointer;
+    color: var(--ink-soft);
+}
+
+.poe2-more summary {
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.poe2-more p {
+    margin: 0.5rem 0 0;
+}
+
+.poe2-section {
+    padding-top: 1rem;
+    border-top: 1px solid var(--surface-edge);
+}
+
+.poe2-section > summary h3 {
+    display: inline;
+    color: var(--ink);
+    font-size: 1rem;
+}
+
+.poe2-section[open] > summary {
+    margin-bottom: 0.75rem;
 }
 
 .poe2-panel {
@@ -160,6 +211,8 @@
 
 .poe2-tree-panel {
     position: relative;
+    display: flex;
+    min-height: 0;
     padding: 0;
     overflow: hidden;
 }
@@ -213,29 +266,29 @@
     opacity: 0.75;
 }
 
-.poe2-panel-heading {
+.poe2-tree-toolbar {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 1;
     display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    align-items: center;
-    padding: 1rem;
+    gap: 0.4rem;
 }
 
-.poe2-panel-heading h2,
-.poe2-panel-heading p {
-    margin-bottom: 0;
-}
-
-.poe2-zoom {
-    grid-template-columns: repeat(2, 44px);
+.poe2-panel .poe2-tree-toolbar button {
+    min-width: 44px;
+    padding: 0 0.8rem;
+    background: rgba(5, 11, 22, 0.88);
+    backdrop-filter: blur(4px);
 }
 
 .poe2-tree {
     display: block;
+    flex: 1;
     width: 100%;
-    min-height: 650px;
-    border-top: 1px solid var(--surface-edge);
-    background: radial-gradient(circle at center, rgba(109, 214, 255, 0.09), transparent 46%), #050b16;
+    height: 100%;
+    min-height: 0;
+    background: radial-gradient(circle at center, rgba(231, 189, 104, 0.07), transparent 55%), var(--poe2-tile, none) repeat, #07090d;
     cursor: grab;
     touch-action: none;
     user-select: none;
@@ -247,8 +300,8 @@
 
 .poe2-edge {
     fill: none;
-    stroke: rgba(205, 219, 235, 0.82);
-    stroke-width: calc(var(--poe2-edge-stroke, 0.35) * 2.4);
+    stroke: rgba(168, 160, 140, 0.5);
+    stroke-width: calc(var(--poe2-edge-stroke, 0.35) * 2.2);
     vector-effect: non-scaling-stroke;
     pointer-events: none;
 }
@@ -257,6 +310,30 @@
     stroke: var(--poe2-gold);
     stroke-width: calc(var(--poe2-edge-stroke, 0.35) * 4.4);
     filter: drop-shadow(0 0 2px rgba(231, 189, 104, 0.75));
+}
+
+.poe2-tree.is-art .poe2-edge {
+    stroke: #4a4436;
+    stroke-width: 16;
+    vector-effect: none;
+}
+
+.poe2-tree.is-art .poe2-edge.is-allocated {
+    stroke: #d9ad5a;
+    stroke-width: 22;
+    filter: none;
+}
+
+#poe2-backdrop {
+    pointer-events: none;
+}
+
+.poe2-class-art {
+    opacity: 0.9;
+}
+
+.poe2-ascendancy-art {
+    opacity: 0.75;
 }
 
 .poe2-node {
@@ -359,11 +436,57 @@
 
 /* Drawn behind the node, so allocated must-haves keep their gold body. */
 .poe2-node-halo {
-    fill: rgba(244, 114, 182, 0.3);
-    stroke: #f472b6;
-    stroke-width: 1.5px;
+    fill: rgba(255, 79, 163, 0.32);
+    stroke: #ff4fa3;
+    stroke-width: 3px;
     vector-effect: non-scaling-stroke;
     pointer-events: none;
+    animation: poe2-halo-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes poe2-halo-pulse {
+    50% {
+        fill-opacity: 0.55;
+        stroke-opacity: 0.6;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .poe2-node-halo {
+        animation: none;
+    }
+}
+
+/* Official art replaces the dots once the icons are legible. The body circle
+   stays as the hit target and becomes the selection ring outside the frame. */
+.poe2-node-art {
+    display: none;
+}
+
+.poe2-tree.is-art .poe2-node-art {
+    display: inline;
+}
+
+.poe2-tree.is-art .poe2-node.has-art .poe2-node-kind {
+    display: none;
+}
+
+.poe2-tree.is-art .poe2-node.has-art .poe2-node-body {
+    fill: transparent;
+    stroke: none;
+    filter: none;
+}
+
+.poe2-tree.is-art .poe2-node.has-art:hover .poe2-node-body,
+.poe2-tree.is-art .poe2-node.has-art:focus-visible .poe2-node-body,
+.poe2-tree.is-art .poe2-node.has-art.is-selected .poe2-node-body {
+    stroke: #ffffff;
+    stroke-width: 2.5px;
+}
+
+.poe2-tree.is-art .poe2-node.has-art.is-must-have .poe2-node-body {
+    stroke: #ff4fa3;
+    stroke-width: 2.5px;
 }
 
 .poe2-node:hover .poe2-node-body,
@@ -473,34 +596,33 @@
 @media (max-width: 1120px) {
     .poe2-workspace {
         grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+        grid-template-rows: var(--poe2-workspace-height) auto;
+        height: auto;
     }
 
     .poe2-details {
         grid-column: 1 / -1;
+        overflow: visible;
     }
 }
 
 @media (max-width: 760px) {
     .poe2-workspace {
         grid-template-columns: 1fr;
+        grid-template-rows: none;
+    }
+
+    .poe2-controls,
+    .poe2-details {
+        overflow: visible;
+    }
+
+    .poe2-tree-panel {
+        height: min(75vh, 640px);
     }
 
     .poe2-details {
         grid-column: auto;
-    }
-
-    .poe2-tree {
-        min-height: 540px;
-    }
-}
-
-@media (max-width: 480px) {
-    .poe2-panel-heading {
-        align-items: start;
-    }
-
-    .poe2-tree {
-        min-height: 480px;
     }
 }
 
@@ -577,11 +699,6 @@
     display: grid;
     min-width: 0;
     gap: 0.6rem;
-}
-
-.poe2-saved-builds {
-    padding-top: 1rem;
-    border-top: 1px solid var(--surface-edge);
 }
 
 .poe2-saved-builds h3,

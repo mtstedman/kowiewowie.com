@@ -14,7 +14,7 @@ test('planner imports every module under its content hash so cached modules cann
   const moduleDir = new URL('../htdocs/assets/js/path-of-exile-2/', import.meta.url);
   const planner = readFileSync(new URL('planner.js', moduleDir), 'utf8');
   const imports = [...planner.matchAll(/^import [^;]+ from '(\.\/[^'?]+)(\?v=[^']*)?';$/gm)];
-  assert.deepEqual(imports.map(([, path]) => path).sort(), ['./builds-api.js', './optimizer.js', './tree-data.js']);
+  assert.deepEqual(imports.map(([, path]) => path).sort(), ['./builds-api.js', './optimizer.js', './tree-art.js', './tree-data.js']);
   for (const [, path, query] of imports) {
     const expected = `?v=${createHash('sha256').update(readFileSync(new URL(path, moduleDir))).digest('hex').slice(0, 12)}`;
     assert.equal(query, expected, `planner.js must import ${path}${expected}`);
