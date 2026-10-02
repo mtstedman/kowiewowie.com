@@ -354,8 +354,16 @@
 
 .poe2-node.is-must-have .poe2-node-body {
     stroke: #f472b6;
-    stroke-width: calc(var(--poe2-node-stroke, 0.4) * 2.2);
-    stroke-dasharray: 1.2 0.8;
+    stroke-width: calc(var(--poe2-node-stroke, 0.4) * 2.6);
+}
+
+/* Drawn behind the node, so allocated must-haves keep their gold body. */
+.poe2-node-halo {
+    fill: rgba(244, 114, 182, 0.3);
+    stroke: #f472b6;
+    stroke-width: 1.5px;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
 }
 
 .poe2-node:hover .poe2-node-body,

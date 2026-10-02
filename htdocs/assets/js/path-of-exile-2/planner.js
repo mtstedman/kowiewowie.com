@@ -691,8 +691,15 @@ function applyTransform() {
     const radius = Math.max(parts.radius, Math.max(0.55, parts.screenRadius * density) / scale);
     parts.circle.setAttribute('r', String(radius));
     if (parts.kindRing) parts.kindRing.setAttribute('r', String(radius * 0.55));
+    if (parts.halo) parts.halo.setAttribute('r', String(haloRadius(radius, scale)));
     parts.label.setAttribute('y', String(-radius - 14));
   }
+}
+
+// A must-have halo stays at least 4 screen pixels wider than its node, so it
+// still reads at whole-tree zoom where nodes shrink to 2-pixel dots.
+function haloRadius(radius, scale) {
+  return radius + Math.max(radius * 0.45, 4 / scale);
 }
 
 function svgSize() {
@@ -764,9 +771,9 @@ function buildGraph(focusNodeId = null) {
   let maxX = -Infinity;
   let maxY = -Infinity;
   for (const node of state.model.nodes) {
-    // Measure the actual main-tree extent for this model. Ascendancies remain
-    // at their exported positions and in the rendered/searchable node set.
-    if (node.domain !== 'passive') continue;
+    // Measure every rendered node. The model holds only the selected
+    // ascendancy, whose cluster sits outside the main tree at its exported
+    // position, so a passive-only extent left it off-screen after a fit.
     const radius = nodeRadius(node);
     minX = Math.min(minX, node.x - radius);
     minY = Math.min(minY, node.y - radius);
@@ -835,7 +842,7 @@ function buildGraph(focusNodeId = null) {
     group.append(label);
 
     nodeFragment.append(group);
-    state.nodeElements.set(node.id, { group, label, circle, kindRing, radius, screenRadius });
+    state.nodeElements.set(node.id, { group, label, circle, kindRing, halo: null, radius, screenRadius });
   }
   elements.nodeLayer.append(nodeFragment);
   state.renderedScale = null;
@@ -878,7 +885,18 @@ function paintNode(id, parts, available) {
   parts.group.classList.toggle('is-allocated', allocated);
   parts.group.classList.toggle('is-available', available.has(id));
   parts.group.classList.toggle('is-selected', selected);
-  parts.group.classList.toggle('is-must-have', state.mustHaves.has(id));
+  const mustHave = state.mustHaves.has(id);
+  parts.group.classList.toggle('is-must-have', mustHave);
+  // Halos are created only for marked nodes, so the full tree carries none.
+  if (mustHave && !parts.halo) {
+    parts.halo = document.createElementNS(SVG_NS, 'circle');
+    parts.halo.setAttribute('class', 'poe2-node-halo');
+    parts.halo.setAttribute('r', String(haloRadius(Number(parts.circle.getAttribute('r')), state.view.scale)));
+    parts.group.prepend(parts.halo);
+  } else if (!mustHave && parts.halo) {
+    parts.halo.remove();
+    parts.halo = null;
+  }
   setAttributeIfChanged(parts.group, 'aria-pressed', String(allocated || isRoot));
   setAttributeIfChanged(parts.group, 'tabindex', selected || isRoot ? '0' : '-1');
   if (parts.label.textContent !== labelText) parts.label.textContent = labelText;
