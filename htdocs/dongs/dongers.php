@@ -144,4 +144,22 @@ return [
     ['name' => 'Evil Grin', 'text' => '(´╹◡╹ )و', 'category' => 'Devious/Sly'],
     ['name' => 'Sinister Chuckle', 'text' => '(´∇｀)ゞ', 'category' => 'Devious/Sly'],
     ['name' => 'Cunning Smile', 'text' => '(´・︿・`)', 'category' => 'Devious/Sly'],
+
+    ['name' => 'Sideways Shrug', 'text' => '╮(╯▽╰)╭', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Flat Shrug', 'text' => '┐(´ー`)┌', 'category' => 'Shrugs and Chaos'],
+
+    ['name' => 'Table Rescue', 'text' => '┬──┬◡ﾉ(° -°ﾉ)', 'category' => 'Table Drama'],
+    ['name' => 'Flip Everything', 'text' => '(ノ°Д°）ノ︵ ┻━┻', 'category' => 'Table Drama'],
+
+    ['name' => 'Fight Me', 'text' => '(ง\'̀-\'́)ง', 'category' => 'Angry and Intense'],
+
+    ['name' => 'Dance Party', 'text' => '┏(・o･)┛♪┗ (･o･) ┓', 'category' => 'Victory Laps'],
+
+    ['name' => 'Sleep Bubble', 'text' => '(︶｡︶✽)', 'category' => 'Sleepy and Tired'],
+
+    ['name' => 'Cat Loaf', 'text' => '(=^･ω･^=)', 'category' => 'Critters'],
+    ['name' => 'Doggo Wag', 'text' => 'U・ᴥ・U', 'category' => 'Critters'],
+    ['name' => 'Fish Swim', 'text' => '><((((º>', 'category' => 'Critters'],
+    ['name' => 'Owl Watch', 'text' => '(◉Θ◉)', 'category' => 'Critters'],
+    ['name' => 'Bunny Peek', 'text' => '/(・ × ・)\\', 'category' => 'Critters'],
 ];
