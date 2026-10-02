@@ -1,5 +1,8 @@
 import { loadTree, buildAllocationModel, summarizeRouteBonuses } from './tree-data.js';
-import { findMinimalRoute, findConnection } from './optimizer.js';
+// Production caches static JavaScript for seven days. Keep this dependency
+// versioned so a new planner cannot load an older optimizer from browser cache.
+// Bump the token whenever optimizer.js changes its exports.
+import { findMinimalRoute, findConnection } from './optimizer.js?v=20261002-find-connection';
 import { listBuilds, createBuild, updateBuild, deleteBuild } from './builds-api.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

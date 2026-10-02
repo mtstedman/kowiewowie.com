@@ -8,6 +8,11 @@ import { performance } from 'node:perf_hooks';
 const TREE_TEXT = readFileSync(new URL('../htdocs/assets/data/path-of-exile-2/tree.json', import.meta.url), 'utf8');
 const TREE_ERROR = { name: 'Error', message: /^PoE2 passive tree:/ };
 
+test('planner versions the optimizer module so cached exports cannot drift', () => {
+  const planner = readFileSync(new URL('../htdocs/assets/js/path-of-exile-2/planner.js', import.meta.url), 'utf8');
+  assert.match(planner, /from ['"]\.\/optimizer\.js\?v=[^'"]+['"]/);
+});
+
 // analyzeRaw caches by object identity, so every case gets its own parse.
 const freshRaw = () => JSON.parse(TREE_TEXT);
 
