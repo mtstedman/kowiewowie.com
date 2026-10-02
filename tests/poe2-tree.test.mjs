@@ -615,9 +615,8 @@ test('route bonus summary sums matching wording, keeps fallbacks and orders attr
     totals: [
       '+5 to Dexterity',
       '+30 to Strength',
-      '20% increased Attack Speed',
+      '10% increased Attack Speed',
       '0.2% of Damage Leeched as Life',
-      '10% reduced Attack Speed',
       '-2.5% to Fire Resistance',
     ],
     unsummed: [
@@ -631,6 +630,29 @@ test('route bonus summary sums matching wording, keeps fallbacks and orders attr
   assert.equal(JSON.stringify(model.nodes), before);
   assert.deepEqual(summarizeRouteBonuses(model, ['1', '2', '3', '4']), summary);
   assert.deepEqual(summarizeRouteBonuses(model, input), summary);
+});
+
+test('route bonus summary nets opposite wordings: increased/reduced and faster/slower add, more/less multiply', () => {
+  const raw = syntheticExport();
+  raw.nodes[1].stats = ['4% [FasterESRechargeStart|faster start of Energy Shield Recharge]', '10% increased Mana Regeneration Rate',
+    '20% more Damage', '15% more Armour', '10% reduced Skill Effect Duration'];
+  raw.nodes[2].stats = ['6% [FasterESRechargeStart|faster start of Energy Shield Recharge]', '25% reduced Mana Regeneration Rate',
+    '10% less Damage', '15% less Armour', '10% increased Skill Effect Duration'];
+  raw.nodes[3].stats = ['20% [FasterESRechargeStart|slower start of Energy Shield Recharge]',
+    '10% increased Damage against Enemies with less Life'];
+  const summary = summarizeRouteBonuses(syntheticModel(raw), ['1', '2', '3']);
+  // Only the word right after the number sets direction: "with less Life" stays wording.
+  assert.deepEqual(summary.totals, [
+    '10% [FasterESRechargeStart|slower start of Energy Shield Recharge]',
+    '10% increased Damage against Enemies with less Life',
+    '0% increased Skill Effect Duration',
+    '2.25% less Armour',
+    '8% more Damage',
+    '15% reduced Mana Regeneration Rate',
+  ]);
+  // The net flips back to the positive wording once it is ahead.
+  assert.deepEqual(summarizeRouteBonuses(syntheticModel(raw), ['1', '2']).totals.filter((line) => /Recharge/.test(line)),
+    ['10% [FasterESRechargeStart|faster start of Energy Shield Recharge]']);
 });
 
 test('route bonus summary resolves class and ascendancy overrides from the model', () => {

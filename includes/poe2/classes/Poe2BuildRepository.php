@@ -19,7 +19,9 @@ final class Poe2BuildRepository
     public const MAX_BUILDS_PER_OWNER = 100;
 
     private const MAX_ALLOCATED_NODE_IDS = 2048;
-    private const MAX_MUST_HAVE_NODE_IDS = 8;
+    // The planner sets no must-have limit, and every must-have is an allocatable node, so the
+    // allocation cap bounds them too. A cap of 8 here rejected larger marked sets with a 422.
+    private const MAX_MUST_HAVE_NODE_IDS = self::MAX_ALLOCATED_NODE_IDS;
     private const NODE_ID_PATTERN = '/\A[A-Za-z0-9_.:-]{1,32}\z/';
     private const UUID_PATTERN = '/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/';
     private const COLUMNS = 'id, user_id, guest_profile_id, character_name, build_name, class_id, ascendancy_id, '

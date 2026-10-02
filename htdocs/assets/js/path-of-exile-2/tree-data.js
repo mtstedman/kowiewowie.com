@@ -985,6 +985,20 @@ export function buildAllocationModel(data, classId, ascendancyId) {
 // so "Non-Keystone" or "x-2" stay text) followed by an integer or decimal.
 const STAT_NUMBER_PATTERN = /(?<![\w.])([+-]?)(\d+(?:\.\d+)?)(?![\d.])/g;
 const ATTRIBUTE_LINE_PATTERN = /^[+-]?\d+(?:\.\d+)?%? (?:increased |reduced )?(?:to )?(?:all )?(?:Strength|Dexterity|Intelligence|Attributes)\b/;
+// The word right after a stat's number (inside the display half of a "[Tag|text]"
+// reference when there is one) sets its direction. Opposite words net against each
+// other: increased/reduced and faster/slower add, while more/less multiply, as in game.
+const DIRECTION_WORD_PATTERN = /^(%?\s+(?:\[[^\]|]*\|)?)(increased|reduced|faster|slower|more|less)\b/;
+const DIRECTIONS = Object.freeze({
+  increased: { positive: 'increased', negative: 'reduced', sign: 1, multiplies: false },
+  reduced: { positive: 'increased', negative: 'reduced', sign: -1, multiplies: false },
+  faster: { positive: 'faster', negative: 'slower', sign: 1, multiplies: false },
+  slower: { positive: 'faster', negative: 'slower', sign: -1, multiplies: false },
+  more: { positive: 'more', negative: 'less', sign: 1, multiplies: true },
+  less: { positive: 'more', negative: 'less', sign: -1, multiplies: true },
+});
+// Decimal places kept for a multiplied more/less total, e.g. 15% more and 15% less net 2.25% less.
+const MULTIPLIED_DECIMALS = 2;
 
 function compareText(a, b) {
   if (a < b) return -1;
@@ -1003,9 +1017,12 @@ function compareStatLines(a, b) {
 /**
  * Net bonuses of an allocation. Every distinct allocated node contributes its
  * resolved (override-applied) stats from `model.nodes`. Lines holding exactly
- * one number are summed with other lines of identical wording; lines with no
- * number or several numbers are kept verbatim and counted. Keystones and
- * notables are also listed by name; their stats still count above.
+ * one number are summed with other lines of identical wording; opposite
+ * wordings net, so "15% increased X" and "5% reduced X" give "10% increased X"
+ * (likewise faster/slower), and more/less lines multiply (20% more and 10% less
+ * give 8% more). Lines with no number or several numbers are kept verbatim and
+ * counted. Keystones and notables are also listed by name; their stats still
+ * count above.
  *
  * @param {ReturnType<typeof buildAllocationModel>} model
  * @param {readonly string[]} nodeIds
@@ -1051,22 +1068,42 @@ export function summarizeRouteBonuses(model, nodeIds) {
         const [match, sign, digits] = numbers[0];
         const signed = sign !== '';
         const before = line.slice(0, numbers[0].index);
-        const after = line.slice(numbers[0].index + match.length);
-        const key = `${signed ? '±' : ''}\u0000${before}\u0000${after}`;
+        let after = line.slice(numbers[0].index + match.length);
         const decimals = digits.includes('.') ? digits.length - digits.indexOf('.') - 1 : 0;
-        const value = Number(digits) * (sign === '-' ? -1 : 1);
+        let value = Number(digits) * (sign === '-' ? -1 : 1);
+        // Directional lines are keyed by their positive wording with a signed value.
+        const word = signed ? null : DIRECTION_WORD_PATTERN.exec(after);
+        const direction = word ? DIRECTIONS[word[2]] : null;
+        if (direction) {
+          after = `${word[1]}${direction.positive}${after.slice(word[0].length)}`;
+          value *= direction.sign;
+        }
+        const key = `${signed ? '±' : ''}${direction ? '↕' : ''}\u0000${before}\u0000${after}`;
         const entry = sums.get(key);
         if (entry) {
-          entry.total += value;
+          if (direction?.multiplies) entry.factor *= 1 + value / 100;
+          else entry.total += value;
           entry.decimals = Math.max(entry.decimals, decimals);
         } else {
-          sums.set(key, { before, after, signed, total: value, decimals });
+          sums.set(key, {
+            before, after, signed, direction, decimals,
+            total: direction?.multiplies ? 0 : value,
+            factor: direction?.multiplies ? 1 + value / 100 : 1,
+          });
         }
       }
     }
   }
 
-  const totals = Array.from(sums.values(), ({ before, after, signed, total, decimals }) => {
+  const totals = Array.from(sums.values(), ({ before, after, signed, direction, total, factor, decimals }) => {
+    if (direction) {
+      const net = direction.multiplies ? (factor - 1) * 100 : total;
+      const places = direction.multiplies ? Math.max(decimals, MULTIPLIED_DECIMALS) : decimals;
+      const rounded = Number(net.toFixed(places)) + 0;
+      const word = DIRECTION_WORD_PATTERN.exec(after);
+      const wording = `${word[1]}${rounded < 0 ? direction.negative : direction.positive}${after.slice(word[0].length)}`;
+      return `${before}${Math.abs(rounded)}${wording}`;
+    }
     const rounded = Number(total.toFixed(decimals)) + 0;
     const number = String(rounded);
     return `${before}${signed && rounded >= 0 ? '+' : ''}${number}${after}`;

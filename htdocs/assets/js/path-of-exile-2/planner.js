@@ -4,7 +4,7 @@
 // the expected one. TypeScript cannot resolve a query-string specifier, so the
 // namespaces are cast to the unversioned modules' types below.
 // @ts-ignore
-import * as treeData from './tree-data.js?v=8011f5c03021';
+import * as treeData from './tree-data.js?v=e88a797f3dce';
 // @ts-ignore
 import * as optimizer from './optimizer.js?v=a6b98e12335a';
 // @ts-ignore
@@ -225,6 +225,17 @@ function plannerUsable() {
   return state.enabled && Boolean(state.model) && !state.computing;
 }
 
+// The API's message is general ("some fields are invalid"); its details name
+// the field and the rule, so show them too.
+function savedBuildErrorText(error, fallback) {
+  if (!(error instanceof Error)) return fallback;
+  const details = /** @type {{ details?: unknown }} */ (error).details;
+  const reasons = details && typeof details === 'object'
+    ? Object.values(details).filter((reason) => typeof reason === 'string')
+    : [];
+  return [error.message, ...reasons].join(' ');
+}
+
 function setSavedBuildStatus(message, error = false) {
   elements.savedBuildStatus.textContent = message;
   elements.savedBuildStatus.classList.toggle('is-error', error);
@@ -364,7 +375,7 @@ async function saveCurrentBuild(asNew = false) {
     storeSavedBuild(build);
     setSavedBuildStatus(`${build.build_name} saved for ${build.character_name}.`);
   } catch (error) {
-    setSavedBuildStatus(error instanceof Error ? error.message : 'The build could not be saved.', true);
+    setSavedBuildStatus(savedBuildErrorText(error, 'The build could not be saved.'), true);
   } finally {
     setBuildsBusy(false);
   }
@@ -386,7 +397,7 @@ async function refreshSavedBuilds() {
   } catch (error) {
     state.savedBuildOwner = null;
     updateSavedBuildOwner();
-    setSavedBuildStatus(error instanceof Error ? error.message : 'Saved builds are unavailable.', true);
+    setSavedBuildStatus(savedBuildErrorText(error, 'Saved builds are unavailable.'), true);
   } finally {
     setBuildsBusy(false);
   }
@@ -438,7 +449,7 @@ function loadSavedBuild(build) {
       : ` Saved export ${build.tree_version} differs from loaded export ${state.data.version}.`;
     setSavedBuildStatus(`${build.build_name} loaded for ${build.character_name}.${versionNote}`);
   } catch (error) {
-    setSavedBuildStatus(error instanceof Error ? error.message : 'The saved build could not be loaded.', true);
+    setSavedBuildStatus(savedBuildErrorText(error, 'The saved build could not be loaded.'), true);
   } finally {
     setBuildsBusy(false);
   }
@@ -457,7 +468,7 @@ async function removeSavedBuild(build) {
     renderSavedBuilds();
     setSavedBuildStatus(`${build.build_name} deleted.`);
   } catch (error) {
-    setSavedBuildStatus(error instanceof Error ? error.message : 'The saved build could not be deleted.', true);
+    setSavedBuildStatus(savedBuildErrorText(error, 'The saved build could not be deleted.'), true);
   } finally {
     setBuildsBusy(false);
   }
