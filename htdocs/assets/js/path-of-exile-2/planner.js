@@ -765,18 +765,54 @@ function svgSize() {
   return { width: Math.max(rect.width, 1), height: Math.max(rect.height, 1) };
 }
 
+// Fit frames the passives in play rather than the whole tree: a margin of this
+// share of their extent per side, at least FIT_MIN_MARGIN world units, and no
+// closer than FIT_MAX_SCALE so a lone node keeps its neighbours in view.
+const FIT_MARGIN = 0.12;
+const FIT_MIN_MARGIN = 250;
+const FIT_MAX_SCALE = 0.6;
+
+// The allocated and must-have nodes with the start they grow from, padded by
+// the fit margin; null when nothing is chosen.
+function selectionBounds() {
+  const chosen = [...state.allocated, ...state.mustHaves];
+  if (chosen.length === 0) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const id of [...chosen, ...state.rootIds]) {
+    const node = state.nodeById.get(id);
+    if (!node) continue;
+    const radius = nodeRadius(node);
+    minX = Math.min(minX, node.x - radius);
+    minY = Math.min(minY, node.y - radius);
+    maxX = Math.max(maxX, node.x + radius);
+    maxY = Math.max(maxY, node.y + radius);
+  }
+  if (!Number.isFinite(minX)) return null;
+  const margin = Math.max(FIT_MIN_MARGIN, Math.max(maxX - minX, maxY - minY) * FIT_MARGIN);
+  return { minX: minX - margin, minY: minY - margin, maxX: maxX + margin, maxY: maxY + margin };
+}
+
 function fitTree() {
   if (!state.bounds) return;
   const { width, height } = svgSize();
   const padding = Math.min(32, width / 4, height / 4);
-  const worldWidth = Math.max(state.bounds.maxX - state.bounds.minX, 1);
-  const worldHeight = Math.max(state.bounds.maxY - state.bounds.minY, 1);
-  const scale = Math.min((width - padding) / worldWidth, (height - padding) / worldHeight);
-  // A lower clamp would crop the tree on narrow panels instead of fitting it.
-  state.fitScale = Math.min(MAX_SCALE, scale);
-  state.view.scale = state.fitScale;
-  state.view.x = width / 2 - ((state.bounds.minX + state.bounds.maxX) / 2) * state.view.scale;
-  state.view.y = height / 2 - ((state.bounds.minY + state.bounds.maxY) / 2) * state.view.scale;
+  const scaleFor = (bounds) => Math.min(
+    (width - padding) / Math.max(bounds.maxX - bounds.minX, 1),
+    (height - padding) / Math.max(bounds.maxY - bounds.minY, 1),
+  );
+  // The whole-tree fit stays the zoom-out floor. A lower clamp would crop the
+  // tree on narrow panels instead of fitting it.
+  state.fitScale = Math.min(MAX_SCALE, scaleFor(state.bounds));
+  const selection = selectionBounds();
+  const target = selection || state.bounds;
+  state.view.scale = selection
+    ? Math.max(state.fitScale, Math.min(FIT_MAX_SCALE, scaleFor(selection)))
+    : state.fitScale;
+  state.view.x = width / 2 - ((target.minX + target.maxX) / 2) * state.view.scale;
+  state.view.y = height / 2 - ((target.minY + target.maxY) / 2) * state.view.scale;
   applyTransform();
 }
 
