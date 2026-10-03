@@ -1,9 +1,9 @@
-<!-- schema-version: 18 -->
+<!-- schema-version: 19 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 18**. `migration-chain.json` is the ordered,
+current release pin is **version 19**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -35,11 +35,12 @@ per-file execution ledger.
 | 16 | `015_poe2_saved_builds.sql` | Path of Exile 2 saved passive-tree builds owned by a registered user or guest browser identity |
 | 17 | `016_poe2_passive_tree.sql` | Indexed Path of Exile 2 passive-tree exports: versions, classes, ascendancies, nodes, edges, unlock and radius lists, and overrides |
 | 18 | `017_poe2_considered_nodes.sql` | Path of Exile 2 saved builds keep a list of considered passive node IDs |
+| 19 | `018_risk_games.sql` | Online Risk games, seated human and bot players, and reusable hashed invite links |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 18 inventory
+## Current version 19 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -55,6 +56,7 @@ their full basenames are already stored in production's migration ledger.
   `trivia_link_claims`, `trivia_question_catalog`, `trivia_prompts`,
   `trivia_rounds` (including key lock, memory match, poison chalices, sword
   boxes, and crypt runes Killing Floor trials), and `trivia_answers`
+- Risk: `risk_games`, `risk_game_players`, and `risk_game_links`
 - Open deck: `open_deck_slots`, `open_deck_set_nominations`,
   `open_deck_fill_votes`, and `open_deck_eviction_votes`
 - Collectibles: `collectible_products` and `collectible_variants`
@@ -291,6 +293,34 @@ row, so replacing or deleting a version removes all of its rows.
 
 Every foreign-key column leads an index, so replacing a version cascades
 without sequential scans.
+
+## Risk game storage
+
+The Risk tables store online multiplayer Risk games, separate from the static
+`games` content catalog. Players are identified by a registered user or a
+`chess_guest_profiles` browser identity, and are invited through a shared,
+hashed join link.
+
+`risk_games` stores a random `public_id` for stable game URLs, lifecycle
+`status` (`waiting`, `active`, `finished`, or `abandoned`), the 2-6
+`seat_count`, the nullable serialized game `state` (`jsonb`), a non-negative
+`state_version` counter for optimistic concurrency, the nullable 1-6
+`winner_seat`, and `started_at`, `finished_at`, `created_at`, and `updated_at`
+timestamps.
+
+`risk_game_players` stores one row per seat: `game_id` (cascading on game
+delete), a 1-6 `seat_number`, `kind` (`human` or `bot`), the nullable `user_id`
+or `guest_profile_id` identity (each set to `NULL` when the identity is
+deleted), a 1-40 character `display_name` snapshot, and `joined_at`. Seat
+numbers, users, and guest profiles are each unique per game. The host is always
+the `seat_number` 1 row; bot rows have kind `bot` and no user or guest identity.
+Partial indexes on `user_id` and `guest_profile_id` support finding a player's
+games.
+
+`risk_game_links` stores only the lowercase hex SHA-256 `token_hash` of a raw
+URL-safe invite token, plus optional `expires_at` and `revoked_at` timestamps
+and `created_at`. One link is reusable by many players until the game leaves
+`waiting`.
 
 ## Open-deck scheduler
 

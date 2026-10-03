@@ -83,17 +83,9 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     <details id="risk-setup-panel" class="risk-subpanel risk-setup-settings" open>
                         <summary class="risk-setup-toggle">
                             <span id="risk-setup-title" class="risk-setup-heading">Game setup</span>
-                            <span id="risk-setup-summary" class="risk-setup-summary">2 bots · Random placement · Incremental cards</span>
+                            <span id="risk-setup-summary" class="risk-setup-summary">1 bot · Random placement · Incremental cards</span>
                         </summary>
                         <div class="risk-setup-body">
-                            <fieldset id="risk-bot-count" class="risk-dice-choice risk-setting-choice risk-bot-count-choice">
-                                <legend>Bot opponents</legend>
-                                <label><input type="radio" name="risk-bot-count" value="1"> 1</label>
-                                <label><input type="radio" name="risk-bot-count" value="2" checked> 2</label>
-                                <label><input type="radio" name="risk-bot-count" value="3"> 3</label>
-                                <label><input type="radio" name="risk-bot-count" value="4"> 4</label>
-                                <label><input type="radio" name="risk-bot-count" value="5"> 5</label>
-                            </fieldset>
                             <fieldset id="risk-placement-options" class="risk-dice-choice risk-setting-choice">
                                 <legend>Placement</legend>
                                 <label><input type="radio" name="risk-placement" value="random" checked> Random</label>
@@ -109,12 +101,42 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     </details>
 
                     <div class="risk-actions" aria-label="Risk game controls">
+                        <label class="risk-opponent-field" for="risk-opponent-count">
+                            <span>Opponents</span>
+                            <select id="risk-opponent-count" class="risk-opponent-select" aria-describedby="risk-start-note">
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                            </select>
+                        </label>
                         <button class="risk-button risk-button-primary" type="button" id="risk-start-button" aria-describedby="risk-start-note">New game</button>
+                        <button class="risk-button risk-button-invite" type="button" id="risk-invite-button" aria-describedby="risk-invite-note">Invite players</button>
                         <button class="risk-button" type="button" id="risk-end-button" disabled>End phase</button>
                         <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
                         <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
                         <p id="risk-start-note" class="risk-start-note">New game deals the world with the setup above.</p>
+                        <p id="risk-invite-note" class="risk-start-note">Invite players opens an online lobby with one seat per opponent; seats nobody claims are played by bots.</p>
                     </div>
+
+                    <section id="risk-lobby-panel" class="risk-subpanel risk-lobby" aria-labelledby="risk-lobby-title" hidden>
+                        <h3 id="risk-lobby-title">Online lobby</h3>
+                        <p id="risk-lobby-status" class="risk-lobby-status" role="status" aria-live="polite" aria-atomic="true"></p>
+                        <div id="risk-lobby-invite" class="risk-lobby-invite" hidden>
+                            <label for="risk-invite-url">Invite link</label>
+                            <div class="risk-lobby-link">
+                                <input id="risk-invite-url" class="risk-lobby-url" type="text" readonly spellcheck="false" autocomplete="off" aria-describedby="risk-lobby-note">
+                                <button class="risk-button" type="button" id="risk-invite-copy-button">Copy link</button>
+                            </div>
+                        </div>
+                        <ol id="risk-lobby-roster" class="risk-lobby-roster" aria-label="Seats in this online game"></ol>
+                        <p id="risk-lobby-note" class="risk-lobby-note">Anyone with the link takes the next open seat. Empty seats become bots when the host starts the game.</p>
+                        <div class="risk-lobby-actions">
+                            <button class="risk-button risk-button-primary" type="button" id="risk-lobby-start-button" hidden>Start game</button>
+                            <button class="risk-button" type="button" id="risk-lobby-leave-button">Leave lobby</button>
+                        </div>
+                    </section>
 
                     <section class="risk-subpanel risk-attack-controls" aria-labelledby="risk-attack-title">
                         <h3 id="risk-attack-title">Attack</h3>
@@ -201,11 +223,15 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                 <div class="risk-rules-grid">
                     <div>
                         <h3>Seats</h3>
-                        <p>Choose <strong>1 to 5 bot opponents</strong> under Game setup. Turns pass from you to Bot 1 through Bot 5 in order, and each bot plans its moves with a game-tree search. With <strong>one bot</strong> the classic two-player variant applies: a third, neutral army holds territory and defends with the most dice allowed, but never takes turns, receives reinforcements, or holds cards, and leftover neutral territories do not need to be conquered. With <strong>two or more bots</strong> there is no neutral army. You win when you are the last seat standing and lose as soon as your last territory falls.</p>
+                        <p>A game seats <strong>2 to 6 players</strong>. Pick <strong>1 to 5 bot opponents</strong> in the selector beside New game: you take seat 1 and every other seat is filled by a bot. Turns pass around the seats in order, from you to Bot 1 through the last bot, and each bot plans its moves with a game-tree search. With <strong>one bot</strong> the classic two-player variant applies: a third, neutral army holds territory and defends with the most dice allowed, but never takes turns, receives reinforcements, or holds cards, and leftover neutral territories do not need to be conquered. With <strong>two or more bots</strong> there is no neutral army. You win when you are the last seat standing and lose as soon as your last territory falls.</p>
+                    </div>
+                    <div>
+                        <h3>Playing online</h3>
+                        <p>Press <strong>Invite players</strong> to open an online lobby with one seat per opponent, then share the invite link. Each friend who opens it takes the next open seat. When you press <strong>Start game</strong>, every seat still open is played by a bot. Each player acts only on their own turn and sees only their own cards. Defenders always roll the most dice allowed. The host's browser plays the bot seats. If the host goes quiet for 20 seconds, another player's browser takes over the bots. Reload the page or reopen its link to return to your seat.</p>
                     </div>
                     <div>
                         <h3>Setup</h3>
-                        <p>The 42 territories are dealt at random with one army on each. With one bot, you, Bot 1 and Neutral get 14 territories each and every color ends setup with 40 armies. With two, three, four or five bots, all 42 territories are dealt among the seats and every seat ends setup with 35, 30, 25 or 20 armies. The first player is chosen at random. With <strong>Random</strong> placement, every remaining army is spread at random, at most 4 per territory, and play starts at once. With <strong>Manual</strong> placement, the seats take turns adding two of their own armies per step, plus one neutral army in the one-bot game, until all armies are placed; Auto-place setup finishes your share at random, at most 4 per territory. Game setup choices apply when you start a new game.</p>
+                        <p>The 42 territories are dealt at random with one army on each. With one bot, you, Bot 1 and Neutral get 14 territories each and every color ends setup with 40 armies. With two, three, four or five bots, all 42 territories are dealt among the seats and every seat ends setup with 35, 30, 25 or 20 armies. The first player is chosen at random. With <strong>Random</strong> placement, every remaining army is spread at random, at most 4 per territory, and play starts at once. With <strong>Manual</strong> placement, the seats take turns adding two of their own armies per step, plus one neutral army in the one-bot game, until all armies are placed; Auto-place setup finishes your share at random, at most 4 per territory. The opponent count and Game setup choices apply when you start a new game.</p>
                     </div>
                     <div>
                         <h3>Reinforce</h3>

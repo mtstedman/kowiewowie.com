@@ -19,6 +19,7 @@ use Wowie\Api\Http\Request;
 use Wowie\Api\Http\Response;
 use Wowie\Api\Poe2\Poe2BuildRepository;
 use Wowie\Api\Poe2\Poe2TreeRepository;
+use Wowie\Api\Risk\RiskRepository;
 use Wowie\Api\Trivia\TriviaIdentityService;
 use Wowie\Api\Trivia\TriviaRepository;
 
@@ -33,6 +34,7 @@ final class Application
     private readonly ChessIdentityService $chessGuests;
     private readonly TriviaIdentityService $triviaGuests;
     private readonly TriviaRepository $trivia;
+    private readonly RiskRepository $risk;
     private readonly Poe2BuildRepository $poe2Builds;
     private readonly Poe2TreeRepository $poe2Tree;
     /** @var array<string, string> */
@@ -57,6 +59,7 @@ final class Application
         $this->chessGuests = new ChessIdentityService($pdo);
         $this->triviaGuests = new TriviaIdentityService($pdo);
         $this->trivia = new TriviaRepository($pdo);
+        $this->risk = new RiskRepository($pdo);
         $this->poe2Builds = new Poe2BuildRepository($pdo);
         $this->poe2Tree = new Poe2TreeRepository($pdo);
     }
@@ -116,7 +119,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/trivia/rooms', '/v1/poe2/tree', '/v1/poe2/builds'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/trivia/rooms', '/v1/risk/games', '/v1/poe2/tree', '/v1/poe2/builds'],
             ]);
         }
 
@@ -227,6 +230,11 @@ final class Application
         $triviaResponse = $this->dispatchTrivia($request);
         if ($triviaResponse !== null) {
             return $triviaResponse;
+        }
+
+        $riskResponse = $this->dispatchRisk($request);
+        if ($riskResponse !== null) {
+            return $riskResponse;
         }
 
         $poe2Response = $this->dispatchPoe2($request);
@@ -458,6 +466,64 @@ final class Application
                 ], 201), $identity);
             }
             throw new ApiException(405, 'method_not_allowed', 'That method is not supported for chess invitation links.');
+        }
+
+        return null;
+    }
+
+    private function dispatchRisk(Request $request): ?Response
+    {
+        if ($request->path === '/v1/risk/games') {
+            if ($request->method !== 'POST') {
+                throw new ApiException(405, 'method_not_allowed', 'That method is not supported for Risk games.');
+            }
+            $identity = $this->resolveChessIdentity($request);
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->risk->createGame($request->json(), $identity),
+            ], 201), $identity);
+        }
+
+        if ($request->path === '/v1/risk/links/claim') {
+            if ($request->method !== 'POST') {
+                throw new ApiException(405, 'method_not_allowed', 'That method is not supported for Risk invitation claims.');
+            }
+            $identity = $this->resolveChessIdentity($request);
+            $body = $request->json();
+            $token = $body['token'] ?? null;
+            if (!is_string($token)) {
+                throw new ApiException(404, 'link_not_found', 'That Risk invitation link does not exist.');
+            }
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->risk->claimLink($token, $identity),
+            ]), $identity);
+        }
+
+        if (preg_match('#^/v1/risk/games/([^/]+)(?:/(links|start|state))?$#', $request->path, $matches)) {
+            $action = $matches[2] ?? '';
+            if ($request->method !== ($action === '' ? 'GET' : 'POST')) {
+                throw new ApiException(405, 'method_not_allowed', 'That method is not supported for this Risk resource.');
+            }
+            $identity = $this->resolveChessIdentity($request);
+            $publicId = $matches[1];
+            if ($action === '') {
+                $sinceVersion = null;
+                if (isset($request->query['since_version'])) {
+                    $sinceVersion = filter_var($request->query['since_version'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+                    if ($sinceVersion === false) {
+                        throw new ApiException(422, 'validation_failed', 'since_version must be a nonnegative integer.');
+                    }
+                }
+                $game = $this->risk->findGame($publicId, $identity, $sinceVersion);
+            } elseif ($action === 'links') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->risk->createLink($publicId, $identity),
+                ], 201), $identity);
+            } elseif ($action === 'start') {
+                $game = $this->risk->startGame($publicId, $identity);
+            } else {
+                $game = $this->risk->postState($publicId, $request->json(), $identity);
+            }
+            return $this->withChessIdentity(Response::json(['data' => $game]), $identity);
         }
 
         return null;

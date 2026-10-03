@@ -1700,3 +1700,171 @@
         filter: drop-shadow(0 0 7px rgba(248, 209, 108, 1));
     }
 }
+
+/* Opponent-count selector beside the New game button. Seat colours and glyph shapes for the
+   six seats are the owner-* classes above; seat 1 is owner-human, seats 2-6 are owner-ai..ai5. */
+.risk-opponent-field {
+    display: flex;
+    flex: 1 1 100%;
+    grid-column: 1 / -1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--risk-ink);
+}
+
+.risk-opponent-select {
+    min-width: 4.5rem;
+    min-height: 2.4rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 8px;
+    background: var(--risk-panel);
+    color: var(--risk-ink);
+    font: inherit;
+}
+
+.risk-opponent-select:focus-visible {
+    outline: 2px solid var(--risk-human);
+    outline-offset: 2px;
+}
+
+/* Online lobby: invite link, seat roster and host controls beside the new-game actions. */
+.risk-button-invite {
+    border-color: var(--risk-ai2);
+}
+
+.risk-lobby {
+    border-color: rgba(56, 189, 248, 0.55);
+}
+
+.risk-lobby-status {
+    color: var(--risk-ink);
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.risk-lobby-status:empty {
+    display: none;
+}
+
+.risk-lobby-invite {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.risk-lobby-invite[hidden],
+.risk-lobby-note[hidden] {
+    display: none;
+}
+
+.risk-lobby-invite label {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.risk-lobby-link {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+    min-width: 0;
+}
+
+.risk-lobby-url {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 8px;
+    background: var(--risk-panel);
+    color: var(--risk-ink);
+    font: inherit;
+    font-size: 0.82rem;
+}
+
+.risk-lobby-url:focus-visible {
+    outline: 3px solid #7dd3fc;
+    outline-offset: 2px;
+}
+
+.risk-lobby-roster {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.risk-lobby-seat {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    min-width: 0;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 6px;
+    background: rgba(5, 14, 28, 0.45);
+    font-size: 0.86rem;
+}
+
+.risk-lobby-seat.is-open {
+    border-style: dashed;
+    color: var(--muted);
+}
+
+.risk-lobby-seat.is-viewer {
+    border-color: var(--accent-warm);
+}
+
+.risk-lobby-seat-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: 800;
+}
+
+.risk-lobby-tag {
+    padding: 0.05rem 0.4rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.risk-lobby-note {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.risk-lobby-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.risk-lobby-actions .risk-button {
+    flex: 1 1 8rem;
+}
+
+.risk-lobby-actions .risk-button[hidden] {
+    display: none;
+}
+
+@media (max-width: 940px) {
+    .risk-command-panel > .risk-lobby {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 430px) {
+    .risk-lobby-link {
+        flex-direction: column;
+    }
+}

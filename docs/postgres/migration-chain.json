@@ -162,6 +162,15 @@
           "sha256": "698be50bbea26a63d74346f5e483d06b1c19c8d857e88d7c1717933a7cde3791"
         }
       ]
+    },
+    {
+      "version": 19,
+      "updates": [
+        {
+          "file": "updates/018_risk_games.sql",
+          "sha256": "2e46b28c9c0f27e36e31ed19f6f76bd5dd2060c072745b27391718d96384cc2d"
+        }
+      ]
     }
   ]
 }

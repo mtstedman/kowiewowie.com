@@ -11,12 +11,12 @@ import {
     createGame,
     distributeSetupArmies,
     startingArmies,
-    nextSeat,
     PLAYER_IDS,
     NEUTRAL_ID,
     SETUP_ARMY_CAP
 } from './risk-model.js';
 import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
+import * as riskApi from './risk-api.js';
 
 (() => {
     'use strict';
@@ -109,7 +109,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         endButton: byElementId('risk-end-button'),
         reinforceButton: byElementId('risk-reinforce-button'),
         autoSetupButton: byElementId('risk-auto-setup-button'),
-        botCountGroup: byElementId('risk-bot-count'),
+        opponentCount: byElementId('risk-opponent-count'),
         placementGroup: byElementId('risk-placement-options'),
         cardModeGroup: byElementId('risk-card-mode-options'),
         attackDiceGroup: byElementId('risk-attack-dice-options'),
@@ -135,7 +135,18 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         defendDiceLabel: byElementId('risk-dice-defend-label'),
         defendDiceRow: byElementId('risk-dice-defend'),
         diceComparisons: byElementId('risk-dice-comparisons'),
-        diceResult: byElementId('risk-dice-result')
+        diceResult: byElementId('risk-dice-result'),
+        inviteButton: byElementId('risk-invite-button'),
+        lobbyPanel: byElementId('risk-lobby-panel'),
+        lobbyTitle: byElementId('risk-lobby-title'),
+        lobbyStatus: byElementId('risk-lobby-status'),
+        lobbyInvite: byElementId('risk-lobby-invite'),
+        inviteUrl: byElementId('risk-invite-url'),
+        inviteCopyButton: byElementId('risk-invite-copy-button'),
+        lobbyRoster: byElementId('risk-lobby-roster'),
+        lobbyNote: byElementId('risk-lobby-note'),
+        lobbyStartButton: byElementId('risk-lobby-start-button'),
+        lobbyLeaveButton: byElementId('risk-lobby-leave-button')
     };
 
     if (Object.values(elements).some((element) => !element)) {
@@ -166,44 +177,37 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     const attackDiceInputs = Array.from(elements.attackDiceGroup.querySelectorAll('input[name="risk-attack-dice"]')).map(asInput);
     const placementInputs = Array.from(elements.placementGroup.querySelectorAll('input[name="risk-placement"]')).map(asInput);
     const cardModeInputs = Array.from(elements.cardModeGroup.querySelectorAll('input[name="risk-card-mode"]')).map(asInput);
-    const botCountInputs = Array.from(elements.botCountGroup.querySelectorAll('input[name="risk-bot-count"]')).map(asInput);
+    const opponentSelect = /** @type {HTMLSelectElement} */ (elements.opponentCount);
     const checkedValue = (inputs) => inputs.find((input) => input.checked)?.value;
 
     // Startup settings are read only when a new game starts; the radios keep their values across games.
     const readSetupConfig = () => normalizeConfig({
-        botCount: checkedValue(botCountInputs),
+        botCount: opponentSelect.value,
         placement: checkedValue(placementInputs),
         cardMode: checkedValue(cardModeInputs)
     });
 
     // Every owner has a label, a text glyph and a marker shape, so ownership never depends on colour alone.
-    const ownerLabels = {
-        human: 'Player',
-        ai: 'Bot 1',
-        ai2: 'Bot 2',
-        ai3: 'Bot 3',
-        ai4: 'Bot 4',
-        ai5: 'Bot 5',
-        neutral: 'Neutral'
-    };
+    // Seat labels come from state.seats; glyphs and shapes are fixed per seat number.
+    const NEUTRAL_LABEL = 'Neutral';
 
     const ownerGlyphs = {
-        human: '●',
-        ai: '◆',
-        ai2: '▲',
-        ai3: '★',
-        ai4: '▼',
-        ai5: '✚',
+        1: '●',
+        2: '◆',
+        3: '▲',
+        4: '★',
+        5: '▼',
+        6: '✚',
         neutral: '■'
     };
 
     const ownerShapeNames = {
-        human: 'circle',
-        ai: 'diamond',
-        ai2: 'triangle',
-        ai3: 'star',
-        ai4: 'inverted triangle',
-        ai5: 'cross',
+        1: 'circle',
+        2: 'diamond',
+        3: 'triangle',
+        4: 'star',
+        5: 'inverted triangle',
+        6: 'cross',
         neutral: 'square'
     };
 
@@ -218,12 +222,12 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const markerShapes = {
-        human: 'M-13 0a13 13 0 1 0 26 0a13 13 0 1 0 -26 0Z',
-        ai: 'M0 -16L16 0L0 16L-16 0Z',
-        ai2: 'M0 -18L17 12H-17Z',
-        ai3: 'M0 -18L5.6 -7.7L17.1 -5.6L9 2.9L10.6 14.6L0 9.5L-10.6 14.6L-9 2.9L-17.1 -5.6L-5.6 -7.7Z',
-        ai4: 'M0 18L17 -12H-17Z',
-        ai5: 'M-6 -16H6V-6H16V6H6V16H-6V6H-16V-6H-6Z',
+        1: 'M-13 0a13 13 0 1 0 26 0a13 13 0 1 0 -26 0Z',
+        2: 'M0 -16L16 0L0 16L-16 0Z',
+        3: 'M0 -18L17 12H-17Z',
+        4: 'M0 -18L5.6 -7.7L17.1 -5.6L9 2.9L10.6 14.6L0 9.5L-10.6 14.6L-9 2.9L-17.1 -5.6L-5.6 -7.7Z',
+        5: 'M0 18L17 -12H-17Z',
+        6: 'M-6 -16H6V-6H16V6H6V16H-6V6H-16V-6H-6Z',
         neutral: 'M-12 -12H12V12H-12Z',
         none: 'M-11 0a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z'
     };
@@ -232,40 +236,72 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
      * State and runtime (timers are tokenised so restart cancels them).
      * ------------------------------------------------------------------ */
 
-    // Seats in turn order: the human first, then one bot per configured opponent.
-    const seatsFor = (config) => PLAYER_IDS.slice(0, config.botCount + 1);
+    // risk.css colours each seat number through an owner-<key> class; keys are listed in seat order.
+    const seatStyleKeys = PLAYER_IDS;
 
-    // Per-seat containers: a hand, an avatar slot and a setup pool for every seat.
-    const createSeatState = (players) => {
+    // Local roster in turn order: seat 1 is the human, seats 2..N+1 are bots.
+    const localRoster = (opponents) => {
+        const roster = [{ seat: 1, kind: 'human', name: 'Player' }];
+
+        for (let index = 1; index <= opponents; index += 1) {
+            roster.push({ seat: index + 1, kind: 'bot', name: `Bot ${index}` });
+        }
+
+        return roster;
+    };
+
+    // A roster seats 2 to 6 distinct seat numbers, each a human or a bot.
+    const isValidRoster = (roster) => Array.isArray(roster)
+        && roster.length >= 2
+        && roster.length <= PLAYER_IDS.length
+        && roster.every((entry) => (
+            Boolean(entry)
+            && Number.isInteger(entry.seat)
+            && entry.seat >= 1
+            && entry.seat <= PLAYER_IDS.length
+            && (entry.kind === 'human' || entry.kind === 'bot')
+        ))
+        && new Set(roster.map((entry) => entry.seat)).size === roster.length;
+
+    // Seats in turn order plus the per-seat containers keyed by seat number: a hand, an avatar
+    // slot and a setup pool for every seat.
+    const createSeatState = (roster) => {
         /** @type {{[seat: string]: any[]}} */
         const hands = {};
         /** @type {{[seat: string]: {name: string, text: string}|null}} */
         const avatars = {};
         /** @type {{[owner: string]: number}} */
         const setupPool = {};
+        /** @type {{seat: number, kind: string, name: string, eliminated: boolean}[]} */
+        const seats = roster.map((entry) => ({
+            seat: entry.seat,
+            kind: entry.kind === 'human' ? 'human' : 'bot',
+            name: String(entry.name || `Seat ${entry.seat}`),
+            eliminated: false
+        }));
 
-        players.forEach((seat) => {
+        seats.forEach(({ seat }) => {
             hands[seat] = [];
             avatars[seat] = null;
             setupPool[seat] = 0;
         });
 
         return {
-            players: /** @type {string[]} */ (players.slice()),
-            eliminated: /** @type {string[]} */ ([]),
+            seats,
             hands,
             avatars,
             setupPool
         };
     };
 
-    const createState = (config = readSetupConfig()) => ({
+    // The whole game state is plain data (JSON-serializable); timers, DOM nodes and callbacks live in runtime.
+    const createState = (config = readSetupConfig(), roster = localRoster(config.botCount)) => ({
         config,
-        ...createSeatState(seatsFor(config)),
+        ...createSeatState(roster),
         active: false,
         phase: 'idle',
-        current: 'human',
-        firstPlayer: 'human',
+        current_seat: roster[0].seat,
+        firstPlayer: roster[0].seat,
         turn: 0,
         territories: [],
         setupStep: null,
@@ -298,6 +334,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     const runtime = {
         token: 0,
         timers: /** @type {Set<number>} */ (new Set()),
+        // Seat controlled by this browser (1 in local games).
+        localSeat: 1,
+        // Continuation of a battle that is waiting for the local defense choice.
+        /** @type {(() => void)|null|undefined} */
+        defenseDone: null,
         rollInterval: 0,
         battleCounter: 0,
         diceKey: '',
@@ -326,6 +367,52 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         /** @type {HTMLElement|null} */
         decisionReturn: null
     };
+
+    /* ------------------------------------------------------------------
+     * Online play: the server holds one shared state. Only the authorized
+     * writer mutates and posts it; every other browser re-renders from polls.
+     * ------------------------------------------------------------------ */
+
+    const ONLINE_GAME_KEY = 'wowie.risk.game';
+    const POLL_MS = 2500;
+    const BOT_TAKEOVER_MS = 20000;
+    // Per-browser view and input state; it is stripped from every posted snapshot.
+    const TRANSIENT_STATE_KEYS = ['selectedCardIds', 'sourceId', 'targetId', 'detailId', 'busy', 'attackDice', 'autoDefend', 'pendingDefense', 'message'];
+
+    const online = {
+        /** @type {string|null} */
+        gameId: null,
+        // Last Game JSON from the API, without its state payload.
+        /** @type {any} */
+        game: null,
+        isHost: false,
+        // True once this browser holds the shared game state (dealt here or received from the server).
+        playing: false,
+        // state_version of the state this browser holds.
+        version: 0,
+        // Bumped on leave so late responses from an earlier game are ignored.
+        session: 0,
+        pollTimer: 0,
+        polling: false,
+        requesting: false,
+        posting: false,
+        /** @type {{state: any, finished: boolean, winner: any}|null} */
+        queued: null,
+        lastKey: '',
+        lastAdvanceAt: 0,
+        botDriver: false,
+        resyncing: false,
+        needsResync: false,
+        deals: 0,
+        // Auto-place for this browser's own seat; never posted.
+        autoSetup: false,
+        inviteUrl: '',
+        notice: '',
+        noticeKind: '',
+        lobbyKey: ''
+    };
+
+    const isOnline = () => online.playing;
 
     const schedule = (callback, delay) => {
         const token = runtime.token;
@@ -366,6 +453,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         runtime.token += 1;
         runtime.timers.forEach((timerId) => window.clearTimeout(timerId));
         runtime.timers.clear();
+        runtime.defenseDone = null;
         stopRollingFaces();
         clearEffects();
     };
@@ -469,20 +557,59 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
      * ------------------------------------------------------------------ */
 
     const byId = (id) => (id ? state.territories.find((territory) => territory.id === id) || null : null);
-    const isBot = (seat) => seat !== 'human' && state.players.includes(seat);
-    const isEliminated = (seat) => state.eliminated.includes(seat);
-    const activeSeats = () => state.players.filter((seat) => !isEliminated(seat));
+    const seatEntry = (seat) => state.seats.find((entry) => entry.seat === seat) || null;
+    const seatNumbers = () => state.seats.map((entry) => entry.seat);
+    const isBot = (seat) => seatEntry(seat)?.kind === 'bot';
+    const isEliminated = (seat) => Boolean(seatEntry(seat)?.eliminated);
+    const activeSeats = () => seatNumbers().filter((seat) => !isEliminated(seat));
+    // Human input is live only on the local seat's own turn, and only when a human sits there.
+    const isLocalTurn = () => state.current_seat === runtime.localSeat && seatEntry(runtime.localSeat)?.kind === 'human';
+    // Online, the host drives the bot seats; another human takes over only after a stall.
+    const isBotDriver = () => !isOnline() || online.isHost || online.botDriver;
+    // Whether this browser may act for a seat: always in local games, online only as its writer.
+    const canDriveSeat = (seat) => !isOnline() || (isBot(seat) ? isBotDriver() : seat === runtime.localSeat);
+    // Auto-place covers the local human's setup; online it only ever covers this browser's own seat.
+    const autoSetupActive = () => (isOnline() ? online.autoSetup : state.autoSetupHuman);
+    const autoSetupFor = (seat) => (isOnline() ? seat === runtime.localSeat && online.autoSetup : state.autoSetupHuman);
     // Turn order is cyclic and skips eliminated seats.
-    const seatAfter = (seat) => nextSeat(/** @type {any} */ (state), seat);
+    const seatAfter = (seat) => {
+        const order = seatNumbers();
+        const start = order.indexOf(seat);
+
+        for (let step = 1; step <= order.length; step += 1) {
+            const candidate = order[(start + step) % order.length];
+
+            if (!isEliminated(candidate)) {
+                return candidate;
+            }
+        }
+
+        return seat;
+    };
+    // risk-model.js and risk-bot.js name seats by PLAYER_IDS in turn order; the page uses seat numbers.
+    const modelIdOf = (owner) => {
+        const index = state.seats.findIndex((entry) => entry.seat === owner);
+
+        return index >= 0 ? PLAYER_IDS[index] : owner;
+    };
+    const modelTerritories = () => state.territories.map((territory) => ({ ...territory, owner: modelIdOf(territory.owner) }));
+    // Class suffix for an owner: risk.css styles each seat number as owner-<key>.
+    const ownerKey = (owner) => {
+        if (owner === NEUTRAL_ID) {
+            return NEUTRAL_ID;
+        }
+
+        return seatStyleKeys[owner - 1] || 'none';
+    };
     // The neutral army only exists in the two-seat game (one bot).
-    const hasNeutral = () => state.players.length === 2;
-    const boardOwners = () => (hasNeutral() ? [...state.players, NEUTRAL_ID] : state.players.slice());
+    const hasNeutral = () => seatNumbers().length === 2;
+    const boardOwners = () => (hasNeutral() ? [...seatNumbers(), NEUTRAL_ID] : seatNumbers().slice());
     const joinList = (items) => (items.length > 1
         ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
         : items.join(''));
     const ownedBy = (owner) => state.territories.filter((territory) => territory.owner === owner);
     const isNeighbor = (territory, neighborId) => Boolean(territory && territory.neighbors.includes(neighborId));
-    const ownerLabel = (owner) => ownerLabels[owner] || 'Unassigned';
+    const ownerLabel = (owner) => (owner === NEUTRAL_ID ? NEUTRAL_LABEL : seatEntry(owner)?.name || 'Unassigned');
     const pluralArmy = (count) => `${count} arm${count === 1 ? 'y' : 'ies'}`;
     const diceLabel = (count) => `${count} ${count === 1 ? 'die' : 'dice'}`;
     const continentName = (territory) => continentById.get(territory.continent)?.name || '';
@@ -629,7 +756,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     }, null)?.item || null;
 
     const tradeError = (player, cards) => {
-        if (!state.active || state.current !== player || state.phase !== 'reinforce') {
+        if (!state.active || state.current_seat !== player || state.phase !== 'reinforce') {
             return 'Cards can only be traded during your reinforcement phase.';
         }
 
@@ -691,7 +818,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             bonusText = ` +2 armies placed on pictured ${chosenBonus.name}.`;
         }
 
-        const description = player === 'human'
+        const description = player === runtime.localSeat
             ? cards.map(describeCard).join(', ')
             : 'a set';
         addLog(`${ownerLabel(player)} trades ${description} for ${pluralArmy(value)}.${bonusText}`);
@@ -699,7 +826,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const placeReinforcement = (player, territory, count) => {
-        if (!state.active || state.current !== player || state.phase !== 'reinforce') {
+        if (!state.active || state.current_seat !== player || state.phase !== 'reinforce') {
             return 'Reinforcements can only be placed during your reinforcement phase.';
         }
 
@@ -741,7 +868,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     const hasLegalAttack = (player) => ownedBy(player).some((territory) => legalAttackTargets(player, territory).length > 0);
 
     const attackError = (player, source, target, dice) => {
-        if (!state.active || state.current !== player) {
+        if (!state.active || state.current_seat !== player) {
             return 'It is not your turn.';
         }
 
@@ -806,7 +933,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const fortifyError = (player, source, target, count) => {
-        if (!state.active || state.current !== player || state.phase !== 'fortify') {
+        if (!state.active || state.current_seat !== player || state.phase !== 'fortify') {
             return 'Fortification is only allowed during your fortify phase.';
         }
 
@@ -897,11 +1024,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             parts.push(`${pluralArmy(neutralLeft)} on a neutral territory (squares)`);
         }
 
-        return `Setup: place ${parts.join(' and ')}. ${state.setupPool.human} of your setup armies remain.`;
+        return `Setup: place ${parts.join(' and ')}. ${state.setupPool[runtime.localSeat]} of your setup armies remain.`;
     };
 
     const placeSetupArmy = (player, territory) => {
-        if (!state.active || state.phase !== 'setup' || state.current !== player || !state.setupStep) {
+        if (!state.active || state.phase !== 'setup' || state.current_seat !== player || !state.setupStep) {
             return 'Setup placement is not available now.';
         }
 
@@ -943,7 +1070,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         && state.setupStep.neutral >= state.setupStep.neutralNeeded;
 
     const beginSetupStep = (player) => {
-        state.current = player;
+        state.current_seat = player;
         state.setupStep = {
             own: 0,
             neutral: 0,
@@ -953,7 +1080,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         state.sourceId = null;
         state.targetId = null;
 
-        if (isBot(player) || state.autoSetupHuman) {
+        if (isBot(player) || autoSetupFor(player)) {
             const step = state.setupStep;
             const botParts = [`${step.ownNeeded === 1 ? 'one' : 'two'} of its armies`];
 
@@ -968,12 +1095,14 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             // A fuller table steps faster so the rotation back to the player stays short.
             schedule(
                 () => autoSetupStep(player),
-                pace(isBot(player) ? Math.max(120, Math.round(380 / (state.players.length - 1))) : 140)
+                pace(isBot(player) ? Math.max(120, Math.round(380 / (seatNumbers().length - 1))) : 140)
             );
             return;
         }
 
-        state.message = setupPrompt();
+        state.message = player === runtime.localSeat
+            ? setupPrompt()
+            : `${ownerLabel(player)} is placing setup armies.`;
         render();
     };
 
@@ -981,16 +1110,16 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         state.setupStep = null;
         state.deck = buildDeck();
         state.discard = [];
-        state.hands = createSeatState(state.players).hands;
+        state.hands = createSeatState(state.seats).hands;
         state.setsTraded = 0;
-        addLog(`Setup complete: every color has ${startingArmies(state.players.length)} armies. ${ownerLabel(state.firstPlayer)} moves first.`);
+        addLog(`Setup complete: every color has ${startingArmies(seatNumbers().length)} armies. ${ownerLabel(state.firstPlayer)} moves first.`);
         beginTurn(state.firstPlayer);
     };
 
     // Rotates to the next seat in turn order that still has setup armies; play starts once
     // every seat's pool is empty.
     const finishSetupStep = (player) => {
-        const order = state.players;
+        const order = seatNumbers();
         const start = order.indexOf(player);
         let next = null;
 
@@ -1028,17 +1157,17 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const autoSetupStep = (player) => {
-        if (!state.active || state.phase !== 'setup' || state.current !== player) {
+        if (!state.active || state.phase !== 'setup' || state.current_seat !== player || !canDriveSeat(player)) {
             return;
         }
 
         const step = state.setupStep;
-        const pickOwn = player === 'human'
+        const pickOwn = !isBot(player)
             ? () => pickCappedRandom(player)
-            : () => byId(chooseSetupPlacement(state.territories, player, 'own', state.config));
-        const pickNeutral = player === 'human'
+            : () => byId(chooseSetupPlacement(modelTerritories(), modelIdOf(player), 'own', state.config));
+        const pickNeutral = !isBot(player)
             ? () => pickCappedRandom(NEUTRAL_ID)
-            : () => byId(chooseSetupPlacement(state.territories, player, 'neutral', state.config));
+            : () => byId(chooseSetupPlacement(modelTerritories(), modelIdOf(player), 'neutral', state.config));
 
         while (step.own < step.ownNeeded) {
             if (placeSetupArmy(player, pickOwn())) {
@@ -1064,26 +1193,35 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             : `all ${state.territories.length} territories dealt to ${joinList(owners.map((owner, index) => `${ownerLabel(owner)} (${counts[index]})`))}`;
     };
 
-    const startGame = () => {
+    // roster: [{seat: 1..6, kind: 'human'|'bot', name}] in turn order. Local games pass seat 1 as
+    // the human and seats 2..N+1 as bots.
+    const startGame = (roster) => {
         cancelPending();
 
         const preferences = {
             attackDice: state.attackDice,
             autoDefend: state.autoDefend
         };
-        const config = readSetupConfig();
+        const seated = isValidRoster(roster) ? roster : localRoster(readSetupConfig().botCount);
+        const config = normalizeConfig({ ...readSetupConfig(), botCount: seated.length - 1 });
 
-        // The model owns the deal: seats, one army per territory, setup pools and the first player.
+        // The model owns the deal: one army per territory, setup pools and the first seat. It names
+        // seats by its own ids in turn order, which are mapped onto the roster's seat numbers here.
         const game = createGame(config);
+        const seatOf = (id) => (id === NEUTRAL_ID ? NEUTRAL_ID : seated[PLAYER_IDS.indexOf(id)].seat);
 
-        state = createState(config);
-        Object.assign(state, preferences, createSeatState(game.players));
-        state.avatars = chooseAvatars(state.players);
+        state = createState(config, seated);
+        Object.assign(state, preferences);
+        state.avatars = chooseAvatars(seatNumbers());
         state.active = true;
         state.phase = 'setup';
-        state.territories = game.territories;
-        state.setupPool = { ...game.setupPool };
-        state.firstPlayer = game.firstPlayer;
+        state.territories = game.territories.map((territory) => ({ ...territory, owner: seatOf(territory.owner) }));
+        state.setupPool = {};
+        Object.keys(game.setupPool).forEach((id) => {
+            state.setupPool[seatOf(id)] = game.setupPool[id];
+        });
+        state.firstPlayer = seatOf(game.firstPlayer);
+        state.current_seat = state.firstPlayer;
 
         // Setup folds away during play so the turn controls sit right under the objective.
         if (uxElements.setupPanel instanceof HTMLDetailsElement) {
@@ -1091,8 +1229,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
 
         if (config.placement === 'random') {
-            Object.keys(state.setupPool).forEach((owner) => {
-                state.setupPool[owner] -= distributeSetupArmies(state.territories, owner, state.setupPool[owner]);
+            boardOwners().forEach((owner) => {
+                state.setupPool[owner] -= distributeSetupArmies(state.territories, /** @type {any} */ (owner), state.setupPool[owner]);
             });
             addLog(`New game: ${describeDeal()}, and every remaining army placed at random (at most ${SETUP_ARMY_CAP} per territory).`);
             startPlay();
@@ -1108,7 +1246,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
      * ------------------------------------------------------------------ */
 
     const humanReinforcePrompt = () => {
-        const handSize = state.hands.human.length;
+        const handSize = state.hands[runtime.localSeat].length;
 
         if (handSize >= 5) {
             return `You hold ${handSize} cards: trade a set before placing armies (mandatory at five or more).`;
@@ -1125,16 +1263,16 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         state.phase = 'attack';
         state.targetId = null;
 
-        if (player === 'human') {
+        if (player === runtime.localSeat) {
             state.sourceId = null;
-            state.message = hasLegalAttack('human')
+            state.message = hasLegalAttack(runtime.localSeat)
                 ? 'Attack phase: select one of your territories with two or more armies, then a highlighted target.'
                 : 'Attack phase: you have no legal attacks. Press End attacks to fortify.';
         }
     };
 
     const beginTurn = (player) => {
-        state.current = player;
+        state.current_seat = player;
         state.turn += 1;
         state.phase = 'reinforce';
         state.conqueredThisTurn = false;
@@ -1158,12 +1296,14 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
-        state.message = `Your turn. ${humanReinforcePrompt()}`;
+        state.message = player === runtime.localSeat
+            ? `Your turn. ${humanReinforcePrompt()}`
+            : `${ownerLabel(player)} is reinforcing.`;
         render();
     };
 
     const endTurn = (player) => {
-        if (!state.active || state.phase === 'gameover' || state.current !== player) {
+        if (!state.active || state.phase === 'gameover' || state.current_seat !== player) {
             return;
         }
 
@@ -1172,8 +1312,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
 
             if (!card) {
                 addLog('No cards remain to draw.');
-            } else if (player === 'human') {
-                addLog(`Player earns a card for conquering this turn: ${describeCard(card)}.`);
+            } else if (player === runtime.localSeat) {
+                // The shared online log never names a drawn card; only its owner sees it in their hand.
+                addLog(isOnline()
+                    ? `${ownerLabel(player)} earns a card for conquering this turn.`
+                    : `Player earns a card for conquering this turn: ${describeCard(card)}.`);
                 // The new card deals into the hand once; the flag expires on a cancellable timer.
                 runtime.freshCardIds.add(card.id);
                 schedule(() => {
@@ -1194,7 +1337,12 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     const eliminateSeat = (seat, conqueror) => {
         const captured = state.hands[seat] || [];
 
-        state.eliminated.push(seat);
+        const entry = seatEntry(seat);
+
+        if (entry) {
+            entry.eliminated = true;
+        }
+
         state.hands[conqueror].push(...captured);
         state.hands[seat] = [];
 
@@ -1240,13 +1388,19 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const declareVictory = (winner) => {
+        // Online the message is shared by every seat, so it names the winner instead of addressing one viewer.
+        if (isOnline()) {
+            finishGame(winner, `${ownerLabel(winner)} wins: the last seat standing.`);
+            return;
+        }
+
         const neutralLeft = ownedBy(NEUTRAL_ID).length;
         const neutralNote = neutralLeft > 0
             ? ` ${neutralLeft} neutral ${neutralLeft === 1 ? 'territory remains' : 'territories remain'}, which this variant does not require you to conquer.`
             : '';
-        const rivals = state.players.filter((seat) => seat !== 'human');
+        const rivals = seatNumbers().filter((seat) => seat !== runtime.localSeat);
 
-        finishGame(winner, winner === 'human'
+        finishGame(winner, winner === runtime.localSeat
             ? `Victory! ${rivals.length === 1 ? `You eliminated ${ownerLabel(rivals[0])}.` : `You are the last seat standing: all ${rivals.length} bots are eliminated.`}${neutralNote}`
             : `Defeat. ${ownerLabel(winner)} is the last seat standing. Press New game for a rematch.`);
     };
@@ -1295,8 +1449,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             flashTerritory(target.id, 'loss');
         }
 
-        const humanAttacking = battle.attacker === 'human';
-        const humanInvolved = humanAttacking || battle.defender === 'human';
+        const humanAttacking = battle.attacker === runtime.localSeat;
+        const humanInvolved = humanAttacking || battle.defender === runtime.localSeat;
 
         let summary = `${ownerLabel(battle.attacker)} rolled ${outcome.attack.join(', ')} against ${ownerLabel(battle.defender)} ${outcome.defend.join(', ')} at ${target.name}: attacker loses ${outcome.attackerLosses}, defender loses ${outcome.defenderLosses}.`;
 
@@ -1317,7 +1471,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             }
 
             // Defeat as soon as the player is eliminated; a winner only once a single seat remains.
-            if (isEliminated('human')) {
+            // Online, an eliminated seat drops out while the others play on to a single winner.
+            if (!isOnline() && isEliminated(runtime.localSeat)) {
                 declareDefeat(battle.attacker);
                 return;
             }
@@ -1335,14 +1490,14 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
                 max: available
             };
             state.phase = 'conquer';
-            state.message = battle.attacker === 'human'
+            state.message = battle.attacker === runtime.localSeat
                 ? `${summary} Move between ${state.pendingConquest.min} and ${state.pendingConquest.max} armies in.`
                 : summary;
             flashTerritory(target.id, 'conquer');
 
             if (humanAttacking) {
                 showFeedback('conquer', `${target.name} conquered! You will draw a card when your turn ends.`);
-            } else if (battle.defender === 'human') {
+            } else if (battle.defender === runtime.localSeat) {
                 showFeedback('loss', `${ownerLabel(battle.attacker)} captured your ${target.name}.`);
             }
         } else {
@@ -1369,9 +1524,9 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const isSpectatorBattle = (battle) => Boolean(battle)
-        && state.players.length > 2
-        && battle.attacker !== 'human'
-        && battle.defender !== 'human';
+        && seatNumbers().length > 2
+        && battle.attacker !== runtime.localSeat
+        && battle.defender !== runtime.localSeat;
 
     const rollBattle = (player, source, target, attackDice, defendDice, onComplete) => {
         const outcome = compareRolls(rollDice(attackDice), rollDice(defendDice));
@@ -1410,14 +1565,16 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
 
         const defendMax = maxDefendDice(target);
 
-        if (target.owner === 'human' && defendMax > 1 && !state.autoDefend) {
+        // Only a human at this browser is asked for defense dice; every other defender rolls the maximum.
+        // Online games always defend automatically with the maximum dice.
+        if (!isOnline() && target.owner === runtime.localSeat && !isBot(target.owner) && defendMax > 1 && !state.autoDefend) {
             state.pendingDefense = {
                 player,
                 sourceId: source.id,
                 targetId: target.id,
-                attackDice,
-                onComplete
+                attackDice
             };
+            runtime.defenseDone = onComplete;
             state.sourceId = source.id;
             state.targetId = target.id;
             state.message = `${ownerLabel(player)} attacks your ${target.name} from ${source.name} with ${diceLabel(attackDice)}. Choose your defense dice.`;
@@ -1445,8 +1602,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
+        const onComplete = runtime.defenseDone;
+
         state.pendingDefense = null;
-        rollBattle(pending.player, source, target, pending.attackDice, dice, pending.onComplete);
+        runtime.defenseDone = null;
+        rollBattle(pending.player, source, target, pending.attackDice, dice, onComplete);
     };
 
     /* ------------------------------------------------------------------
@@ -1454,29 +1614,39 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
      * Every bot seat runs the same driver with its own seat id.
      * ------------------------------------------------------------------ */
 
-    const botSnapshot = () => JSON.parse(JSON.stringify({
-        config: state.config,
-        players: state.players,
-        eliminated: state.eliminated,
-        current: state.current,
-        phase: state.phase,
-        territories: state.territories,
-        hands: state.hands,
-        deck: state.deck,
-        discard: state.discard,
-        setsTraded: state.setsTraded,
-        reinforcementRemaining: state.reinforcementRemaining,
-        pictureBonusUsed: state.pictureBonusUsed,
-        conqueredThisTurn: state.conqueredThisTurn,
-        fortifiedThisTurn: state.fortifiedThisTurn,
-        pendingConquest: state.pendingConquest ? {
-            sourceId: state.pendingConquest.sourceId,
-            targetId: state.pendingConquest.targetId,
-            min: state.pendingConquest.min,
-            max: state.pendingConquest.max
-        } : null,
-        winner: state.winner
-    }));
+    // The bot reads a detached copy of the game in the model's own seat ids.
+    const botSnapshot = () => {
+        /** @type {{[seat: string]: any[]}} */
+        const hands = {};
+
+        state.seats.forEach((entry) => {
+            hands[modelIdOf(entry.seat)] = state.hands[entry.seat] || [];
+        });
+
+        return JSON.parse(JSON.stringify({
+            config: state.config,
+            players: state.seats.map((entry) => modelIdOf(entry.seat)),
+            eliminated: state.seats.filter((entry) => entry.eliminated).map((entry) => modelIdOf(entry.seat)),
+            current: modelIdOf(state.current_seat),
+            phase: state.phase,
+            territories: modelTerritories(),
+            hands,
+            deck: state.deck,
+            discard: state.discard,
+            setsTraded: state.setsTraded,
+            reinforcementRemaining: state.reinforcementRemaining,
+            pictureBonusUsed: state.pictureBonusUsed,
+            conqueredThisTurn: state.conqueredThisTurn,
+            fortifiedThisTurn: state.fortifiedThisTurn,
+            pendingConquest: state.pendingConquest ? {
+                sourceId: state.pendingConquest.sourceId,
+                targetId: state.pendingConquest.targetId,
+                min: state.pendingConquest.min,
+                max: state.pendingConquest.max
+            } : null,
+            winner: state.winner === null ? null : modelIdOf(state.winner)
+        }));
+    };
 
     const scheduleAiStep = (seat, delay) => {
         schedule(() => aiStep(seat), pace(delay));
@@ -1508,7 +1678,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const rejectBotAction = (seat) => {
-        if (!state.active || state.current !== seat) {
+        if (!state.active || state.current_seat !== seat) {
             return;
         }
 
@@ -1530,7 +1700,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const afterAiBattle = (seat) => {
-        if (!state.active || state.current !== seat) {
+        if (!state.active || state.current_seat !== seat) {
             return;
         }
 
@@ -1603,7 +1773,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const aiStep = (seat) => {
-        if (!state.active || state.current !== seat || state.busy || state.pendingDefense) {
+        // Only the bot driver ever steps a bot seat; other browsers wait for its posted state.
+        if (!state.active || state.current_seat !== seat || state.busy || state.pendingDefense || !canDriveSeat(seat)) {
             return;
         }
 
@@ -1625,12 +1796,12 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         render();
 
         schedule(() => {
-            if (!state.active || state.current !== seat || state.busy || state.pendingDefense) {
+            if (!state.active || state.current_seat !== seat || state.busy || state.pendingDefense || !canDriveSeat(seat)) {
                 return;
             }
 
             try {
-                const action = chooseBotAction(botSnapshot(), seat, { timeBudgetMs: AI_TIME_BUDGET_MS });
+                const action = chooseBotAction(botSnapshot(), modelIdOf(seat), { timeBudgetMs: AI_TIME_BUDGET_MS });
                 applyBotAction(seat, action);
             } catch (error) {
                 rejectBotAction(seat);
@@ -1643,7 +1814,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
      * ------------------------------------------------------------------ */
 
     const handleSetupClick = (territory) => {
-        const error = placeSetupArmy('human', territory);
+        const error = placeSetupArmy(runtime.localSeat, territory);
 
         if (error) {
             state.message = error;
@@ -1654,7 +1825,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         flashTerritory(territory.id, 'place');
 
         if (setupStepComplete()) {
-            finishSetupStep('human');
+            finishSetupStep(runtime.localSeat);
             return;
         }
 
@@ -1663,8 +1834,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const afterHumanPlacement = () => {
-        if (state.reinforcementRemaining === 0 && findValidSets(state.hands.human).length === 0) {
-            enterAttackPhase('human');
+        if (state.reinforcementRemaining === 0 && findValidSets(state.hands[runtime.localSeat]).length === 0) {
+            enterAttackPhase(runtime.localSeat);
         } else {
             state.message = humanReinforcePrompt();
         }
@@ -1673,7 +1844,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const handleReinforceClick = (territory) => {
-        const error = placeReinforcement('human', territory, 1);
+        const error = placeReinforcement(runtime.localSeat, territory, 1);
 
         if (error) {
             state.message = error;
@@ -1690,11 +1861,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     const handleAttackSelection = (territory) => {
         const source = byId(state.sourceId);
 
-        if (territory.owner === 'human') {
+        if (territory.owner === runtime.localSeat) {
             state.sourceId = territory.id;
             state.targetId = null;
 
-            const targets = legalAttackTargets('human', territory);
+            const targets = legalAttackTargets(runtime.localSeat, territory);
             state.message = territory.armies < 2
                 ? `${territory.name} needs at least two armies to attack.`
                 : targets.length > 0
@@ -1703,12 +1874,12 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
-        if (!source || source.owner !== 'human') {
+        if (!source || source.owner !== runtime.localSeat) {
             state.message = 'Select one of your territories as the attacker first.';
             return;
         }
 
-        const error = attackError('human', source, territory, Math.max(1, maxAttackDice(source)));
+        const error = attackError(runtime.localSeat, source, territory, Math.max(1, maxAttackDice(source)));
 
         if (error) {
             state.targetId = null;
@@ -1723,7 +1894,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     const handleFortifySelection = (territory) => {
         const source = byId(state.sourceId);
 
-        if (territory.owner !== 'human') {
+        if (territory.owner !== runtime.localSeat) {
             state.message = 'Fortify only between territories you own.';
             return;
         }
@@ -1735,7 +1906,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
-        if (!source || source.owner !== 'human' || source.armies < 2) {
+        if (!source || source.owner !== runtime.localSeat || source.armies < 2) {
             state.sourceId = territory.id;
             state.targetId = null;
             state.message = territory.armies > 1
@@ -1744,7 +1915,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
-        if (!connectedOwned('human', source.id).has(territory.id)) {
+        if (!connectedOwned(runtime.localSeat, source.id).has(territory.id)) {
             state.sourceId = territory.id;
             state.targetId = null;
             state.message = `${territory.name} is not connected to ${source.name} through your territory, so it is now the source.`;
@@ -1772,10 +1943,10 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
-        if (state.current !== 'human') {
+        if (state.current_seat !== runtime.localSeat) {
             state.message = state.pendingDefense
                 ? 'Choose your defense dice first.'
-                : `${ownerLabel(state.current)} is taking its turn. Viewing ${territory.name}.`;
+                : `${ownerLabel(state.current_seat)} is taking its turn. Viewing ${territory.name}.`;
             render();
             return;
         }
@@ -1817,7 +1988,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
 
-        if (!source || !target || attackError('human', source, target, Math.max(1, maxAttackDice(source)))) {
+        if (!source || !target || attackError(runtime.localSeat, source, target, Math.max(1, maxAttackDice(source)))) {
             state.targetId = null;
         }
 
@@ -1825,13 +1996,13 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const humanAttack = () => {
-        if (state.current !== 'human' || state.busy) {
+        if (state.current_seat !== runtime.localSeat || state.busy) {
             return;
         }
 
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
-        const error = launchBattle('human', source, target, effectiveAttackDice(source), afterHumanBattle);
+        const error = launchBattle(runtime.localSeat, source, target, effectiveAttackDice(source), afterHumanBattle);
 
         if (error) {
             state.message = error;
@@ -1842,11 +2013,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     const confirmConquest = () => {
         const pending = state.pendingConquest;
 
-        if (!pending || pending.player !== 'human' || state.busy) {
+        if (!pending || pending.player !== runtime.localSeat || state.busy) {
             return;
         }
 
-        const error = moveIntoConquest('human', asInput(elements.conquestCount).valueAsNumber);
+        const error = moveIntoConquest(runtime.localSeat, asInput(elements.conquestCount).valueAsNumber);
 
         if (error) {
             state.message = error;
@@ -1856,20 +2027,20 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
 
         const source = byId(pending.sourceId);
         state.targetId = null;
-        state.message = hasLegalAttack('human')
+        state.message = hasLegalAttack(runtime.localSeat)
             ? `Armies moved. ${source.armies > 1 ? `${source.name} can keep attacking, or ` : ''}select another attacker or press End attacks.`
             : 'Armies moved. No legal attacks remain; press End attacks to fortify.';
         render();
     };
 
     const humanFortify = () => {
-        if (state.current !== 'human') {
+        if (state.current_seat !== runtime.localSeat) {
             return;
         }
 
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
-        const error = performFortify('human', source, target, asInput(elements.fortifyCount).valueAsNumber);
+        const error = performFortify(runtime.localSeat, source, target, asInput(elements.fortifyCount).valueAsNumber);
 
         if (error) {
             state.message = error;
@@ -1877,16 +2048,16 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
-        endTurn('human');
+        endTurn(runtime.localSeat);
     };
 
     const placeAllReinforcements = () => {
-        if (state.current !== 'human') {
+        if (state.current_seat !== runtime.localSeat) {
             return;
         }
 
         const territory = byId(state.sourceId);
-        const error = placeReinforcement('human', territory, state.reinforcementRemaining);
+        const error = placeReinforcement(runtime.localSeat, territory, state.reinforcementRemaining);
 
         if (error) {
             state.message = error;
@@ -1900,12 +2071,12 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const selectedHumanCards = () => state.selectedCardIds
-        .map((cardId) => state.hands.human.find((card) => card.id === cardId))
+        .map((cardId) => state.hands[runtime.localSeat].find((card) => card.id === cardId))
         .filter(Boolean);
 
     const humanTrade = () => {
         const before = state.reinforcementRemaining;
-        const error = tradeCards('human', state.selectedCardIds);
+        const error = tradeCards(runtime.localSeat, state.selectedCardIds);
 
         if (error) {
             state.message = error;
@@ -1923,7 +2094,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const toggleCard = (cardId) => {
-        if (!state.active || state.current !== 'human' || !state.hands.human.some((card) => card.id === cardId)) {
+        if (!state.active || state.current_seat !== runtime.localSeat || !state.hands[runtime.localSeat].some((card) => card.id === cardId)) {
             return;
         }
 
@@ -1954,15 +2125,15 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const advancePhase = () => {
-        if (!state.active || state.current !== 'human' || state.busy || state.pendingConquest) {
+        if (!state.active || state.current_seat !== runtime.localSeat || state.busy || state.pendingConquest) {
             return;
         }
 
         if (state.phase === 'reinforce') {
-            if (state.hands.human.length >= 5 || state.reinforcementRemaining > 0) {
+            if (state.hands[runtime.localSeat].length >= 5 || state.reinforcementRemaining > 0) {
                 state.message = humanReinforcePrompt();
             } else {
-                enterAttackPhase('human');
+                enterAttackPhase(runtime.localSeat);
             }
 
             render();
@@ -1978,8 +2149,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
 
         if (state.phase === 'fortify') {
-            addLog('Player ends the turn without fortifying.');
-            endTurn('human');
+            addLog(`${ownerLabel(runtime.localSeat)} ends the turn without fortifying.`);
+            endTurn(runtime.localSeat);
         }
     };
 
@@ -1988,10 +2159,23 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return;
         }
 
+        // Online the choice stays in this browser and covers only its own seat.
+        if (isOnline()) {
+            online.autoSetup = true;
+
+            if (state.current_seat === runtime.localSeat && !state.busy) {
+                autoSetupStep(runtime.localSeat);
+            } else {
+                render();
+            }
+
+            return;
+        }
+
         state.autoSetupHuman = true;
 
-        if (state.current === 'human') {
-            autoSetupStep('human');
+        if (state.current_seat === runtime.localSeat) {
+            autoSetupStep(runtime.localSeat);
         } else {
             render();
         }
@@ -2074,7 +2258,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         const legal = new Set();
         const placeable = new Set();
 
-        if (!state.active || state.current !== 'human' || state.busy) {
+        if (!state.active || state.current_seat !== runtime.localSeat || state.busy) {
             return { legal, placeable };
         }
 
@@ -2084,17 +2268,17 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             const step = state.setupStep;
 
             state.territories.forEach((territory) => {
-                if ((territory.owner === 'human' && step.own < step.ownNeeded)
+                if ((territory.owner === runtime.localSeat && step.own < step.ownNeeded)
                     || (territory.owner === 'neutral' && step.neutral < step.neutralNeeded)) {
                     placeable.add(territory.id);
                 }
             });
-        } else if (state.phase === 'reinforce' && state.reinforcementRemaining > 0 && state.hands.human.length < 5) {
-            ownedBy('human').forEach((territory) => placeable.add(territory.id));
+        } else if (state.phase === 'reinforce' && state.reinforcementRemaining > 0 && state.hands[runtime.localSeat].length < 5) {
+            ownedBy(runtime.localSeat).forEach((territory) => placeable.add(territory.id));
         } else if (state.phase === 'attack' && source) {
-            legalAttackTargets('human', source).forEach((territory) => legal.add(territory.id));
-        } else if (state.phase === 'fortify' && source && source.owner === 'human' && source.armies > 1 && !state.fortifiedThisTurn) {
-            connectedOwned('human', source.id).forEach((id) => {
+            legalAttackTargets(runtime.localSeat, source).forEach((territory) => legal.add(territory.id));
+        } else if (state.phase === 'fortify' && source && source.owner === runtime.localSeat && source.armies > 1 && !state.fortifiedThisTurn) {
+            connectedOwned(runtime.localSeat, source.id).forEach((id) => {
                 if (id !== source.id) {
                     legal.add(id);
                 }
@@ -2140,7 +2324,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             const isLegal = legal.has(territory.id);
             const isPlaceable = placeable.has(territory.id);
             const classes = [
-                `owner-${territory.owner || 'none'}`,
+                `owner-${ownerKey(territory.owner)}`,
                 role ? `is-${role}` : '',
                 isLegal ? 'is-legal' : '',
                 isPlaceable ? 'is-placeable' : '',
@@ -2164,7 +2348,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             marker.badge.textContent = role === 'source' ? 'FROM' : role === 'target' ? 'TO' : '';
         });
 
-        boardSvg.classList.toggle('is-waiting', state.active && (state.current !== 'human' || state.busy));
+        boardSvg.classList.toggle('is-waiting', state.active && (state.current_seat !== runtime.localSeat || state.busy));
     };
 
     const renderSelectionFigure = (territory) => {
@@ -2184,7 +2368,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
 
         const continent = continentById.get(territory.continent);
-        const ownerClass = `owner-${territory.owner || 'none'}`;
+        const ownerClass = `owner-${ownerKey(territory.owner)}`;
         const path = landPaths.get(territory.id);
         let drawn = false;
 
@@ -2226,8 +2410,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return state.phase === 'gameover' ? 'Game over. Start a new game to play again.' : 'Start a new game to deal the world.';
         }
 
-        if (state.current !== 'human') {
-            return state.pendingDefense ? 'Choose your defense dice in the command panel.' : `${ownerLabel(state.current)} is playing its turn.`;
+        if (state.current_seat !== runtime.localSeat) {
+            return state.pendingDefense ? 'Choose your defense dice in the command panel.' : `${ownerLabel(state.current_seat)} is playing its turn.`;
         }
 
         if (state.phase === 'setup') {
@@ -2237,7 +2421,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
 
         if (state.phase === 'reinforce') {
-            return focus.owner === 'human' ? 'Click to add one army here, or use Place all here.' : 'Reinforcements go on your own territories.';
+            return focus.owner === runtime.localSeat ? 'Click to add one army here, or use Place all here.' : 'Reinforcements go on your own territories.';
         }
 
         if (state.phase === 'attack') {
@@ -2268,9 +2452,9 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         const members = continentMembers.get(focus.continent);
         const ownedCount = (owner) => members.filter((id) => byId(id)?.owner === owner).length;
         // A full table lists only the seats present in this continent, always including the player.
-        const controlSeats = state.players.length > 2
-            ? state.players.filter((seat) => seat === 'human' || ownedCount(seat) > 0)
-            : state.players;
+        const controlSeats = seatNumbers().length > 2
+            ? seatNumbers().filter((seat) => seat === runtime.localSeat || ownedCount(seat) > 0)
+            : seatNumbers();
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
         const wrapper = document.createElement('div');
@@ -2453,7 +2637,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const renderHand = () => {
-        const hand = state.hands.human;
+        const hand = state.hands[runtime.localSeat];
         const selectedCards = state.selectedCardIds
             .map((cardId) => hand.find((card) => card.id === cardId))
             .filter(Boolean);
@@ -2493,7 +2677,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
 
                 const territory = byId(card.territoryId);
                 const selected = state.selectedCardIds.includes(card.id);
-                const owned = Boolean(territory && territory.owner === 'human');
+                const owned = Boolean(territory && territory.owner === runtime.localSeat);
 
                 node.button.setAttribute('aria-pressed', selected ? 'true' : 'false');
                 node.button.classList.toggle('is-owned', owned);
@@ -2528,7 +2712,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             elements.tradeValue.textContent = `Next set: ${pluralArmy(value)} (${state.setsTraded} ${state.setsTraded === 1 ? 'set' : 'sets'} traded so far)`;
         }
 
-        if (hand.length >= 5 && state.current === 'human' && state.phase === 'reinforce') {
+        if (hand.length >= 5 && state.current_seat === runtime.localSeat && state.phase === 'reinforce') {
             elements.handHelp.textContent = 'Five or more cards: you must trade a set now.';
         } else if (selectedCards.length === 3) {
             elements.handHelp.textContent = isValidSet(selectedCards)
@@ -2540,27 +2724,36 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     };
 
     const renderControls = () => {
-        const humanTurn = state.active && state.current === 'human' && !state.busy;
+        const humanTurn = state.active && isLocalTurn() && !state.busy && !online.resyncing;
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
-        const handSize = state.hands.human.length;
+        const handSize = (state.hands[runtime.localSeat] || []).length;
         const selectedCards = state.selectedCardIds
-            .map((cardId) => state.hands.human.find((card) => card.id === cardId))
+            .map((cardId) => state.hands[runtime.localSeat].find((card) => card.id === cardId))
             .filter(Boolean);
 
         // Starting is the primary action between games; restarting mid-game is a secondary, clearly named one.
-        setText(elements.startButton, state.active ? 'Restart game' : 'New game');
-        elements.startButton.classList.toggle('risk-button-primary', !state.active);
-        elements.startButton.classList.toggle('risk-button-restart', state.active);
+        // While an online lobby or game is open, the start button leaves it for a local game against bots.
+        const onlineOpen = Boolean(online.gameId);
 
-        asButton(elements.autoSetupButton).disabled = !(state.active && state.phase === 'setup' && !state.autoSetupHuman);
+        setText(elements.startButton, onlineOpen ? 'New local game' : state.active ? 'Restart game' : 'New game');
+        elements.startButton.classList.toggle('risk-button-primary', !state.active && !onlineOpen);
+        elements.startButton.classList.toggle('risk-button-restart', state.active || onlineOpen);
+        asButton(elements.inviteButton).disabled = online.requesting;
+
+        asButton(elements.autoSetupButton).disabled = !(
+            state.active
+            && state.phase === 'setup'
+            && !autoSetupActive()
+            && (!isOnline() || (isLocalTurn() && !online.resyncing && (state.setupPool[runtime.localSeat] || 0) > 0))
+        );
         asButton(elements.reinforceButton).disabled = !(
             humanTurn
             && state.phase === 'reinforce'
             && state.reinforcementRemaining > 0
             && handSize < 5
             && source
-            && source.owner === 'human'
+            && source.owner === runtime.localSeat
         );
 
         const endLabels = {
@@ -2569,7 +2762,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             conquer: 'End attacks',
             fortify: 'End turn'
         };
-        elements.endButton.textContent = state.current === 'human' && endLabels[state.phase] ? endLabels[state.phase] : 'End phase';
+        elements.endButton.textContent = state.current_seat === runtime.localSeat && endLabels[state.phase] ? endLabels[state.phase] : 'End phase';
         asButton(elements.endButton).disabled = !(
             humanTurn
             && ((state.phase === 'reinforce' && state.reinforcementRemaining === 0 && handSize < 5)
@@ -2577,7 +2770,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
                 || state.phase === 'fortify')
         );
 
-        const maxDice = maxAttackDice(source && source.owner === 'human' ? source : null);
+        const maxDice = maxAttackDice(source && source.owner === runtime.localSeat ? source : null);
         const chosenDice = maxDice > 0 ? Math.min(state.attackDice, maxDice) : state.attackDice;
         const attackPhase = humanTurn && state.phase === 'attack';
 
@@ -2587,13 +2780,13 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             input.checked = value === chosenDice;
         });
         asButton(elements.attackButton).disabled = !attackPhase
-            || Boolean(attackError('human', source, target, effectiveAttackDice(source)));
+            || Boolean(attackError(runtime.localSeat, source, target, effectiveAttackDice(source)));
 
         const fortifyInput = asInput(elements.fortifyCount);
         const fortifyReady = humanTurn
             && state.phase === 'fortify'
-            && !fortifyError('human', source, target, 1);
-        const fortifyMax = source && source.owner === 'human' ? Math.max(1, source.armies - 1) : 1;
+            && !fortifyError(runtime.localSeat, source, target, 1);
+        const fortifyMax = source && source.owner === runtime.localSeat ? Math.max(1, source.armies - 1) : 1;
 
         fortifyInput.max = String(fortifyMax);
         fortifyInput.disabled = !fortifyReady;
@@ -2604,7 +2797,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
 
         asButton(elements.fortifyButton).disabled = !fortifyReady;
 
-        const pendingConquest = state.pendingConquest && state.pendingConquest.player === 'human' ? state.pendingConquest : null;
+        const pendingConquest = state.pendingConquest && state.pendingConquest.player === runtime.localSeat ? state.pendingConquest : null;
         const conquestInput = asInput(elements.conquestCount);
         const conquestKey = pendingConquest ? `${pendingConquest.targetId}:${pendingConquest.min}:${pendingConquest.max}` : '';
 
@@ -2630,7 +2823,9 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             asButton(elements.defendTwoButton).disabled = maxDefendDice(defender) < 2;
         }
 
-        asInput(elements.autoDefend).checked = state.autoDefend;
+        asInput(elements.autoDefend).checked = state.autoDefend || isOnline();
+        // Online defense is always automatic with the maximum dice, so the preference only applies locally.
+        asInput(elements.autoDefend).disabled = isOnline();
         asButton(elements.tradeButton).disabled = !(
             humanTurn
             && state.phase === 'reinforce'
@@ -2660,15 +2855,15 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             );
 
             if (owner === NEUTRAL_ID) {
-                entry.className = `owner-${owner}`;
+                entry.className = `owner-${ownerKey(owner)}`;
                 return entry;
             }
 
             entry.className = [
                 'risk-scoreboard-side',
-                `owner-${owner}`,
+                `owner-${ownerKey(owner)}`,
                 eliminated ? 'is-eliminated' : '',
-                state.active && state.current === owner ? 'is-current' : ''
+                state.active && state.current_seat === owner ? 'is-current' : ''
             ].filter(Boolean).join(' ');
 
             const cards = document.createElement('span');
@@ -2714,7 +2909,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             const item = document.createElement('span');
 
             item.append(
-                createGlyph(owner, `risk-owner-glyph owner-${owner}`),
+                createGlyph(owner, `risk-owner-glyph owner-${ownerKey(owner)}`),
                 ` ${ownerLabel(owner)} ${ownerShapeNames[owner]}`
             );
             return item;
@@ -2727,7 +2922,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
     };
 
-    const ownerPossessive = (seat) => (seat === 'human' ? 'Your' : `${ownerLabel(seat)}'s`);
+    const ownerPossessive = (seat) => (seat === runtime.localSeat ? 'Your' : `${ownerLabel(seat)}'s`);
 
     const describeConfig = (config) => [
         `${config.botCount} ${config.botCount === 1 ? 'bot' : 'bots'}`,
@@ -2738,13 +2933,13 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     // The reserve counter always names the seat whose armies it counts.
     const reserveFor = () => {
         if (state.active && state.phase === 'setup') {
-            const seat = state.current && state.setupPool[state.current] !== undefined ? state.current : 'human';
+            const seat = state.current_seat && state.setupPool[state.current_seat] !== undefined ? state.current_seat : runtime.localSeat;
 
             return { count: state.setupPool[seat] || 0, label: `${ownerPossessive(seat)} setup armies to place` };
         }
 
-        if (state.active && state.current) {
-            return { count: state.reinforcementRemaining, label: `${ownerPossessive(state.current)} armies to place` };
+        if (state.active && state.current_seat) {
+            return { count: state.reinforcementRemaining, label: `${ownerPossessive(state.current_seat)} armies to place` };
         }
 
         return { count: 0, label: 'Armies to place' };
@@ -2755,8 +2950,8 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         const phase = phaseLabels[state.phase] || 'Ready';
 
         setText(elements.turn, String(state.turn));
-        setText(elements.phase, state.active && state.current
-            ? `${state.current === 'human' ? 'Your turn' : `${ownerLabel(state.current)}'s turn`} · ${phase}`
+        setText(elements.phase, state.active && state.current_seat
+            ? `${state.current_seat === runtime.localSeat ? 'Your turn' : `${ownerLabel(state.current_seat)}'s turn`} · ${phase}`
             : phase);
         setText(elements.reinforcements, String(reserve.count));
         setText(uxElements.reserveOwner, reserve.label);
@@ -2776,18 +2971,38 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
 
     // The current objective plus, when the next relevant action is unavailable, the reason why.
     const objectiveFor = () => {
+        if (state.phase === 'gameover' && isOnline()) {
+            return state.winner === runtime.localSeat
+                ? { title: 'Victory', text: 'You are the last seat standing. Press Invite players to set up a rematch.', blocker: '' }
+                : {
+                    title: 'Defeat',
+                    text: `${state.winner ? ownerLabel(state.winner) : 'Another seat'} is the last seat standing. Press Invite players to set up a rematch.`,
+                    blocker: ''
+                };
+        }
+
         if (state.phase === 'gameover') {
-            if (state.winner === 'human') {
+            if (state.winner === runtime.localSeat) {
                 return { title: 'Victory', text: 'You hold the table. Adjust Game setup if you like, then press New game to play again.', blocker: '' };
             }
 
-            const botsLeft = activeSeats().filter((seat) => seat !== 'human').length;
+            const botsLeft = activeSeats().filter((seat) => seat !== runtime.localSeat).length;
 
             return {
                 title: 'Defeat',
                 text: state.winner
                     ? `You were eliminated and ${ownerLabel(state.winner)} is the last seat standing. Adjust Game setup if you like, then press New game for a rematch.`
                     : `You were eliminated with ${botsLeft} bots still in play, so no overall winner was decided. Adjust Game setup if you like, then press New game for a rematch.`,
+                blocker: ''
+            };
+        }
+
+        if (!state.active && online.gameId && !isOnline()) {
+            return {
+                title: 'Online lobby',
+                text: online.isHost
+                    ? 'Share the invite link, then press Start game. Seats nobody claims are played by bots.'
+                    : 'You have a seat. The game begins when the host presses Start game.',
                 blocker: ''
             };
         }
@@ -2814,9 +3029,9 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
 
         if (state.phase === 'setup') {
-            const pool = state.setupPool.human;
+            const pool = state.setupPool[runtime.localSeat];
 
-            if (state.autoSetupHuman) {
+            if (autoSetupActive()) {
                 return { title: 'Setup', text: 'Auto-place is spreading your remaining armies.', blocker: '' };
             }
 
@@ -2825,28 +3040,30 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
                 text: pool > 0
                     ? `Click one of your territories to add an army. ${pluralArmy(pool)} left to place, or press Auto-place setup.`
                     : 'Your armies are placed. The other seats are finishing setup.',
-                blocker: state.current !== 'human' || state.busy
-                    ? `Waiting for ${ownerLabel(state.current)} to place.`
+                blocker: state.current_seat !== runtime.localSeat || state.busy
+                    ? `Waiting for ${ownerLabel(state.current_seat)} to place.`
                     : ''
             };
         }
 
-        if (state.current !== 'human') {
+        if (state.current_seat !== runtime.localSeat) {
             return {
-                title: `${ownerLabel(state.current)}: ${phaseLabels[state.phase] || 'Turn'}`,
-                text: 'Watch the map and dice tray. You choose defense dice if a bot attacks you.',
+                title: `${ownerLabel(state.current_seat)}: ${phaseLabels[state.phase] || 'Turn'}`,
+                text: isOnline()
+                    ? 'Watch the map and dice tray. Other players\' moves appear within a few seconds, and you defend with the most dice allowed.'
+                    : 'Watch the map and dice tray. You choose defense dice if a bot attacks you.',
                 blocker: 'Your controls unlock when your turn begins.'
             };
         }
 
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
-        const ownSource = source && source.owner === 'human' ? source : null;
+        const ownSource = source && source.owner === runtime.localSeat ? source : null;
         const endLabel = elements.endButton.textContent;
         const rolling = state.busy ? 'Wait for the dice to settle.' : '';
 
         if (state.phase === 'reinforce') {
-            if (state.hands.human.length >= 5) {
+            if (state.hands[runtime.localSeat].length >= 5) {
                 return {
                     title: 'Reinforce: trade a set',
                     text: 'You hold five or more cards. Select three that form a set, then press Trade selected set.',
@@ -2884,7 +3101,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
                 return {
                     title: 'Attack',
                     text: `Select one of your territories with 2 or more armies, then a neighbouring enemy. Or press ${endLabel}.`,
-                    blocker: hasLegalAttack('human')
+                    blocker: hasLegalAttack(runtime.localSeat)
                         ? 'Roll attack unlocks once you pick an attacker and a target.'
                         : `No attack is possible: none of your territories has spare armies beside an enemy. Press ${endLabel}.`
                 };
@@ -2903,7 +3120,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return {
                 title: 'Attack',
                 text: `${ownSource.name} against ${target.name}. Choose your dice and press Roll attack.`,
-                blocker: attackError('human', ownSource, target, effectiveAttackDice(ownSource)) || ''
+                blocker: attackError(runtime.localSeat, ownSource, target, effectiveAttackDice(ownSource)) || ''
             };
         }
 
@@ -2929,7 +3146,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             return {
                 title: 'Fortify',
                 text: `Set how many armies move from ${ownSource.name} to ${target.name}, then press Fortify.`,
-                blocker: fortifyError('human', ownSource, target, 1) || ''
+                blocker: fortifyError(runtime.localSeat, ownSource, target, 1) || ''
             };
         }
 
@@ -2976,9 +3193,11 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             : changed
                 ? `Changed settings apply to the next game. This game keeps ${describeConfig(current)}; press Restart game to switch now.`
                 : 'Changes apply to the next game, not the one in progress.');
-        setText(uxElements.startNote, state.active
-            ? 'Restart game abandons this game and deals a new one with the setup above.'
-            : 'New game deals the world with the setup above.');
+        setText(uxElements.startNote, online.gameId
+            ? 'New local game leaves the online game and deals a game against bots with the setup above.'
+            : state.active
+                ? 'Restart game abandons this game and deals a new one with the setup above.'
+                : 'New game deals the world with the setup above.');
 
         if (uxElements.setupNote) {
             uxElements.setupNote.classList.toggle('is-changed', changed);
@@ -2988,7 +3207,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
     // One polite announcement per change: the phase line when the turn or phase changes, then the new message.
     const announce = () => {
         const region = uxElements.announcer;
-        const phaseKey = state.active ? `${state.current}:${state.phase}` : state.phase;
+        const phaseKey = state.active ? `${state.current_seat}:${state.phase}` : state.phase;
 
         if (!region) {
             return;
@@ -3093,6 +3312,952 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         renderLog();
         announce();
         syncDecisionFocus();
+        renderLobby();
+        syncOnlineState();
+    };
+
+    /* ------------------------------------------------------------------
+     * Online play: lobby, polling and state sync.
+     * ------------------------------------------------------------------ */
+
+    const onlineErrorMessages = {
+        link_not_found: 'This invite link is not valid. Ask the host for a new one.',
+        link_revoked: 'This invite link was withdrawn by the host.',
+        link_expired: 'This invite link has expired. Ask the host for a new one.',
+        join_closed: 'This game has already started, so its invite link can no longer be used.',
+        game_full: 'This game is full: every seat is already taken.',
+        game_not_found: 'That online game could not be found.',
+        host_required: 'Only the host can do that.',
+        game_not_waiting: 'The game has already started.',
+        seat_required: 'You do not have a seat in this game.',
+        game_not_active: 'The game is not in progress.',
+        not_your_turn: 'It was not your turn, so the move was not saved. Loading the latest table.',
+        state_conflict: 'Another move reached the server first. Loading the latest table.',
+        state_too_large: 'The game is too large to save online.',
+        network_error: 'The game server could not be reached. Retrying…'
+    };
+
+    const onlineErrorText = (error) => {
+        const code = error && typeof error.error === 'string' ? error.error : '';
+
+        if (Object.prototype.hasOwnProperty.call(onlineErrorMessages, code)) {
+            return onlineErrorMessages[code];
+        }
+
+        return error && typeof error.message === 'string' && error.message
+            ? error.message
+            : 'The online game request failed.';
+    };
+
+    const showOnlineNotice = (text, kind = '') => {
+        online.notice = text;
+        online.noticeKind = kind;
+    };
+
+    const clearConnectionNotice = () => {
+        if (online.noticeKind === 'connection') {
+            showOnlineNotice('');
+        }
+    };
+
+    const rememberOnlineGame = (gameId) => {
+        try {
+            if (gameId) {
+                window.localStorage.setItem(ONLINE_GAME_KEY, gameId);
+            } else {
+                window.localStorage.removeItem(ONLINE_GAME_KEY);
+            }
+        } catch {
+            // Storage can be unavailable (private mode); the ?game= link still resumes the game.
+        }
+    };
+
+    const rememberedOnlineGame = () => {
+        try {
+            return window.localStorage.getItem(ONLINE_GAME_KEY) || '';
+        } catch {
+            return '';
+        }
+    };
+
+    // Keeps ?game=<id> in the address bar so a reload returns to the same game; ?join= never stays.
+    const setPageGameParam = (gameId) => {
+        const url = new URL(window.location.href);
+
+        url.searchParams.delete('join');
+
+        if (gameId) {
+            url.searchParams.set('game', gameId);
+        } else {
+            url.searchParams.delete('game');
+        }
+
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    };
+
+    const blankTerritories = () => territoryCatalog.map((territory) => ({
+        ...territory,
+        owner: null,
+        armies: 0
+    }));
+
+    // Back to the idle table between games; the attack and defense preferences are kept.
+    const resetTable = () => {
+        cancelPending();
+
+        const preferences = {
+            attackDice: state.attackDice,
+            autoDefend: state.autoDefend
+        };
+
+        state = createState();
+        Object.assign(state, preferences);
+        state.territories = blankTerritories();
+        runtime.localSeat = 1;
+    };
+
+    const stopPolling = () => {
+        if (online.pollTimer) {
+            window.clearInterval(online.pollTimer);
+            online.pollTimer = 0;
+        }
+    };
+
+    const startPolling = () => {
+        stopPolling();
+        online.pollTimer = window.setInterval(() => {
+            pollOnlineGame();
+        }, POLL_MS);
+    };
+
+    // Stops polling and forgets the online game. Returns whether one was open.
+    const leaveOnlineGame = () => {
+        const wasOpen = Boolean(online.gameId);
+        const session = online.session + 1;
+
+        stopPolling();
+        Object.assign(online, {
+            gameId: null,
+            game: null,
+            isHost: false,
+            playing: false,
+            version: 0,
+            session,
+            polling: false,
+            requesting: false,
+            posting: false,
+            queued: null,
+            lastKey: '',
+            lastAdvanceAt: 0,
+            botDriver: false,
+            resyncing: false,
+            needsResync: false,
+            deals: 0,
+            autoSetup: false,
+            inviteUrl: '',
+            notice: '',
+            noticeKind: '',
+            lobbyKey: ''
+        });
+        rememberOnlineGame('');
+
+        if (wasOpen) {
+            setPageGameParam('');
+        }
+
+        return wasOpen;
+    };
+
+    const isClosedStatus = (status) => status === 'finished' || status === 'abandoned';
+
+    const playerAtSeat = (seat) => (Array.isArray(online.game?.players)
+        ? online.game.players.find((player) => player.seat === seat) || null
+        : null);
+
+    // The shared state with every per-browser field removed: this is exactly what gets posted.
+    const serializableState = () => {
+        const snapshot = JSON.parse(JSON.stringify(state));
+
+        TRANSIENT_STATE_KEYS.forEach((key) => {
+            delete snapshot[key];
+        });
+
+        return snapshot;
+    };
+
+    // Status line for this viewer; the writer's own message is never shared.
+    const onlineMessage = () => {
+        if (state.phase === 'gameover') {
+            if (state.winner === runtime.localSeat) {
+                return 'Victory! You are the last seat standing.';
+            }
+
+            return state.winner ? `Game over. ${ownerLabel(state.winner)} is the last seat standing.` : 'Game over.';
+        }
+
+        if (!state.active) {
+            return 'Waiting for the game to begin.';
+        }
+
+        if (isLocalTurn()) {
+            if (state.phase === 'setup' && state.setupStep) {
+                return setupPrompt();
+            }
+
+            if (state.phase === 'reinforce') {
+                return `Your turn. ${humanReinforcePrompt()}`;
+            }
+
+            if (state.phase === 'attack') {
+                return hasLegalAttack(runtime.localSeat)
+                    ? 'Attack phase: select one of your territories with two or more armies, then a highlighted target.'
+                    : 'Attack phase: you have no legal attacks. Press End attacks to fortify.';
+            }
+
+            if (state.phase === 'conquer' && state.pendingConquest) {
+                return `Move between ${state.pendingConquest.min} and ${state.pendingConquest.max} armies into the conquered territory.`;
+            }
+
+            if (state.phase === 'fortify') {
+                return 'Fortify (optional, once): select a territory with spare armies, then a highlighted connected territory. Or press End turn.';
+            }
+        }
+
+        const latest = state.log[0];
+
+        return `${ownerLabel(state.current_seat)} is playing: ${phaseLabels[state.phase] || 'Turn'}.${latest ? ` ${latest}` : ''}`;
+    };
+
+    // Starts the next step for whichever seat this browser drives (a bot seat or its own auto-placed setup).
+    const resumeOnlineTurn = () => {
+        if (!isOnline() || !state.active || online.resyncing) {
+            return;
+        }
+
+        const seat = state.current_seat;
+
+        if (!canDriveSeat(seat)) {
+            return;
+        }
+
+        if (isBot(seat)) {
+            if (state.phase === 'setup') {
+                schedule(() => autoSetupStep(seat), pace(300));
+            } else {
+                scheduleAiStep(seat, 450);
+            }
+
+            return;
+        }
+
+        if (state.phase === 'setup' && online.autoSetup) {
+            schedule(() => autoSetupStep(seat), pace(140));
+        }
+    };
+
+    // Replaces the local game with a server snapshot and re-renders it for this viewer.
+    const applyRemoteState = (remote, version) => {
+        if (!Array.isArray(remote.seats) || remote.seats.length < 2 || !Array.isArray(remote.territories)) {
+            showOnlineNotice('The online game sent a table this page cannot read.');
+            return false;
+        }
+
+        cancelPending();
+
+        const firstSnapshot = !online.playing;
+        const keep = {
+            attackDice: state.attackDice,
+            autoDefend: state.autoDefend,
+            detailId: state.detailId,
+            selectedCardIds: state.selectedCardIds
+        };
+        const before = new Map(state.territories.map((territory) => [territory.id, territory]));
+        const roster = remote.seats.map((entry) => ({ seat: entry.seat, kind: entry.kind, name: entry.name }));
+
+        runtime.localSeat = online.game?.viewer_seat;
+        state = {
+            ...createState(remote.config || readSetupConfig(), roster),
+            ...JSON.parse(JSON.stringify(remote)),
+            selectedCardIds: [],
+            sourceId: null,
+            targetId: null,
+            detailId: keep.detailId,
+            busy: false,
+            attackDice: keep.attackDice,
+            autoDefend: keep.autoDefend,
+            pendingDefense: null,
+            message: ''
+        };
+
+        if (!Array.isArray(state.hands[runtime.localSeat])) {
+            state.hands[runtime.localSeat] = [];
+        }
+
+        const hand = state.hands[runtime.localSeat];
+
+        state.selectedCardIds = keep.selectedCardIds.filter((cardId) => hand.some((card) => card.id === cardId));
+
+        if (state.battle) {
+            state.battle.rolling = false;
+        }
+
+        online.playing = true;
+        online.version = version;
+        online.lastAdvanceAt = Date.now();
+
+        // Someone else advanced the game, so a non-host hands bot driving back.
+        if (!online.isHost) {
+            online.botDriver = false;
+        }
+
+        runtime.diceKey = '';
+        state.message = onlineMessage();
+        online.lastKey = JSON.stringify(serializableState());
+
+        if (firstSnapshot) {
+            if (uxElements.setupPanel instanceof HTMLDetailsElement) {
+                uxElements.setupPanel.open = state.phase === 'gameover';
+            }
+        } else {
+            state.territories.forEach((territory) => {
+                const previous = before.get(territory.id);
+
+                if (!previous || !previous.owner) {
+                    return;
+                }
+
+                if (previous.owner !== territory.owner) {
+                    flashTerritory(territory.id, 'conquer');
+                } else if (territory.armies > previous.armies) {
+                    flashTerritory(territory.id, 'place');
+                } else if (territory.armies < previous.armies) {
+                    flashTerritory(territory.id, 'loss');
+                }
+            });
+        }
+
+        render();
+        resumeOnlineTurn();
+        return true;
+    };
+
+    // The host deals once the server reports the game active with no state yet.
+    const dealOnlineGame = (game) => {
+        const players = Array.isArray(game.players) ? game.players : [];
+        const roster = players.map((player) => ({
+            seat: Number(player.seat),
+            kind: player.kind === 'human' ? 'human' : 'bot',
+            name: String(player.display_name || `Seat ${player.seat}`)
+        }));
+
+        if (!isValidRoster(roster)) {
+            showOnlineNotice('The online roster is incomplete, so the world could not be dealt.');
+            return;
+        }
+
+        online.deals += 1;
+        online.playing = true;
+        online.version = Number.isInteger(game.state_version) ? game.state_version : 0;
+        online.lastKey = '';
+        online.lastAdvanceAt = Date.now();
+        online.autoSetup = false;
+        runtime.localSeat = game.viewer_seat;
+        startGame(roster);
+    };
+
+    // Takes in a Game from any endpoint: lobby details, a newer shared state, or the cue to deal.
+    const receiveGame = (game, { force = false } = {}) => {
+        if (!game || typeof game !== 'object' || !online.gameId || game.id !== online.gameId) {
+            return;
+        }
+
+        online.game = { ...game, state: null };
+        online.isHost = Boolean(game.viewer_is_host);
+        clearConnectionNotice();
+
+        if (!Number.isInteger(game.viewer_seat)) {
+            const wasPlaying = isOnline();
+
+            leaveOnlineGame();
+
+            if (wasPlaying) {
+                resetTable();
+            }
+
+            showOnlineNotice('You do not have a seat in that online game.');
+            render();
+            return;
+        }
+
+        const version = Number.isInteger(game.state_version) ? game.state_version : 0;
+        const remoteState = game.state_included && game.state && typeof game.state === 'object' ? game.state : null;
+        const idle = !online.posting && !online.queued;
+
+        if (remoteState && (force || (idle && version > online.version))) {
+            applyRemoteState(remoteState, version);
+        } else if (force && !remoteState && online.playing && version === 0) {
+            // The first deal never reached the server: drop it so the host can deal again.
+            resetTable();
+            online.playing = false;
+            online.lastKey = '';
+        }
+
+        if (game.status === 'active' && version === 0 && !remoteState && !online.playing && online.isHost && online.deals < 2) {
+            dealOnlineGame(game);
+        }
+
+        if (isClosedStatus(game.status)) {
+            stopPolling();
+            rememberOnlineGame('');
+
+            if (game.status === 'abandoned') {
+                showOnlineNotice('This online game was abandoned.');
+            }
+        }
+
+        render();
+    };
+
+    // A non-host human takes over the bot seats once the bot turn has stalled for 20 seconds.
+    const checkBotTakeover = () => {
+        if (!isOnline() || online.isHost || online.botDriver || !state.active || !isBot(state.current_seat)) {
+            return;
+        }
+
+        if (online.posting || online.queued || Date.now() - online.lastAdvanceAt < BOT_TAKEOVER_MS) {
+            return;
+        }
+
+        online.botDriver = true;
+        showOnlineNotice('The host has gone quiet, so this browser is now playing the bot seats.');
+        renderLobby();
+        resumeOnlineTurn();
+    };
+
+    // Throws away local changes and reloads the server's state after a rejected write.
+    const resyncOnlineGame = async (error) => {
+        const session = online.session;
+
+        cancelPending();
+        online.queued = null;
+        online.resyncing = true;
+        showOnlineNotice(onlineErrorText(error));
+        render();
+
+        try {
+            const game = await riskApi.getGame(online.gameId);
+
+            if (session !== online.session) {
+                return;
+            }
+
+            online.resyncing = false;
+            online.needsResync = false;
+            receiveGame(game, { force: true });
+        } catch (fetchError) {
+            if (session !== online.session) {
+                return;
+            }
+
+            online.resyncing = false;
+            online.needsResync = true;
+            showOnlineNotice(onlineErrorText(fetchError), 'connection');
+            render();
+        }
+    };
+
+    // One post in flight at a time; later snapshots replace any queued one and go out next.
+    const flushOnlinePost = async () => {
+        if (online.posting || !online.queued || !online.gameId || online.resyncing) {
+            return;
+        }
+
+        const job = online.queued;
+        const session = online.session;
+        /** @type {{expected_version: number, state: any, finished?: boolean, winner_seat?: number}} */
+        const payload = { expected_version: online.version, state: job.state };
+
+        if (job.finished) {
+            payload.finished = true;
+
+            if (Number.isInteger(job.winner)) {
+                payload.winner_seat = job.winner;
+            }
+        }
+
+        online.queued = null;
+        online.posting = true;
+
+        try {
+            const game = await riskApi.postState(online.gameId, payload);
+
+            if (session !== online.session) {
+                return;
+            }
+
+            online.posting = false;
+            online.version = Number.isInteger(game?.state_version) ? game.state_version : online.version + 1;
+            online.lastAdvanceAt = Date.now();
+
+            if (game && typeof game === 'object') {
+                online.game = { ...online.game, ...game, state: null };
+            }
+
+            clearConnectionNotice();
+
+            if (isClosedStatus(game?.status) && !online.queued) {
+                stopPolling();
+                rememberOnlineGame('');
+            }
+
+            renderLobby();
+            flushOnlinePost();
+        } catch (error) {
+            if (session !== online.session) {
+                return;
+            }
+
+            online.posting = false;
+
+            if (error && error.status === 0) {
+                // Unreachable server: keep the newest snapshot and retry on the next poll tick.
+                online.queued = online.queued || job;
+                showOnlineNotice(onlineErrorText(error), 'connection');
+                renderLobby();
+                return;
+            }
+
+            resyncOnlineGame(error);
+        }
+    };
+
+    // Called after every render: a changed shared state means this browser (the writer) committed a move.
+    const syncOnlineState = () => {
+        if (!isOnline() || !online.gameId || online.resyncing || state.busy || state.phase === 'idle') {
+            return;
+        }
+
+        const snapshot = serializableState();
+        const key = JSON.stringify(snapshot);
+
+        if (key === online.lastKey) {
+            return;
+        }
+
+        online.lastKey = key;
+        online.queued = {
+            state: snapshot,
+            finished: state.phase === 'gameover',
+            winner: state.winner
+        };
+        flushOnlinePost();
+    };
+
+    const pollOnlineGame = async () => {
+        if (!online.gameId || online.polling || online.resyncing) {
+            return;
+        }
+
+        if (online.queued && !online.posting) {
+            flushOnlinePost();
+        }
+
+        const session = online.session;
+        const force = online.needsResync;
+
+        online.polling = true;
+
+        try {
+            const game = await riskApi.getGame(online.gameId, { sinceVersion: force ? undefined : online.version });
+
+            if (session !== online.session) {
+                return;
+            }
+
+            online.polling = false;
+            online.needsResync = false;
+            receiveGame(game, { force });
+            checkBotTakeover();
+        } catch (error) {
+            if (session !== online.session) {
+                return;
+            }
+
+            online.polling = false;
+
+            if (error && (error.status === 404 || error.status === 403)) {
+                const wasPlaying = isOnline();
+
+                leaveOnlineGame();
+
+                if (wasPlaying) {
+                    resetTable();
+                }
+
+                showOnlineNotice(onlineErrorText(error));
+                render();
+                return;
+            }
+
+            showOnlineNotice(onlineErrorText(error), 'connection');
+            renderLobby();
+        }
+    };
+
+    const setInviteUrl = (url) => {
+        online.inviteUrl = typeof url === 'string' && url !== ''
+            ? new URL(url, window.location.origin).href
+            : '';
+    };
+
+    const requestInviteLink = async () => {
+        const session = online.session;
+
+        try {
+            const link = await riskApi.createInviteLink(online.gameId);
+
+            if (session !== online.session) {
+                return;
+            }
+
+            setInviteUrl(link?.url);
+        } catch (error) {
+            if (session !== online.session) {
+                return;
+            }
+
+            showOnlineNotice(onlineErrorText(error));
+        }
+
+        renderLobby();
+    };
+
+    // Opens a lobby or game returned by create, claim or resume, and starts polling it.
+    const enterOnlineGame = (game) => {
+        if (!game || typeof game.id !== 'string' || game.id === '') {
+            showOnlineNotice('The online game could not be opened.');
+            render();
+            return;
+        }
+
+        online.gameId = game.id;
+        online.version = 0;
+        rememberOnlineGame(game.id);
+        setPageGameParam(game.id);
+        receiveGame(game, { force: true });
+
+        if (!online.gameId) {
+            return;
+        }
+
+        if (game.status === 'waiting' && game.viewer_is_host && online.inviteUrl === '') {
+            requestInviteLink();
+        }
+
+        if (!isClosedStatus(game.status)) {
+            startPolling();
+        }
+    };
+
+    // Invite players: abandon any current game and open a lobby with one seat per selected opponent.
+    const createOnlineGame = async () => {
+        if (online.requesting) {
+            return;
+        }
+
+        leaveOnlineGame();
+        resetTable();
+
+        const session = online.session;
+
+        online.requesting = true;
+        showOnlineNotice('Creating an online game…');
+        render();
+
+        try {
+            const game = await riskApi.createGame({ opponent_count: Number(opponentSelect.value) });
+
+            if (session !== online.session) {
+                return;
+            }
+
+            online.requesting = false;
+            showOnlineNotice('');
+            setInviteUrl(game?.invite_link?.url);
+            enterOnlineGame(game);
+
+            if (canFocus(elements.inviteCopyButton)) {
+                elements.inviteCopyButton.focus();
+            }
+        } catch (error) {
+            if (session !== online.session) {
+                return;
+            }
+
+            online.requesting = false;
+            showOnlineNotice(onlineErrorText(error));
+            render();
+        }
+    };
+
+    const startOnlineGame = async () => {
+        if (!online.gameId || !online.isHost || online.requesting) {
+            return;
+        }
+
+        const session = online.session;
+
+        online.requesting = true;
+        showOnlineNotice('Starting the game…');
+        renderLobby();
+
+        try {
+            const game = await riskApi.startGame(online.gameId);
+
+            if (session !== online.session) {
+                return;
+            }
+
+            online.requesting = false;
+            showOnlineNotice('');
+            receiveGame(game);
+        } catch (error) {
+            if (session !== online.session) {
+                return;
+            }
+
+            online.requesting = false;
+            showOnlineNotice(onlineErrorText(error));
+            renderLobby();
+        }
+    };
+
+    const copyInviteLink = async () => {
+        const input = asInput(elements.inviteUrl);
+
+        if (!input.value) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(input.value);
+            showOnlineNotice('Invite link copied. Send it to the players you want to challenge.');
+        } catch {
+            input.focus();
+            input.select();
+            showOnlineNotice('Copying is blocked here. The link is selected: press Ctrl+C (or ⌘C) to copy it.');
+        }
+
+        renderLobby();
+    };
+
+    // On load: claim a ?join= token, or resume ?game=<id> or the remembered game.
+    const initOnline = async () => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('join') || '';
+        const linkedGame = params.get('game') || '';
+        const requested = linkedGame || rememberedOnlineGame();
+        const session = online.session;
+
+        if (token) {
+            // The token leaves the address bar before it is used.
+            setPageGameParam(linkedGame);
+            online.requesting = true;
+            showOnlineNotice('Joining the online game…');
+            render();
+
+            try {
+                const game = await riskApi.claimLink(token);
+
+                if (session !== online.session) {
+                    return;
+                }
+
+                online.requesting = false;
+                showOnlineNotice('');
+                enterOnlineGame(game);
+            } catch (error) {
+                if (session !== online.session) {
+                    return;
+                }
+
+                online.requesting = false;
+                showOnlineNotice(onlineErrorText(error));
+                render();
+            }
+
+            return;
+        }
+
+        if (!requested) {
+            return;
+        }
+
+        online.requesting = true;
+        showOnlineNotice('Reconnecting to your online game…');
+        render();
+
+        try {
+            const game = await riskApi.getGame(requested);
+
+            if (session !== online.session) {
+                return;
+            }
+
+            online.requesting = false;
+            showOnlineNotice('');
+            enterOnlineGame(game);
+        } catch (error) {
+            if (session !== online.session) {
+                return;
+            }
+
+            online.requesting = false;
+
+            if (error && (error.status === 404 || error.status === 403)) {
+                rememberOnlineGame('');
+
+                if (linkedGame) {
+                    setPageGameParam('');
+                }
+            }
+
+            // A stale remembered game is dropped quietly; an explicit link explains what went wrong.
+            showOnlineNotice(linkedGame || error?.status === 0 ? onlineErrorText(error) : '');
+            render();
+        }
+    };
+
+    const lobbyStatusText = () => {
+        if (online.notice) {
+            return online.notice;
+        }
+
+        const game = online.game;
+
+        if (!game) {
+            return '';
+        }
+
+        const viewer = playerAtSeat(game.viewer_seat);
+        const seatText = viewer ? `You are seat ${viewer.seat} (${viewer.display_name}).` : '';
+        const players = Array.isArray(game.players) ? game.players : [];
+
+        if (game.status === 'waiting') {
+            const host = players.find((player) => player.is_host);
+            const taken = players.length;
+
+            return online.isHost
+                ? `Share the invite link. ${taken} of ${game.seat_count} seats taken; press Start game when everyone is in.`
+                : `${seatText} Waiting for ${host ? host.display_name : 'the host'} to start the game.`;
+        }
+
+        if (game.status === 'active') {
+            if (!online.playing) {
+                return online.isHost ? 'Dealing the world…' : 'The host is dealing the world…';
+            }
+
+            return `Online game in progress. ${seatText}${online.botDriver ? ' This browser is playing the bot seats.' : ''}`;
+        }
+
+        if (game.status === 'finished') {
+            const winner = playerAtSeat(game.winner_seat);
+
+            return winner ? `Game over. ${winner.display_name} won.` : 'Game over.';
+        }
+
+        return 'This online game is closed.';
+    };
+
+    // Seats 1..seat_count: claimed seats show their player, open ones are filled by bots at the start.
+    const renderLobbyRoster = (game) => {
+        const players = Array.isArray(game?.players) ? game.players : [];
+        const seatCount = Number.isInteger(game?.seat_count) ? game.seat_count : players.length;
+        const status = game?.status || '';
+        const key = JSON.stringify([seatCount, status, players.map((player) => [
+            player.seat,
+            player.kind,
+            player.display_name,
+            player.is_host,
+            player.is_viewer
+        ])]);
+
+        if (key === online.lobbyKey) {
+            return;
+        }
+
+        online.lobbyKey = key;
+
+        const items = [];
+
+        for (let seat = 1; seat <= seatCount; seat += 1) {
+            const player = players.find((entry) => entry.seat === seat);
+            const item = document.createElement('li');
+
+            item.className = `risk-lobby-seat owner-${ownerKey(seat)}`;
+            item.append(createGlyph(seat, 'risk-owner-glyph'));
+
+            if (!player) {
+                item.classList.add('is-open');
+                item.append(
+                    createText('span', 'risk-lobby-seat-name', `Seat ${seat}: open`),
+                    createText('span', 'risk-lobby-tag', status === 'waiting' ? 'Bot if still empty' : 'Open')
+                );
+            } else {
+                item.append(createText('span', 'risk-lobby-seat-name', `Seat ${seat}: ${player.display_name}`));
+                item.append(createText('span', 'risk-lobby-tag', player.kind === 'bot' ? 'Bot' : 'Player'));
+
+                if (player.is_host) {
+                    item.append(createText('span', 'risk-lobby-tag', 'Host'));
+                }
+
+                if (player.is_viewer) {
+                    item.classList.add('is-viewer');
+                    item.append(createText('span', 'risk-lobby-tag', 'You'));
+                }
+            }
+
+            items.push(item);
+        }
+
+        elements.lobbyRoster.replaceChildren(...items);
+    };
+
+    const renderLobby = () => {
+        const game = online.game;
+        const visible = Boolean(online.gameId) || online.notice !== '';
+
+        elements.lobbyPanel.hidden = !visible;
+        asButton(elements.inviteButton).disabled = online.requesting;
+
+        if (!visible) {
+            online.lobbyKey = '';
+            return;
+        }
+
+        const status = game?.status || '';
+        const waiting = status === 'waiting';
+        const urlInput = asInput(elements.inviteUrl);
+        const startButton = asButton(elements.lobbyStartButton);
+
+        setText(elements.lobbyTitle, waiting
+            ? 'Online lobby'
+            : status === 'finished' ? 'Online game over' : 'Online game');
+        setText(elements.lobbyStatus, lobbyStatusText());
+
+        elements.lobbyInvite.hidden = !(waiting && online.isHost && online.inviteUrl !== '');
+
+        if (urlInput.value !== online.inviteUrl) {
+            urlInput.value = online.inviteUrl;
+        }
+
+        elements.lobbyNote.hidden = !waiting;
+        startButton.hidden = !(waiting && online.isHost);
+        startButton.disabled = online.requesting;
+        setText(elements.lobbyLeaveButton, !online.gameId
+            ? 'Close'
+            : waiting ? 'Leave lobby' : 'Leave online game');
+        renderLobbyRoster(game);
     };
 
     /* ------------------------------------------------------------------
@@ -3108,7 +4273,37 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         markArtMissing();
     }
 
-    elements.startButton.addEventListener('click', startGame);
+    // Local game: seat 1 is the human at this browser, every other seat is a bot. Starting one leaves
+    // any online lobby or game, stops polling and forgets the remembered online game.
+    elements.startButton.addEventListener('click', () => {
+        leaveOnlineGame();
+        runtime.localSeat = 1;
+        startGame(localRoster(readSetupConfig().botCount));
+    });
+    elements.inviteButton.addEventListener('click', () => {
+        createOnlineGame();
+    });
+    elements.inviteCopyButton.addEventListener('click', () => {
+        copyInviteLink();
+    });
+    elements.inviteUrl.addEventListener('focus', () => {
+        asInput(elements.inviteUrl).select();
+    });
+    elements.lobbyStartButton.addEventListener('click', () => {
+        startOnlineGame();
+    });
+    elements.lobbyLeaveButton.addEventListener('click', () => {
+        const wasPlaying = isOnline();
+
+        leaveOnlineGame();
+
+        if (wasPlaying) {
+            resetTable();
+        }
+
+        render();
+        elements.inviteButton.focus();
+    });
     elements.endButton.addEventListener('click', advancePhase);
     elements.reinforceButton.addEventListener('click', placeAllReinforcements);
     elements.autoSetupButton.addEventListener('click', enableAutoSetup);
@@ -3136,15 +4331,13 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
             }
         });
     });
-    botCountInputs.forEach((input) => {
-        input.addEventListener('change', () => {
-            // Before the first game, the scoreboard previews the seats the next game will have.
-            if (input.checked && state.phase === 'idle') {
-                state.config = readSetupConfig();
-                Object.assign(state, createSeatState(seatsFor(state.config)));
-                render();
-            }
-        });
+    opponentSelect.addEventListener('change', () => {
+        // Before the first game, the scoreboard previews the seats the next game will have.
+        if (state.phase === 'idle') {
+            state.config = readSetupConfig();
+            Object.assign(state, createSeatState(localRoster(state.config.botCount)));
+            render();
+        }
     });
     elements.hand.addEventListener('click', (event) => {
         const button = /** @type {Element} */ (event.target).closest('[data-card-id]');
@@ -3160,7 +4353,7 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
         }
     });
     // Setup choices only describe the next game; the notes say so as soon as a choice changes.
-    [...botCountInputs, ...placementInputs, ...cardModeInputs].forEach((input) => {
+    [opponentSelect, ...placementInputs, ...cardModeInputs].forEach((input) => {
         input.addEventListener('change', renderSetupInfo);
     });
 
@@ -3186,11 +4379,9 @@ import { chooseBotAction, chooseSetupPlacement } from './risk-bot.js';
 
     window.requestAnimationFrame(updateMapHint);
 
-    state.territories = territoryCatalog.map((territory) => ({
-        ...territory,
-        owner: null,
-        armies: 0
-    }));
+    state.territories = blankTerritories();
 
     render();
+    // Online play only touches the network when the page was opened with ?join= or ?game=, or a game is remembered.
+    initOnline();
 })();
