@@ -118,9 +118,16 @@ function admin_render_page(string $title, callable $content, ?array $user = null
         <link rel="stylesheet" href="/admin/style.css?v=<?= rawurlencode($adminStylesheetVersion) ?>">
     </head>
     <body>
+        <a class="admin-skip-link" href="#admin-content">Skip to main content</a>
         <div class="admin-shell">
             <header class="admin-header">
-                <a class="admin-brand" href="/admin/">wowiekowie control room</a>
+                <a class="admin-brand" href="/admin/" aria-label="wowiekowie admin dashboard">
+                    <span class="admin-brand-mark" aria-hidden="true">W</span>
+                    <span class="admin-brand-text">
+                        <strong>wowiekowie</strong>
+                        <small>control room</small>
+                    </span>
+                </a>
                 <?php if ($user !== null && admin_user_is_admin($user)): ?>
                     <nav class="admin-nav" aria-label="Admin sections">
                         <?php foreach ($navItems as $item): ?>
@@ -160,92 +167,15 @@ function admin_render_page(string $title, callable $content, ?array $user = null
                 <?php endif; ?>
                 <?php if ($user !== null): ?>
                     <div class="admin-account">
-                        <span>Signed in as <?= htmlspecialchars(admin_display_name($user), ENT_QUOTES, 'UTF-8') ?></span>
+                        <span>Signed in as</span>
+                        <strong><?= htmlspecialchars(admin_display_name($user), ENT_QUOTES, 'UTF-8') ?></strong>
                     </div>
                 <?php endif; ?>
             </header>
-            <main class="admin-main">
+            <main class="admin-main" id="admin-content">
                 <?php $content(); ?>
             </main>
         </div>
-        <script>
-            (() => {
-                const panels = document.querySelectorAll('.admin-panel');
-
-                if (panels.length === 0) {
-                    return;
-                }
-
-                const clampPercentage = (value) => Math.min(100, Math.max(0, value));
-                const easingFactor = 0.18;
-                const settleThreshold = 0.12;
-                const restingPosition = 50;
-
-                for (const panel of panels) {
-                    const state = {
-                        currentX: restingPosition,
-                        currentY: restingPosition,
-                        targetX: restingPosition,
-                        targetY: restingPosition,
-                        frameId: null,
-                    };
-
-                    const applyHighlightPosition = () => {
-                        panel.style.setProperty('--mx', `${state.currentX}%`);
-                        panel.style.setProperty('--my', `${state.currentY}%`);
-                    };
-
-                    const animateHighlight = () => {
-                        state.frameId = null;
-                        state.currentX += (state.targetX - state.currentX) * easingFactor;
-                        state.currentY += (state.targetY - state.currentY) * easingFactor;
-
-                        const deltaX = Math.abs(state.targetX - state.currentX);
-                        const deltaY = Math.abs(state.targetY - state.currentY);
-
-                        if (deltaX <= settleThreshold && deltaY <= settleThreshold) {
-                            state.currentX = state.targetX;
-                            state.currentY = state.targetY;
-                            applyHighlightPosition();
-                            return;
-                        }
-
-                        applyHighlightPosition();
-                        state.frameId = window.requestAnimationFrame(animateHighlight);
-                    };
-
-                    const ensureAnimation = () => {
-                        if (state.frameId !== null) {
-                            return;
-                        }
-
-                        state.frameId = window.requestAnimationFrame(animateHighlight);
-                    };
-
-                    const setHighlightTarget = (x, y) => {
-                        state.targetX = clampPercentage(x);
-                        state.targetY = clampPercentage(y);
-                        ensureAnimation();
-                    };
-
-                    const updatePanelHighlight = (event) => {
-                        const rect = panel.getBoundingClientRect();
-                        if (rect.width <= 0 || rect.height <= 0) {
-                            return;
-                        }
-
-                        const x = ((event.clientX - rect.left) / rect.width) * 100;
-                        const y = ((event.clientY - rect.top) / rect.height) * 100;
-                        setHighlightTarget(x, y);
-                    };
-
-                    panel.addEventListener('pointermove', updatePanelHighlight);
-                    panel.addEventListener('pointerleave', () => {
-                        setHighlightTarget(restingPosition, restingPosition);
-                    });
-                }
-            })();
-        </script>
     </body>
     </html>
     <?php

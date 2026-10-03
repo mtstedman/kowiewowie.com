@@ -11,49 +11,33 @@ admin_render_page(
     'Dashboard',
     static function (): void {
         $sections = [
-            ['href' => '/admin/recipes.php', 'label' => 'Recipes', 'description' => 'Tune kitchen notes, status, images, ingredients, and steps.'],
-            [
-                'label' => 'Magic',
-                'description' => 'Manage Magic decks and deck-playing guides together.',
-                'children' => [
-                    ['href' => '/admin/decks.php', 'label' => 'Decks', 'description' => 'Shape deck lists, sections, cards, and publishing details.'],
-                    ['href' => '/admin/guides.php', 'label' => 'Guides', 'description' => 'Polish deck-playing guides, summaries, sections, and launch timing.'],
-                ],
-            ],
-            ['href' => '/admin/games.php', 'label' => 'Games', 'description' => 'Keep game pages crisp, findable, and ready to play.'],
-            ['href' => '/admin/music.php', 'label' => 'Music', 'description' => 'Curate tracks, artists, Spotify links, notes, and status.'],
-            ['href' => '/admin/videos.php', 'label' => 'Videos', 'description' => 'Prep YouTube entries, thumbnails, tags, and publication details.'],
+            ['href' => '/admin/recipes.php', 'label' => 'Recipes', 'category' => 'Kitchen', 'description' => 'Tune kitchen notes, images, ingredients, steps, and publishing status.'],
+            ['href' => '/admin/decks.php', 'label' => 'Decks', 'category' => 'Magic', 'description' => 'Shape deck lists, ordered sections, card rows, and public details.'],
+            ['href' => '/admin/guides.php', 'label' => 'Guides', 'category' => 'Magic', 'description' => 'Polish deck guides, summaries, sections, launch dates, and QR labels.'],
+            ['href' => '/admin/games.php', 'label' => 'Games', 'category' => 'Arcade', 'description' => 'Keep game pages crisp, findable, and ready for visitors to play.'],
+            ['href' => '/admin/music.php', 'label' => 'Music', 'category' => 'Listening shelf', 'description' => 'Curate tracks, artists, Spotify links, notes, and publication status.'],
+            ['href' => '/admin/videos.php', 'label' => 'Videos', 'category' => 'Watch shelf', 'description' => 'Prepare YouTube entries, thumbnails, tags, counts, and publication details.'],
         ];
         ?>
-        <section class="admin-hero" aria-labelledby="admin-title">
-            <p class="admin-eyebrow">Content cockpit</p>
-            <h1 id="admin-title">Pick a shelf to tidy.</h1>
-            <p>Fast paths for the bits visitors actually see. Draft carefully, publish deliberately, keep the weird polished.</p>
+        <section class="admin-hero admin-dashboard-hero" aria-labelledby="admin-title">
+            <div>
+                <p class="admin-eyebrow">Content control room</p>
+                <h1 id="admin-title">Keep every shelf ready for company.</h1>
+            </div>
+            <p>Choose a manager to create, review, publish, or retire the things visitors see. Draft carefully, publish deliberately, keep the weird polished.</p>
         </section>
 
-        <section class="admin-section-grid" aria-label="Content managers">
+        <section class="admin-section-grid" aria-labelledby="admin-managers-title">
+            <h2 class="admin-visually-hidden" id="admin-managers-title">Content managers</h2>
             <?php foreach ($sections as $section): ?>
-                <?php $children = $section['children'] ?? null; ?>
-                <?php if (is_array($children)): ?>
-                    <section class="admin-card admin-card-group" aria-labelledby="admin-card-<?= htmlspecialchars(strtolower((string) ($section['label'] ?? 'group')), ENT_QUOTES, 'UTF-8') ?>">
-                        <span id="admin-card-<?= htmlspecialchars(strtolower((string) ($section['label'] ?? 'group')), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars((string) ($section['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
-                        <small><?= htmlspecialchars((string) ($section['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
-                        <div class="admin-card-subsections">
-                            <?php foreach ($children as $child): ?>
-                                <?php if (!is_array($child)) { continue; } ?>
-                                <a class="admin-subcard" href="<?= htmlspecialchars((string) ($child['href'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                                    <strong><?= htmlspecialchars((string) ($child['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>
-                                    <small><?= htmlspecialchars((string) ($child['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    </section>
-                <?php else: ?>
-                    <a class="admin-card" href="<?= htmlspecialchars((string) ($section['href'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                        <span><?= htmlspecialchars((string) ($section['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
-                        <small><?= htmlspecialchars((string) ($section['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
-                    </a>
-                <?php endif; ?>
+                <a class="admin-card" href="<?= htmlspecialchars((string) ($section['href'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                    <span class="admin-card-kicker"><?= htmlspecialchars((string) ($section['category'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="admin-card-title">
+                        <strong><?= htmlspecialchars((string) ($section['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>
+                        <span aria-hidden="true">&rarr;</span>
+                    </span>
+                    <small><?= htmlspecialchars((string) ($section['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
+                </a>
             <?php endforeach; ?>
         </section>
         <?php

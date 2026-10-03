@@ -392,6 +392,20 @@
         return canvas;
     }
 
+    function describeFailure(error) {
+        const message = error instanceof Error ? error.message : '';
+        switch (message) {
+            case 'Missing QR target':
+                return 'QR code unavailable: this label has no link to encode.';
+            case 'Unsupported QR target':
+                return 'QR code unavailable: the link is not a web address (http or https).';
+            case 'QR target is too long':
+                return `QR code unavailable: the link is longer than the ${MAX_BYTES} characters a label can hold. Use a shorter slug.`;
+            default:
+                return 'QR code unavailable: this browser could not draw the code. Use the link below or try another browser.';
+        }
+    }
+
     function renderQr(container) {
         try {
             const target = normalizeTarget(container.dataset.qrTarget);
@@ -399,11 +413,51 @@
             const title = typeof container.dataset.qrTitle === 'string' ? container.dataset.qrTitle : '';
             container.replaceChildren(renderCanvas(modules, title));
             container.dataset.qrRendered = 'true';
+            return true;
         } catch (error) {
+            const fallback = document.createElement('span');
+            fallback.className = 'admin-qr-fallback';
+            fallback.textContent = describeFailure(error);
             container.classList.add('is-invalid');
-            container.textContent = error instanceof Error ? error.message : 'QR unavailable';
+            container.dataset.qrRendered = 'false';
+            container.replaceChildren(fallback);
+            return false;
         }
     }
 
-    document.querySelectorAll('[data-qr-code]').forEach(renderQr);
+    const containers = Array.from(document.querySelectorAll('[data-qr-code]'));
+    let failed = 0;
+    containers.forEach((container) => {
+        if (!renderQr(container)) {
+            failed++;
+        }
+    });
+
+    const panel = document.querySelector('[data-qr-panel]');
+    if (!panel) {
+        return;
+    }
+
+    const status = panel.querySelector('[data-qr-status]');
+    if (status) {
+        const total = containers.length;
+        if (total === 0) {
+            status.textContent = 'No labels to print yet. Add a guide with a slug to create one.';
+        } else if (failed === 0) {
+            status.textContent = total === 1 ? '1 QR code ready to print.' : `${total} QR codes ready to print.`;
+        } else {
+            status.textContent = `${failed} of ${total} QR codes could not be generated. Each affected label explains why; its plain-text link still prints.`;
+        }
+    }
+
+    const actions = panel.querySelector('[data-qr-actions]');
+    const printButton = panel.querySelector('[data-qr-print]');
+    if (printButton && typeof window.print === 'function') {
+        printButton.addEventListener('click', () => {
+            window.print();
+        });
+        if (actions instanceof HTMLElement) {
+            actions.hidden = false;
+        }
+    }
 })();

@@ -79,26 +79,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 admin_render_page(
     'Sign in',
     static function () use ($email, $error, $returnTo): void {
+        $errorId = $error !== null ? 'login-error' : null;
         ?>
-        <section class="admin-panel" aria-labelledby="login-title">
-            <p class="admin-eyebrow">Admin access</p>
-            <h1 id="login-title">Step into the control room</h1>
-            <p>Sign in to tune recipes, decks, games, music, videos, and the other shelf-dwellers.</p>
+        <section class="admin-panel admin-login-panel" aria-labelledby="login-title">
+            <div class="admin-login-intro">
+                <p class="admin-eyebrow">Admin access</p>
+                <h1 id="login-title">Step into the control room.</h1>
+                <p>Sign in with an administrator account to manage the recipes, decks, games, music, videos, and other shelf-dwellers.</p>
+            </div>
             <?php if ($error !== null): ?>
-                <p class="admin-login-error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+                <p class="admin-login-error" id="login-error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
             <?php endif; ?>
             <form class="admin-login-form" method="post" action="/admin/login.php" novalidate>
                 <?= admin_csrf_field() ?>
                 <input type="hidden" name="return_to" value="<?= htmlspecialchars($returnTo, ENT_QUOTES, 'UTF-8') ?>">
-                <label class="admin-field">
-                    <span>Email</span>
-                    <input type="email" name="email" value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>" autocomplete="email" required>
-                </label>
-                <label class="admin-field">
-                    <span>Password</span>
-                    <input type="password" name="password" autocomplete="current-password" required>
-                </label>
-                <button class="admin-button" type="submit">Unlock admin</button>
+                <div class="admin-field">
+                    <label for="admin-login-email">Email</label>
+                    <input id="admin-login-email" type="email" name="email" value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>" autocomplete="email" required<?= $errorId !== null ? ' aria-invalid="true" aria-describedby="' . $errorId . '"' : '' ?>>
+                </div>
+                <div class="admin-field">
+                    <label for="admin-login-password">Password</label>
+                    <input id="admin-login-password" type="password" name="password" autocomplete="current-password" required<?= $errorId !== null ? ' aria-invalid="true" aria-describedby="' . $errorId . '"' : '' ?>>
+                </div>
+                <div class="admin-login-actions">
+                    <button class="admin-button" type="submit">Unlock admin</button>
+                    <small>Access is limited to administrator accounts.</small>
+                </div>
             </form>
         </section>
         <?php

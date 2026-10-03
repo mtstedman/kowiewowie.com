@@ -9,45 +9,54 @@ $user = admin_require_user();
 admin_require_admin($user);
 
 $repository = admin_content_repository();
-$messages = [];
+$notice = null;
 $errors = [];
 $mode = 'add';
 $formDeck = admin_decks_blank_deck();
 
+$resultNotice = is_string($_GET['result'] ?? null) ? $_GET['result'] : '';
+if ($resultNotice === 'created') {
+    $notice = 'Deck added to the binder. You can keep editing it below.';
+} elseif ($resultNotice === 'updated') {
+    $notice = 'Deck changes saved.';
+} elseif ($resultNotice === 'deleted') {
+    $notice = 'Deck removed from the binder.';
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $postAction = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
+    $originalSlug = '';
+    if ($postAction === 'save') {
+        $originalSlug = trim(is_string($_POST['original_slug'] ?? null) ? $_POST['original_slug'] : '');
+        $formDeck = admin_decks_input_from_post($originalSlug !== '' ? $originalSlug : null);
+        $mode = $originalSlug !== '' ? 'edit' : 'add';
+    }
+
     if (!admin_verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session token expired. Reload the page and try again.';
-    } else {
-        $postAction = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
-
-        if ($postAction === 'save') {
-            $originalSlug = trim(is_string($_POST['original_slug'] ?? null) ? $_POST['original_slug'] : '');
-            $formDeck = admin_decks_input_from_post($originalSlug !== '' ? $originalSlug : null);
-            $mode = $originalSlug !== '' ? 'edit' : 'add';
-
-            try {
-                $result = $repository->save('decks', $formDeck, admin_decks_actor_id($user));
-                $formDeck = is_array($result['item'] ?? null) ? $result['item'] : $formDeck;
-                $messages[] = $mode === 'edit' ? 'Deck list polished.' : 'Deck added to the binder.';
-                if ($mode === 'add') {
-                    $formDeck = admin_decks_blank_deck();
-                }
-            } catch (Throwable $error) {
-                $errors[] = $error->getMessage();
-            }
-        } elseif ($postAction === 'delete') {
-            $slug = trim(is_string($_POST['slug'] ?? null) ? $_POST['slug'] : '');
-
-            try {
-                if ($slug === '') {
-                    throw new RuntimeException('Choose a deck to delete.');
-                }
-                $repository->delete('decks', $slug);
-                $messages[] = 'Deck removed from the binder.';
-            } catch (Throwable $error) {
-                $errors[] = $error->getMessage();
-            }
+    } elseif ($postAction === 'save') {
+        try {
+            $result = $repository->save('decks', $formDeck, admin_decks_actor_id($user));
+            $savedDeck = is_array($result['item'] ?? null) ? $result['item'] : $formDeck;
+            $savedSlug = trim(admin_decks_string($savedDeck['slug'] ?? $formDeck['slug'] ?? ''));
+            admin_decks_redirect($mode === 'edit' ? 'updated' : 'created', $savedSlug !== '' ? $savedSlug : null);
+        } catch (Throwable $error) {
+            $errors[] = $error->getMessage();
         }
+    } elseif ($postAction === 'delete') {
+        $slug = trim(is_string($_POST['slug'] ?? null) ? $_POST['slug'] : '');
+
+        try {
+            if ($slug === '') {
+                throw new RuntimeException('Choose a deck to delete.');
+            }
+            $repository->delete('decks', $slug);
+            admin_decks_redirect('deleted');
+        } catch (Throwable $error) {
+            $errors[] = $error->getMessage();
+        }
+    } else {
+        $errors[] = 'Choose a valid deck action.';
     }
 }
 
@@ -76,7 +85,7 @@ try {
 
 admin_render_page(
     'Decks',
-    static function () use ($decks, $errors, $messages, $mode, $formDeck): void {
+    static function () use ($decks, $errors, $notice, $mode, $formDeck): void {
         ?>
         <section class="admin-hero" aria-labelledby="decks-title">
             <p class="admin-eyebrow">Deck forge</p>
@@ -84,135 +93,158 @@ admin_render_page(
             <p>Manage metadata, strategy notes, sections, and card rows before anything hits the public table.</p>
         </section>
 
-            <?php foreach ($messages as $message): ?>
-                <div class="admin-alert admin-alert-success" role="status"><?= admin_decks_h($message) ?></div>
-            <?php endforeach; ?>
+        <?php if ($notice !== null): ?>
+            <div class="admin-alert admin-alert-success" role="status" tabindex="-1"><?= admin_decks_h($notice) ?></div>
+        <?php endif; ?>
 
-            <?php foreach ($errors as $error): ?>
-                <div class="admin-alert admin-alert-error" role="alert"><?= admin_decks_h($error) ?></div>
-            <?php endforeach; ?>
+        <?php if ($errors !== []): ?>
+            <section class="admin-alert admin-alert-error" role="alert" aria-labelledby="deck-errors-title" tabindex="-1">
+                <h2 id="deck-errors-title">Unable to save changes</h2>
+                <ul>
+                    <?php foreach ($errors as $error): ?>
+                        <li><?= admin_decks_h($error) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+                <p>Your deck details and card order are still in the editor below.</p>
+            </section>
+        <?php endif; ?>
 
         <section class="admin-panel" aria-labelledby="deck-list-title">
-            <h2 id="deck-list-title">Deck binder</h2>
-            <p>Review status and slugs before jumping into edits.</p>
-            <div class="admin-table-wrap">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Title</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Slug</th>
-                            <th scope="col">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if ($decks === []): ?>
-                            <tr>
-                                <td colspan="4">No decks yet. Start a list below and give the cards somewhere to sit.</td>
-                            </tr>
-                        <?php endif; ?>
-                        <?php foreach ($decks as $deck): ?>
-                            <?php $slug = admin_decks_string($deck['slug'] ?? ''); ?>
-                            <tr>
-                                <td><?= admin_decks_h(admin_decks_title($deck)) ?></td>
-                                <td><?= admin_decks_h($deck['status'] ?? '') ?></td>
-                                <td><?= admin_decks_h($slug) ?></td>
-                                <td>
-                                    <a class="admin-button admin-button-secondary" href="/admin/decks.php?action=edit&amp;slug=<?= rawurlencode($slug) ?>">Edit deck</a>
-                                    <form method="post" class="admin-inline-form" onsubmit="return confirm('Delete this deck?');">
-                                        <?= admin_csrf_field() ?>
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="slug" value="<?= admin_decks_h($slug) ?>">
-                                        <button type="submit">Delete deck</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <div class="admin-section-heading">
+                <div>
+                    <p class="admin-eyebrow">Browse</p>
+                    <h2 id="deck-list-title">Deck binder</h2>
+                    <p>Review each deck's name, publishing state, and stable URL before editing.</p>
+                </div>
+                <a class="admin-button admin-button-secondary" href="<?= $mode === 'edit' ? '/admin/decks.php#deck-form-title' : '#deck-form-title' ?>"><?= $mode === 'edit' ? 'Create another deck' : 'Create a deck' ?></a>
             </div>
+            <?php if ($decks === []): ?>
+                <p>No decks yet. Use the editor below to build the first list.</p>
+            <?php else: ?>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Deck</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Slug</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($decks as $deck): ?>
+                                <?php $slug = admin_decks_string($deck['slug'] ?? ''); ?>
+                                <tr>
+                                    <td>
+                                        <strong><?= admin_decks_h(admin_decks_title($deck)) ?></strong>
+                                        <small><?= admin_decks_h($deck['format'] ?? '') ?></small>
+                                    </td>
+                                    <td><?= admin_decks_h($deck['status'] ?? '') ?></td>
+                                    <td><code><?= admin_decks_h($slug) ?></code></td>
+                                    <td>
+                                        <a class="admin-button admin-button-secondary" href="/admin/decks.php?action=edit&amp;slug=<?= rawurlencode($slug) ?>#deck-form-title">Edit deck</a>
+                                        <form method="post" class="admin-inline-form" onsubmit="return confirm('Delete this deck permanently?');">
+                                            <?= admin_csrf_field() ?>
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="slug" value="<?= admin_decks_h($slug) ?>">
+                                            <button type="submit">Delete deck</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
         </section>
 
         <section class="admin-panel" aria-labelledby="deck-form-title">
             <p class="admin-eyebrow"><?= $mode === 'edit' ? 'Tune up' : 'New build' ?></p>
-            <h2 id="deck-form-title"><?= $mode === 'edit' ? 'Edit deck' : 'Add deck' ?></h2>
-            <p>Name the strategy, keep sections tidy, and use search when you want card art to travel with the row.</p>
+            <h2 id="deck-form-title"><?= $mode === 'edit' ? 'Edit ' . admin_decks_h(admin_decks_title($formDeck)) : 'Create a deck' ?></h2>
+            <p>Set the public details first, then organize cards into ordered sections. Changes are not published until you save.</p>
 
-            <form method="post" class="admin-form">
+            <form method="post" class="admin-form" data-deck-form>
                 <?= admin_csrf_field() ?>
                 <input type="hidden" name="action" value="save">
                 <?php if ($mode === 'edit'): ?>
                     <input type="hidden" name="original_slug" value="<?= admin_decks_h($formDeck['slug'] ?? '') ?>">
                 <?php endif; ?>
 
-                <label>
-                    <span>Slug</span>
-                    <small>Stable URL handle; edit mode locks it to protect existing links.</small>
-                    <input name="slug" value="<?= admin_decks_h($formDeck['slug'] ?? '') ?>" required maxlength="160"<?= $mode === 'edit' ? ' readonly' : '' ?>>
-                </label>
-
-                <label>
-                    <span>Name</span>
-                    <input name="name" value="<?= admin_decks_h($formDeck['name'] ?? '') ?>" required maxlength="255">
-                </label>
-
-                <label>
-                    <span>Game type</span>
-                    <small>Examples: Modern, Commander, or Standard.</small>
-                    <input name="format" value="<?= admin_decks_h($formDeck['format'] ?? '') ?>" required maxlength="120">
-                </label>
-
-                <label>
-                    <span>Colors</span>
-                    <small>Comma or slash separated, like W/U or blue, black.</small>
-                    <input name="colors" value="<?= admin_decks_h(admin_decks_colors_text($formDeck['colors'] ?? [])) ?>" maxlength="255">
-                </label>
-
-                <label>
-                    <span>Commander</span>
-                    <input name="commander" value="<?= admin_decks_h($formDeck['commander'] ?? '') ?>" maxlength="255">
-                </label>
-
-                <label>
-                    <span>Status</span>
-                    <select name="status">
-                        <?php foreach (['draft', 'published', 'archived'] as $status): ?>
-                            <option value="<?= admin_decks_h($status) ?>"<?= admin_decks_string($formDeck['status'] ?? 'draft') === $status ? ' selected' : '' ?>><?= admin_decks_h($status) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-
-                <label>
-                    <span>Summary</span>
-                    <textarea name="summary" rows="4" required><?= admin_decks_h($formDeck['summary'] ?? '') ?></textarea>
-                </label>
-
-                <label>
-                    <span>Strategy</span>
-                    <textarea name="strategy" rows="8" required><?= admin_decks_h($formDeck['strategy'] ?? '') ?></textarea>
-                </label>
+                <fieldset>
+                    <legend>Identity and publishing</legend>
+                    <p>These fields identify the deck in the admin list and on its public page.</p>
+                    <label>
+                        <span>Slug</span>
+                        <small>Stable URL handle; edit mode locks it to protect existing links.</small>
+                        <input name="slug" value="<?= admin_decks_h($formDeck['slug'] ?? '') ?>" required maxlength="160"<?= $mode === 'edit' ? ' readonly' : '' ?>>
+                    </label>
+                    <label>
+                        <span>Name</span>
+                        <input name="name" value="<?= admin_decks_h($formDeck['name'] ?? '') ?>" required maxlength="255">
+                    </label>
+                    <label>
+                        <span>Game type</span>
+                        <small>Examples: Modern, Commander, or Standard.</small>
+                        <input name="format" value="<?= admin_decks_h($formDeck['format'] ?? '') ?>" required maxlength="120">
+                    </label>
+                    <label>
+                        <span>Status</span>
+                        <select name="status">
+                            <?php foreach (['draft', 'published', 'archived'] as $status): ?>
+                                <option value="<?= admin_decks_h($status) ?>"<?= admin_decks_string($formDeck['status'] ?? 'draft') === $status ? ' selected' : '' ?>><?= admin_decks_h(ucfirst($status)) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                </fieldset>
 
                 <fieldset>
-                    <legend>Decklist</legend>
+                    <legend>Deck overview</legend>
+                    <label>
+                        <span>Colors</span>
+                        <small>Comma or slash separated, like W/U or blue, black.</small>
+                        <input name="colors" value="<?= admin_decks_h(admin_decks_colors_text($formDeck['colors'] ?? [])) ?>" maxlength="255">
+                    </label>
+                    <label>
+                        <span>Commander</span>
+                        <input name="commander" value="<?= admin_decks_h($formDeck['commander'] ?? '') ?>" maxlength="255">
+                    </label>
+                    <label>
+                        <span>Summary</span>
+                        <textarea name="summary" rows="4" required><?= admin_decks_h($formDeck['summary'] ?? '') ?></textarea>
+                    </label>
+                    <label>
+                        <span>Strategy</span>
+                        <textarea name="strategy" rows="8" required><?= admin_decks_h($formDeck['strategy'] ?? '') ?></textarea>
+                    </label>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Decklist sections and cards</legend>
+                    <p>Drag card rows with a pointer, or use the move controls on each row and section.</p>
                     <div data-deck-editor>
-                        <label>
-                            <span>Search cards</span>
-                            <small>Search Scryfall, choose a section, then add or drag the card into place.</small>
-                            <input type="search" data-card-search-input placeholder="Search cards by name" autocomplete="off" spellcheck="false">
-                        </label>
-                        <div data-card-search-results aria-live="polite"></div>
-                        <div data-deck-sections data-next-section="<?= admin_decks_section_count($formDeck['decklist'] ?? []) ?>">
-                            <?php admin_decks_render_sections($formDeck['decklist'] ?? []); ?>
-                        </div>
+                        <div class="admin-alert" data-editor-status role="status" aria-live="polite" tabindex="-1">Deck editor ready.</div>
+                        <section aria-labelledby="card-search-title">
+                            <h3 id="card-search-title">Find a card</h3>
+                            <label>
+                                <span>Search cards</span>
+                                <small>Results include quantity and destination controls. You can also drag a result into a section.</small>
+                                <input type="search" data-card-search-input placeholder="Search cards by name" autocomplete="off" spellcheck="false">
+                            </label>
+                            <div data-card-search-results aria-live="polite" aria-busy="false"></div>
+                        </section>
+                        <section aria-labelledby="deck-sections-title">
+                            <h3 id="deck-sections-title">Ordered deck sections</h3>
+                            <div data-deck-sections data-next-section="<?= admin_decks_section_count($formDeck['decklist'] ?? []) ?>">
+                                <?php admin_decks_render_sections($formDeck['decklist'] ?? []); ?>
+                            </div>
+                            <button type="button" data-add-section>Add section</button>
+                        </section>
                     </div>
-                    <button type="button" data-add-section>Add section</button>
                 </fieldset>
 
                 <div class="admin-action-row">
-                    <button type="submit"><?= $mode === 'edit' ? 'Update deck' : 'Create deck' ?></button>
-                    <?php if ($mode === 'edit'): ?>
-                        <a class="admin-button admin-button-secondary" href="/admin/decks.php">Cancel editing</a>
-                    <?php endif; ?>
+                    <button type="submit"><?= $mode === 'edit' ? 'Save deck changes' : 'Create deck' ?></button>
+                    <a class="admin-button admin-button-secondary" href="/admin/decks.php" data-cancel-editor><?= $mode === 'edit' ? 'Cancel editing' : 'Cancel and clear' ?></a>
                 </div>
             </form>
         </section>
@@ -222,6 +254,18 @@ admin_render_page(
     },
     $user,
 );
+
+function admin_decks_redirect(string $result, ?string $slug = null): void
+{
+    $query = ['result' => $result];
+    if ($slug !== null && $slug !== '') {
+        $query['action'] = 'edit';
+        $query['slug'] = $slug;
+    }
+
+    header('Location: /admin/decks.php?' . http_build_query($query) . ($slug !== null ? '#deck-form-title' : ''), true, 303);
+    exit;
+}
 
 /** @return array<string, mixed> */
 function admin_decks_blank_deck(): array
@@ -302,7 +346,7 @@ function admin_decks_post_decklist(): array
                 $cardName = trim(is_string($cardRow['name'] ?? null) ? $cardRow['name'] : '');
                 $cardId = trim(is_string($cardRow['card_id'] ?? null) ? $cardRow['card_id'] : '');
                 $imageUrl = trim(is_string($cardRow['image_url'] ?? null) ? $cardRow['image_url'] : '');
-                if ($quantityText === '' && $cardName === '') {
+                if ($cardName === '' && $cardId === '') {
                     continue;
                 }
                 $cards[] = [
@@ -386,12 +430,20 @@ function admin_decks_render_sections(mixed $decklist): void
             ]];
         }
         ?>
-        <div class="admin-deck-section" data-section data-section-index="<?= $sectionIndex ?>" data-next-card="<?= count($cards) ?>">
+        <article class="admin-deck-section" data-section data-section-index="<?= $sectionIndex ?>" data-next-card="<?= count($cards) ?>">
+            <div class="admin-section-heading">
+                <h4 data-section-heading>Section <?= $sectionIndex + 1 ?></h4>
+                <div class="admin-action-row" aria-label="Section ordering controls">
+                    <button type="button" data-move-section-up>Move section up</button>
+                    <button type="button" data-move-section-down>Move section down</button>
+                    <button type="button" data-remove-section>Remove section</button>
+                </div>
+            </div>
             <label>
                 <span>Section name</span>
                 <input name="deck_sections[<?= $sectionIndex ?>][name]" value="<?= admin_decks_h($sectionName) ?>" required maxlength="120">
             </label>
-            <div data-card-list>
+            <div data-card-list aria-label="Cards in <?= admin_decks_h($sectionName !== '' ? $sectionName : 'this section') ?>">
                 <?php foreach (array_values($cards) as $cardIndex => $card): ?>
                     <?php
                     $quantity = '1';
@@ -415,7 +467,7 @@ function admin_decks_render_sections(mixed $decklist): void
                         </div>
                         <label>
                             <span>Quantity</span>
-                            <input name="deck_sections[<?= $sectionIndex ?>][cards][<?= $cardIndex ?>][quantity]" value="<?= admin_decks_h($quantity) ?>" inputmode="numeric" required>
+                            <input type="number" min="1" max="999" step="1" name="deck_sections[<?= $sectionIndex ?>][cards][<?= $cardIndex ?>][quantity]" value="<?= admin_decks_h($quantity) ?>" inputmode="numeric" required>
                         </label>
                         <label>
                             <span>Card</span>
@@ -423,13 +475,21 @@ function admin_decks_render_sections(mixed $decklist): void
                         </label>
                         <input type="hidden" name="deck_sections[<?= $sectionIndex ?>][cards][<?= $cardIndex ?>][card_id]" value="<?= admin_decks_h($cardId) ?>">
                         <input type="hidden" name="deck_sections[<?= $sectionIndex ?>][cards][<?= $cardIndex ?>][image_url]" value="<?= admin_decks_h($imageUrl) ?>">
-                        <button type="button" data-remove-card>Remove</button>
+                        <div class="admin-action-row" data-card-controls aria-label="Card ordering controls">
+                            <button type="button" data-move-card-up>Move up</button>
+                            <button type="button" data-move-card-down>Move down</button>
+                            <label>
+                                <span>Move to section</span>
+                                <select data-move-card-select></select>
+                            </label>
+                            <button type="button" data-move-card-section>Move card</button>
+                            <button type="button" data-remove-card>Remove card</button>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-            <button type="button" data-add-card>Add card</button>
-            <button type="button" data-remove-section>Remove section</button>
-        </div>
+            <button type="button" data-add-card>Add blank card row</button>
+        </article>
         <?php
         ++$sectionIndex;
     }
