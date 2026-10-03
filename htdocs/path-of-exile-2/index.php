@@ -100,6 +100,21 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                             <ul id="poe2-saved-build-list" class="poe2-saved-build-list" aria-label="Saved builds" hidden></ul>
                         </div>
                     </details>
+
+                    <details class="poe2-section">
+                        <summary><h3 id="poe2-share-title">Share build</h3></summary>
+                        <div class="poe2-share">
+                            <div class="poe2-actions">
+                                <button id="poe2-copy-link" type="button" disabled>Copy share link</button>
+                                <button id="poe2-copy-code" type="button" disabled>Copy build code</button>
+                            </div>
+                            <label for="poe2-import-code">Paste a build code or link
+                                <textarea id="poe2-import-code" rows="3" spellcheck="false" autocomplete="off"></textarea>
+                            </label>
+                            <button id="poe2-import-build" type="button" disabled>Import build</button>
+                            <p id="poe2-share-status" class="poe2-saved-build-status" role="status" aria-live="polite" aria-atomic="true"></p>
+                        </div>
+                    </details>
                 </aside>
 
                 <section class="poe2-panel poe2-tree-panel" aria-labelledby="poe2-tree-title" aria-busy="true">

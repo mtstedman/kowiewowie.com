@@ -761,6 +761,30 @@
     font-size: 1rem;
 }
 
+.poe2-share {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.poe2-share textarea {
+    width: 100%;
+    min-height: 4.5rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 6px;
+    background: rgba(5, 11, 22, 0.8);
+    color: var(--ink);
+    font: 0.8rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    text-transform: none;
+    resize: vertical;
+    word-break: break-all;
+}
+
+.poe2-share textarea:focus-visible {
+    outline: 2px solid var(--poe2-gold);
+    outline-offset: 1px;
+}
+
 .poe2-saved-build-form input {
     width: 100%;
     min-height: 44px;

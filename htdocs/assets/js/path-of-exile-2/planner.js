@@ -10,12 +10,15 @@ import * as optimizer from './optimizer.js?v=a6b98e12335a';
 // @ts-ignore
 import * as buildsApi from './builds-api.js?v=14de1306bb90';
 // @ts-ignore
+import * as buildCode from './build-code.js?v=1f44f3dbf1e0';
+// @ts-ignore
 import * as treeArt from './tree-art.js?v=f3d660112b74';
 
 const { loadTree, buildAllocationModel, summarizeRouteBonuses } = /** @type {typeof import('./tree-data.js')} */ (treeData);
 const { findMinimalRoute, findConnection } = /** @type {typeof import('./optimizer.js')} */ (optimizer);
 const { listBuilds, createBuild, updateBuild, deleteBuild } = /** @type {typeof import('./builds-api.js')} */ (buildsApi);
 const { TREE_ART } = /** @type {typeof import('./tree-art.js')} */ (treeArt);
+const { encodeBuildCode, decodeBuildCode, extractBuildCode } = /** @type {typeof import('./build-code.js')} */ (buildCode);
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const MIN_SCALE = 0.01;
@@ -95,6 +98,11 @@ const elements = {
   consideredCount: /** @type {HTMLElement} */ (document.querySelector('#poe2-considered-count')),
   consideredList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-considered-list')),
   clearConsidered: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-considered')),
+  copyLink: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-copy-link')),
+  copyCode: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-copy-code')),
+  importCode: /** @type {HTMLTextAreaElement} */ (document.querySelector('#poe2-import-code')),
+  importBuild: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-import-build')),
+  shareStatus: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-share-status')),
   mustHaveEmpty: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-must-have-empty')),
   mustHaveList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-must-have-list')),
   mustHaveDetails: /** @type {HTMLDetailsElement} */ (document.querySelector('#poe2-must-have-details')),
@@ -259,6 +267,9 @@ function syncSavedBuildControls() {
   elements.saveBuild.disabled = unavailable;
   elements.saveBuildAsNew.hidden = !state.loadedBuildId;
   elements.saveBuildAsNew.disabled = unavailable;
+  elements.copyLink.disabled = unavailable;
+  elements.copyCode.disabled = unavailable;
+  elements.importBuild.disabled = unavailable;
   for (const button of elements.savedBuildList.querySelectorAll('button')) {
     button.disabled = state.buildsBusy || (button.dataset.buildAction === 'load' && !plannerUsable());
   }
@@ -426,15 +437,22 @@ async function refreshSavedBuilds() {
 }
 
 function loadSavedBuild(build) {
-  if (state.buildsBusy || !plannerUsable()) return;
+  applyBuild(build, { report: setSavedBuildStatus, origin: 'saved', savedId: build.id });
+}
+
+// Puts a build into the planner: one of the visitor's saved builds, or one
+// decoded from a share code (which has no saved id, so saving it makes a new
+// build). Returns whether it loaded.
+function applyBuild(build, { report, origin, savedId }) {
+  if (state.buildsBusy || !plannerUsable()) return false;
   const classOption = state.data.classes.find((option) => option.id === build.class_id);
   if (!classOption) {
-    setSavedBuildStatus(`The saved class ${build.class_id} is not available in this tree export.`, true);
-    return;
+    report(`The ${origin} class ${build.class_id} is not available in this tree export.`, true);
+    return false;
   }
   if (build.ascendancy_id && !classOption.ascendancies.some((option) => option.id === build.ascendancy_id)) {
-    setSavedBuildStatus(`The saved ascendancy ${build.ascendancy_id} is not available for ${classOption.name}.`, true);
-    return;
+    report(`The ${origin} ascendancy ${build.ascendancy_id} is not available for ${classOption.name}.`, true);
+    return false;
   }
 
   setBuildsBusy(true);
@@ -442,16 +460,16 @@ function loadSavedBuild(build) {
     elements.classSelect.value = build.class_id;
     populateAscendancies(build.ascendancy_id || '');
     if (!rebuildModel(build.class_id, build.ascendancy_id, false)) {
-      setSavedBuildStatus('The saved build could not be loaded with this tree export.', true);
-      return;
+      report(`The ${origin} build could not be loaded with this tree export.`, true);
+      return false;
     }
     state.loadedBuildId = null;
     syncSavedBuildControls();
 
     const validation = state.model.validateAllocation(build.allocated_node_ids);
     if (!validation.valid) {
-      setSavedBuildStatus(validation.reason || 'The saved allocation is not valid for this tree export.', true);
-      return;
+      report(validation.reason || `The ${origin} allocation is not valid for this tree export.`, true);
+      return false;
     }
 
     setAllocation(new Set(build.allocated_node_ids));
@@ -465,18 +483,84 @@ function loadSavedBuild(build) {
     renderMustHaves();
     elements.characterName.value = build.character_name;
     elements.buildName.value = build.build_name;
-    state.loadedBuildId = build.id;
+    state.loadedBuildId = savedId;
     syncSavedBuildControls();
 
-    const versionNote = build.tree_version === state.data.version
+    const versionNote = !build.tree_version || build.tree_version === state.data.version
       ? ''
-      : ` Saved export ${build.tree_version} differs from loaded export ${state.data.version}.`;
-    setSavedBuildStatus(`${build.build_name} loaded for ${build.character_name}.${versionNote}`);
+      : ` ${origin === 'saved' ? 'Saved' : 'Shared'} export ${build.tree_version} differs from loaded export ${state.data.version}.`;
+    if (origin === 'saved') {
+      report(`${build.build_name} loaded for ${build.character_name}.${versionNote}`);
+    } else {
+      const named = build.build_name ? `${build.build_name}${build.character_name ? ` for ${build.character_name}` : ''}` : 'Shared build';
+      report(`${named} imported: ${plural(build.allocated_node_ids.length, 'allocated passive')}. Save it to keep a copy.${versionNote}`);
+    }
+    // Queued after buildGraph's own fit-and-focus, so the view frames the build.
+    requestAnimationFrame(() => fitTree());
+    return true;
   } catch (error) {
-    setSavedBuildStatus(savedBuildErrorText(error, 'The saved build could not be loaded.'), true);
+    report(savedBuildErrorText(error, `The ${origin} build could not be loaded.`), true);
+    return false;
   } finally {
     setBuildsBusy(false);
   }
+}
+
+function setShareStatus(message, error = false) {
+  elements.shareStatus.textContent = message;
+  elements.shareStatus.classList.toggle('is-error', error);
+}
+
+// The planner's current build, in the shape share codes carry.
+function currentSharedBuild() {
+  return {
+    class_id: state.classId,
+    ascendancy_id: state.ascendancyId,
+    tree_version: state.data.version,
+    allocated_node_ids: [...state.allocated],
+    must_have_node_ids: [...state.mustHaves],
+    considered_node_ids: [...state.considered],
+    character_name: elements.characterName.value.trim(),
+    build_name: elements.buildName.value.trim(),
+  };
+}
+
+/** @param {'link' | 'code'} kind */
+async function copyShare(kind) {
+  if (!plannerUsable()) return;
+  const code = await encodeBuildCode(currentSharedBuild());
+  const text = kind === 'link' ? `${window.location.origin}${window.location.pathname}#build=${code}` : code;
+  try {
+    await navigator.clipboard.writeText(text);
+    setShareStatus(kind === 'link' ? 'Share link copied.' : 'Build code copied.');
+  } catch {
+    // No clipboard access (an insecure context or a denied permission): leave
+    // the text selected so the visitor can copy it themselves.
+    elements.importCode.value = text;
+    elements.importCode.select();
+    setShareStatus(`Copy the selected ${kind === 'link' ? 'link' : 'code'} to share it.`);
+  }
+}
+
+/** @param {string} text a code, or a link carrying one */
+async function importShared(text) {
+  try {
+    const build = await decodeBuildCode(text);
+    // The share panel can sit below the fold, so the page status repeats the result.
+    if (applyBuild(build, { report: setShareStatus, origin: 'shared', savedId: null })) setStatus(elements.shareStatus.textContent);
+  } catch (error) {
+    setShareStatus(error instanceof Error ? error.message : 'That build code could not be read.', true);
+  }
+}
+
+// A share link (#build=<code>) loads its build once the tree is ready, then
+// drops the code from the address so a reload keeps the visitor's own changes.
+async function importFromLocation() {
+  if (extractBuildCode(window.location.hash) === null) return;
+  const sharePanel = elements.shareStatus.closest('details');
+  if (sharePanel) sharePanel.open = true;
+  await importShared(window.location.hash);
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
 }
 
 async function removeSavedBuild(build) {
@@ -1583,6 +1667,7 @@ async function initialize() {
       return;
     }
     setStatus(`Export ${data.version} loaded. Choose a class or inspect the tree.`);
+    await importFromLocation();
   } catch (error) {
     state.data = null;
     state.model = null;
@@ -1648,6 +1733,14 @@ elements.toggleConsidered.addEventListener('click', () => {
   setConsidered(state.selectedId, !state.considered.has(state.selectedId));
 });
 elements.clearConsidered.addEventListener('click', clearConsidered);
+// Pasting a share link into a tab that already shows the planner changes only
+// the hash, which reloads nothing, so import it here too.
+window.addEventListener('hashchange', () => {
+  if (plannerUsable()) void importFromLocation();
+});
+elements.copyLink.addEventListener('click', () => { void copyShare('link'); });
+elements.copyCode.addEventListener('click', () => { void copyShare('code'); });
+elements.importBuild.addEventListener('click', () => { void importShared(elements.importCode.value); });
 elements.findRoute.addEventListener('click', computeRoute);
 elements.clearMustHaves.addEventListener('click', clearMustHaves);
 elements.clearRoute.addEventListener('click', clearRoute);
