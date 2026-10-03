@@ -5,7 +5,6 @@ declare(strict_types=1);
 $publicNavItems = [
     'recipes' => ['href' => '/recipes/', 'label' => 'Recipes'],
     'decks' => ['href' => '/decks/', 'label' => 'Decks'],
-    'open-deck' => ['href' => '/open-deck/', 'label' => 'Open Deck'],
     'games' => ['href' => '/games/', 'label' => 'Games'],
     'music' => ['href' => '/music/', 'label' => 'Music'],
     'videos' => ['href' => '/videos/', 'label' => 'Videos'],
@@ -59,32 +58,33 @@ $accountLoginHref = $isLoginPage ? '/login/' : '/login/?return_to=' . rawurlenco
 ?>
 <a class="skip-link" href="#main-content">Skip to main content</a>
 <header class="site-header" aria-label="Site header">
-    <a class="wordmark" href="/" aria-label="wowiekowie.com home">
-        <span class="wordmark-mark" aria-hidden="true">w</span>
-        <span class="wordmark-text">wowiekowie.com</span>
-    </a>
-    <nav class="site-nav" aria-label="Primary navigation">
-        <?php foreach ($publicNavItems as $sectionKey => $navItem): ?>
-            <a href="<?= htmlspecialchars($navItem['href'], ENT_QUOTES, 'UTF-8') ?>"<?= $currentPublicSection === $sectionKey ? ' aria-current="page"' : '' ?>><?= htmlspecialchars($navItem['label'], ENT_QUOTES, 'UTF-8') ?></a>
-        <?php endforeach; ?>
-    </nav>
-    <span class="status"><span class="status-dot" aria-hidden="true"></span>site awake</span>
-    <div class="site-account" role="group" aria-label="Account" data-site-account data-account-state="signed-out">
-        <span data-account-view="loading" hidden>
-            <span class="site-account-note">Checking account&hellip;</span>
-        </span>
-        <span data-account-view="signed-out">
-            <a class="button site-account-link" href="<?= htmlspecialchars($accountLoginHref, ENT_QUOTES, 'UTF-8') ?>" data-account-login-link<?= $isLoginPage ? ' aria-current="page"' : '' ?>>Log in</a>
-        </span>
-        <span data-account-view="authenticated" hidden>
-            <a class="button site-account-link" href="/login/" data-account-profile-link><span class="public-visually-hidden">Signed in as </span><span data-account-name></span></a>
-            <button class="button site-account-logout" type="button" data-account-logout>Log out</button>
-        </span>
-        <span data-account-view="error" hidden>
-            <span class="site-account-note">Could not check your account.</span>
-            <button class="button site-account-retry" type="button" data-account-retry>Retry</button>
-        </span>
-        <span class="site-account-message" role="status" data-account-message></span>
+    <div class="site-header-main">
+        <a class="wordmark" href="/" aria-label="wowiekowie.com home">
+            <span class="wordmark-mark" aria-hidden="true">w</span>
+            <span class="wordmark-text">wowiekowie.com</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary navigation">
+            <?php foreach ($publicNavItems as $sectionKey => $navItem): ?>
+                <a href="<?= htmlspecialchars($navItem['href'], ENT_QUOTES, 'UTF-8') ?>"<?= $currentPublicSection === $sectionKey ? ' aria-current="page"' : '' ?>><?= htmlspecialchars($navItem['label'], ENT_QUOTES, 'UTF-8') ?></a>
+            <?php endforeach; ?>
+        </nav>
+        <div class="site-account" role="group" aria-label="Account" data-site-account data-account-state="signed-out">
+            <span data-account-view="loading" hidden>
+                <span class="site-account-note">Checking account&hellip;</span>
+            </span>
+            <span data-account-view="signed-out">
+                <a class="button site-account-link" href="<?= htmlspecialchars($accountLoginHref, ENT_QUOTES, 'UTF-8') ?>" data-account-login-link<?= $isLoginPage ? ' aria-current="page"' : '' ?>>Log in</a>
+            </span>
+            <span data-account-view="authenticated" hidden>
+                <a class="button site-account-link" href="/login/" data-account-profile-link><span class="public-visually-hidden">Signed in as </span><span data-account-name></span></a>
+                <button class="button site-account-logout" type="button" data-account-logout>Log out</button>
+            </span>
+            <span data-account-view="error" hidden>
+                <span class="site-account-note">Could not check your account.</span>
+                <button class="button site-account-retry" type="button" data-account-retry>Retry</button>
+            </span>
+            <span class="site-account-message" role="status" data-account-message></span>
+        </div>
     </div>
     <?php if ($currentPublicSection === 'games'): ?>
         <nav class="games-subnav" aria-label="Games navigation">
