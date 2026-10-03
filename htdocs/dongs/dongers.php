@@ -162,4 +162,52 @@ return [
     ['name' => 'Fish Swim', 'text' => '><((((º>', 'category' => 'Critters'],
     ['name' => 'Owl Watch', 'text' => '(◉Θ◉)', 'category' => 'Critters'],
     ['name' => 'Bunny Peek', 'text' => '/(・ × ・)\\', 'category' => 'Critters'],
+
+    ['name' => 'Monocle Drop', 'text' => '(°o•)', 'category' => 'Classic Faces'],
+    ['name' => 'Deadpan Blink', 'text' => '(・_・)', 'category' => 'Classic Faces'],
+
+    ['name' => 'Firework Cheer', 'text' => 'ヽ(´▽`)/', 'category' => 'Happy and Hype'],
+    ['name' => 'Giggle Fit', 'text' => '(〃＾▽＾〃)', 'category' => 'Happy and Hype'],
+
+    ['name' => 'Silent Sob', 'text' => '(ノ_<)', 'category' => 'Sad Hours'],
+    ['name' => 'Weeping Puddle', 'text' => '(ノД`)', 'category' => 'Sad Hours'],
+
+    ['name' => 'Fuming Rage', 'text' => '(╬ ಠ益ಠ)', 'category' => 'Angry and Intense'],
+    ['name' => 'Vein Pop Fury', 'text' => '(｀皿´＃)', 'category' => 'Angry and Intense'],
+
+    ['name' => 'Baffled Drift', 'text' => '(・_・)ゞ', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'No Clue Spin', 'text' => '¯\\_(シ)_/¯', 'category' => 'Shrugs and Chaos'],
+
+    ['name' => 'Table Nudge', 'text' => '┬─┬⃰͡ (ᵔᵕᵔ͜)', 'category' => 'Table Drama'],
+    ['name' => 'Second Flip', 'text' => '(ノ-_-)ノ~┻━┻', 'category' => 'Table Drama'],
+
+    ['name' => 'Victory Spin', 'text' => '☆⌒(≧▽° )', 'category' => 'Victory Laps'],
+    ['name' => 'Trophy Pose', 'text' => '(ノ◕ヮ◕)ノ*:･ﾟ✧ 🏆', 'category' => 'Victory Laps'],
+
+    ['name' => 'Cozy Snuggle', 'text' => '(´｡• ω •｡`)', 'category' => 'Soft and Sweet'],
+    ['name' => 'Soft Giggle', 'text' => '(´• ω •`) ﾉ♡', 'category' => 'Soft and Sweet'],
+
+    ['name' => 'Goblin Snicker', 'text' => '(｀ー´)ニヤリ', 'category' => 'Goblin Energy'],
+    ['name' => 'Impish Wink', 'text' => '(｡•̀ᴗ-)✧', 'category' => 'Goblin Energy'],
+
+    ['name' => 'Bean Wobble', 'text' => '^(◔ 3 ◔)^', 'category' => 'Beans'],
+    ['name' => 'Sleepy Bean Nap', 'text' => '<(- 3 -)>', 'category' => 'Beans'],
+
+    ['name' => 'Puzzled Squint', 'text' => '(´・。・`)', 'category' => 'Confusion/Awkward'],
+    ['name' => 'Static Brain', 'text' => '(・・;)', 'category' => 'Confusion/Awkward'],
+
+    ['name' => 'Victory Wave', 'text' => 'ヾ(＾∇＾)', 'category' => 'Actions/Gestures'],
+    ['name' => 'Polite Bow', 'text' => '(_ _)', 'category' => 'Actions/Gestures'],
+
+    ['name' => 'Melting Heart', 'text' => '(｡♥‿♥｡)', 'category' => 'Love and Affection'],
+    ['name' => 'Shy Crush', 'text' => '(〃￣ω￣〃)ゞ', 'category' => 'Love and Affection'],
+
+    ['name' => 'Pillow Drift', 'text' => '(-ω-) zzZ', 'category' => 'Sleepy and Tired'],
+    ['name' => 'Nap Time Nod', 'text' => '(｡-ω-)', 'category' => 'Sleepy and Tired'],
+
+    ['name' => 'Shadow Smirk', 'text' => '(¬‿¬ )', 'category' => 'Devious/Sly'],
+    ['name' => 'Quiet Scheme', 'text' => '(・ω・`)…', 'category' => 'Devious/Sly'],
+
+    ['name' => 'Sleepy Kitty', 'text' => '(=ↀωↀ=)', 'category' => 'Critters'],
+    ['name' => 'Little Chick', 'text' => '(≧◡≦) ᵖⁱᵖ', 'category' => 'Critters'],
 ];
