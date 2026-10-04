@@ -164,6 +164,70 @@
         return matches;
     };
 
+    const releaseChoicesFromProducts = (products) => {
+        const choices = new Map();
+        (Array.isArray(products) ? products : []).forEach((product) => {
+            const safeProduct = product && typeof product === 'object' ? product : {};
+            const id = String(safeProduct.id ?? '');
+            if (id === '' || choices.has(id)) return;
+            const title = typeof safeProduct.title === 'string' && safeProduct.title.trim() !== ''
+                ? safeProduct.title.trim()
+                : 'Untitled series';
+            choices.set(id, {
+                id,
+                title,
+                brand: Object.prototype.hasOwnProperty.call(BRANDS, String(safeProduct.brand ?? '').trim().toLowerCase())
+                    ? BRANDS[String(safeProduct.brand).trim().toLowerCase()]
+                    : (typeof safeProduct.brand === 'string' && safeProduct.brand.trim() !== '' ? safeProduct.brand.trim() : 'Collectible'),
+            });
+        });
+        return Array.from(choices.values()).sort((left, right) => left.title.localeCompare(right.title)
+            || left.brand.localeCompare(right.brand)
+            || left.id.localeCompare(right.id));
+    };
+
+    const applyInventoryVisibility = (resultsElement, state, HTMLElementClass) => {
+        Array.from(resultsElement.querySelectorAll('.collectible-inventory-row')).forEach((row) => {
+            if (!(row instanceof HTMLElementClass)) return;
+            const quantity = Number(row.dataset.quantity || '0');
+            row.hidden = !quantityMatchesFilter(quantity, state.inventoryFilter);
+        });
+        Array.from(resultsElement.querySelectorAll('.collectible-release-block')).forEach((block) => {
+            if (!(block instanceof HTMLElementClass)) return;
+            const rows = Array.from(block.querySelectorAll('.collectible-inventory-row'))
+                .filter((row) => row instanceof HTMLElementClass);
+            const releaseMatches = state.releaseId === '' || block.dataset.releaseId === state.releaseId;
+            const inventoryMatches = state.inventoryFilter === 'all'
+                || (rows.length > 0 && rows.some((row) => !row.hidden));
+            block.hidden = !releaseMatches || !inventoryMatches;
+        });
+    };
+
+    const catalogRequestParams = (query, brand, sort, offset) => {
+        const params = new URLSearchParams();
+        if (query !== '') params.set('q', query);
+        if (brand !== '') params.set('brand', brand);
+        params.set('sort', sort);
+        params.set('limit', String(PAGE_SIZE));
+        params.set('offset', String(offset));
+        return params;
+    };
+
+    const appendCatalogPage = (state, payload) => {
+        const offset = state.loaded;
+        const items = payload && Array.isArray(payload.data) ? payload.data : [];
+        const meta = payload && payload.meta && typeof payload.meta === 'object' ? payload.meta : {};
+        const total = Number.isInteger(meta.total) && meta.total >= 0 ? meta.total : offset + items.length;
+        state.products.push(...items);
+        state.loaded = offset + items.length;
+        state.total = Math.max(total, state.loaded);
+        return items.length;
+    };
+
+    const isReleaseExpanded = (productId, closedProducts) => !closedProducts
+        || typeof closedProducts.has !== 'function'
+        || !closedProducts.has(String(productId));
+
     const createRequestGate = () => {
         let current = 0;
         return {
@@ -194,6 +258,11 @@
             setExpandedControl,
             partialFailureMessage,
             filterVariantIdentities,
+            releaseChoicesFromProducts,
+            applyInventoryVisibility,
+            catalogRequestParams,
+            appendCatalogPage,
+            isReleaseExpanded,
             createRequestGate,
         });
     }
@@ -205,6 +274,7 @@
     const updatedElement = document.getElementById('collectibles-updated');
     const resultsElement = document.getElementById('collectibles-results');
     const loadMoreButton = document.getElementById('collectibles-load-more');
+    const releaseSelect = document.getElementById('collectibles-release');
     const sortSelect = document.getElementById('collectibles-sort');
     const exportButton = document.getElementById('collectibles-export-pdf');
 
@@ -216,6 +286,7 @@
         || !(updatedElement instanceof HTMLElement)
         || !(resultsElement instanceof HTMLElement)
         || !(loadMoreButton instanceof HTMLButtonElement)
+        || !(releaseSelect instanceof HTMLSelectElement)
         || !(sortSelect instanceof HTMLSelectElement)
         || !(exportButton instanceof HTMLButtonElement)
     ) {
@@ -228,10 +299,12 @@
         .filter((input) => input instanceof HTMLInputElement);
 
     const requestGate = createRequestGate();
+    const releaseRequestGate = createRequestGate();
     const state = {
         q: '',
         brand: '',
         sort: 'name-asc',
+        releaseId: '',
         inventoryFilter: 'all',
         loaded: 0,
         total: 0,
@@ -239,8 +312,15 @@
         debounceTimer: 0,
         loading: false,
         disclosureCount: 0,
+        releaseCount: 0,
         products: [],
-        openProducts: new Set(),
+        closedProducts: new Set(),
+        releaseProducts: [],
+        releaseLoaded: 0,
+        releaseTotal: 0,
+        releaseChoicesComplete: false,
+        releaseChoicesLoading: false,
+        releaseController: null,
         lastSyncedAt: null,
     };
 
@@ -398,8 +478,8 @@
             card.classList.toggle('is-expanded', expanded);
             const productKey = card.dataset.productKey;
             if (productKey) {
-                if (expanded) state.openProducts.add(productKey);
-                else state.openProducts.delete(productKey);
+                if (expanded) state.closedProducts.delete(productKey);
+                else state.closedProducts.add(productKey);
             }
         }
         if (panel instanceof HTMLElement) {
@@ -461,47 +541,45 @@
     };
 
     const visibleInventoryCounts = () => {
-        const rows = Array.from(resultsElement.querySelectorAll('.collectible-inventory-row'))
-            .filter((row) => row instanceof HTMLElement && !row.hidden);
-        const products = new Set();
-        rows.forEach((row) => {
-            const card = row.closest('.collectible-card');
-            if (card instanceof HTMLElement) products.add(card);
-        });
-        return { figures: rows.length, products: products.size };
+        const blocks = Array.from(resultsElement.querySelectorAll('.collectible-release-block'))
+            .filter((block) => block instanceof HTMLElement && !block.hidden);
+        const rows = blocks.flatMap((block) => Array.from(block.querySelectorAll('.collectible-inventory-row'))
+            .filter((row) => row instanceof HTMLElement && !row.hidden));
+        return { figures: rows.length, products: blocks.length };
     };
 
     const describeResults = () => {
+        const counts = visibleInventoryCounts();
         if (state.inventoryFilter !== 'all') {
-            const counts = visibleInventoryCounts();
-            const filterLabel = state.inventoryFilter === 'owned' ? 'owned' : 'missing';
+            const filterLabel = state.inventoryFilter === 'owned' ? 'owned' : 'not owned';
             const figureWord = counts.figures === 1 ? 'figure' : 'figures';
-            const productWord = counts.products === 1 ? 'set' : 'sets';
+            const productWord = counts.products === 1 ? 'release' : 'releases';
             return counts.figures === 0
                 ? `No ${filterLabel} figures match these catalog controls.`
                 : `Showing ${counts.figures} ${filterLabel} ${figureWord} across ${counts.products} ${productWord}.`;
         }
-        const productWord = state.total === 1 ? 'product' : 'products';
+        if (state.releaseId !== '') {
+            const figureWord = counts.figures === 1 ? 'figure' : 'figures';
+            return counts.products === 0
+                ? 'No figures from this release match these catalog controls.'
+                : `Showing ${counts.figures} ${figureWord} from the selected release.`;
+        }
+        const productWord = state.total === 1 ? 'release' : 'releases';
         return state.loaded >= state.total
             ? `Showing all ${state.total} ${productWord}.`
             : `Showing ${state.loaded} of ${state.total} ${productWord}.`;
     };
 
-    const applyInventoryVisibility = () => {
-        Array.from(resultsElement.querySelectorAll('.collectible-inventory-row')).forEach((row) => {
-            if (!(row instanceof HTMLElement)) return;
-            const quantity = Number(row.dataset.quantity || '0');
-            row.hidden = !quantityMatchesFilter(quantity, state.inventoryFilter);
-        });
-        Array.from(resultsElement.querySelectorAll('.collectible-card')).forEach((card) => {
-            if (!(card instanceof HTMLElement)) return;
-            const rows = Array.from(card.querySelectorAll('.collectible-inventory-row'))
-                .filter((row) => row instanceof HTMLElement);
-            card.hidden = state.inventoryFilter !== 'all'
-                && (rows.length === 0 || rows.every((row) => row.hidden));
-        });
+    const refreshInventoryVisibility = () => {
+        applyInventoryVisibility(resultsElement, state, HTMLElement);
         if (!state.loading) {
-            setStatus(describeResults(), state.inventoryFilter !== 'all' && visibleInventoryCounts().figures === 0 ? 'empty' : 'success');
+            const counts = visibleInventoryCounts();
+            const releaseNotice = state.releaseChoicesComplete
+                ? ''
+                : (state.releaseChoicesLoading ? ' Release choices are still loading.' : ' Release choices are incomplete; retry to finish loading them.');
+            setStatus(`${describeResults()}${releaseNotice}`, !state.releaseChoicesComplete && !state.releaseChoicesLoading
+                ? 'error'
+                : (counts.products === 0 ? 'empty' : 'success'));
         }
     };
 
@@ -625,14 +703,14 @@
             }
             inventory.set(key, parsed.quantity);
             updateRowQuantity(row, checkbox, quantityInput, ownedPrint, quantityPrint, parsed.quantity);
-            applyInventoryVisibility();
+            refreshInventoryVisibility();
         };
 
         checkbox.addEventListener('change', () => {
             const nextQuantity = quantityForOwnedToggle(checkbox.checked, Number(quantityInput.dataset.committed || '0'));
             inventory.set(key, nextQuantity);
             updateRowQuantity(row, checkbox, quantityInput, ownedPrint, quantityPrint, nextQuantity);
-            applyInventoryVisibility();
+            refreshInventoryVisibility();
         });
         quantityInput.addEventListener('input', () => {
             quantityInput.removeAttribute('aria-invalid');
@@ -666,6 +744,21 @@
             ? safeProduct.price_kind
             : (fallbackPrice && ['retail', 'asking', 'sold'].includes(fallbackPrice.price_kind) ? fallbackPrice.price_kind : '');
         const priceIsFromVariant = typeof safeProduct.price_cents !== 'number' && fallbackPrice !== null;
+
+        state.releaseCount += 1;
+        const releaseBlock = createElement('section', 'collectible-release-block');
+        releaseBlock.dataset.releaseId = productId;
+        const releaseHeadingId = `collectible-release-${state.releaseCount}`;
+        releaseBlock.setAttribute('aria-labelledby', releaseHeadingId);
+        const releaseHeading = createElement('header', 'collectible-release-heading');
+        releaseHeading.append(createElement('p', 'eyebrow collectible-release-brand', `${label} release`));
+        const releaseTitle = createElement('h3', 'collectible-release-title', title);
+        releaseTitle.id = releaseHeadingId;
+        releaseHeading.append(releaseTitle);
+        if (Number.isInteger(safeProduct.release_year)) {
+            releaseHeading.append(createElement('p', 'collectible-release-year', `Released ${safeProduct.release_year}`));
+        }
+        releaseBlock.append(releaseHeading);
 
         const card = createElement('article', 'collectible-card');
         card.dataset.productKey = productId;
@@ -755,7 +848,7 @@
             panel.append(tableWrap);
             variantSection.append(panel);
 
-            const expanded = state.openProducts.has(productId);
+            const expanded = isReleaseExpanded(productId, state.closedProducts);
             toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
             panel.hidden = !expanded;
             if (expanded) {
@@ -768,15 +861,17 @@
             });
         }
         card.append(variantSection);
-        return card;
+        releaseBlock.append(card);
+        return releaseBlock;
     };
 
     const renderCatalog = () => {
         state.disclosureCount = 0;
+        state.releaseCount = 0;
         const fragment = document.createDocumentFragment();
         state.products.forEach((product) => fragment.append(renderProduct(product)));
         resultsElement.replaceChildren(fragment);
-        applyInventoryVisibility();
+        refreshInventoryVisibility();
     };
 
     const emptyMessage = (lastSyncedAt) => {
@@ -807,13 +902,117 @@
         return 'The collectibles shelf would not load. Try again in a moment.';
     };
 
+    const renderReleaseOptions = () => {
+        const choices = releaseChoicesFromProducts(state.releaseProducts);
+        const duplicateLabels = new Map();
+        choices.forEach((choice) => {
+            const label = `${choice.title} — ${choice.brand}`;
+            duplicateLabels.set(label, (duplicateLabels.get(label) || 0) + 1);
+        });
+        const fragment = document.createDocumentFragment();
+        const allOption = document.createElement('option');
+        allOption.value = '';
+        allOption.textContent = 'All releases';
+        fragment.append(allOption);
+        choices.forEach((choice) => {
+            const option = document.createElement('option');
+            option.value = choice.id;
+            const label = `${choice.title} — ${choice.brand}`;
+            option.textContent = duplicateLabels.get(label) > 1 ? `${label} (${choice.id})` : label;
+            fragment.append(option);
+        });
+        if (!state.releaseChoicesComplete) {
+            const progress = document.createElement('option');
+            progress.disabled = true;
+            progress.textContent = state.releaseChoicesLoading
+                ? `Loading complete release list (${state.releaseLoaded}${state.releaseTotal > 0 ? ` of ${state.releaseTotal}` : ''})…`
+                : 'Release list incomplete — retry below';
+            fragment.append(progress);
+        }
+        releaseSelect.replaceChildren(fragment);
+        releaseSelect.value = choices.some((choice) => choice.id === state.releaseId) ? state.releaseId : '';
+        releaseSelect.disabled = !state.releaseChoicesComplete;
+        releaseSelect.setAttribute('aria-busy', state.releaseChoicesLoading ? 'true' : 'false');
+    };
+
+    const loadReleaseChoices = async (reset) => {
+        const token = releaseRequestGate.next();
+        if (state.releaseController !== null) state.releaseController.abort();
+        const controller = typeof AbortController === 'function' ? new AbortController() : null;
+        state.releaseController = controller;
+        if (reset) {
+            state.releaseProducts = [];
+            state.releaseLoaded = 0;
+            state.releaseTotal = 0;
+            state.releaseChoicesComplete = false;
+        }
+        state.releaseChoicesLoading = true;
+        renderReleaseOptions();
+        updateLoadMore(0);
+        try {
+            do {
+                const offset = state.releaseLoaded;
+                const params = new URLSearchParams({
+                    sort: 'name-asc',
+                    limit: String(PAGE_SIZE),
+                    offset: String(offset),
+                });
+                const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+                    headers: { Accept: 'application/json' },
+                    signal: controller !== null ? controller.signal : undefined,
+                });
+                if (!releaseRequestGate.isCurrent(token)) return false;
+                if (!response.ok) throw new Error('The release list would not load.');
+                const payload = await response.json();
+                if (!releaseRequestGate.isCurrent(token)) return false;
+                const items = payload && Array.isArray(payload.data) ? payload.data : [];
+                const meta = payload && payload.meta && typeof payload.meta === 'object' ? payload.meta : {};
+                const total = Number.isInteger(meta.total) && meta.total >= 0 ? meta.total : offset + items.length;
+                state.releaseProducts.push(...items);
+                state.releaseLoaded = offset + items.length;
+                state.releaseTotal = Math.max(total, state.releaseLoaded);
+                renderReleaseOptions();
+                if (state.releaseLoaded < state.releaseTotal && items.length === 0) {
+                    throw new Error('The release list stopped before it finished loading.');
+                }
+            } while (state.releaseLoaded < state.releaseTotal);
+            if (!releaseRequestGate.isCurrent(token)) return false;
+            state.releaseChoicesComplete = true;
+            const choices = releaseChoicesFromProducts(state.releaseProducts);
+            if (state.releaseId !== '' && !choices.some((choice) => choice.id === state.releaseId)) {
+                state.releaseId = '';
+            }
+            renderReleaseOptions();
+            syncUrl();
+            refreshInventoryVisibility();
+            updateLoadMore(0);
+            return true;
+        } catch (error) {
+            if (!releaseRequestGate.isCurrent(token)) return false;
+            state.releaseChoicesComplete = false;
+            renderReleaseOptions();
+            updateLoadMore(state.loaded > 0 ? 1 : 0);
+            if (!state.loading) refreshInventoryVisibility();
+            return false;
+        } finally {
+            if (releaseRequestGate.isCurrent(token)) {
+                state.releaseChoicesLoading = false;
+                state.releaseController = null;
+                renderReleaseOptions();
+                updateLoadMore(state.loaded > 0 ? 1 : 0);
+            }
+        }
+    };
+
     const syncUrl = () => {
         const params = new URLSearchParams(window.location.search);
         params.delete('q');
         params.delete('brand');
+        params.delete('release');
         params.delete('sort');
         if (state.q !== '') params.set('q', state.q);
         if (state.brand !== '') params.set('brand', state.brand);
+        if (state.releaseId !== '') params.set('release', state.releaseId);
         if (state.sort !== 'name-asc') params.set('sort', state.sort);
         const query = params.toString();
         const nextUrl = `${window.location.pathname}${query !== '' ? `?${query}` : ''}${window.location.hash}`;
@@ -824,11 +1023,18 @@
     };
 
     const updateLoadMore = (pageCount) => {
+        if (!state.releaseChoicesComplete) {
+            loadMoreButton.hidden = false;
+            loadMoreButton.disabled = state.loading || state.releaseChoicesLoading;
+            loadMoreButton.textContent = state.releaseChoicesLoading ? 'Loading releases…' : 'Retry loading releases';
+            return;
+        }
+        loadMoreButton.disabled = state.loading;
         loadMoreButton.hidden = !(state.loaded < state.total && (pageCount > 0 || state.loaded > 0));
-        loadMoreButton.textContent = state.inventoryFilter === 'all' ? 'Load more' : 'Finish loading inventory';
+        loadMoreButton.textContent = 'Finish loading catalog';
     };
 
-    const load = async (reset, completeCatalog = state.inventoryFilter !== 'all') => {
+    const load = async (reset, completeCatalog = true) => {
         const token = requestGate.next();
         if (state.controller !== null) state.controller.abort();
         const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -851,12 +1057,7 @@
         try {
             do {
                 const offset = state.loaded;
-                const params = new URLSearchParams();
-                if (state.q !== '') params.set('q', state.q);
-                if (state.brand !== '') params.set('brand', state.brand);
-                params.set('sort', state.sort);
-                params.set('limit', String(PAGE_SIZE));
-                params.set('offset', String(offset));
+                const params = catalogRequestParams(state.q, state.brand, state.sort, offset);
 
                 const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
                     headers: { Accept: 'application/json' },
@@ -871,23 +1072,18 @@
                 }
                 const payload = await response.json();
                 if (!requestGate.isCurrent(token)) return false;
-                const items = payload && Array.isArray(payload.data) ? payload.data : [];
                 const meta = payload && payload.meta && typeof payload.meta === 'object' ? payload.meta : {};
-                const total = Number.isInteger(meta.total) && meta.total >= 0 ? meta.total : offset + items.length;
                 state.lastSyncedAt = typeof meta.last_synced_at === 'string' ? meta.last_synced_at : state.lastSyncedAt;
-                state.products.push(...items);
-                state.loaded = offset + items.length;
-                state.total = Math.max(total, state.loaded);
-                pageCount = items.length;
+                pageCount = appendCatalogPage(state, payload);
                 renderCatalog();
                 setUpdated(state.lastSyncedAt);
                 if (completeCatalog && state.loaded < state.total) {
-                    if (items.length === 0) {
-                        throw new Error('The collectibles shelf stopped before the inventory filter finished loading.');
+                    if (pageCount === 0) {
+                        throw new Error('The collectibles shelf stopped before the complete catalog finished loading.');
                     }
-                    setStatus(`Loading all matching products for inventory (${state.loaded} of ${state.total})...`, 'loading');
+                    setStatus(`Loading all matching releases (${state.loaded} of ${state.total})...`, 'loading');
                 }
-                if (!completeCatalog || items.length === 0) break;
+                if (!completeCatalog || pageCount === 0) break;
             } while (state.loaded < state.total);
 
             if (!requestGate.isCurrent(token)) return false;
@@ -898,7 +1094,7 @@
                 setStatus(empty.text, empty.tone);
                 return true;
             }
-            applyInventoryVisibility();
+            refreshInventoryVisibility();
             return true;
         } catch (error) {
             if (!requestGate.isCurrent(token)) return false;
@@ -949,13 +1145,15 @@
         if (!input.checked) return;
         cancelDebounce();
         state.inventoryFilter = normalizeInventoryFilter(input.value);
-        if (state.loading || (state.inventoryFilter !== 'all' && state.loaded < state.total)) {
-            load(true, state.inventoryFilter !== 'all');
-        } else {
-            applyInventoryVisibility();
-            updateLoadMore(1);
-        }
+        refreshInventoryVisibility();
+        if (!state.loading && state.loaded < state.total) load(false, true);
+        else updateLoadMore(1);
     }));
+    releaseSelect.addEventListener('change', () => {
+        state.releaseId = releaseSelect.value;
+        syncUrl();
+        refreshInventoryVisibility();
+    });
     sortSelect.addEventListener('change', () => {
         cancelDebounce();
         applyFormState();
@@ -965,9 +1163,12 @@
         cancelDebounce();
         applyFormState();
     });
-    loadMoreButton.addEventListener('click', () => {
-        if (state.loading || state.loaded >= state.total) return;
-        load(false, state.inventoryFilter !== 'all');
+    loadMoreButton.addEventListener('click', async () => {
+        if (state.loading || state.releaseChoicesLoading) return;
+        if (!state.releaseChoicesComplete) {
+            await loadReleaseChoices(false);
+        }
+        if (state.loaded < state.total) load(false, true);
     });
 
     let printTitle = null;
@@ -1011,6 +1212,7 @@
     const initialParams = new URLSearchParams(window.location.search);
     state.q = normalizeQuery(initialParams.get('q'));
     state.brand = normalizeBrand(initialParams.get('brand'));
+    state.releaseId = String(initialParams.get('release') ?? '');
     state.sort = normalizeSort(initialParams.get('sort'));
     searchInput.value = state.q;
     sortSelect.value = state.sort;
@@ -1021,5 +1223,7 @@
         input.checked = normalizeInventoryFilter(input.value) === state.inventoryFilter;
     });
 
-    load(true);
+    renderReleaseOptions();
+    loadReleaseChoices(true);
+    load(true, true);
 })();

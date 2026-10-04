@@ -8,7 +8,22 @@ const hooks = {};
 
 class HTMLFormElement {}
 class HTMLInputElement {}
-class HTMLElement {}
+class HTMLElement {
+  constructor(className = '', dataset = {}, children = []) {
+    this.className = className;
+    this.dataset = { ...dataset };
+    this.children = children;
+    this.hidden = false;
+  }
+
+  querySelectorAll(selector) {
+    const className = selector.startsWith('.') ? selector.slice(1) : selector;
+    return this.children.flatMap((child) => [
+      ...(child.className.split(' ').includes(className) ? [child] : []),
+      ...child.querySelectorAll(selector),
+    ]);
+  }
+}
 class HTMLButtonElement {}
 class HTMLSelectElement {}
 
@@ -27,6 +42,7 @@ vm.runInNewContext(script, {
   HTMLElement,
   HTMLButtonElement,
   HTMLSelectElement,
+  URLSearchParams,
 }, { filename: 'collectibles.js' });
 
 const {
@@ -42,6 +58,11 @@ const {
   setExpandedControl,
   partialFailureMessage,
   filterVariantIdentities,
+  releaseChoicesFromProducts,
+  applyInventoryVisibility,
+  catalogRequestParams,
+  appendCatalogPage,
+  isReleaseExpanded,
   createRequestGate,
 } = hooks;
 
@@ -189,11 +210,107 @@ class MemoryStorage {
 }
 
 {
+  const pageOne = [
+    { id: 'release-a', title: 'Shared title', brand: 'nommi', variants: [{ name: 'Alpha' }, { name: 'Beta' }] },
+    { id: 'release-c', title: 'Moon Search', brand: 'skullpanda', variants: [{ name: 'Needle' }, { name: 'Star' }] },
+  ];
+  const pageTwo = [
+    { id: 'release-b', title: 'Shared title', brand: 'nommi', variants: [{ name: 'Gamma' }] },
+    { id: 'release-d', title: 'Empty Search', brand: 'skullpanda', variants: [] },
+  ];
+  const completeCatalog = [...pageOne, ...pageTwo];
+  const choices = releaseChoicesFromProducts(completeCatalog);
+  const closedProducts = new Set();
+  assert.equal(isReleaseExpanded('release-a', closedProducts), true, 'Figure inventory must be expanded by default.');
+  closedProducts.add('release-a');
+  assert.equal(isReleaseExpanded('release-a', closedProducts), false, 'A user may still collapse an expanded release.');
+  assert.deepEqual(Array.from(choices, (choice) => choice.id), ['release-d', 'release-c', 'release-a', 'release-b']);
+  assert.equal(choices.filter((choice) => choice.title === 'Shared title').length, 2, 'Same-titled releases must remain distinct by product ID.');
+  assert.equal(choices.every((choice) => choice.brand.length > 0), true, 'Release choices must include brand labels.');
+
+  const quantities = new Map([
+    [inventoryKey('release-a', 'Alpha'), 2],
+    [inventoryKey('release-c', 'Star'), 1],
+  ]);
+  const fixturePage = (params) => {
+    const query = String(params.get('q') || '').toLowerCase();
+    const brand = params.get('brand') || '';
+    const direction = params.get('sort') === 'name-desc' ? -1 : 1;
+    const offset = Number(params.get('offset') || '0');
+    const matches = completeCatalog
+      .filter((product) => (brand === '' || product.brand === brand)
+        && (query === '' || product.title.toLowerCase().includes(query)
+          || product.variants.some((variant) => variant.name.toLowerCase().includes(query))))
+      .sort((left, right) => direction * (left.title.localeCompare(right.title) || left.id.localeCompare(right.id)));
+    return { data: matches.slice(offset, offset + 1), meta: { total: matches.length } };
+  };
+  const loadFixture = (sort) => {
+    const loadState = { products: [], loaded: 0, total: 0 };
+    do {
+      const params = catalogRequestParams('search', 'skullpanda', sort, loadState.loaded);
+      assert.equal(params.get('q'), 'search');
+      assert.equal(params.get('brand'), 'skullpanda');
+      assert.equal(params.get('sort'), sort);
+      assert.equal(params.get('offset'), String(loadState.loaded));
+      appendCatalogPage(loadState, fixturePage(params));
+    } while (loadState.loaded < loadState.total);
+    return loadState.products;
+  };
+  assert.deepEqual(loadFixture('name-asc').map((product) => product.id), ['release-d', 'release-c']);
+
+  const retryState = { products: [], loaded: 0, total: 0 };
+  appendCatalogPage(retryState, fixturePage(catalogRequestParams('search', 'skullpanda', 'name-desc', 0)));
+  assert.equal(partialFailureMessage('Load failed.', retryState.loaded, retryState.total), 'Load failed. Partial inventory results are shown; retry to finish loading.');
+  appendCatalogPage(retryState, fixturePage(catalogRequestParams('search', 'skullpanda', 'name-desc', retryState.loaded)));
+  assert.equal(retryState.loaded, retryState.total, 'Retry must append the remaining API page without discarding partial results.');
+  const serverFiltered = retryState.products;
+  assert.deepEqual(serverFiltered.map((product) => product.id), ['release-c', 'release-d'], 'Matching releases on later API pages must be retained in server sort order.');
+
+  const rows = new Map();
+  const releaseBlocks = serverFiltered.map((product) => {
+    const productRows = product.variants.map((variant) => {
+      const key = inventoryKey(product.id, variant.name);
+      const row = new HTMLElement('collectible-inventory-row', { inventoryKey: key, quantity: String(quantities.get(key) || 0) });
+      rows.set(key, row);
+      return row;
+    });
+    return new HTMLElement('collectible-release-block', { releaseId: product.id }, productRows);
+  });
+  const results = new HTMLElement('collectibles-results', {}, releaseBlocks);
+  const visibleReleaseIds = () => releaseBlocks.filter((block) => !block.hidden).map((block) => block.dataset.releaseId);
+  const visibleFigureKeys = () => Array.from(rows.values()).filter((row) => !row.hidden).map((row) => row.dataset.inventoryKey);
+  const apply = (releaseId, inventoryFilter) => {
+    applyInventoryVisibility(results, { releaseId, inventoryFilter }, HTMLElement);
+    return visibleReleaseIds();
+  };
+
+  assert.deepEqual(apply('', 'all'), ['release-c', 'release-d']);
+  assert.equal(visibleFigureKeys().length, 2);
+  assert.deepEqual(apply('', 'owned'), ['release-c']);
+  assert.deepEqual(visibleFigureKeys(), [inventoryKey('release-c', 'Star')]);
+  assert.deepEqual(apply('', 'missing'), ['release-c']);
+  assert.deepEqual(visibleFigureKeys(), [inventoryKey('release-c', 'Needle')]);
+  assert.deepEqual(apply('release-c', 'all'), ['release-c']);
+  assert.deepEqual(apply('release-c', 'owned'), ['release-c']);
+  assert.deepEqual(apply('release-c', 'missing'), ['release-c']);
+  assert.deepEqual(apply('release-d', 'owned'), [], 'Empty releases must disappear from ownership-filtered results.');
+
+  rows.get(inventoryKey('release-c', 'Star')).dataset.quantity = '0';
+  assert.deepEqual(apply('release-c', 'owned'), [], 'Quantity changes must immediately remove a release from Owned results.');
+  rows.get(inventoryKey('release-c', 'Needle')).dataset.quantity = '3';
+  assert.deepEqual(apply('release-c', 'owned'), ['release-c'], 'Quantity changes must immediately add a release to Owned results.');
+}
+
+{
   const gate = createRequestGate();
   const first = gate.next();
   const second = gate.next();
+  const loadState = { products: [], loaded: 0, total: 0 };
+  if (gate.isCurrent(first)) appendCatalogPage(loadState, { data: [{ id: 'stale' }], meta: { total: 1 } });
   assert.equal(gate.isCurrent(first), false, 'A stale response must not remain current.');
-  assert.equal(gate.isCurrent(second), true);
+  assert.equal(loadState.loaded, 0, 'A stale response must not replace the newer catalog selection.');
+  if (gate.isCurrent(second)) appendCatalogPage(loadState, { data: [{ id: 'current' }], meta: { total: 1 } });
+  assert.deepEqual(loadState.products.map((product) => product.id), ['current']);
   assert.equal(
     partialFailureMessage('Load failed.', 48, 96),
     'Load failed. Partial inventory results are shown; retry to finish loading.',

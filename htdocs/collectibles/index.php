@@ -54,6 +54,12 @@ $pageStyles = ['/assets/css/collectibles.css'];
                             </label>
                         </div>
                     </fieldset>
+                    <div class="collectibles-release-filter">
+                        <label for="collectibles-release">Release</label>
+                        <select id="collectibles-release" name="release" aria-busy="true" disabled>
+                            <option value="">Loading releases…</option>
+                        </select>
+                    </div>
                     <fieldset class="collectibles-filter collectibles-inventory-filter">
                         <legend>Inventory</legend>
                         <div class="collectibles-filter-options">
@@ -67,7 +73,7 @@ $pageStyles = ['/assets/css/collectibles.css'];
                             </label>
                             <label class="collectibles-filter-option">
                                 <input type="radio" name="inventory" value="missing">
-                                <span>Missing</span>
+                                <span>Not owned</span>
                             </label>
                         </div>
                     </fieldset>
