@@ -430,6 +430,8 @@ import {
         } else if (productPrice !== null) {
             nameCell.append(createElement('span', 'collectible-variant-price is-inherited', `${productPrice} per blind box`));
         }
+        const variantIdentifiers = identifierText(safeVariant);
+        if (variantIdentifiers !== '') nameCell.append(createElement('span', 'collectible-identifiers', variantIdentifiers));
         row.append(nameCell);
 
         const ownedCell = createElement('td', 'collectible-inventory-owned');
@@ -489,6 +491,14 @@ import {
         });
 
         return row;
+    };
+
+    // A store's SKU and the product barcode, when the source publishes them.
+    const identifierText = (item) => {
+        const parts = [];
+        if (typeof item?.sku === 'string' && item.sku.trim() !== '') parts.push(`SKU ${item.sku.trim()}`);
+        if (typeof item?.barcode === 'string' && /^[0-9]{8,14}$/.test(item.barcode)) parts.push(`Barcode ${item.barcode}`);
+        return parts.join(' · ');
     };
 
     const seriesIdForProduct = (product) => {
@@ -614,6 +624,8 @@ import {
         if (Number.isInteger(safeProduct.release_year)) {
             summary.append(createElement('p', 'collectible-release', `Released ${safeProduct.release_year}`));
         }
+        const productIdentifiers = identifierText(safeProduct);
+        if (productIdentifiers !== '') summary.append(createElement('p', 'collectible-identifiers', productIdentifiers));
         summary.append(createElement(
             'p',
             productPrice === null ? 'collectible-price is-unavailable' : 'collectible-price',

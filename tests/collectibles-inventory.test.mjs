@@ -537,7 +537,9 @@ class MemoryStorage {
       series_release_year: 2023,
       line: 'figures',
       listing_kind: 'series',
-      variants: [{ name: 'Dawn' }],
+      sku: 'PM-CITY-ALT',
+      barcode: '6941848212345',
+      variants: [{ name: 'Dawn', sku: 'PM-CITY-DAWN', barcode: 'not-a-code' }],
     },
     {
       id: 'nommi-unmapped',
@@ -692,6 +694,11 @@ class MemoryStorage {
   assert.deepEqual(jumpLinks.map((link) => link.textContent), ['2023', '2022']);
   const target2022 = skullFigures.querySelectorAll('.collectible-year').find((year) => year.dataset.year === '2022');
   assert.equal(jumpLinks[1].href, `#${target2022.id}`, 'Each jump link must target its year section.');
+  // Retail identifiers show on the card and the figure row; a malformed
+  // barcode is not shown.
+  const cityAltBlock = blockBySeries('skullpanda:city-alt');
+  assert.equal(cityAltBlock.querySelector('.collectible-card-summary').querySelector('.collectible-identifiers').textContent, 'SKU PM-CITY-ALT · Barcode 6941848212345');
+  assert.equal(cityAltBlock.querySelector('.collectible-inventory-name').querySelector('.collectible-identifiers').textContent, 'SKU PM-CITY-DAWN');
   assert.equal(blockBySeries('nommi:dream-a').querySelectorAll('.collectible-card').length, 2, 'Nommi listings split across API pages must render in one canonical series group.');
   assert.equal(sonnyBlock.dataset.legacyReleaseId, 'sonny-retail-b', 'A legacy product selection must resolve to its containing series while choices are incomplete.');
   assert.equal(sonnyBlock.hidden, false);

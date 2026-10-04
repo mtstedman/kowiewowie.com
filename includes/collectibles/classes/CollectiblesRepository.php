@@ -65,7 +65,9 @@ final class CollectiblesRepository
                 price_kind,
                 price_source_url,
                 price_observed_on,
-                release_year
+                release_year,
+                sku,
+                barcode
             ) VALUES (
                 :brand,
                 :source_key,
@@ -78,7 +80,9 @@ final class CollectiblesRepository
                 :price_kind,
                 :price_source_url,
                 :price_observed_on,
-                :release_year
+                :release_year,
+                :sku,
+                :barcode
             )
             ON CONFLICT (source_key, external_id) DO UPDATE SET
                 title = EXCLUDED.title,
@@ -90,6 +94,8 @@ final class CollectiblesRepository
                 price_source_url = CASE WHEN :preserve_existing THEN COALESCE(collectible_products.price_source_url, EXCLUDED.price_source_url) ELSE EXCLUDED.price_source_url END,
                 price_observed_on = CASE WHEN :preserve_existing THEN COALESCE(collectible_products.price_observed_on, EXCLUDED.price_observed_on) ELSE EXCLUDED.price_observed_on END,
                 release_year = COALESCE(EXCLUDED.release_year, collectible_products.release_year),
+                sku = COALESCE(EXCLUDED.sku, collectible_products.sku),
+                barcode = COALESCE(EXCLUDED.barcode, collectible_products.barcode),
                 last_seen_at = now()
             RETURNING id
         SQL);
@@ -103,6 +109,8 @@ final class CollectiblesRepository
                 price_kind = CASE WHEN :preserve_existing THEN COALESCE(price_kind, :price_kind) ELSE :price_kind END,
                 price_source_url = CASE WHEN :preserve_existing THEN COALESCE(price_source_url, :price_source_url) ELSE :price_source_url END,
                 price_observed_on = CASE WHEN :preserve_existing THEN COALESCE(price_observed_on, :price_observed_on) ELSE :price_observed_on END,
+                sku = COALESCE(:sku, sku),
+                barcode = COALESCE(:barcode, barcode),
                 position = :position
             WHERE id = :id
         SQL);
@@ -117,6 +125,8 @@ final class CollectiblesRepository
                 price_kind,
                 price_source_url,
                 price_observed_on,
+                sku,
+                barcode,
                 position
             ) VALUES (
                 :product_id,
@@ -128,6 +138,8 @@ final class CollectiblesRepository
                 :price_kind,
                 :price_source_url,
                 :price_observed_on,
+                :sku,
+                :barcode,
                 :position
             )
         SQL);
@@ -155,6 +167,8 @@ final class CollectiblesRepository
                     'price_source_url' => $product['price_source_url'] ?? null,
                     'price_observed_on' => $product['price_observed_on'] ?? null,
                     'release_year' => $product['release_year'] ?? null,
+                    'sku' => $product['sku'] ?? null,
+                    'barcode' => $product['barcode'] ?? null,
                     'preserve_existing' => $this->sqlBoolean(($product['preserve_existing'] ?? false) === true),
                 ]);
                 $productId = $productStatement->fetchColumn();
@@ -177,6 +191,7 @@ final class CollectiblesRepository
                         'price_cents' => $variant['price_cents'], 'currency' => $variant['currency'],
                         'price_kind' => $variant['price_kind'] ?? null, 'price_source_url' => $variant['price_source_url'] ?? null,
                         'price_observed_on' => $variant['price_observed_on'] ?? null, 'position' => $position,
+                        'sku' => $variant['sku'] ?? null, 'barcode' => $variant['barcode'] ?? null,
                     ];
                     if (isset($existing[$key])) {
                         $updateVariantStatement->execute($values + ['id' => $existing[$key], 'preserve_existing' => $this->sqlBoolean(($product['preserve_existing'] ?? false) === true)]);
@@ -249,15 +264,25 @@ final class CollectiblesRepository
             $conditions[] = <<<'SQL'
                 (
                     p.title ILIKE :query_title ESCAPE '\'
+                    OR p.sku ILIKE :query_sku ESCAPE '\'
+                    OR p.barcode = :query_barcode
                     OR EXISTS (
                         SELECT 1
                         FROM collectible_variants search_variant
                         WHERE search_variant.product_id = p.id
-                          AND search_variant.name ILIKE :query_variant ESCAPE '\'
+                          AND (
+                              search_variant.name ILIKE :query_variant ESCAPE '\'
+                              OR search_variant.sku ILIKE :query_variant_sku ESCAPE '\'
+                              OR search_variant.barcode = :query_variant_barcode
+                          )
                     )
                 )
             SQL;
             $parameters['query_title'] = $pattern;
+            $parameters['query_sku'] = $pattern;
+            $parameters['query_variant_sku'] = $pattern;
+            $parameters['query_barcode'] = trim($query);
+            $parameters['query_variant_barcode'] = trim($query);
             $parameters['query_variant'] = $pattern;
         }
         if ($brand !== null && $brand !== '') {
@@ -300,6 +325,8 @@ final class CollectiblesRepository
                 p.price_source_url,
                 p.price_observed_on,
                 p.release_year,
+                p.sku,
+                p.barcode,
                 p.source_key,
                 p.last_seen_at,
                 %s AS sort_price_cents
@@ -340,6 +367,8 @@ final class CollectiblesRepository
                 'price_source_url' => $row['price_source_url'] === null ? null : (string) $row['price_source_url'],
                 'price_observed_on' => $row['price_observed_on'] === null ? null : (string) $row['price_observed_on'],
                 'release_year' => $row['release_year'] === null ? null : (int) $row['release_year'],
+                'sku' => $row['sku'] === null ? null : (string) $row['sku'],
+                'barcode' => $row['barcode'] === null ? null : (string) $row['barcode'],
                 'sort_price_cents' => $row['sort_price_cents'] === null ? null : (int) $row['sort_price_cents'],
                 'source_key' => (string) $row['source_key'],
                 'series_id' => $mapping['series_id'],
@@ -369,7 +398,9 @@ final class CollectiblesRepository
                     currency,
                     price_kind,
                     price_source_url,
-                    price_observed_on
+                    price_observed_on,
+                    sku,
+                    barcode
                 FROM collectible_variants
                 WHERE product_id IN (%s)
                 ORDER BY position, id
@@ -390,6 +421,8 @@ final class CollectiblesRepository
                     'price_kind' => $row['price_kind'] === null ? null : (string) $row['price_kind'],
                     'price_source_url' => $row['price_source_url'] === null ? null : (string) $row['price_source_url'],
                     'price_observed_on' => $row['price_observed_on'] === null ? null : (string) $row['price_observed_on'],
+                    'sku' => $row['sku'] === null ? null : (string) $row['sku'],
+                    'barcode' => $row['barcode'] === null ? null : (string) $row['barcode'],
                 ];
             }
         }

@@ -1,4 +1,4 @@
-<!-- schema-version: 19 -->
+<!-- schema-version: 20 -->
 
 # PostgreSQL schema
 
@@ -406,6 +406,7 @@ user-authored content, and use `bigint` identity keys rather than UUIDs.
 naming the upstream source, the source's `external_id`, `title`,
 `product_url`, optional `image_url`, optional `price_cents`, optional
 `currency`, optional price kind/source/date metadata, optional `release_year`,
+optional retail `sku` (1-64 characters) and `barcode` (8-14 digits: UPC, EAN, or JAN),
 and `first_seen_at`/`last_seen_at` timestamps (both default to
 `now()`). `(source_key, external_id)` is unique so refreshes upsert the same
 row and advance `last_seen_at`. The `brand` index supports per-line listing.
@@ -414,9 +415,16 @@ row and advance `last_seen_at`. The `brand` index supports per-line listing.
 (identity primary key), `product_id` referencing `collectible_products(id)`
 with `ON DELETE CASCADE`, `name`, `is_secret` (default `false`) for secret or
 chase figures, optional `image_url`, optional `price_cents`, optional
-`currency`, optional price kind/source/date metadata, and display `position`
+`currency`, optional price kind/source/date metadata, optional `sku` and
+`barcode` (same rules as products), and display `position`
 (default `0`). `(product_id, name)` is
 unique.
+
+`sku` and `barcode` record what a source publishes: TOYSEZ's Shopify feed
+gives a SKU and sometimes a barcode per variant (a single-item listing carries
+them on the product), and the Sonny Angel catalog gives the blind-box SKU and
+JAN code on the series product. Pop Mart's storefront pages publish neither.
+A refresh that omits an identifier keeps the stored one.
 
 `price_cents` is a non-negative integer amount in currency minor units, paired
 with an uppercase ISO 4217 `currency` code; for example, USD 19.99 is stored as

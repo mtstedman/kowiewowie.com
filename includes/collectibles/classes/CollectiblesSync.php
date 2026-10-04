@@ -219,6 +219,8 @@ final class CollectiblesSync
                     'price_kind' => self::priceKindOrNull($variant['price_kind'] ?? null),
                     'price_source_url' => self::httpsUrlOrNull($variant['price_source_url'] ?? null),
                     'price_observed_on' => self::dateOrNull($variant['price_observed_on'] ?? null),
+                    'sku' => self::skuOrNull($variant['sku'] ?? null),
+                    'barcode' => self::barcodeOrNull($variant['barcode'] ?? null),
                 ];
             }
 
@@ -233,12 +235,30 @@ final class CollectiblesSync
                 'price_source_url' => self::httpsUrlOrNull($product['price_source_url'] ?? null),
                 'price_observed_on' => self::dateOrNull($product['price_observed_on'] ?? null),
                 'release_year' => self::releaseYearOrNull($product['release_year'] ?? null),
+                'sku' => self::skuOrNull($product['sku'] ?? null),
+                'barcode' => self::barcodeOrNull($product['barcode'] ?? null),
                 'preserve_existing' => ($product['preserve_existing'] ?? false) === true,
                 'variants' => $variants,
             ];
         }
 
         return array_values($normalized);
+    }
+
+    /** A store SKU: printable text, 1-64 characters after cleaning. */
+    public static function skuOrNull(mixed $value): ?string
+    {
+        if (!is_string($value) && !is_int($value)) return null;
+        $sku = self::cleanText((string) $value, 64);
+        return $sku === '' || preg_match('/^[\p{L}\p{N}][\p{L}\p{N} ._\/#+-]*$/u', $sku) !== 1 ? null : $sku;
+    }
+
+    /** A product barcode: UPC/EAN/JAN digits (8-14), spaces and dashes dropped. */
+    public static function barcodeOrNull(mixed $value): ?string
+    {
+        if (!is_string($value) && !is_int($value)) return null;
+        $digits = (string) preg_replace('/[\s-]+/', '', (string) $value);
+        return preg_match('/^[0-9]{8,14}$/', $digits) === 1 ? $digits : null;
     }
 
     /**

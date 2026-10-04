@@ -314,6 +314,15 @@
   font-weight: 700;
 }
 
+.collectible-identifiers {
+  display: block;
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
 .collectible-listing-kind {
   justify-self: start;
   margin: 0;

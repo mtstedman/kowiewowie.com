@@ -128,6 +128,8 @@ if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
             price_source_url TEXT NULL,
             price_observed_on TEXT NULL,
             release_year INTEGER NULL,
+            sku TEXT NULL,
+            barcode TEXT NULL,
             first_seen_at TEXT NOT NULL DEFAULT '2026-10-04T00:00:00+00:00',
             last_seen_at TEXT NOT NULL DEFAULT '2026-10-04T00:00:00+00:00',
             UNIQUE (source_key, external_id)
@@ -143,6 +145,8 @@ if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
             price_kind TEXT NULL,
             price_source_url TEXT NULL,
             price_observed_on TEXT NULL,
+            sku TEXT NULL,
+            barcode TEXT NULL,
             position INTEGER NOT NULL
         );
     SQL);
@@ -249,6 +253,37 @@ if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $assertSame(1, (int) $isolationPdo->query("SELECT count(*) FROM collectible_products WHERE external_id = '999999'")->fetchColumn(), 'store listings are never retired by a catalog');
     $assertSame(27, (int) $isolationPdo->query('SELECT count(*) FROM collectible_products')->fetchColumn(), 'empty and failed sources must not erase the successful catalog import');
 }
+
+// Retail identifiers: a single-item TOYSEZ listing carries its one variant's
+// SKU and barcode; a multi-variant listing carries them per variant; a
+// barcode that is not 8-14 digits is dropped.
+$shopify = CollectiblesSync::normalizeProducts([
+    ShopifyCollectionSource::mapProduct(['id' => 101, 'title' => 'Nommi Single Listing', 'handle' => 'nommi-single', 'vendor' => 'Nommi',
+        'variants' => [['title' => 'Default Title', 'price' => '18.00', 'sku' => 'TZ-NOM-001', 'barcode' => '6 975469 450012']], 'images' => []], 'https://toysez.com', 'USD', 'nommi'),
+    ShopifyCollectionSource::mapProduct(['id' => 102, 'title' => 'Nommi Two Styles', 'handle' => 'nommi-two', 'vendor' => 'Nommi',
+        'variants' => [['title' => 'Single Box', 'price' => '18.00', 'sku' => 'TZ-NOM-002A', 'barcode' => '6975469450029'],
+            ['title' => 'Whole Set', 'price' => '108.00', 'sku' => 'TZ-NOM-002S', 'barcode' => 'n/a']], 'images' => []], 'https://toysez.com', 'USD', 'nommi'),
+]);
+$assertSame(['TZ-NOM-001', '6975469450012'], [$shopify[0]['sku'], $shopify[0]['barcode']], 'single-item listing identifiers');
+$assertSame([null, null], [$shopify[1]['sku'], $shopify[1]['barcode']], 'multi-variant listing keeps identifiers on its variants');
+$assertSame([['TZ-NOM-002A', '6975469450029'], ['TZ-NOM-002S', null]], array_map(static fn (array $variant): array => [$variant['sku'], $variant['barcode']], $shopify[1]['variants']), 'variant identifiers');
+$assertSame(null, CollectiblesSync::skuOrNull('<script>'), 'unsafe SKU text is dropped');
+if (isset($pdo)) {
+    $identityRepository = new CollectiblesRepository($pdo);
+    $identityRepository->upsertSourceCatalog('toysez-nommi', 'nommi', $shopify);
+    $stripped = array_map(static function (array $product): array {
+        $product['sku'] = null; $product['barcode'] = null;
+        $product['variants'] = array_map(static fn (array $variant): array => ['sku' => null, 'barcode' => null] + $variant, $product['variants']);
+        return $product;
+    }, $shopify);
+    $identityRepository->upsertSourceCatalog('toysez-nommi', 'nommi', $stripped);
+    $assertSame('6975469450012', $pdo->query("SELECT barcode FROM collectible_products WHERE external_id = '101'")->fetchColumn(), 'a refresh without identifiers keeps the stored barcode');
+    $assertSame('TZ-NOM-002A', $pdo->query("SELECT v.sku FROM collectible_variants v JOIN collectible_products p ON p.id = v.product_id WHERE p.external_id = '102' AND v.name = 'Single Box'")->fetchColumn(), 'a refresh without identifiers keeps the stored variant SKU');
+}
+// Sonny Angel's official codes identify the sealed blind box.
+$sonnyProducts = CollectiblesSync::normalizeProducts((new SonnyAngelCatalogSource($root . '/htdocs/assets/data/sonny-angels.json'))->fetchProducts());
+$animal3 = array_values(array_filter($sonnyProducts, static fn (array $product): bool => $product['external_id'] === 'animal-series-3'))[0] ?? null;
+$assertSame(['SAS65377', '4542202653777'], [$animal3['sku'] ?? null, $animal3['barcode'] ?? null], 'Sonny Angel blind-box SKU and JAN');
 
 if ($failures !== []) {
     fwrite(STDERR, implode("\n", $failures) . "\n");

@@ -189,6 +189,8 @@ final class ShopifyCollectionSource
                 'image_url' => self::imageSource($rawVariant['featured_image'] ?? null),
                 'price_cents' => $priceCents,
                 'currency' => $priceCents === null ? null : $currency,
+                'sku' => $rawVariant['sku'] ?? null,
+                'barcode' => $rawVariant['barcode'] ?? null,
             ];
         }
 
@@ -201,6 +203,10 @@ final class ShopifyCollectionSource
             'image_url' => self::imageSource($images[0] ?? null),
             'price_cents' => $lowestPrice,
             'currency' => $lowestPrice === null ? null : $currency,
+            // A single-item listing has no variant rows, so its one variant's
+            // identifiers belong to the listing itself.
+            'sku' => count($rawVariants) === 1 ? ($rawVariants[0]['sku'] ?? null) : null,
+            'barcode' => count($rawVariants) === 1 ? ($rawVariants[0]['barcode'] ?? null) : null,
             'variants' => $variants,
         ];
     }

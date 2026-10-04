@@ -171,6 +171,15 @@
           "sha256": "2e46b28c9c0f27e36e31ed19f6f76bd5dd2060c072745b27391718d96384cc2d"
         }
       ]
+    },
+    {
+      "version": 20,
+      "updates": [
+        {
+          "file": "updates/019_collectible_identifiers.sql",
+          "sha256": "aadfc9f75014647c2b810c956773179f1dca9e9b6b6f55a90bc29606c6e25126"
+        }
+      ]
     }
   ]
 }

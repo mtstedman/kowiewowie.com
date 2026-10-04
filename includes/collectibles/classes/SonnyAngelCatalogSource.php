@@ -100,6 +100,10 @@ final class SonnyAngelCatalogSource
                 'price_source_url' => $retail['price_source_url'],
                 'price_observed_on' => $retail['price_observed_on'],
                 'release_year' => is_int($series['releaseYear'] ?? null) ? $series['releaseYear'] : null,
+                // The official store's codes identify the sealed blind box,
+                // never one figure, so they belong to the series product.
+                'sku' => self::identifier($series['identifiers'] ?? [], 'SKU'),
+                'barcode' => self::identifier($series['identifiers'] ?? [], 'JAN'),
                 'variants' => $variants,
             ];
         }
@@ -200,5 +204,16 @@ final class SonnyAngelCatalogSource
             $fallback = $source;
         }
         return $fallback;
+    }
+
+    /** The first blind-box identifier of a kind ("SKU", "JAN") on a series. */
+    private static function identifier(mixed $identifiers, string $kind): ?string
+    {
+        foreach (is_array($identifiers) ? $identifiers : [] as $identifier) {
+            if (is_array($identifier) && ($identifier['kind'] ?? null) === $kind && ($identifier['scope'] ?? null) === 'blind_box' && is_string($identifier['value'] ?? null)) {
+                return $identifier['value'];
+            }
+        }
+        return null;
     }
 }
