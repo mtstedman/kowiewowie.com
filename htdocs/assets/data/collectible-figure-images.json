@@ -2972,6 +2972,140 @@
         "source": "https://prod-global-biz.popmart.com/globalAdmin/1784530916403_1a0eda5984f8ae4a208f1d7087bee3ff.jpg?x-oss-process=image/resize,w_640",
         "page": "https://www.popmart.com/us/products/3676"
       }
+    },
+    "sonny-angel:11th-anniversary-series-2015": {
+      "rabbit": {
+        "name": "Rabbit",
+        "path": "/assets/images/collectibles/sonny-angel/11th-anniversary-series-2015/rabbit.webp",
+        "source": "https://www.sonnyangel.com/renewal/wp-content/uploads/2024/06/62_SA_11th_Anniversary.png",
+        "page": "https://www.sonnyangel.com/en/vote-2024/",
+        "label": "Official 20th Anniversary Rabbit Popularity Poll entry captioned 'Sonny Agel 11th Anniversary (May-15)'; file 62_SA_11th_Anniversary.png (the series' Rabbit)",
+        "sourceType": "official"
+      }
+    },
+    "sonny-angel:15th-anniversary-limited-edition-2020": {
+      "rabbit": {
+        "name": "Rabbit",
+        "path": "/assets/images/collectibles/sonny-angel/15th-anniversary-limited-edition-2020/rabbit.webp",
+        "source": "https://www.sonnyangel.com/renewal/wp-content/uploads/2024/06/68_15th_guidebook.png",
+        "page": "https://www.sonnyangel.com/en/vote-2024/",
+        "label": "Official Rabbit Popularity Poll entry captioned 'Sonny Angel 15th Anniversary Complete Guide Book (March-20)'; file 68_15th_guidebook.png",
+        "sourceType": "official"
+      }
+    },
+    "sonny-angel:20th-anniversary-limited-edition-2025": {
+      "robby angel with crown": {
+        "name": "Robby Angel with Crown",
+        "path": "/assets/images/collectibles/sonny-angel/20th-anniversary-limited-edition-2025/robby-angel-with-crown.webp",
+        "source": "https://prcdn.freetls.fastly.net/release_image/26206/428/26206-428-8bb2cd0b6f808483ebd9c055aacbef2e-2048x1280.png",
+        "page": "https://prtimes.jp/main/html/rd/p/000000428.000026206.html",
+        "label": "Dreams Inc. press release, section ■特別付録 (crown-wearing Sonny Angel & Robby Angel bonus figures): bold caption 'Robby Angel' directly above this image",
+        "sourceType": "press"
+      },
+      "sonny angel with crown": {
+        "name": "Sonny Angel with Crown",
+        "path": "/assets/images/collectibles/sonny-angel/20th-anniversary-limited-edition-2025/sonny-angel-with-crown.webp",
+        "source": "https://prcdn.freetls.fastly.net/release_image/26206/428/26206-428-7c8bacee585a45376b35d09ca06e13f0-2048x1280.png",
+        "page": "https://prtimes.jp/main/html/rd/p/000000428.000026206.html",
+        "label": "Dreams Inc. press release, section ■特別付録 (crown-wearing Sonny Angel & Robby Angel bonus figures): bold caption 'Sonny Angel' directly above this image",
+        "sourceType": "press"
+      }
+    },
+    "sonny-angel:cat-life-2023": {
+      "happy pink robby": {
+        "name": "Happy Pink Robby",
+        "path": "/assets/images/collectibles/sonny-angel/cat-life-2023/happy-pink-robby.webp",
+        "source": "https://www.sonnyangel.com/renewal/wp-content/uploads/2023/05/img_cat-life_20.png",
+        "page": "https://www.sonnyangel.com/en/2023/05/26/cat-life/",
+        "label": "Caption 'Happy Pink Robby Angel' directly above image (Secret Figures section)",
+        "sourceType": "official"
+      }
+    },
+    "sonny-angel:easter-series-2018": {
+      "easter bunny": {
+        "name": "Easter Bunny",
+        "path": "/assets/images/collectibles/sonny-angel/easter-series-2018/easter-bunny.webp",
+        "source": "https://www.sonnyangel.com/renewal/wp-content/uploads/2024/06/25_Easter2018.png",
+        "page": "https://www.sonnyangel.com/en/vote-2024/",
+        "label": "Official Rabbit Popularity Poll entry captioned 'Easter Series 2018 (March-18)' (file 25_Easter2018.png; secret listed separately); same figure is captioned '●Easter Bunny（イースターバニー）' in Dreams press release https://prtimes.jp/main/html/rd/p/000000042.000026206.html (image d26206-42-600095-3.jpg)",
+        "sourceType": "official"
+      },
+      "easter cow": {
+        "name": "Easter Cow",
+        "path": "/assets/images/collectibles/sonny-angel/easter-series-2018/easter-cow.webp",
+        "source": "https://prtimes.jp/i/26206/42/origin/d26206-42-491327-5.jpg",
+        "page": "https://prtimes.jp/main/html/rd/p/000000042.000026206.html",
+        "label": "Dreams Inc. Easter Series 2018 press release: caption '●Easter Cow（イースターカウ）' directly above this image (front/back detail of the one figure)",
+        "sourceType": "press"
+      },
+      "easter lamb": {
+        "name": "Easter Lamb",
+        "path": "/assets/images/collectibles/sonny-angel/easter-series-2018/easter-lamb.webp",
+        "source": "https://prtimes.jp/i/26206/42/origin/d26206-42-624368-6.jpg",
+        "page": "https://prtimes.jp/main/html/rd/p/000000042.000026206.html",
+        "label": "Dreams Inc. Easter Series 2018 press release: caption '●Easter Lamb（イースターラム）' directly above this image (front/back detail of the one figure)",
+        "sourceType": "press"
+      },
+      "hatched egg": {
+        "name": "Hatched Egg",
+        "path": "/assets/images/collectibles/sonny-angel/easter-series-2018/hatched-egg.webp",
+        "source": "https://prtimes.jp/i/26206/42/origin/d26206-42-313575-4.jpg",
+        "page": "https://prtimes.jp/main/html/rd/p/000000042.000026206.html",
+        "label": "Dreams Inc. Easter Series 2018 press release: caption '●Hatched Egg（ハッチドエッグ）' directly above this image (front/back detail of the one figure)",
+        "sourceType": "press"
+      }
+    },
+    "sonny-angel:halloween-series-2018": {
+      "ghost": {
+        "name": "Ghost",
+        "path": "/assets/images/collectibles/sonny-angel/halloween-series-2018/ghost.webp",
+        "source": "https://prtimes.jp/i/26206/84/origin/d26206-84-411399-8.jpg",
+        "page": "https://prtimes.jp/main/html/rd/p/000000084.000026206.html",
+        "label": "Dreams Inc. Halloween Series 2018 press release: caption '◇Ghost（ゴースト）' + description directly above this image",
+        "sourceType": "press"
+      },
+      "owl": {
+        "name": "Owl",
+        "path": "/assets/images/collectibles/sonny-angel/halloween-series-2018/owl.webp",
+        "source": "https://prtimes.jp/i/26206/84/origin/d26206-84-654693-9.jpg",
+        "page": "https://prtimes.jp/main/html/rd/p/000000084.000026206.html",
+        "label": "Dreams Inc. Halloween Series 2018 press release: caption '◇Owl（オウル）' + description directly above this image",
+        "sourceType": "press"
+      },
+      "pumpkin": {
+        "name": "Pumpkin",
+        "path": "/assets/images/collectibles/sonny-angel/halloween-series-2018/pumpkin.webp",
+        "source": "https://prtimes.jp/i/26206/84/origin/d26206-84-517982-6.jpg",
+        "page": "https://prtimes.jp/main/html/rd/p/000000084.000026206.html",
+        "label": "Dreams Inc. Halloween Series 2018 press release: caption '◇Pumpkin（パンプキン）' + description directly above this image",
+        "sourceType": "press"
+      },
+      "witch": {
+        "name": "Witch",
+        "path": "/assets/images/collectibles/sonny-angel/halloween-series-2018/witch.webp",
+        "source": "https://prtimes.jp/i/26206/84/origin/d26206-84-594598-7.jpg",
+        "page": "https://prtimes.jp/main/html/rd/p/000000084.000026206.html",
+        "label": "Dreams Inc. Halloween Series 2018 press release: caption '◇Witch（ウィッチ）' + description directly above this image",
+        "sourceType": "press"
+      }
+    },
+    "sonny-angel:strawberry-love-series": {
+      "strawberry jam": {
+        "name": "Strawberry Jam",
+        "path": "/assets/images/collectibles/sonny-angel/strawberry-love-series/strawberry-jam.webp",
+        "source": "https://www.sonnyangel.com/renewal/wp-content/uploads/2026/01/sa_StrawberryLove_banner_pressrelease_11.png",
+        "page": "https://www.sonnyangel.com/en/2026/01/09/sonny-angel-mini-figure-strawberry-love-series/",
+        "label": "<h3>Strawberry Jam</h3> heading directly above image (Secret Figures section)",
+        "sourceType": "official"
+      },
+      "strawberry robby angel": {
+        "name": "Strawberry Robby Angel",
+        "path": "/assets/images/collectibles/sonny-angel/strawberry-love-series/strawberry-robby-angel.webp",
+        "source": "https://www.sonnyangel.com/renewal/wp-content/uploads/2026/01/sa_StrawberryLove_banner_pressrelease_13.png",
+        "page": "https://www.sonnyangel.com/en/2026/01/09/sonny-angel-mini-figure-strawberry-love-series/",
+        "label": "<h3>Strawberry Robby Angel</h3> heading directly above image (Secret Figures section)",
+        "sourceType": "official"
+      }
     }
   }
 }
