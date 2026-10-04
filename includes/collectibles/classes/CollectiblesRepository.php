@@ -198,6 +198,42 @@ final class CollectiblesRepository
     }
 
     /**
+     * Remove a catalog's own rows it no longer lists (their variants cascade).
+     * Only rows of $sourceKey whose external_id starts with $prefix are
+     * candidates, so store listings sharing a source key are never touched.
+     * Called only after that catalog imported successfully.
+     *
+     * @param list<string> $keepExternalIds
+     */
+    public function retireCatalogProducts(string $sourceKey, array $keepExternalIds, string $prefix): int
+    {
+        if ($keepExternalIds === []) return 0;
+        $placeholders = [];
+        $parameters = ['source_key' => $sourceKey, 'prefix' => str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $prefix) . '%'];
+        foreach (array_values($keepExternalIds) as $index => $externalId) {
+            $placeholders[] = ':keep_' . $index;
+            $parameters['keep_' . $index] = $externalId;
+        }
+        $retired = sprintf(
+            "SELECT id FROM collectible_products WHERE source_key = :source_key AND external_id LIKE :prefix ESCAPE '\\' AND external_id NOT IN (%s)",
+            implode(', ', $placeholders),
+        );
+        // Variants go first and explicitly, so this holds without enforced
+        // foreign keys too.
+        $this->pdo->beginTransaction();
+        try {
+            $this->pdo->prepare("DELETE FROM collectible_variants WHERE product_id IN ({$retired})")->execute($parameters);
+            $statement = $this->pdo->prepare("DELETE FROM collectible_products WHERE id IN ({$retired})");
+            $statement->execute($parameters);
+            $this->pdo->commit();
+        } catch (Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
+        return $statement->rowCount();
+    }
+
+    /**
      * @return array{
      *     items: list<array<string, mixed>>,
      *     total: int,

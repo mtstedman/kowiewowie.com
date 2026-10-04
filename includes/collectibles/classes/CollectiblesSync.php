@@ -133,6 +133,17 @@ final class CollectiblesSync
                     $result['status'] = 'ok';
                     $result['products'] = (int) $saved['products'];
                     $result['variants'] = (int) $saved['variants'];
+                    // A catalog owns its rows: one it no longer lists (a
+                    // merged or retired series) leaves the shelf. Supplements
+                    // own only their catalog:-prefixed rows, never store
+                    // listings; the Sonny Angel catalog owns all of its rows.
+                    if ($source instanceof CollectibleCatalogSupplement || $source instanceof SonnyAngelCatalogSource) {
+                        $result['retired'] = $this->repository->retireCatalogProducts(
+                            $result['source_key'],
+                            array_column($products, 'external_id'),
+                            $source instanceof CollectibleCatalogSupplement ? 'catalog:' : '',
+                        );
+                    }
                 }
             } catch (PDOException $error) {
                 error_log("Collectibles sync for {$result['source_key']} failed to save: " . $error);

@@ -229,14 +229,25 @@ if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $isolationPdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [RejectsPhpBooleansStatement::class]);
     $isolationPdo->sqliteCreateFunction('now', static fn (): string => '2026-10-04T00:00:00+00:00');
     foreach ($pdo->query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name IN ('collectible_products', 'collectible_variants') ORDER BY name DESC")->fetchAll(PDO::FETCH_COLUMN) as $sql) $isolationPdo->exec((string) $sql);
-    $sync = new CollectiblesSync(new CollectiblesRepository($isolationPdo), [
+    // A catalog row the catalog no longer lists (a merged series) and a store
+    // listing that shares the source key but was never the catalog's.
+    $isolationRepository = new CollectiblesRepository($isolationPdo);
+    $isolationRepository->upsertSourceCatalog('popmart-us', 'skullpanda', CollectiblesSync::normalizeProducts([
+        ['external_id' => 'catalog:merged-away', 'title' => 'SKULLPANDA Merged Away Series', 'product_url' => 'https://www.popmart.com/us/products/merged-away', 'image_url' => null, 'price_cents' => null, 'currency' => null, 'variants' => [['name' => 'Gone', 'is_secret' => false, 'image_url' => null, 'price_cents' => null, 'currency' => null]]],
+        ['external_id' => '999999', 'title' => 'SKULLPANDA Store-Only Listing', 'product_url' => 'https://www.popmart.com/us/products/999999/store-only', 'image_url' => null, 'price_cents' => null, 'currency' => null, 'variants' => []],
+    ]));
+    $sync = new CollectiblesSync($isolationRepository, [
         new CollectibleCatalogSupplement($root . '/htdocs/assets/data/skullpanda-catalog.json'),
         new SonnyAngelCatalogSource($emptySonnyPath),
         $remoteFailure,
     ]);
     $results = $sync->run();
     $assertSame(['ok', 'failed', 'failed'], array_column($results, 'status'), 'successful, empty, and failed sources must remain isolated');
-    $assertSame(26, (int) $isolationPdo->query('SELECT count(*) FROM collectible_products')->fetchColumn(), 'empty and failed sources must not erase the successful catalog import');
+    $assertSame(1, $results[0]['retired'] ?? null, 'a catalog import retires exactly its own unlisted catalog row');
+    $assertSame(0, (int) $isolationPdo->query("SELECT count(*) FROM collectible_products WHERE external_id = 'catalog:merged-away'")->fetchColumn(), 'the merged-away catalog row must leave the shelf');
+    $assertSame(0, (int) $isolationPdo->query("SELECT count(*) FROM collectible_variants WHERE name = 'Gone'")->fetchColumn(), 'its variants must go with it');
+    $assertSame(1, (int) $isolationPdo->query("SELECT count(*) FROM collectible_products WHERE external_id = '999999'")->fetchColumn(), 'store listings are never retired by a catalog');
+    $assertSame(27, (int) $isolationPdo->query('SELECT count(*) FROM collectible_products')->fetchColumn(), 'empty and failed sources must not erase the successful catalog import');
 }
 
 if ($failures !== []) {

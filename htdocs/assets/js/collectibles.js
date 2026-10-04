@@ -774,11 +774,26 @@ import {
                 });
                 // A line with no dated sets needs no year label.
                 const onlyUndated = years.size === 1 && years.has('unknown');
-                Array.from(years.keys())
-                    .sort((left, right) => (Number(left === 'unknown') - Number(right === 'unknown')) || yearDirection * (Number(left) - Number(right)))
+                const yearKeys = Array.from(years.keys())
+                    .sort((left, right) => (Number(left === 'unknown') - Number(right === 'unknown')) || yearDirection * (Number(left) - Number(right)));
+                const yearId = (yearKey) => `collectible-year-${normalizeBrand(section.brand)}-${section.line}-${yearKey}`;
+                // Two or more batches get a jump bar to each year.
+                if (yearKeys.filter((yearKey) => yearKey !== 'unknown').length >= 2) {
+                    const nav = createElement('nav', 'collectible-year-nav');
+                    nav.setAttribute('aria-label', `${brandLabel(section.brand)} ${lineLabel(section.line)} by release year`);
+                    nav.append(createElement('span', 'collectible-year-nav-label', 'Jump to'));
+                    yearKeys.forEach((yearKey) => {
+                        const link = createElement('a', 'collectible-year-link', yearKey === 'unknown' ? 'Year unknown' : yearKey);
+                        link.href = `#${yearId(yearKey)}`;
+                        nav.append(link);
+                    });
+                    lineSection.append(nav);
+                }
+                yearKeys
                     .forEach((yearKey) => {
                         const yearSection = createElement('div', 'collectible-group collectible-year');
                         yearSection.dataset.year = yearKey;
+                        yearSection.id = yearId(yearKey);
                         if (!onlyUndated) yearSection.append(createElement('p', 'collectible-year-title', yearKey === 'unknown' ? 'Release year unknown' : yearKey));
                         years.get(yearKey).forEach((group) => yearSection.append(renderSeries(group)));
                         lineSection.append(yearSection);

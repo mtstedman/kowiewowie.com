@@ -8,7 +8,6 @@
     "gaps": [
       "No official brand-wide checklist or dated official launch calendar was found; most release years rest on secondary chronologies (Calembou blog, TOYSEZ chronology) that agree with first retailer listing dates, and Pinky Energy, Treasure Collector, Izakaya Bites and Sweetheart Plan years rest on first official/retailer listing dates in 2026.",
       "Sitting Zoo is recorded as 2025 (TOYSEZ chronology; official Hi TOY store listing published 2025-11-28; Calembou listing 2025-12-10), but the Calembou series list states a January 2026 release.",
-      "Mibao Town and Fairytale Town are the same physical series (the official Hi TOY 'Fairytale Town' page names the product 'Nommi-Mibao Town Series'; both carry the Red Queen secret and an 8+1 lineup); both existing records now carry the same roster and should be merged.",
       "Glutinous Rice 100% Sweetness is the series TOYSEZ sells as 'Sweetness 100%' (9 regular + Salty Sugus secret per Kikagoods, TOYSEZ and the official 9+1 count); no separate record was added for the TOYSEZ name.",
       "Collecting Cutie Bags is partial: only the secret (Fortune Kitty) is named by a fetched source; the six regular names and the release year are unverified.",
       "Pinky Energy is partial: the hidden figure is named 'Glace' by Calembou and 'Grace' by Kikagoods, so it is omitted; Hailey (1:96 special color edition) is recorded with isSecret true.",
@@ -16,9 +15,9 @@
       "Little World is partial: the official page lists a different-color hidden variant obtained by redemption card that no source names; its release year is null because the TOYSEZ chronology's 2023 conflicts with its own and Calembou's statement that Nommi debuted in 2024.",
       "Baby (Mibao's Adoption House) has a null release year: the TOYSEZ chronology says 2025 while the Calembou series list dates a 'Baby Mibao Series' to December 2024.",
       "Collecting Cutie Bags and Gummy Plan have null release years (no stated date; Gummy Plan was a pre-order with mid-October 2026 estimated departure when checked); Izakaya Bites, Sweetheart Plan and Gummy Plan rosters are unknown because no fetched source names their figures.",
-      "Official Hi TOY descriptions for About the Childhood, Sitting Zoo and Fairytale Town name 'Golden ...' secrets that contradict the matching TOYSEZ and Kikagoods secret names; those descriptions are not used for figure names.",
       "Name variants: Magical Christmas Eve's deer is 'Gift-giving Deer' on TOYSEZ and 'Gift Delivering Deer' on Calembou (TOYSEZ form kept); Baby Sweetheart Bunny's secret is written 'Blue berry Cheese Pie' on TOYSEZ and 'Blueberry Cheese Pie' on Kikagoods.",
-      "Repository ingestion preserves numeric Shopify product identities, but member IDs remain null and new series use catalog: identities; retail case sizes, purchase options, restocks and collector V-numbers are not figures or manufacturing batches."
+      "Repository ingestion preserves numeric Shopify product identities, but member IDs remain null and new series use catalog: identities; retail case sizes, purchase options, restocks and collector V-numbers are not figures or manufacturing batches.",
+      "Mibao Fairytale Town is one product sold as \"Mibao Town\" (Hi TOY) and \"Mibao Fairy Tale Town\" (TOYSEZ); it was listed twice until 2026-10-04 and is now one series."
     ]
   },
   "series": [
@@ -328,7 +327,7 @@
     },
     {
       "id": "mibao-town",
-      "name": "Mibao Town",
+      "name": "Mibao Fairytale Town",
       "releaseYear": 2025,
       "rosterStatus": "complete",
       "sources": [
@@ -349,6 +348,11 @@
         },
         {
           "url": "https://toysez.com/collections/nommi-series-list-full-chronology",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://us.kikagoods.com/collections/nommi-series/products/nommi-fairytale-town-series-plush-blind-box",
           "tier": "secondary",
           "checkedAt": "2026-10-04"
         }
@@ -760,51 +764,6 @@
         {"id":"puppy-diary:mousse-paws","name":"Mousse Paws","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-puppy-diary-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
         {"id":"puppy-diary:matcha-wiggle","name":"Matcha Wiggle","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-puppy-diary-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
         {"id":"puppy-diary:frappe-furry","name":"Frappe Furry","isSecret":true,"sources":[{"url":"https://toysez.com/collections/nommi-puppy-diary-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://us.kikagoods.com/products/nommi-puppy-diary-series-plush-blind-box","tier":"secondary","checkedAt":"2026-10-04"}]}
-      ]
-    },
-    {
-      "id": "fairytale-town",
-      "name": "Fairytale Town",
-      "releaseYear": 2025,
-      "rosterStatus": "complete",
-      "sources": [
-        {
-          "url": "https://us.kikagoods.com/collections/nommi-series/products/nommi-fairytale-town-series-plush-blind-box",
-          "tier": "secondary",
-          "checkedAt": "2026-10-04"
-        },
-        {
-          "url": "https://www.hitoyofficial.com/products/nommi-fairytale-town-series-plush-doll-blind-box",
-          "tier": "official",
-          "checkedAt": "2026-10-04"
-        },
-        {
-          "url": "https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series",
-          "tier": "secondary",
-          "checkedAt": "2026-10-04"
-        },
-        {
-          "url": "https://toysez.com/collections/nommi-series-list-full-chronology",
-          "tier": "secondary",
-          "checkedAt": "2026-10-04"
-        }
-      ],
-      "product": {
-        "externalId": "catalog:fairytale-town",
-        "title": "Nommi Fairytale Town Series Plush Blind Box",
-        "url": "https://us.kikagoods.com/collections/nommi-series/products/nommi-fairytale-town-series-plush-blind-box"
-      },
-      "members": [],
-      "figures": [
-        {"id":"fairytale-town:little-red-wolf","name":"Little Red Wolf","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}]},
-        {"id":"fairytale-town:little-princess","name":"Little Princess","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}]},
-        {"id":"fairytale-town:fluffy-little-lamb","name":"Fluffy Little Lamb","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}]},
-        {"id":"fairytale-town:three-little-pigs","name":"Three Little Pigs","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}]},
-        {"id":"fairytale-town:promise-by-the-fox","name":"Promise By The Fox","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}]},
-        {"id":"fairytale-town:frosty-the-snowman","name":"Frosty The Snowman","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}]},
-        {"id":"fairytale-town:hop-in-the-rabbit-hole","name":"Hop In The Rabbit Hole","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}]},
-        {"id":"fairytale-town:black-kitty-witch","name":"Black Kitty Witch","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}]},
-        {"id":"fairytale-town:red-queen","name":"Red Queen","isSecret":true,"sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://us.kikagoods.com/collections/nommi-series/products/nommi-fairytale-town-series-plush-blind-box","tier":"secondary","checkedAt":"2026-10-04"}]}
       ]
     },
     {

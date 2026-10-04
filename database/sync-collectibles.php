@@ -56,11 +56,12 @@ $results = $sync->run($only);
 foreach ($results as $result) {
     if ($result['status'] === 'ok') {
         fwrite(STDOUT, sprintf(
-            "%s [%s] ok: %d product(s), %d variant(s)\n",
+            "%s [%s] ok: %d product(s), %d variant(s)%s\n",
             $result['source_key'],
             $result['brand'],
             $result['products'],
             $result['variants'],
+            ($result['retired'] ?? 0) > 0 ? sprintf(', %d retired catalog row(s)', $result['retired']) : '',
         ));
         continue;
     }

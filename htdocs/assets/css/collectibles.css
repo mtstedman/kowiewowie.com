@@ -266,6 +266,31 @@
   line-height: 1.15;
 }
 
+.collectible-year-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  margin-top: -0.4rem;
+  font-size: 0.85rem;
+}
+
+.collectible-year-nav-label {
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.collectible-year-link {
+  color: var(--accent-cool, var(--ink));
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.collectible-year {
+  scroll-margin-top: 5rem;
+}
+
 .collectible-year {
   display: grid;
   gap: 1.25rem;
@@ -790,6 +815,10 @@
 
   .collectible-line:first-child {
     break-before: auto;
+  }
+
+  .collectible-year-nav {
+    display: none;
   }
 
   .collectible-card {

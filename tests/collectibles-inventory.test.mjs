@@ -534,6 +534,9 @@ class MemoryStorage {
       series_id: 'skullpanda:city-alt',
       series_title: 'City of Night',
       series_roster_status: 'complete',
+      series_release_year: 2023,
+      line: 'figures',
+      listing_kind: 'series',
       variants: [{ name: 'Dawn' }],
     },
     {
@@ -682,6 +685,13 @@ class MemoryStorage {
   const figureLines = results.querySelectorAll('.collectible-line').filter((section) => section.dataset.line === 'figures');
   assert.ok(figureLines.some((section) => section.querySelectorAll('.collectible-year').some((year) => year.dataset.year === '2022'
     && year.querySelectorAll('.collectible-release-block').includes(cityBlock))), 'City of Night must sit in the 2022 batch of its figure line.');
+  // Two dated batches in one line get a jump bar, newest first, linking to
+  // each year's section.
+  const skullFigures = figureLines.find((section) => section.querySelectorAll('.collectible-release-block').includes(cityBlock));
+  const jumpLinks = skullFigures.querySelectorAll('.collectible-year-link');
+  assert.deepEqual(jumpLinks.map((link) => link.textContent), ['2023', '2022']);
+  const target2022 = skullFigures.querySelectorAll('.collectible-year').find((year) => year.dataset.year === '2022');
+  assert.equal(jumpLinks[1].href, `#${target2022.id}`, 'Each jump link must target its year section.');
   assert.equal(blockBySeries('nommi:dream-a').querySelectorAll('.collectible-card').length, 2, 'Nommi listings split across API pages must render in one canonical series group.');
   assert.equal(sonnyBlock.dataset.legacyReleaseId, 'sonny-retail-b', 'A legacy product selection must resolve to its containing series while choices are incomplete.');
   assert.equal(sonnyBlock.hidden, false);

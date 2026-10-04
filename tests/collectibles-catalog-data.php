@@ -248,7 +248,6 @@ $researchedNommiSeries = [
     'baby-sweetheart-bunny',
     'mushroom-hat-400',
     'puppy-diary',
-    'fairytale-town',
     'forest-kingdom',
     'pinky-energy',
     'treasure-collector',
