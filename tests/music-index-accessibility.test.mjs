@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
 const northeastArrow = String.fromCodePoint(0x2197);
 
 class TestTextNode {
@@ -310,10 +308,11 @@ const installBrowserGlobals = ({ url, fetchHandler }) => {
     return { document, calls, flushBrowserWork };
 };
 
-const importFresh = async (modulePath) => {
-    const resolvedPath = require.resolve(modulePath);
-    delete require.cache[resolvedPath];
-    return require(resolvedPath);
+let freshImportSequence = 0;
+const importFresh = (modulePath) => {
+    const moduleUrl = new URL(modulePath, import.meta.url);
+    moduleUrl.searchParams.set('test-run', String(freshImportSequence++));
+    return import(moduleUrl.href);
 };
 
 const buildMusicDom = (document) => {
