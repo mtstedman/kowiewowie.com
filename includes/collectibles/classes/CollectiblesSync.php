@@ -121,6 +121,9 @@ final class CollectiblesSync
                 'products' => 0,
                 'variants' => 0,
                 'error' => null,
+                // Set when a store asked us to slow down, so a scheduler can back off.
+                'rate_limited' => false,
+                'retry_after' => null,
             ];
 
             try {
@@ -149,6 +152,10 @@ final class CollectiblesSync
                 error_log("Collectibles sync for {$result['source_key']} failed to save: " . $error);
                 $result['error'] = 'The catalog could not be saved to the database.';
             } catch (Throwable $error) {
+                if ($error instanceof CollectibleRateLimitedException) {
+                    $result['rate_limited'] = true;
+                    $result['retry_after'] = $error->retryAfterSeconds;
+                }
                 error_log("Collectibles sync for {$result['source_key']} failed: " . $error);
                 $result['error'] = self::cleanText($error->getMessage(), self::MAX_TEXT_LENGTH);
                 if ($result['error'] === '') {

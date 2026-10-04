@@ -112,7 +112,9 @@ sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
 # must be imported before the code that requests it is published.
 sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
     php "$release_dir/database/seed-poe2-tree.php"
-sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
+# The shared collectibles lock keeps this catalog sync and the scheduled store
+# refresher (wowiekowie-collectibles-refresh.timer) from ever overlapping.
+sudo -n flock -w 1800 /run/lock/wowiekowie-collectibles.lock env WOWIE_ENV_FILE="$API_ENV_FILE" \
     php "$release_dir/database/sync-collectibles.php" --catalog-only
 
 # Publish the code and the release's version document only after every database

@@ -23,10 +23,12 @@ final class CollectibleHttpClient
     private const USER_AGENT = 'wowiekowie-collectibles-sync/1.0 (+https://wowiekowie.com)';
     private const CONNECT_TIMEOUT_SECONDS = 5;
     private const TOTAL_TIMEOUT_SECONDS = 20;
-    private const MIN_HOST_INTERVAL_SECONDS = 1.0;
-    private const MAX_RETRIES = 3;
+    /** Polite defaults: seconds between requests to one host, plus random jitter. */
+    public const DEFAULT_MIN_HOST_INTERVAL_SECONDS = 5.0;
+    public const DEFAULT_HOST_JITTER_SECONDS = 3.0;
     private const MAX_REDIRECTS = 3;
-    private const DEFAULT_RETRY_DELAY_SECONDS = 5;
+    /** A 503 is retried once, never sooner than this. A 429 is never retried. */
+    private const SERVICE_UNAVAILABLE_RETRY_SECONDS = 30;
     private const MAX_RETRY_DELAY_SECONDS = 120;
     private const MAX_BODY_BYTES = 16777216;
 
@@ -38,9 +40,18 @@ final class CollectibleHttpClient
 
     /**
      * @param list<string> $allowedHosts Hard-coded source hosts this client may contact.
+     * @param ?\Closure(string, string): array{status: int, body: ?string, headers: array<string, string>, error: string} $transport for tests
+     * @param ?\Closure(float): void $sleeper for tests
+     * @param ?\Closure(): float $random a float in [0, 1), for tests
      */
-    public function __construct(array $allowedHosts)
-    {
+    public function __construct(
+        array $allowedHosts,
+        private readonly float $minHostIntervalSeconds = self::DEFAULT_MIN_HOST_INTERVAL_SECONDS,
+        private readonly float $hostJitterSeconds = self::DEFAULT_HOST_JITTER_SECONDS,
+        private readonly ?\Closure $transport = null,
+        private readonly ?\Closure $sleeper = null,
+        private readonly ?\Closure $random = null,
+    ) {
         foreach ($allowedHosts as $host) {
             $host = is_string($host) ? strtolower(trim($host)) : '';
             if ($host === '' || preg_match('/^[a-z0-9.-]+$/', $host) !== 1) {
@@ -66,7 +77,7 @@ final class CollectibleHttpClient
         }
 
         $currentUrl = $url;
-        $retries = 0;
+        $serviceRetried = false;
         $redirects = 0;
 
         // Bounded: every pass either returns, throws, or consumes one of the
@@ -85,19 +96,22 @@ final class CollectibleHttpClient
                 throw new RuntimeException("Request to {$label} failed: {$response['error']}", $status);
             }
 
+            // A store asking us to slow down gets no immediate retry: the
+            // source stops and the refresher backs off (Retry-After honored).
+            // A 503 may be a blip, so it gets one patient retry.
             if ($status === 429 || $status === 503) {
-                $delay = $this->retryDelaySeconds($response['headers']['retry-after'] ?? null, $retries);
-                if ($retries >= self::MAX_RETRIES || $delay > self::MAX_RETRY_DELAY_SECONDS) {
-                    error_log("Collectible source request to {$label} was rate limited with HTTP {$status} after {$retries} retries.");
-                    throw new RuntimeException(
-                        "Request to {$label} was rate limited (HTTP {$status}) after {$retries} retries.",
-                        $status,
-                    );
+                $retryAfter = $this->retryAfterSeconds($response['headers']['retry-after'] ?? null);
+                if ($status === 503 && !$serviceRetried && ($retryAfter ?? 0) <= self::MAX_RETRY_DELAY_SECONDS) {
+                    $serviceRetried = true;
+                    $this->pause((float) max(self::SERVICE_UNAVAILABLE_RETRY_SECONDS, $retryAfter ?? 0));
+                    continue;
                 }
-
-                $retries++;
-                $this->pause((float) $delay);
-                continue;
+                error_log("Collectible source request to {$label} was rate limited with HTTP {$status}" . ($retryAfter === null ? '' : " (Retry-After {$retryAfter}s)") . '.');
+                throw new CollectibleRateLimitedException(
+                    "Request to {$label} was rate limited (HTTP {$status}); not retrying.",
+                    $status,
+                    $retryAfter,
+                );
             }
 
             if (in_array($status, [301, 302, 303, 307, 308], true)) {
@@ -129,6 +143,7 @@ final class CollectibleHttpClient
      */
     private function execute(string $url, string $accept): array
     {
+        if ($this->transport !== null) return ($this->transport)($url, $accept);
         $curl = curl_init($url);
         if ($curl === false) {
             return ['status' => 0, 'body' => null, 'headers' => [], 'error' => 'curl could not be initialized'];
@@ -229,21 +244,14 @@ final class CollectibleHttpClient
         return $location;
     }
 
-    private function retryDelaySeconds(?string $retryAfter, int $attempt): int
+    /** Seconds the store asked us to wait (Retry-After), or null when it did not say. */
+    private function retryAfterSeconds(?string $retryAfter): ?int
     {
-        if ($retryAfter !== null) {
-            $retryAfter = trim($retryAfter);
-            if (preg_match('/^\d{1,9}$/', $retryAfter) === 1) {
-                return max(1, (int) $retryAfter);
-            }
-
-            $timestamp = strtotime($retryAfter);
-            if ($timestamp !== false) {
-                return max(1, $timestamp - time());
-            }
-        }
-
-        return self::DEFAULT_RETRY_DELAY_SECONDS * ($attempt + 1);
+        if ($retryAfter === null) return null;
+        $retryAfter = trim($retryAfter);
+        if (preg_match('/^\d{1,9}$/', $retryAfter) === 1) return max(1, (int) $retryAfter);
+        $timestamp = strtotime($retryAfter);
+        return $timestamp === false ? null : max(1, $timestamp - time());
     }
 
     private function waitForHost(string $host): void
@@ -252,14 +260,18 @@ final class CollectibleHttpClient
             return;
         }
 
-        $this->pause(self::MIN_HOST_INTERVAL_SECONDS - (microtime(true) - $this->lastRequestAt[$host]));
+        $jitter = $this->hostJitterSeconds * ($this->random !== null ? ($this->random)() : mt_rand() / (mt_getrandmax() + 1));
+        $this->pause($this->minHostIntervalSeconds + $jitter - (microtime(true) - $this->lastRequestAt[$host]));
     }
 
     private function pause(float $seconds): void
     {
-        if ($seconds > 0) {
-            usleep((int) ceil($seconds * 1000000));
+        if ($seconds <= 0) return;
+        if ($this->sleeper !== null) {
+            ($this->sleeper)($seconds);
+            return;
         }
+        usleep((int) ceil($seconds * 1000000));
     }
 
     private function describe(string $url): string
