@@ -113,8 +113,7 @@
     background: rgba(5, 14, 28, 0.82);
     color: var(--ink-soft);
     font-size: 0.8rem;
-    font-weight: 850;
-    text-transform: uppercase;
+    font-weight: 650;
     white-space: nowrap;
 }
 
@@ -176,8 +175,20 @@
     white-space: normal;
 }
 
+/* "Avatar: <name>" is one wrapping line of text, not a row of pills. */
 .risk-scoreboard .risk-scoreboard-avatar-name {
-    overflow-wrap: anywhere;
+    display: inline-block;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.risk-scoreboard .risk-scoreboard-avatar-name > span {
+    display: inline;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
     white-space: normal;
 }
 

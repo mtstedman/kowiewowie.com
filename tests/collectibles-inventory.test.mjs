@@ -353,7 +353,7 @@ class MemoryStorage {
   assert.equal(requestedYear({ year: '', q: '', releaseId: '' }, 'bogus'), 'all');
   const yearFacets = { years: [{ year: 2024, series: 3, listings: 5 }, { year: null, series: 2, listings: 4 }, { year: 2025, series: 1, listings: 1 }] };
   assert.deepEqual(yearChoicesFromFacets(yearFacets, '2026').map((choice) => [choice.value, choice.label]), [
-    ['all', 'All years'], ['2026', '2026 (none)'], ['2025', '2025 (1 series)'], ['2024', '2024 (3 series)'], ['unknown', 'Year unknown (2 series)'],
+    ['all', 'All years'], ['2026', '2026 (none)'], ['2025', '2025 (1)'], ['2024', '2024 (3)'], ['unknown', 'Year unknown (2)'],
   ], 'A requested year with no listings stays selectable, newest first, undated last.');
   assert.deepEqual(yearChoicesFromFacets({}, '2026').map((choice) => choice.label), ['All years', '2026'], 'Before facets arrive the default year is shown plainly.');
   assert.equal(newestFacetYear(yearFacets), '2025');

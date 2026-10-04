@@ -235,7 +235,7 @@ export const yearChoicesFromFacets = (facets, selectedYear) => {
     const years = facetList(facets, 'years');
     const dated = years
         .filter((entry) => Number.isInteger(entry.year))
-        .map((entry) => ({ value: String(entry.year), label: `${entry.year} (${Number(entry.series) || 0} series)` }));
+        .map((entry) => ({ value: String(entry.year), label: `${entry.year} (${Number(entry.series) || 0})` }));
     const selected = normalizeYear(selectedYear);
     if (/^[0-9]{4}$/.test(selected) && !dated.some((choice) => choice.value === selected)) {
         dated.push({ value: selected, label: years.length === 0 ? selected : `${selected} (none)` });
@@ -243,7 +243,7 @@ export const yearChoicesFromFacets = (facets, selectedYear) => {
     dated.sort((left, right) => Number(right.value) - Number(left.value));
     choices.push(...dated);
     const undated = years.find((entry) => entry.year === null);
-    if (undated) choices.push({ value: 'unknown', label: `Year unknown (${Number(undated.series) || 0} series)` });
+    if (undated) choices.push({ value: 'unknown', label: `Year unknown (${Number(undated.series) || 0})` });
     else if (selected === 'unknown') choices.push({ value: 'unknown', label: years.length === 0 ? 'Year unknown' : 'Year unknown (none)' });
     return choices;
 };
