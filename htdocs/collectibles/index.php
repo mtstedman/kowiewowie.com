@@ -54,6 +54,12 @@ $pageStyles = ['/assets/css/collectibles.css'];
                             </label>
                         </div>
                     </fieldset>
+                    <div class="collectibles-release-filter collectibles-year-filter">
+                        <label for="collectibles-year">Year</label>
+                        <select id="collectibles-year" name="year">
+                            <option value="all">All years</option>
+                        </select>
+                    </div>
                     <div class="collectibles-release-filter">
                         <label for="collectibles-release">Series</label>
                         <select id="collectibles-release" name="release" aria-busy="true" disabled>

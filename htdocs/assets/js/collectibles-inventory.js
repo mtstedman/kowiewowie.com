@@ -207,23 +207,66 @@ export const partialFailureMessage = (message, loaded, total) => loaded > 0 && l
     ? `${message} Partial inventory results are shown; retry to finish loading.`
     : message;
 
-export const releaseChoicesFromProducts = (products) => {
+export const normalizeYear = (value) => {
+    const text = String(value ?? '').trim().toLowerCase();
+    if (text === 'all' || text === 'unknown') return text;
+    return /^(?:19|20)[0-9]{2}$/.test(text) ? text : '';
+};
+
+// The release year the shelf asks the API for: the visitor's own choice;
+// otherwise every year while searching or opening a set from a link;
+// otherwise the default batch (this year, or the newest year with listings).
+export const requestedYear = (state, defaultYear) => {
+    const chosen = normalizeYear(state && state.year);
+    if (chosen !== '') return chosen;
+    if ((state && state.q) || (state && state.releaseId)) return 'all';
+    const fallback = normalizeYear(defaultYear);
+    return fallback === '' ? 'all' : fallback;
+};
+
+const facetList = (facets, key) => (facets && typeof facets === 'object' && Array.isArray(facets[key]) ? facets[key] : [])
+    .filter((entry) => entry && typeof entry === 'object');
+
+// Year choices from the API's year facets (which ignore the year filter):
+// every year, newest first, then undated listings. The requested year stays
+// selectable even when it has nothing for the current brand or search.
+export const yearChoicesFromFacets = (facets, selectedYear) => {
+    const choices = [{ value: 'all', label: 'All years' }];
+    const years = facetList(facets, 'years');
+    const dated = years
+        .filter((entry) => Number.isInteger(entry.year))
+        .map((entry) => ({ value: String(entry.year), label: `${entry.year} (${Number(entry.series) || 0} series)` }));
+    const selected = normalizeYear(selectedYear);
+    if (/^[0-9]{4}$/.test(selected) && !dated.some((choice) => choice.value === selected)) {
+        dated.push({ value: selected, label: years.length === 0 ? selected : `${selected} (none)` });
+    }
+    dated.sort((left, right) => Number(right.value) - Number(left.value));
+    choices.push(...dated);
+    const undated = years.find((entry) => entry.year === null);
+    if (undated) choices.push({ value: 'unknown', label: `Year unknown (${Number(undated.series) || 0} series)` });
+    else if (selected === 'unknown') choices.push({ value: 'unknown', label: years.length === 0 ? 'Year unknown' : 'Year unknown (none)' });
+    return choices;
+};
+
+// The newest year that has listings, for when the default year has none.
+export const newestFacetYear = (facets) => {
+    const years = facetList(facets, 'years')
+        .filter((entry) => Number.isInteger(entry.year) && Number(entry.listings) > 0)
+        .map((entry) => entry.year);
+    return years.length === 0 ? '' : String(Math.max(...years));
+};
+
+// Set choices from the API's set facets (the chosen year, any set).
+export const seriesChoicesFromFacets = (facets) => {
     const choices = new Map();
-    (Array.isArray(products) ? products : []).forEach((product) => {
-        const safeProduct = product && typeof product === 'object' ? product : {};
-        const productId = String(safeProduct.id ?? '');
-        const classified = typeof safeProduct.series_id === 'string' && safeProduct.series_id !== '';
-        const id = classified ? safeProduct.series_id : unclassifiedSeriesId(safeProduct);
-        if (productId === '' || choices.has(id)) return;
-        const title = classified && typeof safeProduct.series_title === 'string' && safeProduct.series_title.trim() !== ''
-            ? safeProduct.series_title.trim()
-            : unclassifiedSeriesTitle(safeProduct);
+    facetList(facets, 'series').forEach((entry) => {
+        const id = typeof entry.id === 'string' ? entry.id : '';
+        if (id === '' || choices.has(id)) return;
+        const brandKey = String(entry.brand ?? '').trim().toLowerCase();
         choices.set(id, {
             id,
-            title,
-            brand: Object.prototype.hasOwnProperty.call(BRANDS, String(safeProduct.brand ?? '').trim().toLowerCase())
-                ? BRANDS[String(safeProduct.brand).trim().toLowerCase()]
-                : (typeof safeProduct.brand === 'string' && safeProduct.brand.trim() !== '' ? safeProduct.brand.trim() : 'Collectible'),
+            title: typeof entry.title === 'string' && entry.title.trim() !== '' ? entry.title.trim() : unclassifiedSeriesTitle(entry),
+            brand: Object.prototype.hasOwnProperty.call(BRANDS, brandKey) ? BRANDS[brandKey] : 'Collectible',
         });
     });
     return Array.from(choices.values()).sort((left, right) => left.title.localeCompare(right.title)
@@ -257,10 +300,12 @@ export const applyInventoryVisibility = (resultsElement, state, HTMLElementClass
     });
 };
 
-export const catalogRequestParams = (query, brand, sort, offset) => {
+export const catalogRequestParams = (query, brand, sort, offset, year = 'all', series = '') => {
     const params = new URLSearchParams();
     if (query !== '') params.set('q', query);
     if (brand !== '') params.set('brand', brand);
+    params.set('year', normalizeYear(year) || 'all');
+    if (series !== '') params.set('series', series);
     params.set('sort', sort);
     params.set('limit', String(PAGE_SIZE));
     params.set('offset', String(offset));

@@ -14,7 +14,11 @@ import {
   titleWithoutBrand,
   setExpandedControl,
   partialFailureMessage,
-  releaseChoicesFromProducts,
+  normalizeYear,
+  requestedYear,
+  yearChoicesFromFacets,
+  newestFacetYear,
+  seriesChoicesFromFacets,
   applyInventoryVisibility,
   catalogRequestParams,
   appendCatalogPage,
@@ -327,14 +331,36 @@ class MemoryStorage {
     { id: 'release-d', title: 'Empty Search', brand: 'skullpanda', series_id: 'skullpanda:empty', series_title: 'Empty Search', series_roster_status: 'complete', variants: [] },
   ];
   const completeCatalog = [...pageOne, ...pageTwo];
-  const choices = releaseChoicesFromProducts(completeCatalog);
   const closedProducts = new Set();
   assert.equal(isReleaseExpanded('release-a', closedProducts), true, 'Figure inventory must be expanded by default.');
   closedProducts.add('release-a');
   assert.equal(isReleaseExpanded('release-a', closedProducts), false, 'A user may still collapse an expanded release.');
-  assert.deepEqual(Array.from(choices, (choice) => choice.id), ['skullpanda:empty', 'skullpanda:moon', 'nommi:shared-a', 'nommi:shared-b']);
+  const choices = seriesChoicesFromFacets({ series: completeCatalog.map((product) => ({ id: product.series_id, title: product.series_title, brand: product.brand, line: '', year: null, listings: 1 }))
+    .concat([{ id: 'unclassified:nommi:pendants', title: null, brand: 'nommi', line: 'pendants', year: null, listings: 2 }, { id: 'nommi:shared-a', title: 'Shared title', brand: 'nommi' }]) });
+  assert.deepEqual(Array.from(choices, (choice) => choice.id), ['skullpanda:empty', 'skullpanda:moon', 'unclassified:nommi:pendants', 'nommi:shared-a', 'nommi:shared-b']);
+  assert.equal(choices.find((choice) => choice.id === 'unclassified:nommi:pendants').title, 'Other pendants & charms', 'Set-less groups take their line title.');
   assert.equal(choices.filter((choice) => choice.title === 'Shared title').length, 2, 'Same-titled series must remain distinct by canonical series ID.');
   assert.equal(choices.every((choice) => choice.brand.length > 0), true, 'Release choices must include brand labels.');
+  assert.deepEqual(seriesChoicesFromFacets(null), []);
+
+  // Years: the visitor's choice wins; searching or opening a set widens to
+  // every year; otherwise the default batch.
+  assert.deepEqual(['2026', 'all', 'unknown', '', '', ''].map((value, index) => normalizeYear([' 2026 ', 'ALL', 'unknown', '1850', '2026-01', 'yesterday'][index])), ['2026', 'all', 'unknown', '', '', '']);
+  assert.equal(requestedYear({ year: '', q: '', releaseId: '' }, '2026'), '2026');
+  assert.equal(requestedYear({ year: '', q: 'dark maze', releaseId: '' }, '2026'), 'all');
+  assert.equal(requestedYear({ year: '', q: '', releaseId: 'skullpanda:city' }, '2026'), 'all');
+  assert.equal(requestedYear({ year: '2022', q: 'dark maze', releaseId: '' }, '2026'), '2022');
+  assert.equal(requestedYear({ year: '', q: '', releaseId: '' }, 'bogus'), 'all');
+  const yearFacets = { years: [{ year: 2024, series: 3, listings: 5 }, { year: null, series: 2, listings: 4 }, { year: 2025, series: 1, listings: 1 }] };
+  assert.deepEqual(yearChoicesFromFacets(yearFacets, '2026').map((choice) => [choice.value, choice.label]), [
+    ['all', 'All years'], ['2026', '2026 (none)'], ['2025', '2025 (1 series)'], ['2024', '2024 (3 series)'], ['unknown', 'Year unknown (2 series)'],
+  ], 'A requested year with no listings stays selectable, newest first, undated last.');
+  assert.deepEqual(yearChoicesFromFacets({}, '2026').map((choice) => choice.label), ['All years', '2026'], 'Before facets arrive the default year is shown plainly.');
+  assert.equal(newestFacetYear(yearFacets), '2025');
+  assert.equal(newestFacetYear({ years: [{ year: null, series: 1, listings: 1 }] }), '');
+  const yearParams = catalogRequestParams('', 'nommi', 'name-asc', 0, '2025', 'nommi:dream');
+  assert.deepEqual([yearParams.get('year'), yearParams.get('series')], ['2025', 'nommi:dream']);
+  assert.equal(catalogRequestParams('', '', 'name-asc', 0).get('year'), 'all', 'Callers that name no year ask for every year.');
 
   const quantities = new Map([
     [inventoryKey('release-a', 'Alpha'), 2],
@@ -499,6 +525,7 @@ class MemoryStorage {
   const updated = element('p', 'collectibles-updated');
   const results = element('div', 'collectibles-results');
   const loadMore = element('button', 'collectibles-load-more');
+  const yearSelect = element('select', 'collectibles-year');
   const releaseSelect = element('select', 'collectibles-release');
   const sortSelect = element('select', 'collectibles-sort');
   const exportButton = element('button', 'collectibles-export-pdf');
@@ -520,7 +547,7 @@ class MemoryStorage {
     input.checked = index === 0;
     return input;
   });
-  form.append(searchInput, ...brandInputs, releaseSelect, ...inventoryInputs, sortSelect, exportButton);
+  form.append(searchInput, ...brandInputs, yearSelect, releaseSelect, ...inventoryInputs, sortSelect, exportButton);
 
   const catalog = [
     {
@@ -625,7 +652,7 @@ class MemoryStorage {
   });
   const location = {
     pathname: '/collectibles/',
-    search: '?release=sonny-retail-b',
+    search: '',
     hash: '',
   };
   const windowListeners = new Map();
@@ -661,32 +688,58 @@ class MemoryStorage {
     requestAnimationFrame: (callback) => setTimeout(callback, 0),
   });
 
-  let releaseFailurePending = true;
-  const releaseOffsets = [];
-  globalThis.fetch = async (requestUrl, options = {}) => {
-    const parsed = new URL(requestUrl, 'https://example.test');
-    const offset = Number(parsed.searchParams.get('offset') || '0');
-    const isCatalogRequest = Object.prototype.hasOwnProperty.call(options, 'credentials');
-    if (!isCatalogRequest) {
-      releaseOffsets.push(offset);
-      if (releaseFailurePending && offset === 2) {
-        releaseFailurePending = false;
-        return { ok: false, status: 503, json: async () => ({}) };
-      }
-    }
-    const query = isCatalogRequest ? String(parsed.searchParams.get('q') || '').toLowerCase() : '';
-    const brand = isCatalogRequest ? String(parsed.searchParams.get('brand') || '') : '';
-    const matches = catalog.filter((product) => (brand === '' || product.brand === brand)
+  // A stand-in for the API: text, brand, year and set filters, one listing
+  // per page, and the year/set facets the shelf builds its choices from.
+  const yearOf = (product) => (Number.isInteger(product.series_release_year) ? product.series_release_year
+    : (Number.isInteger(product.release_year) ? product.release_year : null));
+  const groupOf = (product) => product.series_id || `unclassified:${product.brand}${product.line ? `:${product.line}` : ''}`;
+  const requests = [];
+  globalThis.fetch = async (requestUrl) => {
+    const params = new URL(requestUrl, 'https://example.test').searchParams;
+    requests.push(params);
+    const offset = Number(params.get('offset') || '0');
+    const query = String(params.get('q') || '').toLowerCase();
+    const brand = String(params.get('brand') || '');
+    const year = String(params.get('year') || 'all');
+    const base = catalog.filter((product) => (brand === '' || product.brand === brand)
       && (query === ''
         || product.title.toLowerCase().includes(query)
         || String(product.series_title || '').toLowerCase().includes(query)
         || product.variants.some((variant) => variant.name.toLowerCase().includes(query))));
+    let series = String(params.get('series') || '');
+    const legacy = base.find((product) => product.id === series);
+    if (series !== '' && !base.some((product) => groupOf(product) === series) && legacy) series = groupOf(legacy);
+    const inYear = (product) => year === 'all' || (year === 'unknown' ? yearOf(product) === null : yearOf(product) === Number(year));
+    const years = new Map();
+    base.forEach((product) => {
+      const key = String(yearOf(product));
+      if (!years.has(key)) years.set(key, { year: yearOf(product), series: new Set(), listings: 0 });
+      years.get(key).series.add(groupOf(product));
+      years.get(key).listings += 1;
+    });
+    const seriesFacets = new Map();
+    base.filter(inYear).forEach((product) => {
+      if (!seriesFacets.has(groupOf(product))) {
+        seriesFacets.set(groupOf(product), { id: groupOf(product), title: product.series_id ? product.series_title : null, brand: product.brand, line: product.line || '', year: yearOf(product), listings: 0 });
+      }
+      seriesFacets.get(groupOf(product)).listings += 1;
+    });
+    const matches = base.filter(inYear).filter((product) => series === '' || groupOf(product) === series);
     return {
       ok: true,
       status: 200,
       json: async () => ({
         data: matches.slice(offset, offset + 1),
-        meta: { total: matches.length, last_synced_at: '2026-10-04T00:00:00Z' },
+        meta: {
+          total: matches.length,
+          last_synced_at: '2026-10-04T00:00:00Z',
+          year,
+          series: series === '' ? null : series,
+          facets: {
+            years: Array.from(years.values()).map((entry) => ({ year: entry.year, series: entry.series.size, listings: entry.listings })),
+            series: Array.from(seriesFacets.values()),
+          },
+        },
       }),
     };
   };
@@ -702,13 +755,31 @@ class MemoryStorage {
   const applicationUrl = new URL('../htdocs/assets/js/collectibles.js', import.meta.url);
   applicationUrl.searchParams.set('integration', String(Date.now()));
   await import(applicationUrl.href);
-  await waitFor(
-    () => results.getAttribute('aria-busy') === 'false' && results.querySelectorAll('.collectible-release-block').length === 6,
-    'The browser application should finish rendering the complete multi-page catalog.',
-  );
-
   const allBlocks = () => results.querySelectorAll('.collectible-release-block');
   const blockBySeries = (seriesId) => allBlocks().find((block) => block.dataset.releaseId === seriesId);
+  const settled = () => results.getAttribute('aria-busy') === 'false';
+  const thisYear = String(new Date().getFullYear());
+
+  // The shelf opens on this year's batch; with nothing listed this year it
+  // falls back to the newest year that has listings, without a whole-catalog
+  // download.
+  await waitFor(() => settled() && requests.length >= 2 && allBlocks().length === 1, 'The shelf should open on the newest batch.');
+  assert.equal(requests[0].get('year'), thisYear, 'The first request asks for the current year only.');
+  assert.equal(requests[1].get('year'), '2023', 'An empty current year falls back to the newest year with listings.');
+  assert.equal(requests.every((params) => params.get('year') !== 'all'), true, 'The default view never asks for every year.');
+  assert.equal(yearSelect.value, '2023');
+  assert.ok(blockBySeries('skullpanda:city-alt'));
+  assert.equal(results.querySelectorAll('.collectible-year-title').length, 0, 'One requested year needs no year labels.');
+  assert.match(status.textContent, /from 2023/);
+  assert.doesNotMatch(location.search, /year=/, 'An automatic year is not written to the URL.');
+  assert.deepEqual(yearSelect.children.map((option) => option.value), ['all', '2023', '2022', 'unknown']);
+
+  yearSelect.value = 'all';
+  yearSelect.dispatchEvent({ type: 'change' });
+  await waitFor(() => settled() && allBlocks().length === 6, 'All years should load every matching set.');
+  assert.match(location.search, /year=all/);
+  assert.equal(requests.at(-1).get('year'), 'all');
+
   const sonnyBlock = blockBySeries('sonny-angel:animal-1');
   assert.equal(sonnyBlock.querySelectorAll('.collectible-card').length, 2, 'Sonny Angel listings split across API pages must render in one canonical series group.');
   assert.equal(blockBySeries('skullpanda:city').querySelectorAll('.collectible-card').length, 2, 'Skullpanda listings split across API pages must render in one canonical series group.');
@@ -722,30 +793,14 @@ class MemoryStorage {
   const figureLines = results.querySelectorAll('.collectible-line').filter((section) => section.dataset.line === 'figures');
   assert.ok(figureLines.some((section) => section.querySelectorAll('.collectible-year').some((year) => year.dataset.year === '2022'
     && year.querySelectorAll('.collectible-release-block').includes(cityBlock))), 'City of Night must sit in the 2022 batch of its figure line.');
-  // Two dated batches in one line get a jump bar, newest first, linking to
-  // each year's section.
-  const skullFigures = figureLines.find((section) => section.querySelectorAll('.collectible-release-block').includes(cityBlock));
-  const jumpLinks = skullFigures.querySelectorAll('.collectible-year-link');
-  assert.deepEqual(jumpLinks.map((link) => link.textContent), ['2023', '2022']);
-  const target2022 = skullFigures.querySelectorAll('.collectible-year').find((year) => year.dataset.year === '2022');
-  assert.equal(jumpLinks[1].href, `#${target2022.id}`, 'Each jump link must target its year section.');
+  assert.ok(results.querySelectorAll('.collectible-year-title').length > 0, 'All years label each batch.');
+  assert.equal(results.querySelectorAll('.collectible-year-link').length, 0, 'Years are a filter, not in-page jump links.');
   // Retail identifiers show on the card and the figure row; a malformed
   // barcode is not shown.
   const cityAltBlock = blockBySeries('skullpanda:city-alt');
   assert.equal(cityAltBlock.querySelector('.collectible-card-summary').querySelector('.collectible-identifiers').textContent, 'SKU PM-CITY-ALT · Barcode 6941848212345');
   assert.equal(cityAltBlock.querySelector('.collectible-inventory-name').querySelector('.collectible-identifiers').textContent, 'SKU PM-CITY-DAWN');
   assert.equal(blockBySeries('nommi:dream-a').querySelectorAll('.collectible-card').length, 2, 'Nommi listings split across API pages must render in one canonical series group.');
-  assert.equal(sonnyBlock.dataset.legacyReleaseId, 'sonny-retail-b', 'A legacy product selection must resolve to its containing series while choices are incomplete.');
-  assert.equal(sonnyBlock.hidden, false);
-  assert.equal(allBlocks().filter((block) => !block.hidden).length, 1, 'The persisted legacy release selection must filter the grouped tree.');
-  assert.equal(loadMore.hidden, false);
-  assert.match(loadMore.textContent, /Retry loading series/);
-
-  loadMore.dispatchEvent({ type: 'click' });
-  await waitFor(() => releaseSelect.disabled === false, 'Retrying must finish the failed multi-page series-choice request.');
-  assert.ok(releaseOffsets.filter((offset) => offset === 2).length >= 2, 'The failed release page must be requested again.');
-  assert.equal(releaseSelect.value, 'sonny-angel:animal-1', 'Legacy product IDs must normalize to the canonical series ID.');
-  assert.match(location.search, /release=sonny-angel%3Aanimal-1/);
 
   const optionValues = releaseSelect.children.filter((option) => !option.disabled).map((option) => option.value);
   assert.equal(new Set(optionValues).size, optionValues.length, 'Duplicate display titles must retain distinct option identities.');
@@ -756,8 +811,25 @@ class MemoryStorage {
   assert.ok(optionValues.includes('unclassified:nommi'));
   assert.equal(releaseSelect.children.filter((option) => option.textContent.startsWith('City of Night')).length, 2);
 
-  releaseSelect.value = '';
+  // A set is fetched on its own; an older link's listing id resolves to its set.
+  releaseSelect.value = 'sonny-retail-b';
   releaseSelect.dispatchEvent({ type: 'change' });
+  await waitFor(() => settled() && allBlocks().length === 1 && releaseSelect.value === 'sonny-angel:animal-1', 'A legacy listing id should load its whole set.');
+  assert.ok(requests.some((params) => params.get('series') === 'sonny-retail-b'), 'The older link asks for its listing id.');
+  assert.equal(requests.at(-1).get('series'), 'sonny-angel:animal-1', 'Later pages ask for the resolved set.');
+  assert.match(location.search, /release=sonny-angel%3Aanimal-1/);
+  assert.equal(blockBySeries('sonny-angel:animal-1').querySelectorAll('.collectible-card').length, 2);
+
+  yearSelect.value = '2022';
+  yearSelect.dispatchEvent({ type: 'change' });
+  await waitFor(() => settled() && allBlocks().length === 1 && blockBySeries('skullpanda:city'), 'Choosing a year should show only that year.');
+  assert.equal(releaseSelect.value, '', 'Changing the year clears the chosen set.');
+  assert.match(location.search, /year=2022/);
+  assert.equal(results.querySelectorAll('.collectible-year-title').length, 0);
+
+  yearSelect.value = 'all';
+  yearSelect.dispatchEvent({ type: 'change' });
+  await waitFor(() => settled() && allBlocks().length === 6, 'Returning to all years should reload every set.');
   assert.equal(allBlocks().filter((block) => !block.hidden).length, 6);
   assert.match(blockBySeries('skullpanda:city').querySelector('.collectible-release-status').textContent, /Roster incomplete/);
   assert.match(blockBySeries('unclassified:nommi').querySelector('.collectible-release-status').textContent, /Series membership is unknown/);
@@ -797,6 +869,7 @@ class MemoryStorage {
   inventoryInputs.find((input) => input.value === 'all').dispatchEvent({ type: 'change' });
   releaseSelect.value = 'skullpanda:city';
   releaseSelect.dispatchEvent({ type: 'change' });
+  await waitFor(() => settled() && allBlocks().length === 1, 'Choosing a set should load just that set.');
   brandInputs.forEach((input) => { input.checked = input.value === 'nommi'; });
   brandInputs.find((input) => input.value === 'nommi').dispatchEvent({ type: 'change' });
   await waitFor(

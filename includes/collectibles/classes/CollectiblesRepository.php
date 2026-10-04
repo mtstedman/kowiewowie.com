@@ -255,7 +255,19 @@ final class CollectiblesRepository
      *     last_synced_at: ?string
      * }
      */
-    public function search(?string $query, ?string $brand, string $sort, int $limit, int $offset): array
+    /**
+     * Listings matching the text and brand, narrowed to one release year
+     * (`all`, `unknown`, or a year) and one set. Series membership and years
+     * are decided by the read-time classifier, so every matching listing is
+     * classified (a few hundred at most) and only the requested page is
+     * loaded in full. Facets describe the year and set choices for the same
+     * text and brand: years ignore the year and set filters, sets ignore only
+     * the set filter. A set filter may name a set, a set-less group
+     * (`unclassified:<brand>:<line>`), or a listing id from older links.
+     *
+     * @return array{items: list<array<string, mixed>>, total: int, last_synced_at: ?string, series: ?string, facets: array{years: list<array{year: ?int, series: int, listings: int}>, series: list<array{id: string, title: ?string, brand: string, line: string, year: ?int, listings: int}>}}
+     */
+    public function search(?string $query, ?string $brand, string $sort, int $limit, int $offset, ?string $year = null, ?string $series = null): array
     {
         $conditions = [];
         $parameters = [];
@@ -300,53 +312,17 @@ final class CollectiblesRepository
             default => 'p.title, p.id',
         };
 
-        $summaryStatement = $this->pdo->prepare(sprintf(<<<'SQL'
-            SELECT
-                count(*) AS total,
-                (SELECT max(last_seen_at) FROM collectible_products) AS last_synced_at
-            FROM collectible_products p
-            %s
-        SQL, $where));
-        $this->bindSearchParameters($summaryStatement, $parameters);
-        $summaryStatement->execute();
-        $summary = $summaryStatement->fetch(PDO::FETCH_ASSOC) ?: [];
-
-        $itemsStatement = $this->pdo->prepare(sprintf(<<<'SQL'
-            SELECT
-                p.id,
-                p.external_id,
-                p.brand,
-                p.title,
-                p.product_url,
-                p.image_url,
-                p.price_cents,
-                p.currency,
-                p.price_kind,
-                p.price_source_url,
-                p.price_observed_on,
-                p.release_year,
-                p.sku,
-                p.barcode,
-                p.source_key,
-                p.last_seen_at,
-                %s AS sort_price_cents
+        $listingStatement = $this->pdo->prepare(sprintf(<<<'SQL'
+            SELECT p.id, p.source_key, p.brand, p.external_id, p.product_url, p.title, p.release_year
             FROM collectible_products p
             %s
             ORDER BY %s
-            LIMIT :limit
-            OFFSET :offset
-        SQL, $effectivePrice, $where, $orderBy));
-        $this->bindSearchParameters($itemsStatement, $parameters);
-        $itemsStatement->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $itemsStatement->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $itemsStatement->execute();
-
+        SQL, $where, $orderBy));
+        $this->bindSearchParameters($listingStatement, $parameters);
+        $listingStatement->execute();
         $catalogMappings = CollectibleCatalogSupplement::mappings(dirname(__DIR__, 3));
-        $items = [];
-        $itemIndexes = [];
-        foreach ($itemsStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
-            $id = (string) $row['id'];
-            $itemIndexes[$id] = count($items);
+        $listings = [];
+        foreach ($listingStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $mapping = CollectibleListingClassifier::classify(
                 $catalogMappings,
                 (string) $row['source_key'],
@@ -355,32 +331,126 @@ final class CollectiblesRepository
                 (string) $row['product_url'],
                 (string) $row['title'],
             );
-            $items[] = [
-                'id' => $id,
+            $listings[(string) $row['id']] = [
+                'id' => (string) $row['id'],
                 'brand' => (string) $row['brand'],
-                'title' => (string) $row['title'],
-                'product_url' => (string) $row['product_url'],
-                'image_url' => $row['image_url'] === null ? null : (string) $row['image_url'],
-                'price_cents' => $row['price_cents'] === null ? null : (int) $row['price_cents'],
-                'currency' => $row['currency'] === null ? null : (string) $row['currency'],
-                'price_kind' => $row['price_kind'] === null ? null : (string) $row['price_kind'],
-                'price_source_url' => $row['price_source_url'] === null ? null : (string) $row['price_source_url'],
-                'price_observed_on' => $row['price_observed_on'] === null ? null : (string) $row['price_observed_on'],
-                'release_year' => $row['release_year'] === null ? null : (int) $row['release_year'],
-                'sku' => $row['sku'] === null ? null : (string) $row['sku'],
-                'barcode' => $row['barcode'] === null ? null : (string) $row['barcode'],
-                'sort_price_cents' => $row['sort_price_cents'] === null ? null : (int) $row['sort_price_cents'],
-                'source_key' => (string) $row['source_key'],
-                'series_id' => $mapping['series_id'],
-                'series_title' => $mapping['series_title'],
-                'series_roster_status' => $mapping['series_roster_status'],
-                'series_release_year' => $mapping['series_release_year'],
-                'line' => $mapping['line'],
-                'listing_kind' => $mapping['listing_kind'],
-                'listing_figure' => $mapping['listing_figure'],
-                'last_seen_at' => $this->formatTimestamp((string) $row['last_seen_at']),
-                'variants' => [],
+                'mapping' => $mapping,
+                'group' => $mapping['series_id'] ?? 'unclassified:' . $row['brand'] . ($mapping['line'] === '' ? '' : ':' . $mapping['line']),
+                'year' => is_int($mapping['series_release_year'])
+                    ? $mapping['series_release_year']
+                    : ($row['release_year'] === null ? null : (int) $row['release_year']),
             ];
+        }
+
+        $seriesId = $series === null || $series === '' ? null : $series;
+        if ($seriesId !== null && isset($listings[$seriesId]) && !in_array($seriesId, array_column($listings, 'group'), true)) {
+            $seriesId = $listings[$seriesId]['group'];
+        }
+        $inYear = static fn (array $listing): bool => match (true) {
+            $year === null || $year === 'all' => true,
+            $year === 'unknown' => $listing['year'] === null,
+            default => $listing['year'] === (int) $year,
+        };
+
+        $years = [];
+        $seriesFacets = [];
+        $selected = [];
+        foreach ($listings as $listing) {
+            $yearKey = $listing['year'] === null ? 'unknown' : (string) $listing['year'];
+            $years[$yearKey] ??= ['year' => $listing['year'], 'series' => [], 'listings' => 0];
+            $years[$yearKey]['series'][$listing['group']] = true;
+            $years[$yearKey]['listings']++;
+            if (!$inYear($listing)) continue;
+            $mapping = $listing['mapping'];
+            $seriesFacets[$listing['group']] ??= [
+                'id' => $listing['group'],
+                'title' => $mapping['series_id'] === null ? null : $mapping['series_title'],
+                'brand' => $listing['brand'],
+                'line' => $mapping['line'],
+                'year' => $mapping['series_id'] === null ? null : $listing['year'],
+                'listings' => 0,
+            ];
+            $seriesFacets[$listing['group']]['listings']++;
+            if ($seriesId === null || $listing['group'] === $seriesId) $selected[] = $listing;
+        }
+        $yearFacets = array_map(
+            static fn (array $entry): array => ['year' => $entry['year'], 'series' => count($entry['series']), 'listings' => $entry['listings']],
+            array_values($years),
+        );
+        usort($yearFacets, static fn (array $left, array $right): int => ($left['year'] === null) <=> ($right['year'] === null)
+            ?: ($right['year'] ?? 0) <=> ($left['year'] ?? 0));
+        $seriesFacets = array_values($seriesFacets);
+        usort($seriesFacets, static fn (array $left, array $right): int => ($left['title'] === null) <=> ($right['title'] === null)
+            ?: strcasecmp((string) $left['title'], (string) $right['title'])
+            ?: strcmp($left['id'], $right['id']));
+
+        $page = array_slice($selected, $offset, $limit);
+        $items = [];
+        $itemIndexes = [];
+        if ($page !== []) {
+            $pagePlaceholders = [];
+            foreach ($page as $index => $listing) {
+                $pagePlaceholders['page_' . $index] = $listing['id'];
+            }
+            $itemsStatement = $this->pdo->prepare(sprintf(<<<'SQL'
+                SELECT
+                    p.id,
+                    p.brand,
+                    p.title,
+                    p.product_url,
+                    p.image_url,
+                    p.price_cents,
+                    p.currency,
+                    p.price_kind,
+                    p.price_source_url,
+                    p.price_observed_on,
+                    p.release_year,
+                    p.sku,
+                    p.barcode,
+                    p.source_key,
+                    p.last_seen_at,
+                    %s AS sort_price_cents
+                FROM collectible_products p
+                WHERE p.id IN (%s)
+            SQL, $effectivePrice, implode(', ', array_map(static fn (string $name): string => ':' . $name, array_keys($pagePlaceholders)))));
+            $this->bindSearchParameters($itemsStatement, $pagePlaceholders);
+            $itemsStatement->execute();
+            $rows = [];
+            foreach ($itemsStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                $rows[(string) $row['id']] = $row;
+            }
+            foreach ($page as $listing) {
+                $row = $rows[$listing['id']] ?? null;
+                if ($row === null) continue;
+                $mapping = $listing['mapping'];
+                $itemIndexes[$listing['id']] = count($items);
+                $items[] = [
+                    'id' => $listing['id'],
+                    'brand' => (string) $row['brand'],
+                    'title' => (string) $row['title'],
+                    'product_url' => (string) $row['product_url'],
+                    'image_url' => $row['image_url'] === null ? null : (string) $row['image_url'],
+                    'price_cents' => $row['price_cents'] === null ? null : (int) $row['price_cents'],
+                    'currency' => $row['currency'] === null ? null : (string) $row['currency'],
+                    'price_kind' => $row['price_kind'] === null ? null : (string) $row['price_kind'],
+                    'price_source_url' => $row['price_source_url'] === null ? null : (string) $row['price_source_url'],
+                    'price_observed_on' => $row['price_observed_on'] === null ? null : (string) $row['price_observed_on'],
+                    'release_year' => $row['release_year'] === null ? null : (int) $row['release_year'],
+                    'sku' => $row['sku'] === null ? null : (string) $row['sku'],
+                    'barcode' => $row['barcode'] === null ? null : (string) $row['barcode'],
+                    'sort_price_cents' => $row['sort_price_cents'] === null ? null : (int) $row['sort_price_cents'],
+                    'source_key' => (string) $row['source_key'],
+                    'series_id' => $mapping['series_id'],
+                    'series_title' => $mapping['series_title'],
+                    'series_roster_status' => $mapping['series_roster_status'],
+                    'series_release_year' => $mapping['series_release_year'],
+                    'line' => $mapping['line'],
+                    'listing_kind' => $mapping['listing_kind'],
+                    'listing_figure' => $mapping['listing_figure'],
+                    'last_seen_at' => $this->formatTimestamp((string) $row['last_seen_at']),
+                    'variants' => [],
+                ];
+            }
         }
 
         if ($itemIndexes !== []) {
@@ -427,12 +497,14 @@ final class CollectiblesRepository
             }
         }
 
+        $lastSynced = $this->pdo->query('SELECT max(last_seen_at) FROM collectible_products')->fetchColumn();
+
         return [
             'items' => $items,
-            'total' => (int) ($summary['total'] ?? 0),
-            'last_synced_at' => isset($summary['last_synced_at'])
-                ? $this->formatTimestamp((string) $summary['last_synced_at'])
-                : null,
+            'total' => count($selected),
+            'last_synced_at' => $lastSynced === false || $lastSynced === null ? null : $this->formatTimestamp((string) $lastSynced),
+            'series' => $seriesId,
+            'facets' => ['years' => $yearFacets, 'series' => $seriesFacets],
         ];
     }
 

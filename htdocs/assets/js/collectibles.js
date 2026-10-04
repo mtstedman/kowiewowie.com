@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=74ac37f3e1a5';
+import * as inventoryModule from './collectibles-inventory.js?v=23576ed96603';
 
 const {
     INVENTORY_STORAGE_KEY,
@@ -22,7 +22,11 @@ const {
     isThumbnailActivationKey,
     setExpandedControl,
     partialFailureMessage,
-    releaseChoicesFromProducts,
+    normalizeYear,
+    requestedYear,
+    yearChoicesFromFacets,
+    newestFacetYear,
+    seriesChoicesFromFacets,
     applyInventoryVisibility,
     catalogRequestParams,
     appendCatalogPage,
@@ -49,6 +53,7 @@ const {
     const updatedElement = document.getElementById('collectibles-updated');
     const resultsElement = document.getElementById('collectibles-results');
     const loadMoreButton = document.getElementById('collectibles-load-more');
+    const yearSelect = document.getElementById('collectibles-year');
     const releaseSelect = document.getElementById('collectibles-release');
     const sortSelect = document.getElementById('collectibles-sort');
     const exportButton = document.getElementById('collectibles-export-pdf');
@@ -61,6 +66,7 @@ const {
         || !(updatedElement instanceof HTMLElement)
         || !(resultsElement instanceof HTMLElement)
         || !(loadMoreButton instanceof HTMLButtonElement)
+        || !(yearSelect instanceof HTMLSelectElement)
         || !(releaseSelect instanceof HTMLSelectElement)
         || !(sortSelect instanceof HTMLSelectElement)
         || !(exportButton instanceof HTMLButtonElement)
@@ -74,12 +80,17 @@ const {
         .filter((input) => input instanceof HTMLInputElement);
 
     const requestGate = createRequestGate();
-    const releaseRequestGate = createRequestGate();
     const state = {
         q: '',
         brand: '',
         sort: 'name-asc',
         releaseId: '',
+        // The visitor's year choice ('' lets the shelf pick: see requestedYear),
+        // the default batch, and the year the loaded listings were asked for.
+        year: '',
+        defaultYear: String(new Date().getFullYear()),
+        requestYear: 'all',
+        facets: { years: [], series: [] },
         inventoryFilter: 'all',
         loaded: 0,
         total: 0,
@@ -90,12 +101,6 @@ const {
         releaseCount: 0,
         products: [],
         closedProducts: new Set(),
-        releaseProducts: [],
-        releaseLoaded: 0,
-        releaseTotal: 0,
-        releaseChoicesComplete: false,
-        releaseChoicesLoading: false,
-        releaseController: null,
         lastSyncedAt: null,
     };
 
@@ -323,6 +328,11 @@ const {
         return { figures: rows.length, series: blocks.length };
     };
 
+    const yearDescription = (year) => {
+        if (year === 'unknown') return ' with no known release year';
+        return /^[0-9]{4}$/.test(year) ? ` from ${year}` : '';
+    };
+
     const describeResults = () => {
         const counts = visibleInventoryCounts();
         if (state.inventoryFilter !== 'all') {
@@ -339,22 +349,18 @@ const {
                 : `Showing ${counts.figures} ${figureWord} from the selected series.`;
         }
         const listingWord = state.total === 1 ? 'listing' : 'listings';
+        const yearPhrase = yearDescription(state.requestYear);
         if (state.loaded >= state.total) {
-            return `Showing ${counts.series} series across all ${state.total} ${listingWord}.`;
+            return `Showing ${counts.series} series across all ${state.total} ${listingWord}${yearPhrase}.`;
         }
-        return `Showing ${counts.series} series across ${state.loaded} of ${state.total} ${listingWord}.`;
+        return `Showing ${counts.series} series across ${state.loaded} of ${state.total} ${listingWord}${yearPhrase}.`;
     };
 
     const refreshInventoryVisibility = () => {
         applyInventoryVisibility(resultsElement, state, HTMLElement);
         if (!state.loading) {
             const counts = visibleInventoryCounts();
-            const releaseNotice = state.releaseChoicesComplete
-                ? ''
-                : (state.releaseChoicesLoading ? ' Series choices are still loading.' : ' Series choices are incomplete; retry to finish loading them.');
-            setStatus(`${describeResults()}${releaseNotice}`, !state.releaseChoicesComplete && !state.releaseChoicesLoading
-                ? 'error'
-                : (counts.series === 0 ? 'empty' : 'success'));
+            setStatus(describeResults(), counts.series === 0 ? 'empty' : 'success');
         }
     };
 
@@ -798,29 +804,16 @@ const {
                     if (!years.has(yearKey)) years.set(yearKey, []);
                     years.get(yearKey).push(group);
                 });
-                // A line with no dated sets needs no year label.
-                const onlyUndated = years.size === 1 && years.has('unknown');
+                // One requested year, or a line with no dated sets, needs no
+                // year labels.
+                const yearLabels = state.requestYear === 'all' && !(years.size === 1 && years.has('unknown'));
                 const yearKeys = Array.from(years.keys())
                     .sort((left, right) => (Number(left === 'unknown') - Number(right === 'unknown')) || yearDirection * (Number(left) - Number(right)));
-                const yearId = (yearKey) => `collectible-year-${normalizeBrand(section.brand)}-${section.line}-${yearKey}`;
-                // Two or more batches get a jump bar to each year.
-                if (yearKeys.filter((yearKey) => yearKey !== 'unknown').length >= 2) {
-                    const nav = createElement('nav', 'collectible-year-nav');
-                    nav.setAttribute('aria-label', `${brandLabel(section.brand)} ${lineLabel(section.line)} by release year`);
-                    nav.append(createElement('span', 'collectible-year-nav-label', 'Jump to'));
-                    yearKeys.forEach((yearKey) => {
-                        const link = createElement('a', 'collectible-year-link', yearKey === 'unknown' ? 'Year unknown' : yearKey);
-                        link.href = `#${yearId(yearKey)}`;
-                        nav.append(link);
-                    });
-                    lineSection.append(nav);
-                }
                 yearKeys
                     .forEach((yearKey) => {
                         const yearSection = createElement('div', 'collectible-group collectible-year');
                         yearSection.dataset.year = yearKey;
-                        yearSection.id = yearId(yearKey);
-                        if (!onlyUndated) yearSection.append(createElement('p', 'collectible-year-title', yearKey === 'unknown' ? 'Release year unknown' : yearKey));
+                        if (yearLabels) yearSection.append(createElement('p', 'collectible-year-title', yearKey === 'unknown' ? 'Release year unknown' : yearKey));
                         years.get(yearKey).forEach((group) => yearSection.append(renderSeries(group)));
                         lineSection.append(yearSection);
                     });
@@ -834,11 +827,21 @@ const {
         if (lastSyncedAt === null || lastSyncedAt === undefined || lastSyncedAt === '') {
             return { text: 'The collectibles catalog has not been synced yet. Check back after the next pull.', tone: 'empty' };
         }
-        if (state.q !== '' || state.brand !== '') {
+        if (state.releaseId !== '') {
+            return { text: 'No listings in the selected series match these catalog controls.', tone: 'empty' };
+        }
+        const elsewhere = yearChoicesFromFacets(state.facets, '')
+            .filter((choice) => choice.value !== 'all' && choice.value !== state.requestYear)
+            .map((choice) => (choice.value === 'unknown' ? 'undated listings' : choice.value));
+        const hint = state.requestYear !== 'all' && elsewhere.length > 0
+            ? ` Other years have matches: ${elsewhere.slice(0, 4).join(', ')}${elsewhere.length > 4 ? ', …' : ''}. Choose another year or All years.`
+            : ' Try a different name or line.';
+        if (state.q !== '' || state.brand !== '' || state.requestYear !== 'all') {
             const parts = [];
             if (state.q !== '') parts.push(`"${state.q}"`);
             if (state.brand !== '') parts.push(`in ${BRANDS[state.brand]}`);
-            return { text: `No collectibles match ${parts.join(' ')}. Try a different name or line.`, tone: 'empty' };
+            const yearPhrase = yearDescription(state.requestYear);
+            return { text: `No collectibles${parts.length > 0 ? ` match ${parts.join(' ')}` : ''}${yearPhrase}.${hint}`, tone: 'empty' };
         }
         return { text: 'The latest sync found no collectibles on the shelf.', tone: 'empty' };
     };
@@ -858,29 +861,20 @@ const {
         return 'The collectibles shelf would not load. Try again in a moment.';
     };
 
-    const releaseChoicesForBrand = () => {
-        const choices = releaseChoicesFromProducts(state.releaseProducts);
-        if (state.brand === '') return choices;
-        const brandSeries = new Set(state.releaseProducts
-            .filter((product) => normalizeBrand(product?.brand) === state.brand)
-            .map(seriesIdForProduct));
-        return choices.filter((choice) => brandSeries.has(choice.id));
-    };
-
-    const normalizeReleaseSelection = () => {
-        if (state.releaseId === '') return;
-        const choices = releaseChoicesFromProducts(state.releaseProducts);
-        if (!choices.some((choice) => choice.id === state.releaseId)) {
-            const legacyProduct = state.releaseProducts.find((product) => String(product?.id ?? '') === state.releaseId);
-            if (legacyProduct) state.releaseId = seriesIdForProduct(legacyProduct);
-        }
-        if (state.releaseChoicesComplete && !releaseChoicesForBrand().some((choice) => choice.id === state.releaseId)) {
-            state.releaseId = '';
-        }
+    const renderYearOptions = () => {
+        const fragment = document.createDocumentFragment();
+        yearChoicesFromFacets(state.facets, state.requestYear).forEach((choice) => {
+            const option = document.createElement('option');
+            option.value = choice.value;
+            option.textContent = choice.label;
+            fragment.append(option);
+        });
+        yearSelect.replaceChildren(fragment);
+        yearSelect.value = state.requestYear;
     };
 
     const renderReleaseOptions = () => {
-        const choices = releaseChoicesForBrand();
+        const choices = seriesChoicesFromFacets(state.facets);
         const duplicateLabels = new Map();
         choices.forEach((choice) => {
             const label = `${choice.title} — ${choice.brand}`;
@@ -898,84 +892,10 @@ const {
             option.textContent = duplicateLabels.get(label) > 1 ? `${label} (${choice.id})` : label;
             fragment.append(option);
         });
-        if (!state.releaseChoicesComplete) {
-            const progress = document.createElement('option');
-            progress.disabled = true;
-            progress.textContent = state.releaseChoicesLoading
-                ? `Loading complete series list (${state.releaseLoaded}${state.releaseTotal > 0 ? ` of ${state.releaseTotal}` : ''})…`
-                : 'Series list incomplete — retry below';
-            fragment.append(progress);
-        }
         releaseSelect.replaceChildren(fragment);
         releaseSelect.value = choices.some((choice) => choice.id === state.releaseId) ? state.releaseId : '';
-        releaseSelect.disabled = !state.releaseChoicesComplete;
-        releaseSelect.setAttribute('aria-busy', state.releaseChoicesLoading ? 'true' : 'false');
-    };
-
-    const loadReleaseChoices = async (reset) => {
-        const token = releaseRequestGate.next();
-        if (state.releaseController !== null) state.releaseController.abort();
-        const controller = typeof AbortController === 'function' ? new AbortController() : null;
-        state.releaseController = controller;
-        if (reset) {
-            state.releaseProducts = [];
-            state.releaseLoaded = 0;
-            state.releaseTotal = 0;
-            state.releaseChoicesComplete = false;
-        }
-        state.releaseChoicesLoading = true;
-        renderReleaseOptions();
-        updateLoadMore(0);
-        try {
-            do {
-                const offset = state.releaseLoaded;
-                const params = new URLSearchParams({
-                    sort: 'name-asc',
-                    limit: String(PAGE_SIZE),
-                    offset: String(offset),
-                });
-                const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
-                    headers: { Accept: 'application/json' },
-                    signal: controller !== null ? controller.signal : undefined,
-                });
-                if (!releaseRequestGate.isCurrent(token)) return false;
-                if (!response.ok) throw new Error('The release list would not load.');
-                const payload = await response.json();
-                if (!releaseRequestGate.isCurrent(token)) return false;
-                const items = payload && Array.isArray(payload.data) ? payload.data : [];
-                const meta = payload && payload.meta && typeof payload.meta === 'object' ? payload.meta : {};
-                const total = Number.isInteger(meta.total) && meta.total >= 0 ? meta.total : offset + items.length;
-                state.releaseProducts.push(...items);
-                state.releaseLoaded = offset + items.length;
-                state.releaseTotal = Math.max(total, state.releaseLoaded);
-                renderReleaseOptions();
-                if (state.releaseLoaded < state.releaseTotal && items.length === 0) {
-                    throw new Error('The release list stopped before it finished loading.');
-                }
-            } while (state.releaseLoaded < state.releaseTotal);
-            if (!releaseRequestGate.isCurrent(token)) return false;
-            state.releaseChoicesComplete = true;
-            normalizeReleaseSelection();
-            renderReleaseOptions();
-            syncUrl();
-            refreshInventoryVisibility();
-            updateLoadMore(0);
-            return true;
-        } catch (error) {
-            if (!releaseRequestGate.isCurrent(token)) return false;
-            state.releaseChoicesComplete = false;
-            renderReleaseOptions();
-            updateLoadMore(state.loaded > 0 ? 1 : 0);
-            if (!state.loading) refreshInventoryVisibility();
-            return false;
-        } finally {
-            if (releaseRequestGate.isCurrent(token)) {
-                state.releaseChoicesLoading = false;
-                state.releaseController = null;
-                renderReleaseOptions();
-                updateLoadMore(state.loaded > 0 ? 1 : 0);
-            }
-        }
+        releaseSelect.disabled = false;
+        releaseSelect.setAttribute('aria-busy', 'false');
     };
 
     const syncUrl = () => {
@@ -983,10 +903,12 @@ const {
         params.delete('q');
         params.delete('brand');
         params.delete('release');
+        params.delete('year');
         params.delete('sort');
         if (state.q !== '') params.set('q', state.q);
         if (state.brand !== '') params.set('brand', state.brand);
         if (state.releaseId !== '') params.set('release', state.releaseId);
+        if (state.year !== '') params.set('year', state.year);
         if (state.sort !== 'name-asc') params.set('sort', state.sort);
         const query = params.toString();
         const nextUrl = `${window.location.pathname}${query !== '' ? `?${query}` : ''}${window.location.hash}`;
@@ -997,12 +919,6 @@ const {
     };
 
     const updateLoadMore = (pageCount) => {
-        if (!state.releaseChoicesComplete) {
-            loadMoreButton.hidden = false;
-            loadMoreButton.disabled = state.loading || state.releaseChoicesLoading;
-            loadMoreButton.textContent = state.releaseChoicesLoading ? 'Loading series…' : 'Retry loading series';
-            return;
-        }
         loadMoreButton.disabled = state.loading;
         loadMoreButton.hidden = !(state.loaded < state.total && (pageCount > 0 || state.loaded > 0));
         loadMoreButton.textContent = 'Finish loading catalog';
@@ -1015,6 +931,7 @@ const {
         state.controller = controller;
 
         if (reset) {
+            state.requestYear = requestedYear(state, state.defaultYear);
             state.loaded = 0;
             state.total = 0;
             state.products = [];
@@ -1031,7 +948,7 @@ const {
         try {
             do {
                 const offset = state.loaded;
-                const params = catalogRequestParams(state.q, state.brand, state.sort, offset);
+                const params = catalogRequestParams(state.q, state.brand, state.sort, offset, state.requestYear, state.releaseId);
 
                 const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
                     headers: { Accept: 'application/json' },
@@ -1048,6 +965,15 @@ const {
                 if (!requestGate.isCurrent(token)) return false;
                 const meta = payload && payload.meta && typeof payload.meta === 'object' ? payload.meta : {};
                 state.lastSyncedAt = typeof meta.last_synced_at === 'string' ? meta.last_synced_at : state.lastSyncedAt;
+                if (offset === 0) {
+                    // The facets describe this search's years and sets; an
+                    // older link's listing id comes back as its set's id.
+                    state.facets = meta.facets && typeof meta.facets === 'object' ? meta.facets : { years: [], series: [] };
+                    if (state.releaseId !== '' && typeof meta.series === 'string' && meta.series !== '') state.releaseId = meta.series;
+                    renderYearOptions();
+                    renderReleaseOptions();
+                    syncUrl();
+                }
                 pageCount = appendCatalogPage(state, payload);
                 renderCatalog();
                 setUpdated(state.lastSyncedAt);
@@ -1063,6 +989,12 @@ const {
             if (!requestGate.isCurrent(token)) return false;
             setLoading(false);
             updateLoadMore(pageCount);
+            // Nothing in the default year yet for this line: show its newest batch.
+            const newest = newestFacetYear(state.facets);
+            if (reset && state.loaded === 0 && state.year === '' && state.requestYear === state.defaultYear && newest !== '' && newest !== state.defaultYear) {
+                state.defaultYear = newest;
+                return load(true, completeCatalog);
+            }
             if (state.loaded === 0) {
                 const empty = emptyMessage(state.lastSyncedAt);
                 setStatus(empty.text, empty.tone);
@@ -1091,11 +1023,14 @@ const {
         const brand = normalizeBrand(checkedBrand ? checkedBrand.value : '');
         const sort = normalizeSort(sortSelect.value);
         if (q === state.q && brand === state.brand && sort === state.sort && state.loaded > 0) return;
+        if (brand !== state.brand) {
+            // Another line has its own sets and its own newest batch.
+            state.releaseId = '';
+            state.defaultYear = String(new Date().getFullYear());
+        }
         state.q = q;
         state.brand = brand;
         state.sort = sort;
-        normalizeReleaseSelection();
-        renderReleaseOptions();
         load(true);
     };
 
@@ -1125,10 +1060,18 @@ const {
         if (!state.loading && state.loaded < state.total) load(false, true);
         else updateLoadMore(1);
     }));
+    yearSelect.addEventListener('change', () => {
+        cancelDebounce();
+        state.year = normalizeYear(yearSelect.value);
+        state.releaseId = '';
+        load(true);
+    });
     releaseSelect.addEventListener('change', () => {
+        cancelDebounce();
+        // Keep the year that listed this set rather than widening to all years.
+        if (state.year === '') state.year = state.requestYear;
         state.releaseId = releaseSelect.value;
-        syncUrl();
-        refreshInventoryVisibility();
+        load(true);
     });
     sortSelect.addEventListener('change', () => {
         cancelDebounce();
@@ -1139,12 +1082,8 @@ const {
         cancelDebounce();
         applyFormState();
     });
-    loadMoreButton.addEventListener('click', async () => {
-        if (state.loading || state.releaseChoicesLoading) return;
-        if (!state.releaseChoicesComplete) {
-            await loadReleaseChoices(false);
-        }
-        if (state.loaded < state.total) load(false, true);
+    loadMoreButton.addEventListener('click', () => {
+        if (!state.loading && state.loaded < state.total) load(false, true);
     });
 
     let printTitle = null;
@@ -1188,6 +1127,7 @@ const {
     state.q = normalizeQuery(initialParams.get('q'));
     state.brand = normalizeBrand(initialParams.get('brand'));
     state.releaseId = String(initialParams.get('release') ?? '');
+    state.year = normalizeYear(initialParams.get('year'));
     state.sort = normalizeSort(initialParams.get('sort'));
     searchInput.value = state.q;
     sortSelect.value = state.sort;
@@ -1198,8 +1138,8 @@ const {
         input.checked = normalizeInventoryFilter(input.value) === state.inventoryFilter;
     });
 
-    normalizeReleaseSelection();
+    state.requestYear = requestedYear(state, state.defaultYear);
+    renderYearOptions();
     renderReleaseOptions();
-    loadReleaseChoices(true);
     load(true, true);
 })();

@@ -16,7 +16,7 @@
 
 .collectibles-controls {
   display: grid;
-  grid-template-columns: minmax(14rem, 1.4fr) minmax(18rem, auto) minmax(13rem, 1fr) minmax(14rem, auto) minmax(11rem, auto) auto;
+  grid-template-columns: minmax(14rem, 1.4fr) minmax(18rem, auto) minmax(9rem, auto) minmax(13rem, 1fr) minmax(14rem, auto) minmax(11rem, auto) auto;
   align-items: end;
   gap: 1rem;
   width: 100%;
@@ -264,31 +264,6 @@
   color: var(--ink);
   font-size: clamp(1.35rem, 1.15rem + 0.9vw, 1.9rem);
   line-height: 1.15;
-}
-
-.collectible-year-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.75rem;
-  margin-top: -0.4rem;
-  font-size: 0.85rem;
-}
-
-.collectible-year-nav-label {
-  color: var(--ink-soft);
-  font-weight: 700;
-}
-
-.collectible-year-link {
-  color: var(--accent-cool, var(--ink));
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
-.collectible-year {
-  scroll-margin-top: 5rem;
 }
 
 .collectible-year {
@@ -826,9 +801,6 @@
     break-before: auto;
   }
 
-  .collectible-year-nav {
-    display: none;
-  }
 
   .collectible-card {
     break-inside: avoid;

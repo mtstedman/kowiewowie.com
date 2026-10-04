@@ -165,9 +165,30 @@ final class Application
                     'sort' => 'Use name-asc, name-desc, price-asc, price-desc, newest, or oldest.',
                 ]);
             }
+            $year = trim((string) ($request->query['year'] ?? 'all'));
+            if ($year === '') $year = 'all';
+            if (!in_array($year, ['all', 'unknown'], true) && preg_match('/^(?:19|20)[0-9]{2}$/', $year) !== 1) {
+                throw new ApiException(422, 'validation_error', 'year must be all, unknown, or a four-digit year.', [
+                    'year' => 'Use all, unknown, or a year such as 2026.',
+                ]);
+            }
+            $series = trim((string) ($request->query['series'] ?? ''));
+            if ($series !== '' && preg_match('/^[A-Za-z0-9:._-]{1,200}$/', $series) !== 1) {
+                throw new ApiException(422, 'validation_error', 'series is not a valid set id.', [
+                    'series' => 'Use a set id from meta.facets.series.',
+                ]);
+            }
             $limit = max(1, min(100, isset($request->query['limit']) ? (int) $request->query['limit'] : 48));
             $offset = max(0, isset($request->query['offset']) ? (int) $request->query['offset'] : 0);
-            $result = $this->collectibles->search($query === '' ? null : $query, $brand === '' ? null : $brand, $sort, $limit, $offset);
+            $result = $this->collectibles->search(
+                $query === '' ? null : $query,
+                $brand === '' ? null : $brand,
+                $sort,
+                $limit,
+                $offset,
+                $year,
+                $series === '' ? null : $series,
+            );
 
             return Response::json([
                 'data' => $result['items'],
@@ -178,6 +199,9 @@ final class Application
                     'count' => count($result['items']),
                     'total' => $result['total'],
                     'last_synced_at' => $result['last_synced_at'],
+                    'year' => $year,
+                    'series' => $result['series'],
+                    'facets' => $result['facets'],
                 ],
             ]);
         }
