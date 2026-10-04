@@ -627,17 +627,19 @@
 
 .trivia-race-track {
     display: grid;
-    gap: 0.7rem;
+    width: 100%;
+    gap: 1rem;
 }
 
 .trivia-racer {
     display: grid;
-    grid-template-columns: minmax(6rem, 0.35fr) minmax(8rem, 1fr) auto;
-    gap: 0.7rem;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 0.75rem;
+    min-width: 0;
 }
 
 .trivia-racer-name {
+    min-width: 0;
     overflow: hidden;
     font-weight: 800;
     text-overflow: ellipsis;
@@ -645,29 +647,98 @@
 }
 
 .trivia-racer-meter {
-    height: 0.85rem;
+    position: relative;
+    grid-column: 1 / -1;
+    display: block;
+    height: clamp(3rem, 8vw, 4.25rem);
     overflow: hidden;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--trivia-line) 65%, transparent);
+    border: 1px solid color-mix(in srgb, #7b66a8 55%, var(--trivia-line));
+    border-radius: 0.55rem;
+    background:
+        linear-gradient(90deg, transparent 24%, color-mix(in srgb, #a98ee8 18%, transparent) 25%, transparent 26%, transparent 49%, color-mix(in srgb, #a98ee8 18%, transparent) 50%, transparent 51%, transparent 74%, color-mix(in srgb, #a98ee8 18%, transparent) 75%, transparent 76%),
+        repeating-linear-gradient(112deg, color-mix(in srgb, #180f2d 82%, var(--trivia-panel)) 0 0.8rem, color-mix(in srgb, #2d2044 78%, var(--trivia-panel)) 0.8rem 1.6rem);
+    box-shadow:
+        inset 0 0.65rem 1rem rgb(5 2 13 / 48%),
+        inset 0 -0.55rem 1rem rgb(103 77 137 / 22%);
+    isolation: isolate;
 }
 
-.trivia-racer-meter span {
+.trivia-racer-meter::before {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: clamp(0.55rem, 2vw, 0.9rem);
+    bottom: 0;
+    width: 0.28rem;
+    content: '';
+    background: repeating-linear-gradient(0deg, #f7edff 0 0.35rem, #6d4d83 0.35rem 0.7rem);
+    box-shadow: 0 0 0.65rem #dba8ff, 0 0 1.2rem rgb(219 168 255 / 65%);
+}
+
+.trivia-racer-meter::after {
+    position: absolute;
+    z-index: 0;
+    inset: 18% 0 15%;
+    content: '';
+    border-block: 1px solid rgb(224 207 255 / 12%);
+    background: linear-gradient(90deg, rgb(21 12 38 / 12%), rgb(118 88 150 / 15%) 50%, rgb(21 12 38 / 12%));
+    transform: perspective(10rem) rotateX(22deg);
+}
+
+.trivia-racer-course {
+    position: absolute;
+    z-index: 1;
+    inset: 0 auto 0 0;
     display: block;
     width: var(--race-progress, 0%);
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, #8d57d6, #33d2c8);
+    max-width: 100%;
+    background: linear-gradient(90deg, rgb(91 54 142 / 18%), rgb(112 238 226 / 28%));
+    box-shadow: inset -0.25rem 0 0.8rem rgb(105 235 225 / 35%);
     transition: width 350ms ease;
 }
 
-.trivia-racer[data-body-holder="true"] .trivia-racer-meter span {
-    background: linear-gradient(90deg, #d68d19, #ffd675);
+.trivia-racer-marker {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid #d9fff9;
+    border-radius: 50% 50% 45% 45%;
+    place-items: center;
+    background: #60408f;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 1px 1px rgb(0 0 0 / 70%);
+    transform: translate(50%, -50%);
+    box-shadow: 0 0 0 0.22rem rgb(22 12 40 / 75%), 0 0 0.8rem rgb(170 126 232 / 65%);
+}
+
+.trivia-racer[data-body-holder="true"] .trivia-racer-course {
+    background: linear-gradient(90deg, rgb(151 91 15 / 18%), rgb(255 203 88 / 32%));
+    box-shadow: inset -0.25rem 0 0.8rem rgb(255 205 91 / 38%);
+}
+
+.trivia-racer[data-body-holder="true"] .trivia-racer-marker {
+    border-radius: 0.35rem 0.35rem 55% 55%;
+    border-color: #fff0b5;
+    background: #9a6416;
+    box-shadow: 0 0 0 0.22rem rgb(44 28 8 / 72%), 0 0 0.85rem rgb(255 207 97 / 72%);
+}
+
+.trivia-racer[data-complete="true"] .trivia-racer-marker {
+    right: clamp(0.7rem, 2vw, 1rem);
+    transform: translate(0, -50%);
 }
 
 .trivia-racer-score {
     color: var(--trivia-muted);
     font-variant-numeric: tabular-nums;
     font-weight: 800;
+    white-space: nowrap;
 }
 
 .trivia-game-meta {

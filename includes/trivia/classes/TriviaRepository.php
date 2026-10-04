@@ -10,7 +10,6 @@ use Wowie\Api\ApiException;
 
 final class TriviaRepository
 {
-    private const MAX_TRIVIA_ROUNDS = 15;
     private const PHASE_TRIVIA = 'trivia';
     private const PHASE_KILLING_FLOOR = 'killing_floor';
     private const PHASE_GHOST_RACE = 'ghost_race';
@@ -24,7 +23,7 @@ final class TriviaRepository
     private const POISON_CHALICES_IMAGE_URL = '/assets/img/trivia/killing-floor-chalices.png';
     private const SWORD_BOXES_IMAGE_URL = '/assets/img/trivia/killing-floor-sword-boxes.png';
     private const CRYPT_RUNES_IMAGE_URL = '/assets/img/trivia/killing-floor-crypt-runes.png';
-    private const RACE_GOAL = 12;
+    private const RACE_GOAL = 20;
     private const RACE_BODY_START = 4;
 
     private readonly TriviaQuestionCatalog $questionCatalog;
@@ -1090,14 +1089,7 @@ final class TriviaRepository
      */
     private function openNextRoundOrFinish(array $room, array $players, array $round): void
     {
-        $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT count(*)
-            FROM trivia_rounds
-            WHERE room_id = :room_id
-              AND COALESCE(round_type, 'trivia') = 'trivia'
-        SQL);
-        $statement->execute(['room_id' => $room['id']]);
-        if ((int) $statement->fetchColumn() >= self::MAX_TRIVIA_ROUNDS) {
+        if ($this->activePlayerCount($players) <= 1) {
             $this->openRaceOrFinish($room, $players, $round);
             return;
         }
@@ -1105,8 +1097,7 @@ final class TriviaRepository
         $nextRound = ((int) $round['round_number']) + 1;
         $promptOrder = $this->nextQuestionPromptOrder($room, 'single_choice');
         if ($promptOrder === null) {
-            $this->finishRoom($room, $players, 'prompts_exhausted');
-            return;
+            throw new ApiException(409, 'prompt_unavailable', 'There is no trivia prompt available for the next round.');
         }
 
         $this->openRound($room, $nextRound, $promptOrder);
@@ -1470,10 +1461,16 @@ final class TriviaRepository
         }
 
         $roundNumber = ((int) $sourceRound['round_number']) + 1;
+        $raceGoal = self::RACE_GOAL;
+        if ((string) ($sourceRound['round_type'] ?? '') === self::PHASE_GHOST_RACE) {
+            $persistedGoal = (int) ($sourceRound['race_goal'] ?? $room['race_goal'] ?? 0);
+            if ($persistedGoal > 0) {
+                $raceGoal = $persistedGoal;
+            }
+        }
         $promptOrder = $this->nextQuestionPromptOrder($room, 'multi_select');
         if ($promptOrder === null) {
-            $this->finishRoomWithWinner($room, $bodyHolderId, 'prompts_exhausted');
-            return;
+            throw new ApiException(409, 'prompt_unavailable', 'There is no trivia prompt available for the next ghost-race round.');
         }
 
         $prompt = $this->loadPromptForOrder((string) $room['id'], $promptOrder);
@@ -1513,7 +1510,7 @@ final class TriviaRepository
             'prompt_payload' => json_encode($payload, JSON_THROW_ON_ERROR),
             'eligible_player_ids' => $this->postgresUuidArray($eligibleIds),
             'body_holder_player_id' => $bodyHolderId,
-            'race_goal' => self::RACE_GOAL,
+            'race_goal' => $raceGoal,
             'race_positions' => json_encode($positions, JSON_THROW_ON_ERROR),
         ]);
 
@@ -1531,7 +1528,7 @@ final class TriviaRepository
         $roomStatement->execute([
             'round_number' => $roundNumber,
             'body_holder_player_id' => $bodyHolderId,
-            'race_goal' => self::RACE_GOAL,
+            'race_goal' => $raceGoal,
             'race_state' => json_encode(['positions' => $positions], JSON_THROW_ON_ERROR),
             'id' => $room['id'],
         ]);
@@ -1689,7 +1686,25 @@ final class TriviaRepository
             return $nextOrder;
         }
 
-        return null;
+        $cycleStatement = $this->pdo->prepare(<<<'SQL'
+            SELECT p.prompt_order
+            FROM trivia_prompts p
+            WHERE p.room_id = :room_id
+            ORDER BY CASE WHEN COALESCE(p.answer_shape->>'type', 'single_choice') = :preferred_type THEN 0 ELSE 1 END,
+                     (
+                         SELECT COALESCE(MAX(r.round_number), 0)
+                         FROM trivia_rounds r
+                         WHERE r.room_id = p.room_id
+                           AND r.prompt_id = p.id
+                           AND COALESCE(r.round_type, 'trivia') IN ('trivia', 'ghost_race')
+                     ),
+                     p.prompt_order
+            LIMIT 1
+        SQL);
+        $cycleStatement->execute(['room_id' => $roomId, 'preferred_type' => $preferredType]);
+        $cycledOrder = $cycleStatement->fetchColumn();
+
+        return $cycledOrder === false ? null : (int) $cycledOrder;
     }
 
     private function promptExists(string $roomId, int $roundNumber): bool

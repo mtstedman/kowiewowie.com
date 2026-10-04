@@ -306,13 +306,17 @@ const renderRace = (room) => {
         .sort((left, right) => (positions[right.id] || right.race_position || 0) - (positions[left.id] || left.race_position || 0))
         .forEach((player) => {
             const position = Math.max(0, Number(positions[player.id] ?? player.race_position ?? 0));
+            const boundedPosition = Math.min(goal, position);
+            const isBodyHolder = player.id === room.body_holder_player_id;
+            const role = isBodyHolder ? 'Body' : 'Ghost';
             const row = document.createElement('div');
             row.className = 'trivia-racer';
-            row.dataset.bodyHolder = String(player.id === room.body_holder_player_id);
+            row.dataset.bodyHolder = String(isBodyHolder);
+            row.dataset.complete = String(position >= goal);
 
             const name = document.createElement('span');
             name.className = 'trivia-racer-name';
-            name.textContent = `${player.id === room.body_holder_player_id ? 'Body' : 'Ghost'} · ${playerName(player)}`;
+            name.textContent = `${role} · ${playerName(player)}`;
 
             const meter = document.createElement('span');
             meter.className = 'trivia-racer-meter';
@@ -320,15 +324,24 @@ const renderRace = (room) => {
             meter.setAttribute('aria-label', `${playerName(player)} race position`);
             meter.setAttribute('aria-valuemin', '0');
             meter.setAttribute('aria-valuemax', String(goal));
-            meter.setAttribute('aria-valuenow', String(Math.min(goal, position)));
-            const fill = document.createElement('span');
-            fill.style.setProperty('--race-progress', `${Math.min(100, (position / goal) * 100)}%`);
-            meter.append(fill);
+            meter.setAttribute('aria-valuenow', String(boundedPosition));
+            meter.setAttribute('aria-valuetext', `${role}: ${position} of ${goal}${position >= goal ? ', finished' : ''}`);
+
+            const course = document.createElement('span');
+            course.className = 'trivia-racer-course';
+            course.setAttribute('aria-hidden', 'true');
+            course.style.setProperty('--race-progress', `${Math.min(100, (position / goal) * 100)}%`);
+
+            const marker = document.createElement('span');
+            marker.className = 'trivia-racer-marker';
+            marker.textContent = isBodyHolder ? 'B' : 'G';
+            course.append(marker);
+            meter.append(course);
 
             const score = document.createElement('span');
             score.className = 'trivia-racer-score';
             score.textContent = `${position}/${goal}`;
-            row.append(name, meter, score);
+            row.append(name, score, meter);
             elements.raceTrack.append(row);
         });
 };
