@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Collectibles - wowiekowie.com';
-$metaDescription = 'Browse Sonny Angel, SKULLPANDA, and Nommi series, figures, secrets, images, and sourced prices in one catalog.';
+$metaDescription = 'Browse Sonny Angel, SKULLPANDA, Nommi, and POP BEAN series, figures, secrets, images, and sourced prices in one catalog.';
 $pageStyles = ['/assets/css/collectibles.css'];
 ?>
 <?php include __DIR__ . '/../partials/head.php'; ?>
@@ -15,7 +15,7 @@ $pageStyles = ['/assets/css/collectibles.css'];
         <main>
             <section class="hero hero-compact" aria-labelledby="collectibles-title">
                 <p class="eyebrow">Blind box shelf</p>
-                <h1 id="collectibles-title">Every Sonny Angel, SKULLPANDA, and Nommi—one shelf.</h1>
+                <h1 id="collectibles-title">Every Sonny Angel, SKULLPANDA, Nommi, and POP BEAN—one shelf.</h1>
                 <p class="lede">Search every line, compare sourced prices, sort by price or time, and peek at each variant before the box gets shaken.</p>
             </section>
 
@@ -45,6 +45,10 @@ $pageStyles = ['/assets/css/collectibles.css'];
                             <label class="collectibles-filter-option">
                                 <input type="radio" name="brand" value="sonny-angel">
                                 <span>Sonny Angel</span>
+                            </label>
+                            <label class="collectibles-filter-option">
+                                <input type="radio" name="brand" value="pop-bean">
+                                <span>POP BEAN</span>
                             </label>
                         </div>
                     </fieldset>

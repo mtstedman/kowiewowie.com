@@ -1,0 +1,555 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-04",
+  "brand": "pop-bean",
+  "sourceKey": "popmart-us-pop-bean",
+  "coverage": {
+    "summary": "21 POP BEAN figure series sold on POP MART US (popmart.com/us/collection/pop_bean), each identified by its official US product page (title, product ID, release date). 73 figures across 5 rosters: DIMOO WORLD × PIXAR is complete from its official page; Lucky Charm and Lucky Cat are complete and Mini Ice Pop and Harry Potter Flight partial from thetoypool.com (secondary). 16 series carry no roster because their US pages publish no figure list.",
+    "gaps": [
+      "POP MART US product pages for POP BEAN publish no figure names (the page data figure list is empty) except DIMOO WORLD × PIXAR; those series are rosterStatus unknown rather than guessed.",
+      "Secondary rosters come from one fan database (thetoypool.com) and use its \"Character, Variant\" naming, not POP MART's own figure names.",
+      "Lucky Charm: thetoypool names a figure \"Satyr Rory, Shining Gold\" while its picture file says \"Noble Gold\"; the listed name is kept and the picture omitted.",
+      "Mini Ice Pop lists the 11 figures thetoypool shows; any secret is unconfirmed, so the roster is partial.",
+      "Harry Potter Flight: thetoypool also lists secret Harry Potter, Hermione Granger and Ron Weasley under the regular names; they cannot be named apart, so the roster is partial.",
+      "Fortune Bag: the US page says the whole set is 9 non-repeating blind bags while thetoypool lists 15 characters with mismatched pictures, so no roster is recorded.",
+      "DIMOO WORLD × PIXAR: \"DIMOO as Alien (Special Ver.)\" is the 13th design in a 12-box case but the official page does not mark it secret, so isSecret is false.",
+      "Harry Potter Flight, Gingerbread Man Set, Lucky Cat and New Year Collection are delisted: their US pages still give the official title but no release date, so Gingerbread Man Set and New Year Collection have no release year; Harry Potter Flight (2023) and Lucky Cat (2024) years are secondary.",
+      "Lucky Charm (3869) and Ice Cream (3377) have second US listings, recorded as members.",
+      "Excluded: POP BEAN merchandise blind boxes and goods (charms, fridge magnets, plush pendants, card holders, lanyards, pillows, bags, blankets, aprons, Pajama Party cups and earphone bags); the [Online Delivery Only] THE MONSTERS Forest Fairy Tale Set member-reward figure (2934); and the NEW YEAR GWP MINI PUCKY JELLY gift (5726).",
+      "Sweet Bean is a separate POP MART character line, not POP BEAN, and is excluded.",
+      "POP BEAN series not found on POP MART US (for example Fruit Platter, Classic Laying Down, Pumpkin Halloween, Christmas Party, Little Saucer UFO, New Year Blessing and SKULLPANDA Petals in Four Acts beans) are outside this catalog.",
+      "The POP BEAN collection lists 38 products but only its first 20 render server-side; later pages need ?page=, which robots.txt disallows, so other US POP BEAN products may be missing.",
+      "Media and prices are intentionally not copied from the storefront."
+    ]
+  },
+  "series": [
+    {
+      "id": "mini-ice-pop",
+      "name": "Mini Ice Pop",
+      "releaseYear": 2023,
+      "rosterStatus": "partial",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/516",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "516",
+        "title": "POP BEAN Mini Ice Pop Series",
+        "url": "https://www.popmart.com/us/products/516"
+      },
+      "members": [],
+      "figures": [
+        {"id":"mini-ice-pop:bunny-strawberry","name":"Bunny, Strawberry","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:crybaby-brown-sugar","name":"Crybaby, Brown Sugar","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:dimoo-sea-salt","name":"Dimoo, Sea Salt","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:flying-dongdong-coconut","name":"Flying Dongdong Coconut","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:hacipupu-sweet-orange","name":"Hacipupu, Sweet Orange","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:labubu-lime","name":"Labubu, Lime","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:molly-vanilla","name":"Molly, Vanilla","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:pucky-taro","name":"Pucky, Taro","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:satyr-rory-lemon","name":"Satyr Rory, Lemon","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:skullpanda-raspberry","name":"Skullpanda, Raspberry","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"mini-ice-pop:sweet-bean-white-peach","name":"Sweet Bean, White Peach","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "fortune-bag",
+      "name": "Fortune Bag",
+      "releaseYear": 2023,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/573",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "573",
+        "title": "POP BEAN Fortune Bag Series",
+        "url": "https://www.popmart.com/us/products/573"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "harry-potter-flight",
+      "name": "Harry Potter Flight",
+      "releaseYear": 2023,
+      "rosterStatus": "partial",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/723",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "723",
+        "title": "POP BEAN Harry Potter Flight Series",
+        "url": "https://www.popmart.com/us/products/723"
+      },
+      "members": [],
+      "figures": [
+        {"id":"harry-potter-flight:cedric-diggory","name":"Cedric Diggory","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:draco-malfoy","name":"Draco Malfoy","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:fred-weasley","name":"Fred Weasley","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:george-weasley","name":"George Weasley","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:ginny-weasley","name":"Ginny Weasley","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:harry-potter","name":"Harry Potter","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:hermione-granger","name":"Hermione Granger","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:lord-voldemort","name":"Lord Voldemort","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:luna-lovegood","name":"Luna Lovegood","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:neville-longbottom","name":"Neville Longbottom","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:ron-weasley","name":"Ron Weasley","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:rubeus-hagrid","name":"Rubeus Hagrid","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:severus-snape","name":"Severus Snape","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:sirius-black","name":"Sirius Black","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"harry-potter-flight:tom-riddle","name":"Tom Riddle","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "gingerbread-man-set",
+      "name": "Gingerbread Man Set",
+      "releaseYear": null,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/816",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "816",
+        "title": "POP BEAN Gingerbread Man Set",
+        "url": "https://www.popmart.com/us/products/816"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "lucky-charm",
+      "name": "Lucky Charm",
+      "releaseYear": 2024,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/1224",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "1224",
+        "title": "POP BEAN Lucky Charm Series",
+        "url": "https://www.popmart.com/us/products/1224"
+      },
+      "members": [
+        {
+          "externalId": "3869",
+          "url": "https://www.popmart.com/us/products/3869"
+        }
+      ],
+      "figures": [
+        {"id":"lucky-charm:crybaby-happiness-red","name":"Crybaby, Happiness Red","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:dimoo-peach-pink","name":"Dimoo, Peach Pink","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:hacipupu-hot-pink","name":"Hacipupu, Hot Pink","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:labubu-bright-orange","name":"Labubu, Bright Orange","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:lilios-warm-yellow","name":"LiLiOS, Warm Yellow","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:molly-lucky-red","name":"Molly, Lucky Red","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:pino-jelly-pure-silver","name":"Pino Jelly, Pure Silver","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:pucky-shining-gold","name":"Pucky, Shining Gold","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:satyr-rory-shining-gold","name":"Satyr Rory, Shining Gold","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:skullpanda-lucky-blue","name":"Skullpanda, Lucky Blue","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:sweet-bean-joyful-red","name":"Sweet Bean, Joyful Red","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:zsiga-passion-red","name":"Zsiga, Passion Red","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:dimoo-good-luck","name":"Dimoo, Good Luck","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:hacipupu-sheer-bliss","name":"Hacipupu, Sheer Bliss","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:labubu-the-best-one","name":"Labubu, The Best One","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:molly-propitious-omen","name":"Molly, Propitious Omen","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:pucky-great-fortune","name":"Pucky, Great Fortune","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:skullpanda-leap-into-success","name":"Skullpanda, Leap Into Success","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-charm:sweet-bean-everything-goes-well","name":"Sweet Bean, Everything Goes Well","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-charm-series/","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "lucky-cat",
+      "name": "Lucky Cat",
+      "releaseYear": 2024,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/1531",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "1531",
+        "title": "POP BEAN Lucky Cat Series",
+        "url": "https://www.popmart.com/us/products/1531"
+      },
+      "members": [],
+      "figures": [
+        {"id":"lucky-cat:crybaby-good-fortune","name":"Crybaby, Good Fortune","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:dimoo-comfy-life","name":"Dimoo, Comfy Life","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:hacipupu-treasure","name":"Hacipupu, Treasure","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:kubo-rich","name":"Kubo, Rich","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:labubu-good-luck","name":"Labubu, Good Luck","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:lilios-fortune-cat","name":"LiLiOS, Fortune Cat","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:molly-fortune-cat","name":"Molly, Fortune Cat","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:nori-best-wishes","name":"Nori, Best Wishes","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:nyota-pleasure","name":"Nyota, Pleasure","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:pucky-good-omen","name":"Pucky, Good Omen","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:satyr-rory-happiness","name":"Satyr Rory, Happiness","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:skullpanda-bliss","name":"Skullpanda, Bliss","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:sweet-bean-gold","name":"Sweet Bean, Gold","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:zsiga-lucky-star","name":"Zsiga, Lucky Star","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"lucky-cat:dimoo-domi","name":"Dimoo, Domi","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/pop-bean-lucky-cat-series/","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "new-year-collection",
+      "name": "New Year Collection",
+      "releaseYear": null,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/1846",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "1846",
+        "title": "POP BEAN New Year Collection Series Box Set",
+        "url": "https://www.popmart.com/us/products/1846"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "macaron-dessert",
+      "name": "Macaron Dessert",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/1995",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "1995",
+        "title": "POP BEAN Macaron Dessert Series Box Set",
+        "url": "https://www.popmart.com/us/products/1995"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "dimoo-world-disney-classic",
+      "name": "DIMOO WORLD × DISNEY Classic",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/2148",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "2148",
+        "title": "POP BEAN DIMOO WORLD × DISNEY Classic Series（3Pcs Per Pack）",
+        "url": "https://www.popmart.com/us/products/2148"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "sushi",
+      "name": "SUSHI",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/2290",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "2290",
+        "title": "POP BEAN SUSHI Series （5 PCS Per Pack）",
+        "url": "https://www.popmart.com/us/products/2290"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "pajama-cross-dressing",
+      "name": "Pajama Cross Dressing",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/2383",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "2383",
+        "title": "POP BEAN Pajama Cross Dressing Series（1Pc Per Pack）",
+        "url": "https://www.popmart.com/us/products/2383"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "going-outing-with-me",
+      "name": "Going Outing With Me",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/2486",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "2486",
+        "title": "POP BEAN Going Outing With Me Series（1PC Per Pack）",
+        "url": "https://www.popmart.com/us/products/2486"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "ice-cream",
+      "name": "Ice Cream",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/2890",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "2890",
+        "title": "POP BEAN Ice Cream Series Box Set",
+        "url": "https://www.popmart.com/us/products/2890"
+      },
+      "members": [
+        {
+          "externalId": "3377",
+          "url": "https://www.popmart.com/us/products/3377"
+        }
+      ],
+      "figures": []
+    },
+    {
+      "id": "goodnight-night-sky",
+      "name": "Goodnight, Night Sky",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/3991",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "3991",
+        "title": "POP BEAN Goodnight,Night Sky Series(1 PC Per Pack)",
+        "url": "https://www.popmart.com/us/products/3991"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "celebrate-this-moment",
+      "name": "Celebrate This Moment",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/4044",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "4044",
+        "title": "POP BEAN Celebrate This Moment Series（1Pc Per Pack）",
+        "url": "https://www.popmart.com/us/products/4044"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "coffee-factory",
+      "name": "Coffee Factory",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/4197",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "4197",
+        "title": "POP BEAN Coffee Factory Series (1Pc Per Pack)",
+        "url": "https://www.popmart.com/us/products/4197"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "winter-romance",
+      "name": "Winter Romance",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/4265",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "4265",
+        "title": "POP BEAN Winter Romance Series Box Set",
+        "url": "https://www.popmart.com/us/products/4265"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "fluffy-cozy",
+      "name": "Fluffy & Cozy",
+      "releaseYear": 2025,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/4518",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "4518",
+        "title": "POP BEAN Fluffy & Cozy Series Blind Bag (1 PC Per Pack)",
+        "url": "https://www.popmart.com/us/products/4518"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "the-monsters-hair-salon",
+      "name": "THE MONSTERS Hair Salon",
+      "releaseYear": 2026,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/7895",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "7895",
+        "title": "POP BEAN THE MONSTERS Hair Salon Series",
+        "url": "https://www.popmart.com/us/products/7895"
+      },
+      "members": [],
+      "figures": []
+    },
+    {
+      "id": "dimoo-world-pixar",
+      "name": "DIMOO WORLD × PIXAR",
+      "releaseYear": 2026,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/8140",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "8140",
+        "title": "POP BEAN DIMOO WORLD × PIXAR Series",
+        "url": "https://www.popmart.com/us/products/8140"
+      },
+      "members": [],
+      "figures": [
+        {"id":"dimoo-world-pixar:dimoo-as-woody","name":"DIMOO as Woody","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-buzz-lightyear","name":"DIMOO as Buzz Lightyear","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-dash-parr","name":"DIMOO as Dash Parr","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-miguel-rivera","name":"DIMOO as Miguel Rivera","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-wall-e","name":"DIMOO as WALL.E","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-remy","name":"DIMOO as Remy","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-lotso","name":"DIMOO as Lotso","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-sulley","name":"DIMOO as Sulley","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-russell","name":"DIMOO as Russell","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-red-panda-mei","name":"DIMOO as Red Panda Mei","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-hamm","name":"DIMOO as Hamm","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-alien","name":"DIMOO as Alien","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"dimoo-world-pixar:dimoo-as-alien-special-ver","name":"DIMOO as Alien (Special Ver.)","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8140","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "twinkle-twinkle-live-the-ordinary",
+      "name": "Twinkle Twinkle Live The Ordinary",
+      "releaseYear": 2026,
+      "rosterStatus": "unknown",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/9057",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "9057",
+        "title": "POP BEAN Twinkle Twinkle Live The Ordinary Series",
+        "url": "https://www.popmart.com/us/products/9057"
+      },
+      "members": [],
+      "figures": []
+    }
+  ]
+}

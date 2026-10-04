@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Wowie\Api\Collectibles\CollectibleHttpClient;
+use Wowie\Api\Collectibles\PopMartCollectionSource;
 use Wowie\Api\Collectibles\CollectibleRateLimitedException;
 use Wowie\Api\Collectibles\CollectiblesRefreshScheduler;
 use Wowie\Api\Collectibles\CollectiblesRepository;
@@ -102,6 +103,36 @@ $pdo = new PDO('sqlite::memory:');
 $result = (new CollectiblesSync(new CollectiblesRepository($pdo), [$source]))->run()[0];
 $assertSame(['failed', true, 7200], [$result['status'], $result['rate_limited'], $result['retry_after']], 'sync result marks the refusal');
 $assertSame(1, count($requests), 'the refused source stops after one request');
+
+// --- Pop Mart: never a URL its robots.txt disallows -------------------------
+// robots.txt rules out ?page=, &page=, sort, and filter: the source reads the
+// collection's first page and then the products its catalog cites.
+$popMartRequests = [];
+$popMartClient = new CollectibleHttpClient(
+    [PopMartCollectionSource::HOST],
+    minHostIntervalSeconds: 0.0,
+    hostJitterSeconds: 0.0,
+    transport: static function (string $url) use (&$popMartRequests): array {
+        $popMartRequests[] = $url;
+        $body = str_contains($url, '/collection/')
+            ? '<a href="/us/products/111/pop-bean-listed-series">POP BEAN Listed Series</a>'
+            : '<html><head><meta property="og:title" content="POP BEAN Cited Member | POP MART"></head><body></body></html>';
+        return ['status' => 200, 'body' => $body, 'headers' => [], 'error' => ''];
+    },
+    sleeper: static function (float $seconds): void {},
+);
+$popBeanSource = new PopMartCollectionSource($popMartClient, PopMartCollectionSource::POP_BEAN_SOURCE_KEY, PopMartCollectionSource::POP_BEAN_BRAND, PopMartCollectionSource::POP_BEAN_COLLECTION_URL, [
+    ['external_id' => '222', 'title' => 'POP BEAN Cited Series', 'product_url' => 'https://www.popmart.com/us/products/222'],
+    ['external_id' => '333', 'title' => '', 'product_url' => 'https://www.popmart.com/us/products/333'],
+    ['external_id' => '111', 'title' => 'Duplicate of the listed one', 'product_url' => 'https://www.popmart.com/us/products/111'],
+]);
+$popBeanProducts = $popBeanSource->fetchProducts();
+$robotsDisallowed = array_filter($popMartRequests, static fn (string $url): bool => preg_match('/[?&](?:page|sort|filter)=/', $url) === 1);
+$assertSame([], array_values($robotsDisallowed), 'the Pop Mart source requests nothing robots.txt disallows');
+$assertSame(PopMartCollectionSource::POP_BEAN_COLLECTION_URL, $popMartRequests[0] ?? null, 'the collection is read once, without paging');
+$assertSame(['111', '222', '333'], array_column($popBeanProducts, 'external_id'), 'listed and cited products are read once each');
+$assertSame('POP BEAN Cited Member', $popBeanProducts[2]['title'] ?? null, "a cited listing without a title takes its page's own");
+$assertSame(['pop-bean', 'popmart-us-pop-bean'], [$popBeanSource->brand(), $popBeanSource->sourceKey()], 'POP BEAN keeps its own source key');
 
 if ($failures !== []) {
     fwrite(STDERR, implode("\n", $failures) . "\n");

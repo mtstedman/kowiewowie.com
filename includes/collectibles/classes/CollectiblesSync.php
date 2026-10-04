@@ -49,16 +49,26 @@ final class CollectiblesSync
     }
 
     /**
-     * Two storefront sources and the versioned local Sonny Angel catalog.
+     * Three storefront sources (Pop Mart SKULLPANDA and POP BEAN, TOYSEZ Nommi)
+     * and the versioned local catalogs. Pop Mart sources read their catalog's
+     * cited products because robots.txt rules out paging a collection.
      *
      * @return list<PopMartCollectionSource|ShopifyCollectionSource|SonnyAngelCatalogSource>
      */
     public static function defaultSources(?CollectibleHttpClient $http = null): array
     {
         $http ??= new CollectibleHttpClient([PopMartCollectionSource::HOST, self::NOMMI_HOST]);
+        $data = dirname(__DIR__, 3) . '/htdocs/assets/data/';
 
         return [
-            new PopMartCollectionSource($http),
+            new PopMartCollectionSource($http, knownProducts: (new CollectibleCatalogSupplement($data . 'skullpanda-catalog.json'))->citedProducts()),
+            new PopMartCollectionSource(
+                $http,
+                PopMartCollectionSource::POP_BEAN_SOURCE_KEY,
+                PopMartCollectionSource::POP_BEAN_BRAND,
+                PopMartCollectionSource::POP_BEAN_COLLECTION_URL,
+                (new CollectibleCatalogSupplement($data . 'pop-bean-catalog.json'))->citedProducts(),
+            ),
             new ShopifyCollectionSource(
                 $http,
                 self::NOMMI_SOURCE_KEY,
@@ -85,7 +95,11 @@ final class CollectiblesSync
     private static function supplementSources(): array
     {
         $root = dirname(__DIR__, 3) . '/htdocs/assets/data/';
-        return [new CollectibleCatalogSupplement($root . 'skullpanda-catalog.json'), new CollectibleCatalogSupplement($root . 'nommi-catalog.json')];
+        return [
+            new CollectibleCatalogSupplement($root . 'skullpanda-catalog.json'),
+            new CollectibleCatalogSupplement($root . 'nommi-catalog.json'),
+            new CollectibleCatalogSupplement($root . 'pop-bean-catalog.json'),
+        ];
     }
 
     /**

@@ -28,6 +28,25 @@ final class CollectibleCatalogSupplement
         return $this->catalog()['brand'];
     }
 
+    /**
+     * The store listings this catalog cites: each series' product and its
+     * other listings (members), for sources that may not page a collection.
+     *
+     * @return list<array{external_id: string, title: string, product_url: string}>
+     */
+    public function citedProducts(): array
+    {
+        $products = [];
+        foreach ($this->catalog()['series'] as $series) {
+            $products[] = ['external_id' => (string) $series['product']['externalId'], 'title' => $series['product']['title'], 'product_url' => $series['product']['url']];
+            foreach ($series['members'] as $member) {
+                $id = $member['externalId'] ?? (preg_match('#/products/([0-9]+)#', (string) $member['url'], $match) === 1 ? $match[1] : null);
+                if ($id !== null) $products[] = ['external_id' => (string) $id, 'title' => '', 'product_url' => $member['url']];
+            }
+        }
+        return $products;
+    }
+
     /** @return list<array<string, mixed>> */
     public function fetchProducts(): array
     {
@@ -76,7 +95,7 @@ final class CollectibleCatalogSupplement
     {
         if (isset(self::$mappingCache[$projectRoot])) return self::$mappingCache[$projectRoot];
         $maps = ['identity' => [], 'url' => [], 'titles' => []];
-        foreach (['skullpanda-catalog.json', 'nommi-catalog.json'] as $file) {
+        foreach (['skullpanda-catalog.json', 'nommi-catalog.json', 'pop-bean-catalog.json'] as $file) {
             $source = new self($projectRoot . '/htdocs/assets/data/' . $file);
             $catalog = $source->catalog();
             foreach ($catalog['series'] as $series) {

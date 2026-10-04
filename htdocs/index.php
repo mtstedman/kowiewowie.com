@@ -93,7 +93,7 @@ require __DIR__ . '/partials/head.php';
                         <article>
                             <span class="feature-number">03</span>
                             <h3><a class="feature-link" href="/collectibles/">Collectibles</a></h3>
-                            <p>Every Sonny Angel, SKULLPANDA, and Nommi set, with the figures you own ticked off.</p>
+                            <p>Every Sonny Angel, SKULLPANDA, Nommi, and POP BEAN set, with the figures you own ticked off.</p>
                         </article>
                         <article>
                             <span class="feature-number">04</span>

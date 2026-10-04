@@ -32,7 +32,7 @@ $assertSame(null, $images->forFigure('nommi:dream', 'Escape'), 'a path outside t
 $root = dirname(__DIR__);
 $manifest = json_decode((string) file_get_contents($root . '/htdocs/assets/data/collectible-figure-images.json'), true, flags: JSON_THROW_ON_ERROR);
 $sets = [];
-foreach (['skullpanda-catalog.json', 'nommi-catalog.json'] as $file) {
+foreach (['skullpanda-catalog.json', 'nommi-catalog.json', 'pop-bean-catalog.json'] as $file) {
     $catalog = json_decode((string) file_get_contents($root . '/htdocs/assets/data/' . $file), true, flags: JSON_THROW_ON_ERROR);
     foreach ($catalog['series'] as $series) $sets[$catalog['brand'] . ':' . $series['id']] = true;
 }

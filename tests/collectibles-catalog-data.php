@@ -192,6 +192,12 @@ $nommi = catalogDataValidate(
     'nommi',
     'toysez-nommi',
 );
+$popBean = catalogDataValidate(
+    catalogDataRead($root . '/htdocs/assets/data/pop-bean-catalog.json'),
+    'pop-bean',
+    'popmart-us-pop-bean',
+);
+catalogDataAssert(count($popBean) >= 20, 'POP BEAN lists its US blind-box series');
 
 $skullpandaExpectations = [
     'image-of-reality' => [2024, '953', ['The Duality (Black)', 'The Philosophy', 'The Paradox', 'The Pivot', 'The Disguise', 'The Imagination', 'The Constraint', 'The Soar', 'The Timelapse', 'The Duality (White)', 'The Merchant', 'The Antigravity'], 'The Onlooker'],

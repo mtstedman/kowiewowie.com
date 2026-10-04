@@ -61,6 +61,7 @@ $assertInvalid = static function (string $path, string $message) use ($assert): 
 foreach ([
     ['skullpanda-catalog.json', 'skullpanda', 'popmart-us'],
     ['nommi-catalog.json', 'nommi', 'toysez-nommi'],
+    ['pop-bean-catalog.json', 'pop-bean', 'popmart-us-pop-bean'],
 ] as [$file, $brand, $sourceKey]) {
     $source = new CollectibleCatalogSupplement($root . '/htdocs/assets/data/' . $file);
     $products = CollectiblesSync::normalizeProducts($source->fetchProducts());

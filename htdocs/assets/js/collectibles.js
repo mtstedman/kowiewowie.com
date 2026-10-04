@@ -865,7 +865,7 @@ const {
             try {
                 const payload = await response.json();
                 if (payload && typeof payload === 'object' && payload.details && typeof payload.details === 'object' && payload.details.brand) {
-                    return 'That line filter is not available. Choose All, Skullpanda, Nommi, or Sonny Angel.';
+                    return 'That line filter is not available. Choose All, Skullpanda, Nommi, Sonny Angel, or POP BEAN.';
                 }
             } catch (error) {
                 // Fall through to the generic search message.

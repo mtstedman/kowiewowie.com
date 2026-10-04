@@ -20,6 +20,7 @@ final class PopMartCollectionSource
     public const BRAND = 'skullpanda';
     public const POP_BEAN_SOURCE_KEY = 'popmart-us-pop-bean';
     public const POP_BEAN_BRAND = 'pop-bean';
+    public const POP_BEAN_COLLECTION_URL = 'https://www.popmart.com/us/collection/pop_bean';
     public const CURRENCY = 'USD';
     public const HOST = 'www.popmart.com';
     public const IMAGE_HOST = 'prod-global-biz.popmart.com';
@@ -27,7 +28,6 @@ final class PopMartCollectionSource
 
     private const ORIGIN = 'https://www.popmart.com';
     private const COLLECTION_URL = 'https://www.popmart.com/us/collection/skullpanda';
-    private const MAX_PAGES = 30;
     private const MAX_PRODUCTS = 600;
     private const MAX_DETAIL_FAILURES = 5;
     private const MAX_VARIANTS = 40;
@@ -46,6 +46,8 @@ final class PopMartCollectionSource
         private readonly string $sourceKey = self::SOURCE_KEY,
         private readonly string $brand = self::BRAND,
         private readonly string $collectionUrl = self::COLLECTION_URL,
+        /** @var list<array{external_id: string, title: string, product_url: string}> */
+        private readonly array $knownProducts = [],
     ) {
         if (!str_starts_with($collectionUrl, self::ORIGIN . '/us/collection/')) {
             throw new \InvalidArgumentException('A Pop Mart collection must be a popmart.com/us collection page.');
@@ -79,31 +81,16 @@ final class PopMartCollectionSource
      */
     public function fetchProducts(): array
     {
+        // Pop Mart's robots.txt disallows ?page= (and &page=, sort, filter), so
+        // only the collection's first page is read; the products this line's
+        // catalog cites (each series and its other listings) fill in the rest.
         $listed = [];
-        for ($page = 1; $page <= self::MAX_PAGES; $page++) {
-            try {
-                $html = $this->http->get($this->collectionUrl . '?page=' . $page);
-            } catch (RuntimeException $error) {
-                if ($page > 1 && $error->getCode() === 404) {
-                    break;
-                }
-
-                throw $error;
-            }
-
-            $added = 0;
-            foreach (self::parseCollectionPage($html) as $item) {
-                if (isset($listed[$item['external_id']])) {
-                    continue;
-                }
-
-                $listed[$item['external_id']] = $item;
-                $added++;
-            }
-
-            if ($added === 0 || count($listed) >= self::MAX_PRODUCTS) {
-                break;
-            }
+        foreach (self::parseCollectionPage($this->http->get($this->collectionUrl)) as $item) {
+            $listed[$item['external_id']] ??= $item;
+        }
+        foreach ($this->knownProducts as $item) {
+            if (!str_starts_with($item['product_url'], self::ORIGIN . '/us/products/')) continue;
+            $listed[$item['external_id']] ??= $item + ['price_cents' => null];
         }
 
         $products = [];
@@ -135,9 +122,15 @@ final class PopMartCollectionSource
                 ];
             }
 
+            $title = $item['title'] !== '' ? $item['title'] : $detail['title'];
+            if ($title === null || $title === '') {
+                error_log("Pop Mart product {$item['external_id']} was skipped: no title");
+                continue;
+            }
+
             $products[] = [
                 'external_id' => $item['external_id'],
-                'title' => $item['title'],
+                'title' => $title,
                 'product_url' => $item['product_url'],
                 'image_url' => $detail['image_url'],
                 'price_cents' => $item['price_cents'],
@@ -204,9 +197,22 @@ final class PopMartCollectionSource
     public static function parseProductPage(string $html): array
     {
         return [
+            'title' => self::parseTitle($html),
             'image_url' => self::parseMainImage($html),
             'variants' => self::parseVariants($html),
         ];
+    }
+
+    /** The product's own title (og:title), without the store's suffix. */
+    public static function parseTitle(string $html): ?string
+    {
+        if (preg_match('/<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']/i', $html, $match) !== 1
+            && preg_match('/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:title["\']/i', $html, $match) !== 1) {
+            return null;
+        }
+        $title = trim(html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $title = trim((string) preg_replace('/\s*[|\-–—]\s*POP\s*MART.*$/iu', '', $title));
+        return $title === '' ? null : mb_substr($title, 0, 300);
     }
 
     /**
