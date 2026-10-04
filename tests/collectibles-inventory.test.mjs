@@ -790,6 +790,10 @@ class MemoryStorage {
   assert.equal(cityCards[0].dataset.productKey, 'skull-retail-c', 'The set card must lead its series block.');
   assert.equal(cityBlock.querySelector('.collectible-listings-heading').textContent, 'Store listings (1)');
   assert.equal(cityCards[1].querySelector('.collectible-listing-kind').textContent, 'Series accessory');
+  assert.deepEqual(cityBlock.querySelectorAll('.collectible-variants-toggle').map((toggle) => toggle.getAttribute('aria-expanded')), ['true', 'false'],
+    'The set card starts open; store listings beside it start collapsed.');
+  assert.equal(blockBySeries('nommi:known-empty').querySelectorAll('.collectible-variants-toggle').length, 0, 'A listing with no figures shows no figure list.');
+  assert.equal(results.querySelectorAll('.collectible-brand').length, 0, 'Cards do not repeat the brand their line heading names.');
   const figureLines = results.querySelectorAll('.collectible-line').filter((section) => section.dataset.line === 'figures');
   assert.ok(figureLines.some((section) => section.querySelectorAll('.collectible-year').some((year) => year.dataset.year === '2022'
     && year.querySelectorAll('.collectible-release-block').includes(cityBlock))), 'City of Night must sit in the 2022 batch of its figure line.');

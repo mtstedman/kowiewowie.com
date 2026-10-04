@@ -69,12 +69,6 @@ require __DIR__ . '/partials/head.php';
                     <div class="hero-actions" aria-label="Site sections and nonsense controls">
                         <a class="button" href="/recipes/">Open the recipe drawer <span aria-hidden="true">-&gt;</span></a>
                         <button class="button" type="button" data-silly-button>Shuffle the tiny chaos</button>
-                        <a class="text-link" href="/games/">Games</a>
-                        <a class="text-link" href="/trivia/">Trivia</a>
-                        <a class="text-link" href="/music/">Music</a>
-                        <a class="text-link" href="/videos/">Videos</a>
-                        <a class="text-link" href="/dongs/">Dongs</a>
-                        <a class="text-link" href="/collectibles/">Collectibles</a>
                     </div>
                 </section>
 
@@ -88,17 +82,22 @@ require __DIR__ . '/partials/head.php';
                     <div class="feature-grid">
                         <article>
                             <span class="feature-number">01</span>
-                            <h3>Recipes</h3>
+                            <h3><a class="feature-link" href="/recipes/">Recipes</a></h3>
                             <p>Kitchen notes for repeatable wins, tiny triumphs, and meals that made the fork nod.</p>
                         </article>
                         <article>
                             <span class="feature-number">02</span>
-                            <h3>Games</h3>
+                            <h3><a class="feature-link" href="/games/">Games</a></h3>
                             <p>Playable bits, shared-link trivia rooms, and Magic decks with decklists and play guides, all on the same table.</p>
                         </article>
                         <article>
                             <span class="feature-number">03</span>
-                            <h3>Music, videos, and more</h3>
+                            <h3><a class="feature-link" href="/collectibles/">Collectibles</a></h3>
+                            <p>Every Sonny Angel, SKULLPANDA, and Nommi set, with the figures you own ticked off.</p>
+                        </article>
+                        <article>
+                            <span class="feature-number">04</span>
+                            <h3><a class="feature-link" href="/music/">Music, videos, and more</a></h3>
                             <p>Sound bookmarks, watch pages, and side quests from the rest of the desk.</p>
                         </article>
                     </div>

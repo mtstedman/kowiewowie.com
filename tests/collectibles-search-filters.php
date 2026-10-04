@@ -64,7 +64,11 @@ foreach ($listings as $index => $listing) {
     // its set (if any) has none.
     $insert->execute([$listing['brand'], $listing['source_key'], 'fixture-' . $index, $listing['title'], $listing['product_url'], $index === 0 ? 2024 : null]);
 }
-$pdo->exec("INSERT INTO collectible_variants (product_id, name, is_secret, position) VALUES (1, 'Alpha', 0, 0), (1, 'Beta', 1, 1)");
+// Product 1 is a SKULLPANDA listing; the scraper also stored its brand line
+// and its own title as "figures", which the shelf must not show.
+$firstTitle = (string) $pdo->query('SELECT title FROM collectible_products WHERE id = 1')->fetchColumn();
+$echo = $pdo->prepare("INSERT INTO collectible_variants (product_id, name, is_secret, position) VALUES (1, 'SKULLPANDA', 0, 0), (1, 'Alpha', 0, 1), (1, ?, 0, 2), (1, 'Beta', 1, 3), (1, 'Pop Mart', 0, 4)");
+$echo->execute([' ' . strtoupper($firstTitle) . ' ']);
 
 // Independent expectations: the classifier's set and year for every listing.
 $mappings = CollectibleCatalogSupplement::mappings(dirname(__DIR__));
@@ -90,7 +94,7 @@ $dated = array_values(array_filter($facetYears, 'is_int'));
 $sorted = $dated;
 rsort($sorted);
 $assertSame($sorted, $dated, 'year facets run newest first');
-$assertSame(['Alpha', 'Beta'], array_column($repository->search(null, null, 'name-asc', 1000, 0, 'all', null)['items'][array_search('1', $ids($all), true)]['variants'] ?? [], 'name'), 'figures load for the page');
+$assertSame(['Alpha', 'Beta'], array_column($repository->search(null, null, 'name-asc', 1000, 0, 'all', null)['items'][array_search('1', $ids($all), true)]['variants'] ?? [], 'name'), 'figures load for the page, without the brand line or the listing title');
 
 $nommi2025 = $repository->search(null, 'nommi', 'name-asc', 1000, 0, '2025');
 $want = $expectedIds(static fn (array $listing): bool => $listing['brand'] === 'nommi' && $listing['year'] === 2025);

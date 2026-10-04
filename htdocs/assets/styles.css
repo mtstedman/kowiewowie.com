@@ -939,8 +939,8 @@ h3 {
 
 .bio-section {
     display: grid;
-    grid-template-columns: minmax(220px, 0.55fr) minmax(0, 2.45fr);
-    gap: clamp(1.5rem, 6vw, 4rem);
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
     padding: clamp(1.5rem, 4vw, 2.75rem) clamp(1rem, 3vw, 2rem);
     border-radius: var(--radius);
     background:
@@ -950,13 +950,11 @@ h3 {
 }
 
 .bio-section h2 {
-    position: sticky;
-    top: calc(var(--site-header-min) + var(--space-lg));
-    max-width: 380px;
+    max-width: 40ch;
     margin: 0;
     color: var(--accent-warm);
     font-family: var(--sans);
-    font-size: var(--step-3);
+    font-size: var(--step-2);
     font-weight: 750;
     letter-spacing: -0.01em;
     line-height: 1.1;
@@ -996,6 +994,23 @@ h3 {
     font-style: normal;
     font-weight: 700;
     letter-spacing: 0.12em;
+}
+
+/* The card is the link: its title's link stretches over the whole card. */
+.feature-link {
+    text-decoration: none;
+}
+
+.feature-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+.feature-grid article:hover .feature-link,
+.feature-grid article:focus-within .feature-link {
+    color: var(--accent);
 }
 
 .feature-grid h3 {
@@ -1191,10 +1206,6 @@ footer {
         grid-template-columns: 1fr;
     }
 
-
-    .bio-section h2 {
-        position: static;
-    }
 }
 
 @media (max-width: 760px) {
@@ -1222,10 +1233,6 @@ footer {
     .bio-section {
         gap: 1.25rem;
         padding: 1.25rem 0.9rem;
-    }
-
-    .bio-section h2 {
-        font-size: var(--step-3);
     }
 
     footer {

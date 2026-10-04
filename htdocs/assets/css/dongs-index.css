@@ -2,9 +2,9 @@
   position: relative;
   z-index: 0;
   isolation: isolate;
-  gap: 1.75rem;
+  gap: 1.1rem;
   border: 1px solid var(--glass-border);
-  border-radius: 1.75rem;
+  border-radius: var(--radius);
   background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
   box-shadow: var(--shadow-sm);
   overflow: hidden;
@@ -70,14 +70,14 @@
 .dongs-library [data-donger-search-input] {
   width: 100%;
   min-width: 0;
-  min-height: 4rem;
-  padding: 0.95rem 1.35rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   background: var(--glass-tint);
   color: var(--ink);
   font: inherit;
-  font-size: clamp(1.05rem, 1rem + 0.4vw, 1.3rem);
+  font-size: 0.95rem;
   line-height: 1.3;
   transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
   -webkit-appearance: none;
@@ -97,15 +97,15 @@
 }
 
 .dongs-library [data-donger-search-clear] {
-  min-height: 4rem;
-  padding: 0.95rem 1.35rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   background: var(--glass-tint);
   color: var(--ink);
   font: inherit;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.92rem;
+  font-weight: 600;
   cursor: pointer;
   transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast), color var(--motion-fast);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
@@ -138,7 +138,7 @@
 
 .donger-groups {
   display: grid;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .donger-category {
@@ -146,19 +146,17 @@
   z-index: 0;
   isolation: isolate;
   display: grid;
-  gap: 1rem;
-  padding: 1.25rem;
+  gap: 0.6rem;
+  padding: 0.9rem;
   border: 1px solid var(--glass-border);
-  border-radius: 1rem;
+  border-radius: 12px;
   background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .donger-category-heading {
-  gap: 0.35rem;
+  gap: 0.15rem;
+  margin: 0;
 }
 
 .donger-category-heading .eyebrow {
@@ -168,13 +166,13 @@
 .donger-category-heading h2 {
   margin: 0;
   color: var(--ink);
-  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  font-size: 1.1rem;
 }
 
 .donger-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  gap: 0.5rem;
 }
 
 .donger-button {
@@ -182,23 +180,17 @@
   z-index: 0;
   isolation: isolate;
   display: grid;
-  flex: 0 1 auto;
-  min-width: min(100%, 12rem);
-  max-width: 100%;
-  gap: 0.75rem;
-  width: auto;
-  padding: 1rem;
+  min-width: 0;
+  gap: 0.2rem;
+  padding: 0.55rem 0.5rem;
   border: 1px solid var(--glass-border);
-  border-radius: 0.9rem;
-  background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
+  border-radius: var(--radius-sm);
+  background: var(--glass-tint);
   color: var(--ink);
   text-align: center;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .donger-button:hover,
@@ -220,8 +212,8 @@
   overflow-x: auto;
   white-space: nowrap;
   color: var(--ink);
-  padding: 0.35rem 0.5rem;
-  font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+  padding: 0.2rem 0.25rem;
+  font-size: 1.05rem;
   line-height: 1.3;
   scrollbar-width: thin;
 }
@@ -229,21 +221,15 @@
 .donger-button__name {
   display: block;
   color: var(--ink-soft);
-  font-size: 0.95rem;
-  line-height: 1.4;
+  font-size: 0.78rem;
+  line-height: 1.3;
 }
 
 @media (max-width: 640px) {
   .dongs-library [data-donger-search-form] {
     grid-template-columns: minmax(0, 1fr);
-    padding: 0.85rem;
-    border-radius: 1.25rem;
-  }
-
-  .dongs-library [data-donger-search-input],
-  .dongs-library [data-donger-search-clear] {
-    min-height: 3.5rem;
-    font-size: 1rem;
+    padding: 0.75rem;
+    border-radius: 12px;
   }
 
   .dongs-library [data-donger-search-clear] {
@@ -251,41 +237,14 @@
   }
 
   .donger-category {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 
-  .donger-button {
-    flex: 1 1 calc(50% - 0.45rem);
-    min-width: 0;
-    max-width: calc(50% - 0.45rem);
-    width: calc(50% - 0.45rem);
-    box-sizing: border-box;
-    gap: 0.6rem;
-    padding: 0.8rem;
+  .donger-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .donger-button__text {
-    padding: 0.3rem 0.4rem;
-    font-size: clamp(0.82rem, 3vw, 0.95rem);
-    line-height: 1.25;
-  }
-
-  .donger-button__name {
-    font-size: 0.82rem;
-    line-height: 1.3;
-  }
-}
-
-@media (max-width: 360px) {
-  .donger-button {
-    padding: 0.72rem;
-  }
-
-  .donger-button__text {
-    font-size: 0.78rem;
-  }
-
-  .donger-button__name {
-    font-size: 0.78rem;
+    font-size: clamp(0.85rem, 3vw, 1rem);
   }
 }

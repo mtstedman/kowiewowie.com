@@ -101,6 +101,8 @@ const {
         releaseCount: 0,
         products: [],
         closedProducts: new Set(),
+        // Store listings beside a set card start collapsed; these were opened.
+        openedProducts: new Set(),
         lastSyncedAt: null,
     };
 
@@ -258,8 +260,13 @@ const {
             card.classList.toggle('is-expanded', expanded);
             const productKey = card.dataset.productKey;
             if (productKey) {
-                if (expanded) state.closedProducts.delete(productKey);
-                else state.closedProducts.add(productKey);
+                if (expanded) {
+                    state.closedProducts.delete(productKey);
+                    state.openedProducts.add(productKey);
+                } else {
+                    state.closedProducts.add(productKey);
+                    state.openedProducts.delete(productKey);
+                }
             }
         }
         if (panel instanceof HTMLElement) {
@@ -429,8 +436,9 @@ const {
         nameCell.scope = 'row';
         nameCell.append(createElement('span', 'collectible-variant-name', name));
         if (isSecret) nameCell.append(createElement('span', 'collectible-secret', 'Secret'));
+        // The card shows the listing's price; a figure shows only its own, different one.
         const ownPrice = formatPrice(safeVariant.price_cents, safeVariant.currency);
-        if (ownPrice !== null) {
+        if (ownPrice !== null && ownPrice !== productPrice) {
             const kind = ['retail', 'asking', 'sold'].includes(safeVariant.price_kind) ? safeVariant.price_kind : '';
             const price = createElement('span', 'collectible-variant-price', `${ownPrice}${kind ? ` ${kind}` : ''}`);
             if (isHttpsUrl(safeVariant.price_source_url)) {
@@ -444,8 +452,6 @@ const {
                 price.append(' · ', source);
             }
             nameCell.append(price);
-        } else if (productPrice !== null) {
-            nameCell.append(createElement('span', 'collectible-variant-price is-inherited', `${productPrice} per blind box`));
         }
         const variantIdentifiers = identifierText(safeVariant);
         if (variantIdentifiers !== '') nameCell.append(createElement('span', 'collectible-identifiers', variantIdentifiers));
@@ -600,7 +606,7 @@ const {
         return `Roster completeness has not been confirmed: ${figureLabel} across ${listingLabel}.`;
     };
 
-    const renderProduct = (product) => {
+    const renderProduct = (product, collapsedByDefault = false) => {
         const safeProduct = product && typeof product === 'object' ? product : {};
         const productId = String(safeProduct.id);
         const title = titleWithoutBrand(
@@ -635,7 +641,6 @@ const {
         header.append(mediaWrapper);
 
         const summary = createElement('div', 'collectible-card-summary');
-        summary.append(createElement('p', 'eyebrow collectible-brand', label));
         const kindLabel = listingKindLabel(safeProduct);
         if (kindLabel !== '') summary.append(createElement('p', 'collectible-listing-kind', kindLabel));
         const heading = createElement('h4', 'collectible-title', title);
@@ -664,67 +669,66 @@ const {
         header.append(summary);
         card.append(header);
 
+        if (variants.length === 0) return card;
         const variantSection = createElement('div', 'collectible-variants');
-        const countLabel = variants.length === 1 ? '1 variant' : `${variants.length} variants`;
-        if (variants.length === 0) {
-            variantSection.classList.add('is-empty');
-            variantSection.append(createElement('h5', 'collectible-variants-title', countLabel));
-            variantSection.append(createElement('p', 'collectible-variants-empty', 'No figure variants are listed for this retail listing.'));
-        } else {
-            state.disclosureCount += 1;
-            const panelId = `collectible-variants-${state.disclosureCount}`;
-            const headingElement = createElement('h5', 'collectible-variants-title');
-            const toggle = createElement('button', 'collectible-variants-toggle');
-            toggle.type = 'button';
-            toggle.setAttribute('aria-controls', panelId);
-            toggle.append(
-                createElement('span', 'collectible-variants-action', 'Show'),
-                ' ',
-                createElement('span', 'collectible-variants-count', countLabel),
-                createElement('span', 'collectibles-sr-only', ` in ${title}`)
-            );
-            const icon = createElement('span', 'collectible-variants-icon');
-            icon.setAttribute('aria-hidden', 'true');
-            toggle.append(icon);
-            headingElement.append(toggle);
-            variantSection.append(headingElement);
+        const countLabel = variants.length === 1 ? '1 figure' : `${variants.length} figures`;
+        state.disclosureCount += 1;
+        const panelId = `collectible-variants-${state.disclosureCount}`;
+        const headingElement = createElement('h5', 'collectible-variants-title');
+        const toggle = createElement('button', 'collectible-variants-toggle');
+        toggle.type = 'button';
+        toggle.setAttribute('aria-controls', panelId);
+        toggle.append(
+            createElement('span', 'collectible-variants-action', 'Show'),
+            ' ',
+            createElement('span', 'collectible-variants-count', countLabel),
+            createElement('span', 'collectibles-sr-only', ` in ${title}`)
+        );
+        const icon = createElement('span', 'collectible-variants-icon');
+        icon.setAttribute('aria-hidden', 'true');
+        toggle.append(icon);
+        headingElement.append(toggle);
+        variantSection.append(headingElement);
 
-            const panel = createElement('div', 'collectible-variants-panel');
-            panel.id = panelId;
-            const tableWrap = createElement('div', 'collectible-inventory-scroll');
-            const table = createElement('table', 'collectible-inventory-table');
-            table.append(createElement('caption', 'collectibles-sr-only', `Inventory for ${title}`));
-            const tableHead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            ['Thumbnail', 'Figure', 'Owned', 'Quantity'].forEach((text) => {
-                const cell = document.createElement('th');
-                cell.scope = 'col';
-                cell.textContent = text;
-                headerRow.append(cell);
-            });
-            tableHead.append(headerRow);
-            table.append(tableHead);
-            const tableBody = document.createElement('tbody');
-            variants.forEach((variant) => {
-                tableBody.append(renderVariantRow(variant, { id: productId, title, brand: safeProduct.brand }, productPrice));
-            });
-            table.append(tableBody);
-            tableWrap.append(table);
-            panel.append(tableWrap);
-            variantSection.append(panel);
+        const panel = createElement('div', 'collectible-variants-panel');
+        panel.id = panelId;
+        const tableWrap = createElement('div', 'collectible-inventory-scroll');
+        const table = createElement('table', 'collectible-inventory-table');
+        // No figure pictures for this listing: drop the column of empty boxes.
+        if (!variants.some((variant) => isSafeImageUrl(variant?.image_url))) table.classList.add('has-no-thumbnails');
+        table.append(createElement('caption', 'collectibles-sr-only', `Inventory for ${title}`));
+        const tableHead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        ['Thumbnail', 'Figure', 'Owned', 'Quantity'].forEach((text) => {
+            const cell = document.createElement('th');
+            cell.scope = 'col';
+            cell.textContent = text;
+            headerRow.append(cell);
+        });
+        tableHead.append(headerRow);
+        table.append(tableHead);
+        const tableBody = document.createElement('tbody');
+        variants.forEach((variant) => {
+            tableBody.append(renderVariantRow(variant, { id: productId, title, brand: safeProduct.brand }, productPrice));
+        });
+        table.append(tableBody);
+        tableWrap.append(table);
+        panel.append(tableWrap);
+        variantSection.append(panel);
 
-            const expanded = isReleaseExpanded(productId, state.closedProducts);
-            toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-            panel.hidden = !expanded;
-            if (expanded) {
-                card.classList.add('is-expanded');
-                const action = toggle.querySelector('.collectible-variants-action');
-                if (action instanceof HTMLElement) action.textContent = 'Hide';
-            }
-            toggle.addEventListener('click', () => {
-                setDisclosure(toggle, toggle.getAttribute('aria-expanded') !== 'true');
-            });
+        const expanded = collapsedByDefault
+            ? state.openedProducts.has(productId)
+            : isReleaseExpanded(productId, state.closedProducts);
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        panel.hidden = !expanded;
+        if (expanded) {
+            card.classList.add('is-expanded');
+            const action = toggle.querySelector('.collectible-variants-action');
+            if (action instanceof HTMLElement) action.textContent = 'Hide';
         }
+        toggle.addEventListener('click', () => {
+            setDisclosure(toggle, toggle.getAttribute('aria-expanded') !== 'true');
+        });
         card.append(variantSection);
         return card;
     };
@@ -740,7 +744,6 @@ const {
         const releaseHeadingId = `collectible-release-${state.releaseCount}`;
         releaseBlock.setAttribute('aria-labelledby', releaseHeadingId);
         const releaseHeading = createElement('header', 'collectible-release-heading');
-        releaseHeading.append(createElement('p', 'eyebrow collectible-release-brand', `${brandLabel(group.brand)} series`));
         const releaseTitle = createElement('h3', 'collectible-release-title', group.title);
         releaseTitle.id = releaseHeadingId;
         releaseHeading.append(releaseTitle);
@@ -760,7 +763,9 @@ const {
                 products.append(createElement('p', 'collectible-listings-heading', `Store listings (${listingCount})`));
                 listingsHeadingAdded = true;
             }
-            products.append(renderProduct(product));
+            const card = renderProduct(product, hasSetCard && product.listing_kind !== 'series');
+            if (product.listing_kind === 'series') card.classList.add('is-set-card');
+            products.append(card);
         });
         releaseBlock.append(products);
         return releaseBlock;

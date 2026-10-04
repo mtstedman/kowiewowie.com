@@ -482,6 +482,7 @@ final class CollectiblesRepository
             foreach ($variantStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
                 $productId = (string) $row['product_id'];
                 $itemIndex = $itemIndexes[$productId];
+                if (self::isListingEcho((string) $row['name'], $items[$itemIndex]['brand'], $items[$itemIndex]['title'])) continue;
                 $items[$itemIndex]['variants'][] = [
                     'name' => (string) $row['name'],
                     'is_secret' => $this->databaseBoolean($row['is_secret']),
@@ -531,6 +532,19 @@ final class CollectiblesRepository
     }
 
     /** @param array<string, string> $parameters */
+    /**
+     * Store pages print the brand and the listing's own title near the figure
+     * list, and the page scraper has stored both as "figures". Neither is one.
+     */
+    private static function isListingEcho(string $name, string $brand, string $title): bool
+    {
+        $normalize = static fn (string $text): string => strtolower(trim((string) preg_replace('/\s+/u', ' ', $text)));
+        $candidate = $normalize($name);
+        $brandNames = ['skullpanda' => ['skullpanda', 'skull panda'], 'nommi' => ['nommi'], 'sonny-angel' => ['sonny angel', 'sonny angels']][$brand] ?? [];
+
+        return $candidate === $normalize($title) || in_array($candidate, [...$brandNames, 'pop mart', 'popmart'], true);
+    }
+
     private function bindSearchParameters(\PDOStatement $statement, array $parameters): void
     {
         foreach ($parameters as $name => $value) {

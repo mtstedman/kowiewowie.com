@@ -17,16 +17,10 @@ $pageStyles = ['/assets/css/collectibles.css'];
                 <p class="eyebrow">Blind box shelf</p>
                 <h1 id="collectibles-title">Every Sonny Angel, SKULLPANDA, and Nommi—one shelf.</h1>
                 <p class="lede">Search every line, compare sourced prices, sort by price or time, and peek at each variant before the box gets shaken.</p>
-                <div class="hero-actions">
-                    <a class="text-link" href="/">Home base</a>
-                </div>
             </section>
 
             <section class="foundation collectibles-library" aria-labelledby="collectibles-list-title">
-                <div class="section-heading">
-                    <p class="eyebrow">Catalog</p>
-                    <h2 id="collectibles-list-title">Series and variants</h2>
-                </div>
+                <h2 id="collectibles-list-title" class="collectibles-sr-only">Series and figures</h2>
 
                 <form class="collectibles-controls" id="collectibles-form" action="/collectibles/" method="get" role="search" aria-label="Search collectibles">
                     <div class="collectibles-search">
