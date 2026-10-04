@@ -1034,6 +1034,22 @@
         "label": "Pop Mart Ginny Weasley Licensed Series Pop Bean Harry Potter Flight Series Figure",
         "sourceType": "wiki"
       },
+      "harry potter": {
+        "name": "Harry Potter",
+        "path": "/assets/images/collectibles/pop-bean/harry-potter-flight/harry-potter.webp",
+        "source": "https://1.bp.blogspot.com/-O03AgeoQbW8/ZjS_CVjXJ8I/AAAAAAACTd0/X54KoTleH7oyZisQjKxSreA0I2a9NXNKgCNcBGAsYHQ/s1600/Harry-Potter-Pop-Bean-Flight-Series-Harry-Potter-Series-Pop-Mart-Figure-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/details/pmlipbhpb/",
+        "label": "Pop Mart Harry Potter Licensed Series Pop Bean Harry Potter Flight Series Figure (alt text and file name on the regular figure's own page; thetoypool reuses this picture on its secret entry)",
+        "sourceType": "wiki"
+      },
+      "hermione granger": {
+        "name": "Hermione Granger",
+        "path": "/assets/images/collectibles/pop-bean/harry-potter-flight/hermione-granger.webp",
+        "source": "https://1.bp.blogspot.com/-ESUCXaKIZCQ/ZjS_Cni_9nI/AAAAAAACTd4/bvCEwPxJKOQj5EZbu_7WcgZ7FNRaCrUaACNcBGAsYHQ/s1600/Hermione-Granger-Pop-Bean-Flight-Series-Harry-Potter-Series-Pop-Mart-Figure-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/details/pmlipbhgb/",
+        "label": "Pop Mart Hermione Granger Licensed Series Pop Bean Harry Potter Flight Series Figure (alt text and file name on the regular figure's own page; thetoypool reuses this picture on its secret entry)",
+        "sourceType": "wiki"
+      },
       "lord voldemort": {
         "name": "Lord Voldemort",
         "path": "/assets/images/collectibles/pop-bean/harry-potter-flight/lord-voldemort.webp",
@@ -1056,6 +1072,14 @@
         "source": "https://1.bp.blogspot.com/-sdxvxCqeMLg/ZjS_C2hx06I/AAAAAAACTeA/rMWpoz5htgk-hyMd0hRoSWdHELjARyn_QCNcBGAsYHQ/s1600/Neville%2BLongbottom-Pop-Bean-Flight-Series-Harry-Potter-Series-Pop-Mart-Figure-1.jpg",
         "page": "https://thetoypool.com/pop-mart/series/pop-bean-harry-potter-flight-series/",
         "label": "Pop Mart Neville Longbottom Licensed Series Pop Bean Harry Potter Flight Series Figure",
+        "sourceType": "wiki"
+      },
+      "ron weasley": {
+        "name": "Ron Weasley",
+        "path": "/assets/images/collectibles/pop-bean/harry-potter-flight/ron-weasley.webp",
+        "source": "https://1.bp.blogspot.com/-Yw0q3dgMf3g/ZjS_DD9OrWI/AAAAAAACTeI/LmVut2aOAJUB5oCvqVdY6yDHd-LqZnbJACNcBGAsYHQ/s1600/Ron-Weasley-Pop-Bean-Flight-Series-Harry-Potter-Series-Pop-Mart-Figure-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/details/pmlipbrwb/",
+        "label": "Pop Mart Ron Weasley Licensed Series Pop Bean Harry Potter Flight Series Figure (alt text and file name on the regular figure's own page; thetoypool reuses this picture on its secret entry)",
         "sourceType": "wiki"
       },
       "rubeus hagrid": {
@@ -1447,6 +1471,112 @@
         "page": "https://thetoypool.com/pop-mart/series/pop-bean-mini-ice-pop-series/",
         "label": "Pop Mart Sweet Bean, White Peach Pop Mart POP BEAN Mini Ice Pop Series Figure",
         "sourceType": "wiki"
+      }
+    },
+    "pop-bean:twinkle-twinkle-live-the-ordinary": {
+      "armful of wind": {
+        "name": "Armful of Wind",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/armful-of-wind.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/DHArX9b9BYMF-0OT-1790230426-Armful_of_Wind.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Armful of Wind\" (normal); image file DHArX9b9BYMF-0OT-1790230426-Armful_of_Wind.png",
+        "sourceType": "official"
+      },
+      "cozy meditation": {
+        "name": "Cozy Meditation",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/cozy-meditation.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/kPvf0We5vKHQagPT-1790230426-Cozy_Meditation.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Cozy Meditation\" (normal); image file kPvf0We5vKHQagPT-1790230426-Cozy_Meditation.png",
+        "sourceType": "official"
+      },
+      "go for a ride": {
+        "name": "Go for a Ride",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/go-for-a-ride.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/NTe0jAa8lJLVbaDV-1790230487-SECRET_Go_For_A_Ride.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Go for a Ride\" (secret); image file NTe0jAa8lJLVbaDV-1790230487-SECRET_Go_For_A_Ride.png",
+        "sourceType": "official"
+      },
+      "just be a little bird": {
+        "name": "Just Be a Little Bird",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/just-be-a-little-bird.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/fmgoppN2y0yL_DnP-1790230426-Just_Be_a_Little_Bird.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Just Be a Little Bird\" (normal); image file fmgoppN2y0yL_DnP-1790230426-Just_Be_a_Little_Bird.png",
+        "sourceType": "official"
+      },
+      "let's say cheese": {
+        "name": "Let’s Say Cheese",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/lets-say-cheese.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/-3EEZmaehQjOZSgg-1790230426-Let_s_Say_Cheese.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Let’s Say Cheese\" (normal); image file -3EEZmaehQjOZSgg-1790230426-Let_s_Say_Cheese.png",
+        "sourceType": "official"
+      },
+      "lost in notes": {
+        "name": "Lost in Notes",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/lost-in-notes.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/-hw4AMDGZ4niin3Q-1790230426-Lost_in_Notes.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Lost in Notes\" (normal); image file -hw4AMDGZ4niin3Q-1790230426-Lost_in_Notes.png",
+        "sourceType": "official"
+      },
+      "melon wants to know": {
+        "name": "Melon Wants to Know",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/melon-wants-to-know.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/PklNt1FZWXmHvCJ7-1790230426-Melon_Wants_to_Know.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Melon Wants to Know\" (normal); image file PklNt1FZWXmHvCJ7-1790230426-Melon_Wants_to_Know.png",
+        "sourceType": "official"
+      },
+      "my twinkle teapot": {
+        "name": "My Twinkle Teapot",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/my-twinkle-teapot.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/9IYuuA0FQaSMeZzW-1790230426-My_Twinkle_Teapot.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"My Twinkle Teapot\" (normal); image file 9IYuuA0FQaSMeZzW-1790230426-My_Twinkle_Teapot.png",
+        "sourceType": "official"
+      },
+      "omu bite": {
+        "name": "Omu Bite",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/omu-bite.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/VpnP9QUW0nvAbdcd-1790230426-Omu_Bite.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Omu Bite\" (normal); image file VpnP9QUW0nvAbdcd-1790230426-Omu_Bite.png",
+        "sourceType": "official"
+      },
+      "shopping haul": {
+        "name": "Shopping Haul",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/shopping-haul.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/taJEd3kil_edqEyP-1790230426-Shopping_Haul.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Shopping Haul\" (normal); image file taJEd3kil_edqEyP-1790230426-Shopping_Haul.png",
+        "sourceType": "official"
+      },
+      "sunshine chaser": {
+        "name": "Sunshine Chaser",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/sunshine-chaser.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/twgkq1YdOlQDgExP-1790230426-Sunshine_Chaser.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Sunshine Chaser\" (normal); image file twgkq1YdOlQDgExP-1790230426-Sunshine_Chaser.png",
+        "sourceType": "official"
+      },
+      "till you're home": {
+        "name": "Till You're Home",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/till-youre-home.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/OSn66SV05h65znw1-1790230475-Till_You_re_Home.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Till You're Home\" (normal); image file OSn66SV05h65znw1-1790230475-Till_You_re_Home.png",
+        "sourceType": "official"
+      },
+      "troubles begone": {
+        "name": "Troubles Begone",
+        "path": "/assets/images/collectibles/pop-bean/twinkle-twinkle-live-the-ordinary/troubles-begone.webp",
+        "source": "https://prod-apac-r2.popmart.com/uploads/y7MYxfX00I1FepbkFNPTDpuENxGL0eym/k4BACEJLHhRlRVr4-1790230426-Troubles_Begone.png",
+        "page": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
+        "label": "POP NOW box item name \"Troubles Begone\" (normal); image file k4BACEJLHhRlRVr4-1790230426-Troubles_Begone.png",
+        "sourceType": "official"
       }
     },
     "skullpanda:action-cut": {

@@ -4,16 +4,18 @@
   "brand": "pop-bean",
   "sourceKey": "popmart-us-pop-bean",
   "coverage": {
-    "summary": "21 POP BEAN figure series sold on POP MART US (popmart.com/us/collection/pop_bean), each identified by its official US product page (title, product ID, release date). 73 figures across 5 rosters: DIMOO WORLD × PIXAR is complete from its official page; Lucky Charm and Lucky Cat are complete and Mini Ice Pop and Harry Potter Flight partial from thetoypool.com (secondary). 16 series carry no roster because their US pages publish no figure list.",
+    "summary": "21 POP BEAN figure series sold on POP MART US (popmart.com/us/collection/pop_bean), each identified by its official US product page (title, product ID, release date). 86 figures across 6 rosters: DIMOO WORLD × PIXAR is complete from its official US page and Twinkle Twinkle Live The Ordinary from POP MART Australia's official POP NOW box page; Lucky Charm and Lucky Cat are complete and Mini Ice Pop and Harry Potter Flight partial from thetoypool.com (secondary). 15 series carry no roster because no official page or acceptable secondary source names their figures.",
     "gaps": [
-      "POP MART US product pages for POP BEAN publish no figure names (the page data figure list is empty) except DIMOO WORLD × PIXAR; those series are rosterStatus unknown rather than guessed.",
+      "POP MART US product pages for POP BEAN publish no figure names (the page data figure list is empty) except DIMOO WORLD × PIXAR; POP MART Canada pages, the new regional storefronts (Australia, Singapore, Japan, Korea, Thailand, Malaysia, Philippines, Vietnam, Indonesia, UK and EU product pages) and archived regional pages also name none. Only POP NOW box pages list figures, and the only POP BEAN figure boxes on the first POP BEAN collection pages checked are Twinkle Twinkle Live The Ordinary and DIMOO WORLD × PIXAR. The other series stay rosterStatus unknown rather than guessed.",
       "Secondary rosters come from one fan database (thetoypool.com) and use its \"Character, Variant\" naming, not POP MART's own figure names.",
-      "Lucky Charm: thetoypool names a figure \"Satyr Rory, Shining Gold\" while its picture file says \"Noble Gold\"; the listed name is kept and the picture omitted.",
-      "Mini Ice Pop lists the 11 figures thetoypool shows; any secret is unconfirmed, so the roster is partial.",
-      "Harry Potter Flight: thetoypool also lists secret Harry Potter, Hermione Granger and Ron Weasley under the regular names; they cannot be named apart, so the roster is partial.",
+      "Lucky Charm: thetoypool names a figure \"Satyr Rory, Shining Gold\" while its picture file says \"Noble Gold\"; no official name was found, so the listed name is kept, and the picture (the only Satyr Rory in the series, shown on that figure's own thetoypool page) is used.",
+      "Mini Ice Pop lists the 11 figures thetoypool shows; the official US page includes a secret photo but names no figures, so the secret is unnamed and the roster is partial.",
+      "Harry Potter Flight: thetoypool also lists secret Harry Potter, Hermione Granger and Ron Weasley under the regular names and with the regular pictures; no other source names them apart, so the roster is partial. The regular trio's pictures come from their own thetoypool figure pages.",
       "Fortune Bag: the US page says the whole set is 9 non-repeating blind bags while thetoypool lists 15 characters with mismatched pictures, so no roster is recorded.",
       "DIMOO WORLD × PIXAR: \"DIMOO as Alien (Special Ver.)\" is the 13th design in a 12-box case but the official page does not mark it secret, so isSecret is false.",
-      "Harry Potter Flight, Gingerbread Man Set, Lucky Cat and New Year Collection are delisted: their US pages still give the official title but no release date, so Gingerbread Man Set and New Year Collection have no release year; Harry Potter Flight (2023) and Lucky Cat (2024) years are secondary.",
+      "Twinkle Twinkle Live The Ordinary: the 12 regular figures and the secret \"Go for a Ride\" (marked secret by the page) come from POP MART Australia's POP NOW box page; the US page publishes no figure list.",
+      "For the unknown series, the official US pages show lineup photos and packaging but no legible figure names. Their image file names mark secret designs for Pajama Cross Dressing, Going Outing With Me, SUSHI, DIMOO WORLD × DISNEY Classic, Goodnight, Night Sky, Celebrate This Moment, Winter Romance and Fluffy & Cozy. Fan lists that only marketplace listings repeat were not used.",
+      "Harry Potter Flight, Gingerbread Man Set, Lucky Cat and New Year Collection are delisted: their US pages still give the official title but no release date. Gingerbread Man Set's year stays null: its US page was first captured on 2023-11-28, which shows it existed by then but does not date the release. New Year Collection's US page was first captured on 2024-12-26, which does not settle 2024 against 2025, so its year stays null. Harry Potter Flight (2023) and Lucky Cat (2024) years are secondary.",
       "Lucky Charm (3869) and Ice Cream (3377) have second US listings, recorded as members.",
       "Excluded: POP BEAN merchandise blind boxes and goods (charms, fridge magnets, plush pendants, card holders, lanyards, pillows, bags, blankets, aprons, Pajama Party cups and earphone bags); the [Online Delivery Only] THE MONSTERS Forest Fairy Tale Set member-reward figure (2934); and the NEW YEAR GWP MINI PUCKY JELLY gift (5726).",
       "Sweet Bean is a separate POP MART character line, not POP BEAN, and is excluded.",
@@ -535,10 +537,15 @@
       "id": "twinkle-twinkle-live-the-ordinary",
       "name": "Twinkle Twinkle Live The Ordinary",
       "releaseYear": 2026,
-      "rosterStatus": "unknown",
+      "rosterStatus": "complete",
       "sources": [
         {
           "url": "https://www.popmart.com/us/products/9057",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1",
           "tier": "official",
           "checkedAt": "2026-10-04"
         }
@@ -549,7 +556,21 @@
         "url": "https://www.popmart.com/us/products/9057"
       },
       "members": [],
-      "figures": []
+      "figures": [
+        {"id":"twinkle-twinkle-live-the-ordinary:lost-in-notes","name":"Lost in Notes","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:just-be-a-little-bird","name":"Just Be a Little Bird","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:armful-of-wind","name":"Armful of Wind","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:omu-bite","name":"Omu Bite","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:till-youre-home","name":"Till You're Home","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:my-twinkle-teapot","name":"My Twinkle Teapot","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:shopping-haul","name":"Shopping Haul","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:melon-wants-to-know","name":"Melon Wants to Know","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:sunshine-chaser","name":"Sunshine Chaser","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:cozy-meditation","name":"Cozy Meditation","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:lets-say-cheese","name":"Let’s Say Cheese","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:troubles-begone","name":"Troubles Begone","isSecret":false,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"twinkle-twinkle-live-the-ordinary:go-for-a-ride","name":"Go for a Ride","isSecret":true,"sources":[{"url":"https://www.popmart.com/au/pop-now/box-set/pop-bean-twinkle-twinkle-live-the-ordinary-series/e373dbf2-97ed-4c15-a286-56024c9439f1","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
     }
   ]
 }
