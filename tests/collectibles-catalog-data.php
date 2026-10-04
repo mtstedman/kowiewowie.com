@@ -202,7 +202,15 @@ $skullpandaExpectations = [
     'where-time-dwells' => [2026, '8890', ['Colonnade Contemplation', 'Mystic Veil', 'Spire Vigil', 'Beneath Flying Eaves', 'Spiral Minuet', 'Jazz Age Sheen', 'Breathing Veins', 'Bare Imprint', 'Beyond Light Trace'], 'Grain of Time'],
 ];
 
-catalogDataAssertSame(array_keys($skullpandaExpectations), array_keys($skullpanda), 'Skullpanda bounded series set');
+// The six series first verified from live official pages keep their exact
+// rosters; the researched back catalog (2020-2026) joins them, every roster
+// complete and dated.
+catalogDataAssertSame([], array_values(array_diff(array_keys($skullpandaExpectations), array_keys($skullpanda))), 'Skullpanda core series present');
+catalogDataAssertSame(26, count($skullpanda), 'Skullpanda series count');
+foreach ($skullpanda as $seriesId => $series) {
+    catalogDataAssertSame('complete', $series['rosterStatus'], $seriesId . ' roster status');
+    catalogDataAssertSame(true, is_int($series['releaseYear']), $seriesId . ' release year');
+}
 foreach ($skullpandaExpectations as $seriesId => [$releaseYear, $externalId, $regulars, $secret]) {
     catalogDataAssertSame('complete', $skullpanda[$seriesId]['rosterStatus'], $seriesId . ' roster status');
     catalogDataAssertSame($releaseYear, $skullpanda[$seriesId]['releaseYear'], $seriesId . ' release year');
@@ -224,7 +232,9 @@ catalogDataAssertSame('https://toysez.com/collections/nommi-interesting-fruits-v
 catalogDataAssertSame(9, count($nommi['fantasy-world']['members']), 'Fantasy World retail member count');
 catalogDataAssertSame(9, count($nommi['interesting-fruits']['members']), 'Interesting Fruits retail member count');
 
-$unknownNommiSeries = [
+// Researched 2026-10-04: these were title-only records; each now carries a
+// sourced roster (complete, or partial where a name could not be verified).
+$researchedNommiSeries = [
     'sitting-zoo',
     'magical-christmas-eve',
     'weather-forecast',
@@ -243,17 +253,19 @@ $unknownNommiSeries = [
     'pinky-energy',
     'treasure-collector',
 ];
-foreach ($unknownNommiSeries as $seriesId) {
+foreach ($researchedNommiSeries as $seriesId) {
     catalogDataAssert(isset($nommi[$seriesId]), 'Missing researched Nommi series: ' . $seriesId);
-    catalogDataAssertSame('unknown', $nommi[$seriesId]['rosterStatus'], $seriesId . ' must remain an unknown roster');
-    catalogDataAssertSame([], $nommi[$seriesId]['figures'], $seriesId . ' must not invent figures');
+    catalogDataAssert(in_array($nommi[$seriesId]['rosterStatus'], ['complete', 'partial'], true), $seriesId . ' must carry a researched roster');
+    catalogDataAssert($nommi[$seriesId]['figures'] !== [], $seriesId . ' must list its sourced figures');
     catalogDataAssertSame('catalog:' . $seriesId, $nommi[$seriesId]['product']['externalId'], $seriesId . ' catalog identity');
 }
 
-foreach (['fantasy-world', 'interesting-fruits'] as $seriesId) {
-    foreach ($nommi[$seriesId]['figures'] as $figure) {
+foreach ($nommi as $seriesId => $series) {
+    foreach ($series['figures'] as $figure) {
         catalogDataAssert(preg_match('/whole set|opened|plastic/i', $figure['name']) !== 1, $seriesId . ' retail bundle was fabricated as a figure');
     }
+}
+foreach (['fantasy-world', 'interesting-fruits'] as $seriesId) {
     catalogDataAssert(
         count(array_filter($nommi[$seriesId]['members'], static fn (array $member): bool => str_contains($member['url'], 'whole-set'))) === 2,
         $seriesId . ' must retain opened and sealed retail bundles only as members',

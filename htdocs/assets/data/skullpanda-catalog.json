@@ -4,11 +4,15 @@
   "brand": "skullpanda",
   "sourceKey": "popmart-us",
   "coverage": {
-    "summary": "Six bounded SKULLPANDA series rosters verified from official Pop Mart US product pages; complete applies only to each listed series roster, not to the brand.",
+    "summary": "26 SKULLPANDA blind-box series with release years and complete rosters (301 figures), verified from official Pop Mart pages (live US product pages, or Wayback copies of popmart.com/us and global.popmart.com for retired series) and, where noted per series, reputable secondary listings. Complete applies to each listed roster, not to the brand.",
     "gaps": [
       "Other Pop Mart SKULLPANDA products and series are outside this supplement.",
       "Media and prices are intentionally not copied from the storefront.",
-      "Everyday Wonderland and other pages without accessible named style evidence remain unresolved."
+      "Archived official pages are cited by their web.archive.org URLs and tiered official.",
+      "Candy Monster Town names come from one fan site (skullpandaworld.com); Everyday Wonderland and Laid Back Tomorrow names are secondary.",
+      "Laid Back Tomorrow's secret is 'Coffee Express' in three sources and 'Coffee Knight' in two; Coffee Express is used.",
+      "POP BEAN Petals in Four Acts (2026) is known but its roster was not retrievable.",
+      "Multi-character Pop Mart series with one SKULLPANDA figure, merchandise blind boxes (charms, badges, magnets), single plush, MEGA, and one-off figures are not series records here."
     ]
   },
   "series": [
@@ -51,8 +55,18 @@
       "name": "The Sound",
       "releaseYear": 2024,
       "rosterStatus": "complete",
-      "sources": [{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}],
-      "product": {"externalId":"1317","title":"SKULLPANDA The Sound Series Figures","url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures"},
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "1317",
+        "title": "SKULLPANDA The Sound Series Figures",
+        "url": "https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures"
+      },
       "members": [],
       "figures": [
         {"id":"the-sound:the-joy","name":"The Joy","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
@@ -75,8 +89,18 @@
       "name": "The Ink Plum Blossom",
       "releaseYear": 2023,
       "rosterStatus": "complete",
-      "sources": [{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}],
-      "product": {"externalId":"720","title":"SKULLPANDA The Ink Plum Blossom Series Figures","url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures"},
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "720",
+        "title": "SKULLPANDA The Ink Plum Blossom Series Figures",
+        "url": "https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures"
+      },
       "members": [],
       "figures": [
         {"id":"the-ink-plum-blossom:the-forest","name":"The Forest","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
@@ -99,8 +123,18 @@
       "name": "The Feast Begins",
       "releaseYear": 2025,
       "rosterStatus": "complete",
-      "sources": [{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}],
-      "product": {"externalId":"4080","title":"SKULLPANDA The Feast Begins Series Figures","url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures"},
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "4080",
+        "title": "SKULLPANDA The Feast Begins Series Figures",
+        "url": "https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures"
+      },
       "members": [],
       "figures": [
         {"id":"the-feast-begins:the-dinner-knife","name":"The Dinner Knife","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
@@ -123,8 +157,18 @@
       "name": "Petals in Four Acts",
       "releaseYear": 2026,
       "rosterStatus": "complete",
-      "sources": [{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}],
-      "product": {"externalId":"6201","title":"SKULLPANDA Petals in Four Acts Series Figures","url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures"},
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "6201",
+        "title": "SKULLPANDA Petals in Four Acts Series Figures",
+        "url": "https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures"
+      },
       "members": [],
       "figures": [
         {"id":"petals-in-four-acts:the-fairys-trick","name":"The Fairy's Trick","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
@@ -147,8 +191,18 @@
       "name": "WHERE TIME DWELLS",
       "releaseYear": 2026,
       "rosterStatus": "complete",
-      "sources": [{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}],
-      "product": {"externalId":"8890","title":"SKULLPANDA WHERE TIME DWELLS Series Figures","url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures"},
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "8890",
+        "title": "SKULLPANDA WHERE TIME DWELLS Series Figures",
+        "url": "https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures"
+      },
       "members": [],
       "figures": [
         {"id":"where-time-dwells:colonnade-contemplation","name":"Colonnade Contemplation","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
@@ -161,6 +215,767 @@
         {"id":"where-time-dwells:bare-imprint","name":"Bare Imprint","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
         {"id":"where-time-dwells:beyond-light-trace","name":"Beyond Light Trace","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
         {"id":"where-time-dwells:grain-of-time","name":"Grain of Time","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "ancient-castle",
+      "name": "Ancient Castle",
+      "releaseYear": 2020,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/15/skullpanda-ancient-castle-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20201129041001/https://global.popmart.com/collections/blindbox/products/skull-panda-ancient-castle-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://skullpandaworld.com/series/ancient-castle-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "15",
+        "title": "SKULLPANDA Ancient Castle Series",
+        "url": "https://www.popmart.com/us/products/15/skullpanda-ancient-castle-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"ancient-castle:phantom","name":"Phantom","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:chamberlain","name":"Chamberlain","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:bell-ringer","name":"Bell-ringer","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:bloody-rose","name":"Bloody Rose","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:nurse","name":"Nurse","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:baby-zombie","name":"Baby Zombie","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:fake-evil","name":"Fake Evil","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:fake-angel","name":"Fake Angel","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/ancient-castle-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:boring-explorer","name":"Boring Explorer","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:gargoyle","name":"Gargoyle","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:vampire","name":"Vampire","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:skeleton","name":"Skeleton","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"ancient-castle:bloody-knight","name":"Bloody Knight","isSecret":true,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/15/SKULLPANDA-Ancient-Castle-Series","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "hypepanda",
+      "name": "Hypepanda",
+      "releaseYear": 2021,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/26/skullpanda-hypepanda-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20210514113815/https://global.popmart.com/collections/yuki/products/pop-mart-skullpanda-hypepanda-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "26",
+        "title": "SKULLPANDA Hypepanda Series",
+        "url": "https://www.popmart.com/us/products/26/skullpanda-hypepanda-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"hypepanda:vintage-boy","name":"Vintage Boy","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:mix-match-style","name":"Mix & Match Style","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:elegant-girl","name":"Elegant Girl","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:idol-trainee","name":"Idol Trainee","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:skater-boy","name":"Skater Boy","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:hip-hop-singer","name":"Hip Hop Singer","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:milk-tea-girl","name":"Milk Tea Girl","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:milk-baby","name":"Milk Baby","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:dancer","name":"Dancer","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:rapper","name":"Rapper","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:pink-girl","name":"Pink Girl","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:fashion-icon","name":"Fashion Icon","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"hypepanda:stylist","name":"Stylist","isSecret":true,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/26/SKULLPANDA-Hypepanda-Series","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "action-cut",
+      "name": "Action! Cut!",
+      "releaseYear": 2021,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/87/skullpanda-action-cut-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://skullpandaworld.com/series/action-cut-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "87",
+        "title": "SKULLPANDA Action! Cut! Series",
+        "url": "https://www.popmart.com/us/products/87/skullpanda-action-cut-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"action-cut:grumpy-maintenance","name":"Grumpy Maintenance","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:stunt-man","name":"Stunt Man","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:afternoon-beauty","name":"Afternoon Beauty","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:stand-in","name":"Stand-in","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:craft-service","name":"Craft Service","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:gluttonous-security","name":"Gluttonous Security","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:fashionable-clapper-loader","name":"Fashionable Clapper-Loader","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:rising-star","name":"Rising Star","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:comedian","name":"Comedian","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:musty-extra-actor","name":"Musty Extra Actor","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:resting-leading-lady","name":"Resting Leading Lady","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:leading-man","name":"Leading Man","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20210921225317/https://global.popmart.com/collections/new-products/products/pop-mart-skullpanda-action-cut-series","tier":"official","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"action-cut:cool-director","name":"Cool Director","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/action-cut-series/","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "candy-monster-town",
+      "name": "Candy Monster Town",
+      "releaseYear": 2021,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://web.archive.org/web/20221002195104/https://global.popmart.com/collections/blindbox/products/pop-mart-skullpanda-candy-monster-town-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://skullpandaworld.com/series/candy-monster-town-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://skullpandaworld.com/product/adorkable-magician/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "catalog:candy-monster-town",
+        "title": "Pop Mart Skullpanda Candy Monster Town Series",
+        "url": "https://web.archive.org/web/20221002195104/https://global.popmart.com/collections/blindbox/products/pop-mart-skullpanda-candy-monster-town-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"candy-monster-town:sugar-rabbit","name":"Sugar Rabbit","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:fairy-godmother","name":"Fairy Godmother","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:strawberry-clown","name":"Strawberry Clown","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:milk-ghost","name":"Milk Ghost","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:bubble-ghost","name":"Bubble Ghost","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:chicken-hunter","name":"Chicken Hunter","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:gummy-bear-baby","name":"Gummy Bear Baby","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:octopus-monster","name":"Octopus Monster","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:elf","name":"Elf","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:marshmallow-unicorn","name":"Marshmallow Unicorn","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:candy-thief","name":"Candy Thief","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:cookie-racoon","name":"Cookie Racoon","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"candy-monster-town:adorkable-magician","name":"Adorkable Magician","isSecret":true,"sources":[{"url":"https://skullpandaworld.com/series/candy-monster-town-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/product/adorkable-magician/","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "city-of-night",
+      "name": "City of Night",
+      "releaseYear": 2022,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/18/skullpanda-city-of-night-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20221208005118/https://global.popmart.com/collections/blindbox/products/pop-mart-skullpanda-city-of-night-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "18",
+        "title": "SKULLPANDA City of Night Series",
+        "url": "https://www.popmart.com/us/products/18/skullpanda-city-of-night-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"city-of-night:naughty-bodyguard","name":"Naughty Bodyguard","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:pet-cat","name":"Pet Cat","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:the-princess","name":"The Princess","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:dj-player","name":"DJ Player","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:law-executor","name":"Law Executor","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:traveller","name":"Traveller","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:meditator","name":"Meditator","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:puppet-singer","name":"Puppet Singer","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:ardent-youth","name":"Ardent Youth","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:dancer","name":"Dancer","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:heart-seeker","name":"Heart Seeker","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:scroll-delivery","name":"Scroll Delivery","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"city-of-night:guardian-of-night","name":"Guardian of Night","isSecret":true,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/18/SKULLPANDA-City-of-Night-Series","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "the-addams-family",
+      "name": "The Addams Family",
+      "releaseYear": 2022,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/10/skullpanda-x-the-addams-family-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20230204045410/https://global.popmart.com/collections/blindbox/products/pop-mart-skullpanda-x-the-addams-family-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "10",
+        "title": "SKULLPANDA X The Addams Family Series",
+        "url": "https://www.popmart.com/us/products/10/skullpanda-x-the-addams-family-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"the-addams-family:quiet-wednesday","name":"Quiet Wednesday","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:parker","name":"Parker","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:pugsley","name":"Pugsley","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:grandma","name":"Grandma","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:great-auntie-sloom","name":"Great Auntie Sloom","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:lurch","name":"Lurch","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:uncle-fester","name":"Uncle Fester","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:scarlet-morticia","name":"Scarlet Morticia","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:gomez","name":"Gomez","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:dark-night-morticia","name":"Dark Night Morticia","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:kitty","name":"Kitty","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:it","name":"It","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-addams-family:deadpan-wednesday","name":"Deadpan Wednesday","isSecret":true,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/10/SKULLPANDA-X-The-Addams-Family-Series","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "the-mare-of-animals",
+      "name": "The Mare of Animals",
+      "releaseYear": 2022,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/14/skullpanda-the-mare-of-animals-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "14",
+        "title": "SKULLPANDA The Mare of Animals Series",
+        "url": "https://www.popmart.com/us/products/14/skullpanda-the-mare-of-animals-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"the-mare-of-animals:the-fox","name":"The Fox","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-penguin","name":"The Penguin","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-unicorn","name":"The Unicorn","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-rat","name":"The Rat","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-blue-morpho","name":"The Blue Morpho","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-passenger-pigeon","name":"The Passenger Pigeon","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-rabbit","name":"The Rabbit","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-polar-bear","name":"The Polar Bear","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-halobios","name":"The Halobios","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-feline","name":"The Feline","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-elephant","name":"The Elephant","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-moth","name":"The Moth","isSecret":false,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mare-of-animals:the-dream-eater","name":"The Dream Eater","isSecret":true,"sources":[{"url":"https://web.archive.org/web/20230216001157/https://www.popmart.com/us/products/14/SKULLPANDA-The-Mare-of-Animals-Series","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "the-warmth",
+      "name": "The Warmth",
+      "releaseYear": 2022,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/9/skullpanda-the-warmth-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "9",
+        "title": "SKULLPANDA The Warmth Series",
+        "url": "https://www.popmart.com/us/products/9/skullpanda-the-warmth-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"the-warmth:the-raining-day","name":"The Raining Day","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:the-encounter","name":"The Encounter","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:the-day-off","name":"The Day Off","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:enjoy-oneself","name":"Enjoy Oneself","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:mind-with-the-wind","name":"Mind with the Wind","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:doodling","name":"Doodling","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:wandering","name":"Wandering","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:recall-the-past","name":"Recall the Past","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:chirping","name":"Chirping","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:loosening","name":"Loosening","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:taste-from-the-memory","name":"Taste from the Memory","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:the-scent","name":"The Scent","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-warmth:the-warmth","name":"The Warmth","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/9/skullpanda-the-warmth-series","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "laid-back-tomorrow",
+      "name": "Laid Back Tomorrow",
+      "releaseYear": 2023,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/126/skullpanda-laid-back-tomorrow-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://skullpandaworld.com/series/laid-back-tomorrow-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://www.extrabux.com/en/guide/8867100",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "126",
+        "title": "SKULLPANDA Laid Back Tomorrow Series",
+        "url": "https://www.popmart.com/us/products/126/skullpanda-laid-back-tomorrow-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"laid-back-tomorrow:full-of-sweetness","name":"Full of Sweetness","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:easy-off-roading","name":"Easy Off-roading","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:catch-the-moment","name":"Catch the Moment","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:rushing-out","name":"Rushing Out","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:dispatch-surprise","name":"Dispatch Surprise","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:fantasy-route","name":"Fantasy Route","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:blue-water-shortcut","name":"Blue Water Shortcut","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:out-in-the-street","name":"Out in the Street","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:hasty-trail","name":"Hasty Trail","isSecret":false,"sources":[{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"laid-back-tomorrow:coffee-express","name":"Coffee Express","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://skullpandaworld.com/series/laid-back-tomorrow-series/","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "everyday-wonderland",
+      "name": "Everyday Wonderland",
+      "releaseYear": 2023,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/245/skullpanda-everyday-wonderland-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://www.popmart.com/us/products/1825/skullpanda-everyday-wonderland-series",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://www.extrabux.com/en/guide/8867100",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "245",
+        "title": "SKULLPANDA Everyday Wonderland Series",
+        "url": "https://www.popmart.com/us/products/245/skullpanda-everyday-wonderland-series"
+      },
+      "members": [],
+      "figures": [
+        {"id":"everyday-wonderland:the-bold","name":"The Bold","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-anxious","name":"The Anxious","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-preachy","name":"The Preachy","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-sophisticated","name":"The Sophisticated","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-sleepless","name":"The Sleepless","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-fidgety","name":"The Fidgety","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-fatuous","name":"The Fatuous","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-petulant","name":"The Petulant","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-timid","name":"The Timid","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-obedient","name":"The Obedient","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-cold-hearted","name":"The Cold-hearted","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:the-lethargic","name":"The Lethargic","isSecret":false,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"everyday-wonderland:thing-in-itself","name":"Thing in Itself","isSecret":true,"sources":[{"url":"https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/","tier":"secondary","checkedAt":"2026-10-04"},{"url":"https://www.extrabux.com/en/guide/8867100","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "tell-me-what-you-want",
+      "name": "Tell Me What You Want",
+      "releaseYear": 2024,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://thetoypool.com/pop-mart/series/skullpanda/tell-me-what-you-want-series/",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "1663",
+        "title": "SKULLPANDA Tell Me What You Want Series Figures",
+        "url": "https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures"
+      },
+      "members": [],
+      "figures": [
+        {"id":"tell-me-what-you-want:still-on-the-job","name":"Still on the Job","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:fun-ride","name":"Fun Ride","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:baking-best-wishes","name":"Baking Best Wishes","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:getting-dressed","name":"Getting Dressed","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:sweetest-rebel","name":"Sweetest Rebel","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:let-it-snow","name":"Let it Snow","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:jingle-all-the-way-green","name":"Jingle All the Way (Green)","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:on-schedule","name":"On Schedule","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:home-alone","name":"Home Alone","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:jingle-all-the-way-red","name":"Jingle All the Way (Red)","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want:as-i-wish","name":"As I Wish","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/1663/skullpanda-tell-me-what-you-want-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "tell-me-what-you-want-plush-pendant",
+      "name": "Tell Me What You Want Plush Pendant",
+      "releaseYear": 2024,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        },
+        {
+          "url": "https://www.extrabux.com/en/guide/8867100",
+          "tier": "secondary",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "1715",
+        "title": "SKULLPANDA Tell Me What You Want Series Plush Pendant",
+        "url": "https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant"
+      },
+      "members": [],
+      "figures": [
+        {"id":"tell-me-what-you-want-plush-pendant:jingle-all-the-way","name":"Jingle All the Way","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want-plush-pendant:getting-dressed-pink","name":"Getting Dressed (Pink)","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want-plush-pendant:baking-best-wishes","name":"Baking Best Wishes","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want-plush-pendant:let-it-snow-snowflake","name":"Let It Snow (Snowflake)","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want-plush-pendant:on-schedule","name":"On Schedule","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want-plush-pendant:getting-dressed-green","name":"Getting Dressed (Green)","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"tell-me-what-you-want-plush-pendant:let-it-snow-ice-cube","name":"Let It Snow (Ice Cube)","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "winter-symphony-plush",
+      "name": "Winter Symphony Plush",
+      "releaseYear": 2024,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "1809",
+        "title": "SKULLPANDA Winter Symphony Series Plush",
+        "url": "https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush"
+      },
+      "members": [],
+      "figures": [
+        {"id":"winter-symphony-plush:rock-on","name":"Rock On","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"winter-symphony-plush:rhapsody","name":"Rhapsody","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"winter-symphony-plush:partita","name":"Partita","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"winter-symphony-plush:wanderers-tune","name":"Wanderer’s Tune","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"winter-symphony-plush:ode-to-cocoa","name":"Ode to Cocoa","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"winter-symphony-plush:song-of-snow","name":"Song of Snow","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"winter-symphony-plush:symphony-of-wishes","name":"Symphony of Wishes","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/1809/skullpanda-winter-symphony-series-plush","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "the-mirage",
+      "name": "The Mirage",
+      "releaseYear": 2025,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "2141",
+        "title": "SKULLPANDA The Mirage Series Figures",
+        "url": "https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures"
+      },
+      "members": [],
+      "figures": [
+        {"id":"the-mirage:the-hill-censer","name":"The Hill Censer","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-puppetry","name":"The Puppetry","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-frame","name":"The Frame","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-pricket","name":"The Pricket","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-skeleton-fantasy-show","name":"The Skeleton Fantasy Show","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-konghou","name":"The Konghou","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-carousel-lantern","name":"The Carousel Lantern","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-ghanta","name":"The Ghanta","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-pan-flute","name":"The Pan Flute","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-mirage:the-butterfly-dream","name":"The Butterfly Dream","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/2141/skullpanda-the-mirage-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "limpressionnisme-plush-doll",
+      "name": "L'impressionnisme Plush Doll",
+      "releaseYear": 2025,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/2766",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "2766",
+        "title": "θSKULLPANDA L'impressionnisme Series Plush Doll",
+        "url": "https://www.popmart.com/us/products/2766"
+      },
+      "members": [],
+      "figures": [
+        {"id":"limpressionnisme-plush-doll:teakwood","name":"Teakwood","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:blossom","name":"Blossom","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:pond","name":"Pond","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:lightning","name":"Lightning","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:windflower","name":"Windflower","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:dawn","name":"Dawn","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:mist","name":"Mist","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:dew","name":"Dew","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:amber","name":"Amber","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"limpressionnisme-plush-doll:in-the-garden","name":"In the Garden","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/2766","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "the-paradox",
+      "name": "The Paradox",
+      "releaseYear": 2025,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "2885",
+        "title": "SKULLPANDA The Paradox Series Figures",
+        "url": "https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures"
+      },
+      "members": [],
+      "figures": [
+        {"id":"the-paradox:out-of-the-mud","name":"Out of the Mud","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:the-jewel-cage","name":"The Jewel Cage","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:spin-a-cocoon","name":"Spin a Cocoon","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:being-a-butterfly","name":"Being a Butterfly","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:diving-in","name":"Diving In","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:flying-high","name":"Flying High","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:the-hold","name":"The Hold","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:the-bond","name":"The Bond","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:the-external-echoes","name":"The External Echoes","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:the-internal-dialogue","name":"The Internal Dialogue","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:the-asymmetrical-balance","name":"The Asymmetrical Balance","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:the-cyclical-path","name":"The Cyclical Path","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-paradox:the-key","name":"The Key","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/2885/skullpanda-the-paradox-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "you-found-me-plush-doll-pendant",
+      "name": "You Found Me! Plush Doll Pendant",
+      "releaseYear": 2025,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/3676",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "3676",
+        "title": "SKULLPANDA You Found Me! Series Plush Doll Pendant",
+        "url": "https://www.popmart.com/us/products/3676"
+      },
+      "members": [],
+      "figures": [
+        {"id":"you-found-me-plush-doll-pendant:darkness","name":"Darkness","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:ratty-bear","name":"Ratty Bear","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:sneaky-chestnut","name":"Sneaky Chestnut","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:moldy-muffin","name":"Moldy Muffin","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:pranky-peanut","name":"Pranky Peanut","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:cerberus","name":"Cerberus","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:ghostie","name":"Ghostie","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:chomp","name":"Chomp","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:sandman","name":"Sandman","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"you-found-me-plush-doll-pendant:buddy-doggie","name":"Buddy Doggie","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/3676","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "my-little-pony-plush-doll-pendant",
+      "name": "My Little Pony Plush Doll Pendant",
+      "releaseYear": 2026,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/5812",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "5812",
+        "title": "SKULLPANDA × My Little Pony Series Plush Doll Pendant",
+        "url": "https://www.popmart.com/us/products/5812"
+      },
+      "members": [],
+      "figures": [
+        {"id":"my-little-pony-plush-doll-pendant:rainbow-dash","name":"Rainbow Dash","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/5812","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"my-little-pony-plush-doll-pendant:pinkie-pie","name":"Pinkie Pie","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/5812","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"my-little-pony-plush-doll-pendant:twilight-sparkle","name":"Twilight Sparkle","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/5812","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"my-little-pony-plush-doll-pendant:fluttershy","name":"Fluttershy","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/5812","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"my-little-pony-plush-doll-pendant:applejack","name":"Applejack","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/5812","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"my-little-pony-plush-doll-pendant:rarity","name":"Rarity","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/5812","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"my-little-pony-plush-doll-pendant:sunset-shimmer","name":"Sunset Shimmer","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/5812","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"my-little-pony-plush-doll-pendant:queen-chrysalis","name":"Queen Chrysalis","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/5812","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "off-mode-plush-doll-pendant",
+      "name": "Off Mode Plush Doll Pendant",
+      "releaseYear": 2026,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/8340",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "8340",
+        "title": "θ SKULLPANDA Off Mode Series Plush Doll Pendant",
+        "url": "https://www.popmart.com/us/products/8340"
+      },
+      "members": [],
+      "figures": [
+        {"id":"off-mode-plush-doll-pendant:break-time","name":"Break Time","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:mask-off","name":"Mask Off","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:slow-down","name":"Slow Down","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:soft-chaos","name":"Soft Chaos","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:hit-snooze","name":"Hit Snooze","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:no-adulting","name":"No Adulting","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:stay-chill","name":"Stay Chill","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:low-battery","name":"Low Battery","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:mute-mode","name":"Mute Mode","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:not-now","name":"Not Now","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:stay-in","name":"Stay In","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:rest-day","name":"Rest Day","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"off-mode-plush-doll-pendant:self-mode","name":"Self Mode","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/8340","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "pop-attach-off-mode",
+      "name": "POP ATTACH Off Mode",
+      "releaseYear": 2026,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/8342",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "8342",
+        "title": "POP ATTACH θ SKULLPANDA Off Mode Series",
+        "url": "https://www.popmart.com/us/products/8342"
+      },
+      "members": [],
+      "figures": [
+        {"id":"pop-attach-off-mode:rest-day","name":"Rest Day","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:no-adulting","name":"No Adulting","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:stay-in","name":"Stay In","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:not-now","name":"Not Now","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:slow-down","name":"Slow Down","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:stay-chill","name":"Stay Chill","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:hit-snooze","name":"Hit Snooze","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:mute-mode","name":"Mute Mode","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:mask-off","name":"Mask Off","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"pop-attach-off-mode:self-mode","name":"Self Mode","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/8342","tier":"official","checkedAt":"2026-10-04"}]}
       ]
     }
   ]

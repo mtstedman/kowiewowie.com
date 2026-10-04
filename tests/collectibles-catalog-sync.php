@@ -236,7 +236,7 @@ if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     ]);
     $results = $sync->run();
     $assertSame(['ok', 'failed', 'failed'], array_column($results, 'status'), 'successful, empty, and failed sources must remain isolated');
-    $assertSame(6, (int) $isolationPdo->query('SELECT count(*) FROM collectible_products')->fetchColumn(), 'empty and failed sources must not erase the successful catalog import');
+    $assertSame(26, (int) $isolationPdo->query('SELECT count(*) FROM collectible_products')->fetchColumn(), 'empty and failed sources must not erase the successful catalog import');
 }
 
 if ($failures !== []) {

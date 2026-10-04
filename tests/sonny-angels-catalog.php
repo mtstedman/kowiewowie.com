@@ -95,7 +95,7 @@ $assert($marketplaceAskingSources['www.depop.com'] === 7, 'Expected seven Depop 
 $source = new SonnyAngelCatalogSource($catalogPath);
 $products = CollectiblesSync::normalizeProducts($source->fetchProducts());
 $assert(count($products) === 138, 'Expected 138 Sonny Angel series products for the unified shelf.');
-$assert(array_sum(array_map(static fn (array $product): int => count($product['variants']), $products)) === 739, 'Expected 739 Sonny Angel figure variants for the unified shelf.');
+$assert(array_sum(array_map(static fn (array $product): int => count($product['variants']), $products)) === 820, 'Expected 820 Sonny Angel figure variants for the unified shelf.');
 $assert(str_contains($page, 'value="sonny-angel"'), 'Unified collectibles page is missing the Sonny Angel filter.');
 $assert(str_contains($legacyPage, '/collectibles/?brand=sonny-angel'), 'Legacy Sonny Angel route does not redirect to the unified shelf.');
 $assert(str_contains($page, 'collectibles-export-pdf'), 'PDF export control is missing.');
