@@ -36,6 +36,8 @@ foreach (['skullpanda-catalog.json', 'nommi-catalog.json'] as $file) {
     $catalog = json_decode((string) file_get_contents($root . '/htdocs/assets/data/' . $file), true, flags: JSON_THROW_ON_ERROR);
     foreach ($catalog['series'] as $series) $sets[$catalog['brand'] . ':' . $series['id']] = true;
 }
+$sonny = json_decode((string) file_get_contents($root . '/htdocs/assets/data/sonny-angels.json'), true, flags: JSON_THROW_ON_ERROR);
+foreach ($sonny['series'] as $series) $sets['sonny-angel:' . $series['id']] = true;
 $count = 0;
 $paths = [];
 foreach ($manifest['images'] as $seriesId => $figures) {

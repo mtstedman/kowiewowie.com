@@ -15,6 +15,11 @@
 //
 //   flock -w 1800 /run/lock/wowiekowie-collectibles.lock \
 //     node tools/collectible-figure-images.mjs [--brand=nommi|skullpanda] [--dry-run]
+//
+// --from=<file.json> instead imports researched pictures for any line
+// (Sonny Angel included): { "<set id>": { "<figure name>": { "image": url,
+// "page": url, "label": "what names the figure there", "source_type": "…" } } }.
+// Only pictures whose own label names the figure belong in such a file.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -26,7 +31,8 @@ const IMAGE_ROOT = join(ROOT, 'htdocs/assets/images/collectibles');
 const API = 'https://wowiekowie.com/api/v1/collectibles';
 const USER_AGENT = 'wowiekowie.com collectibles catalog (figure pictures; contact via wowiekowie.com)';
 const args = new Map(process.argv.slice(2).map((arg) => arg.replace(/^--/, '').split('=')).map(([key, value]) => [key, value ?? true]));
-const brands = args.has('brand') ? [String(args.get('brand'))] : ['nommi', 'skullpanda'];
+const fromFile = args.has('from') ? String(args.get('from')) : null;
+const brands = fromFile !== null ? ['from'] : (args.has('brand') ? [String(args.get('brand'))] : ['nommi', 'skullpanda']);
 const dryRun = args.has('dry-run');
 
 class Refused extends Error {}
@@ -102,6 +108,19 @@ const skullpandaFigures = async (known) => {
   return figures;
 };
 
+// [{ seriesId, name, source, page, label, sourceType }] from a research file.
+const researchedFigures = (file) => Object.entries(JSON.parse(readFileSync(file, 'utf8')))
+  .flatMap(([seriesId, figures]) => Object.entries(figures).map(([name, entry]) => ({
+    seriesId,
+    name,
+    source: entry.image,
+    page: entry.page,
+    label: entry.label,
+    sourceType: entry.source_type,
+  })))
+  .filter((figure) => /^(?:sonny-angel|skullpanda|nommi):[a-z0-9-]+$/.test(figure.seriesId)
+    && /^https:\/\//.test(String(figure.source)) && /^https:\/\//.test(String(figure.page)));
+
 const manifest = existsSync(MANIFEST)
   ? JSON.parse(readFileSync(MANIFEST, 'utf8'))
   : { schemaVersion: 1, checkedAt: null, note: '', images: {} };
@@ -114,7 +133,7 @@ let saved = 0;
 let stopped = null;
 try {
   for (const brand of brands) {
-    const figures = brand === 'nommi' ? await nommiFigures() : await skullpandaFigures(known);
+    const figures = brand === 'from' ? researchedFigures(fromFile) : (brand === 'nommi' ? await nommiFigures() : await skullpandaFigures(known));
     for (const figure of figures) {
       const key = figureKey(figure.name);
       if (known.has(`${figure.seriesId}\u0000${key}`)) continue;
@@ -137,7 +156,14 @@ try {
         }
       }
       manifest.images[figure.seriesId] ??= {};
-      manifest.images[figure.seriesId][key] = { name: figure.name, path: relative, source: figure.source, page: figure.page };
+      manifest.images[figure.seriesId][key] = {
+        name: figure.name,
+        path: relative,
+        source: figure.source,
+        page: figure.page,
+        ...(figure.label ? { label: figure.label } : {}),
+        ...(figure.sourceType ? { sourceType: figure.sourceType } : {}),
+      };
       known.add(`${figure.seriesId}\u0000${key}`);
       saved += 1;
       if (saved % 10 === 0) console.log(`${saved} pictures saved`);

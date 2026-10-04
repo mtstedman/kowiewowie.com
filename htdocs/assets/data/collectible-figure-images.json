@@ -160,6 +160,14 @@
         "source": "https://cdn.shopify.com/s/files/1/0561/4606/7644/files/3_1_3553a451-9d4b-4b50-a286-a464a67e6832.jpg?v=1754241426&width=640",
         "page": "https://toysez.com/products/nommi-baby-sweetheart-bunny-vinyl-plush-pendant-series-berry-jump-candy"
       },
+      "blueberry cheese pie": {
+        "name": "Blueberry Cheese Pie",
+        "path": "/assets/images/collectibles/nommi/baby-sweetheart-bunny/blueberry-cheese-pie.webp",
+        "source": "https://nommiworld.com/wp-content/uploads/2025/08/Blueberry-Cheese-Pie.jpg",
+        "page": "https://nommiworld.com/product/blueberry-cheese-pie/",
+        "label": "alt=\"Nommi Blueberry Cheese Pie\"; page title \"Nommi Sweetheart Bunny Series - Blueberry Cheese Pie\"; file name Blueberry-Cheese-Pie.jpg (sole figure on its own page)",
+        "sourceType": "wiki"
+      },
       "caramel coco": {
         "name": "Caramel Coco",
         "path": "/assets/images/collectibles/nommi/baby-sweetheart-bunny/caramel-coco.webp",
@@ -879,6 +887,642 @@
         "page": "https://toysez.com/products/nommi-weather-forecast-plush-dolls-blind-box-series-thunderstorm-confirmed-style"
       }
     },
+    "skullpanda:action-cut": {
+      "afternoon beauty": {
+        "name": "Afternoon Beauty",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/afternoon-beauty.webp",
+        "source": "https://1.bp.blogspot.com/-l9qt_tnxBEk/ZjSqE81ZXbI/AAAAAAACSO8/oUmrs4STOxUSchySEwJs6geX-YPV2tvAwCNcBGAsYHQ/s1600/Afternoon-Beauty-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Afternoon Beauty Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "comedian": {
+        "name": "Comedian",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/comedian.webp",
+        "source": "https://1.bp.blogspot.com/-VVR6JCR1P68/ZjSqE5c7zFI/AAAAAAACSO0/uFELjkb83yoM-YYltCR1nJaTjKywjHWCgCNcBGAsYHQ/s1600/Comedian-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Comedian Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "cool director": {
+        "name": "Cool Director",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/cool-director.webp",
+        "source": "https://1.bp.blogspot.com/-SCXHL6tO9AU/ZjSqE4PkP0I/AAAAAAACSO4/tdgWxaCAE2cDr6zHH73_6f9Lqo_H24JNwCNcBGAsYHQ/s1600/Cool-Director-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Cool Director Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "craft service": {
+        "name": "Craft Service",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/craft-service.webp",
+        "source": "https://1.bp.blogspot.com/-BUko8mn_x4s/ZjSqFHcNn4I/AAAAAAACSPA/oHGcRKT1XywJqA5C0zlfKNT5w7WVKo1YACNcBGAsYHQ/s1600/Craft-Service-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Craft Service Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "fashionable clapper-loader": {
+        "name": "Fashionable Clapper-Loader",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/fashionable-clapper-loader.webp",
+        "source": "https://1.bp.blogspot.com/-N66dfiaDr8U/ZjSqFRcD0OI/AAAAAAACSPI/w6KJtn-Kqugu0YTMEIgVi8niVD7fPU-QQCNcBGAsYHQ/s1600/Fashionable-Clapper-Loader-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Fashionable-Clapper-Loader-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "sourceType": "wiki"
+      },
+      "gluttonous security": {
+        "name": "Gluttonous Security",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/gluttonous-security.webp",
+        "source": "https://1.bp.blogspot.com/-wQr-tL_e0cs/ZjSqFe5ykEI/AAAAAAACSPE/2J87GQufQu8D-HTTGu9JkxL8-upTT7l_gCNcBGAsYHQ/s1600/Gluttonous-Security-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Gluttonous Security Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "grumpy maintenance": {
+        "name": "Grumpy Maintenance",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/grumpy-maintenance.webp",
+        "source": "https://1.bp.blogspot.com/-jLZRPt1rcNY/ZjSqFiQeJpI/AAAAAAACSPM/kFyNJJyDgi4cBqWY6mxGqDLB4JgfcZRzwCNcBGAsYHQ/s1600/Grumpy-Maintenance-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Grumpy Maintenance Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "leading man": {
+        "name": "Leading Man",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/leading-man.webp",
+        "source": "https://1.bp.blogspot.com/-SKaSXwLqgPc/ZjSqFm6yXgI/AAAAAAACSPQ/5lNpOKgiteYy9mMIMffQ04MUafFXRGvgwCNcBGAsYHQ/s1600/Leading-Man-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Leading Man Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "musty extra actor": {
+        "name": "Musty Extra Actor",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/musty-extra-actor.webp",
+        "source": "https://1.bp.blogspot.com/-a-8HsKwBDXM/ZjSqFtRkCHI/AAAAAAACSPU/AiOS0YMfUdc8HUMNKT0Q1C3kZ1RdlJq3wCNcBGAsYHQ/s1600/Musty-Extra-Actor-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Musty-Extra-Actor-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "sourceType": "wiki"
+      },
+      "resting leading lady": {
+        "name": "Resting Leading Lady",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/resting-leading-lady.webp",
+        "source": "https://1.bp.blogspot.com/-Je-u8ujg2fs/ZjSqF_SLNXI/AAAAAAACSPY/0eaRx9zQuUE5StX5AVU54oMRanMKF7j4ACNcBGAsYHQ/s1600/Resting-Leading-Lady-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Resting Leading Lady Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "rising star": {
+        "name": "Rising Star",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/rising-star.webp",
+        "source": "https://1.bp.blogspot.com/-L5tlvgsQIxA/ZjSqGW8PyTI/AAAAAAACSPc/_TK4183IkbsO8px1-GeJXiNES2TDqRdfQCNcBGAsYHQ/s1600/Rising-Star-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Rising Star Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "stand-in": {
+        "name": "Stand-in",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/stand-in.webp",
+        "source": "https://1.bp.blogspot.com/-qhnhrfnC3zU/ZjSqHAPFSuI/AAAAAAACSPg/urTZIYeB21YG3_lUexzwbE9UB6KCKbolACNcBGAsYHQ/s1600/Stand-In-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Stand-in Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      },
+      "stunt man": {
+        "name": "Stunt Man",
+        "path": "/assets/images/collectibles/skullpanda/action-cut/stunt-man.webp",
+        "source": "https://1.bp.blogspot.com/--4g9cjjaaJY/ZjSqHW2zMcI/AAAAAAACSPo/Bbgb0pAp6icr1Z6RVNyt9E1nxSeda24BwCNcBGAsYHQ/s1600/Stunt-Man-Action-Cut-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/action!-cut!-series/",
+        "label": "Pop Mart Stunt Man Skullpanda Action! Cut! Series Figure",
+        "sourceType": "wiki"
+      }
+    },
+    "skullpanda:ancient-castle": {
+      "baby zombie": {
+        "name": "Baby Zombie",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/baby-zombie.webp",
+        "source": "https://1.bp.blogspot.com/-eVR8DvxPW_c/ZjSqHTq8T6I/AAAAAAACSPk/wZo2c0YxFv83lRK9wxs35pET3TR3GBjTwCNcBGAsYHQ/s1600/Baby-Zombie-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Baby Zombie Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "bell-ringer": {
+        "name": "Bell-ringer",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/bell-ringer.webp",
+        "source": "https://1.bp.blogspot.com/-1hoGuuPw-KA/ZjSqHd-DiNI/AAAAAAACSPs/_zuDJva9gCw0HA4M0H-S653jmIuNwfYRwCNcBGAsYHQ/s1600/Bell-Ringer-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Bell-ringer Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "bloody knight": {
+        "name": "Bloody Knight",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/bloody-knight.webp",
+        "source": "https://1.bp.blogspot.com/-wV-BlI31L24/ZjSqH5FPoGI/AAAAAAACSPw/ioNd3g0lD48dyPb1gAwn57jeiGg9BXjXgCNcBGAsYHQ/s1600/Bloody-Knight-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Bloody Knight Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "bloody rose": {
+        "name": "Bloody Rose",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/bloody-rose.webp",
+        "source": "https://1.bp.blogspot.com/-UUUOJ_bv0-Q/ZjSqITYkI0I/AAAAAAACSP0/7SJDX2eZeech7WCNlfK_aZD5XpNRsSXFgCNcBGAsYHQ/s1600/Bloody-Rose-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Bloody Rose Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "boring explorer": {
+        "name": "Boring Explorer",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/boring-explorer.webp",
+        "source": "https://1.bp.blogspot.com/-vDTPwx-d4YI/ZjSqJOHc6rI/AAAAAAACSP4/pTjQK6UeZ3A28Ii_lmp4KH6RgaYHpTlHwCNcBGAsYHQ/s1600/Boring-Explorer-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Boring Explorer Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "chamberlain": {
+        "name": "Chamberlain",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/chamberlain.webp",
+        "source": "https://1.bp.blogspot.com/-ZHFvGAJhvzk/ZjSqJB2HldI/AAAAAAACSP8/U99EYIQ5G-IiY-NVixAy4Z13zMtVTaeAwCNcBGAsYHQ/s1600/Chamberlain-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Chamberlain Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "fake angel": {
+        "name": "Fake Angel",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/fake-angel.webp",
+        "source": "https://1.bp.blogspot.com/-z2ftSZ1bN2s/ZjSqJi0weGI/AAAAAAACSQA/s2FwakeNlVYU0vwZRzPHrTKo6mZ6z-HXACNcBGAsYHQ/s1600/Fake-Angel-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Fake Angel Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "fake evil": {
+        "name": "Fake Evil",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/fake-evil.webp",
+        "source": "https://1.bp.blogspot.com/-CIk9Ht85m48/ZjSqJmI6I6I/AAAAAAACSQE/2BVrKxkXS98vabkPwdTWjc6Y0_IYNmC-QCNcBGAsYHQ/s1600/Fake-Evil-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Fake Evil Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "gargoyle": {
+        "name": "Gargoyle",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/gargoyle.webp",
+        "source": "https://1.bp.blogspot.com/-QMDs4Teke0Y/ZjSqJ2jgA0I/AAAAAAACSQI/MPYGRJURUjExqs40kXgXRooUOmbl6H9sACNcBGAsYHQ/s1600/Gargoyle-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Gargoyle Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "nurse": {
+        "name": "Nurse",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/nurse.webp",
+        "source": "https://1.bp.blogspot.com/-Jbg1Lux9dxc/ZjSqJ5ThQbI/AAAAAAACSQM/vRV5nAU49IwwrIQknXXblVQ4R8Drct3BQCNcBGAsYHQ/s1600/Nurse-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Nurse Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "phantom": {
+        "name": "Phantom",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/phantom.webp",
+        "source": "https://1.bp.blogspot.com/-FBI9Nd_IXf4/ZjSqKGP0Y9I/AAAAAAACSQQ/ztWQsWNrzG4ctyD9zMOpkhXllCSdNd-0QCNcBGAsYHQ/s1600/Phantom-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Phantom Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "skeleton": {
+        "name": "Skeleton",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/skeleton.webp",
+        "source": "https://1.bp.blogspot.com/-hTN2z2hK-NA/ZjSqKSzOF6I/AAAAAAACSQU/QNHeLp4_AS03_vSFHKH7cF1bLd-V3aIRwCNcBGAsYHQ/s1600/Skeleton-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Skeleton Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      },
+      "vampire": {
+        "name": "Vampire",
+        "path": "/assets/images/collectibles/skullpanda/ancient-castle/vampire.webp",
+        "source": "https://1.bp.blogspot.com/-p4YvdMc5UFQ/ZjSqKaWYXrI/AAAAAAACSQc/WSocYi21aW8VS58bEKobpU5jGUD5KH8KQCNcBGAsYHQ/s1600/Vampire-Ancient-Castle-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/ancient-castle-series/",
+        "label": "Pop Mart Vampire Skullpanda Ancient Castle Series Figure",
+        "sourceType": "wiki"
+      }
+    },
+    "skullpanda:candy-monster-town": {
+      "adorkable magician": {
+        "name": "Adorkable Magician",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/adorkable-magician.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Adorkable-Magician.jpg",
+        "page": "https://skullpandaworld.com/product/adorkable-magician/",
+        "label": "SKULLPANDA Candy Monster Town Series - Adorkable Magician",
+        "sourceType": "wiki"
+      },
+      "bubble ghost": {
+        "name": "Bubble Ghost",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/bubble-ghost.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Bubble-Ghost.jpg",
+        "page": "https://skullpandaworld.com/product/bubble-ghost/",
+        "label": "SKULLPANDA Candy Monster Town Series - Bubble Ghost",
+        "sourceType": "wiki"
+      },
+      "candy thief": {
+        "name": "Candy Thief",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/candy-thief.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Candy-Thief.jpg",
+        "page": "https://skullpandaworld.com/product/candy-thief/",
+        "label": "SKULLPANDA Candy Monster Town Series - Candy Thief",
+        "sourceType": "wiki"
+      },
+      "chicken hunter": {
+        "name": "Chicken Hunter",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/chicken-hunter.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Chicken-Hunter.jpg",
+        "page": "https://skullpandaworld.com/product/chicken-hunter/",
+        "label": "SKULLPANDA Candy Monster Town Series - Chicken Hunter",
+        "sourceType": "wiki"
+      },
+      "cookie racoon": {
+        "name": "Cookie Racoon",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/cookie-racoon.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Cookie-Racoon.jpg",
+        "page": "https://skullpandaworld.com/product/cookie-racoon/",
+        "label": "SKULLPANDA Candy Monster Town Series - Cookie Racoon",
+        "sourceType": "wiki"
+      },
+      "elf": {
+        "name": "Elf",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/elf.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Elf.jpg",
+        "page": "https://skullpandaworld.com/product/elf/",
+        "label": "SKULLPANDA Candy Monster Town Series - Elf",
+        "sourceType": "wiki"
+      },
+      "fairy godmother": {
+        "name": "Fairy Godmother",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/fairy-godmother.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Fairy-Godmother.jpg",
+        "page": "https://skullpandaworld.com/product/fairy-godmother/",
+        "label": "SKULLPANDA Candy Monster Town Series - Fairy Godmother",
+        "sourceType": "wiki"
+      },
+      "gummy bear baby": {
+        "name": "Gummy Bear Baby",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/gummy-bear-baby.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Gummy-Bear-Baby.jpg",
+        "page": "https://skullpandaworld.com/product/gummy-bear-baby/",
+        "label": "SKULLPANDA Candy Monster Town Series - Gummy Bear Baby",
+        "sourceType": "wiki"
+      },
+      "marshmallow unicorn": {
+        "name": "Marshmallow Unicorn",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/marshmallow-unicorn.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Marshmallow-Unicorn.jpg",
+        "page": "https://skullpandaworld.com/product/marshmallow-unicorn/",
+        "label": "SKULLPANDA Candy Monster Town Series - Marshmallow Unicorn",
+        "sourceType": "wiki"
+      },
+      "milk ghost": {
+        "name": "Milk Ghost",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/milk-ghost.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Milk-Ghost.jpg",
+        "page": "https://skullpandaworld.com/product/milk-ghost/",
+        "label": "SKULLPANDA Candy Monster Town Series - Milk Ghost",
+        "sourceType": "wiki"
+      },
+      "octopus monster": {
+        "name": "Octopus Monster",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/octopus-monster.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Octopus-Monster.jpg",
+        "page": "https://skullpandaworld.com/product/octopus-monster/",
+        "label": "SKULLPANDA Candy Monster Town Series - Octopus Monster",
+        "sourceType": "wiki"
+      },
+      "strawberry clown": {
+        "name": "Strawberry Clown",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/strawberry-clown.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Strawberry-Clown.jpg",
+        "page": "https://skullpandaworld.com/product/strawberry-clown/",
+        "label": "SKULLPANDA Candy Monster Town Series - Strawberry Clown",
+        "sourceType": "wiki"
+      },
+      "sugar rabbit": {
+        "name": "Sugar Rabbit",
+        "path": "/assets/images/collectibles/skullpanda/candy-monster-town/sugar-rabbit.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-Candy-Monster-Tower-Sugar-Rabbit.jpg",
+        "page": "https://skullpandaworld.com/product/sugar-rabbit/",
+        "label": "SKULLPANDA Candy Monster Town Series - Sugar Rabbit",
+        "sourceType": "wiki"
+      }
+    },
+    "skullpanda:city-of-night": {
+      "ardent youth": {
+        "name": "Ardent Youth",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/ardent-youth.webp",
+        "source": "https://1.bp.blogspot.com/-aPKAzfKyPz8/ZjSqKzo3KHI/AAAAAAACSQY/-E1vpRBmWU8vWApk-snjujl9YinjluJ-QCNcBGAsYHQ/s1600/Ardent-Youth-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Ardent Youth Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "dancer": {
+        "name": "Dancer",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/dancer.webp",
+        "source": "https://1.bp.blogspot.com/-ZDOO-lTE1Mc/ZjSqLX9LOJI/AAAAAAACSQk/Ub5TURa_fzsSo1JcF4qe9EALiy30N_4YwCNcBGAsYHQ/s1600/Dancer-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Dancer Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "dj player": {
+        "name": "DJ Player",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/dj-player.webp",
+        "source": "https://1.bp.blogspot.com/-gsAUptcQR6g/ZjSqLTOKxtI/AAAAAAACSQg/kPlGWbQzQ10osoiGsvZ6wIuGMuOtATVrwCNcBGAsYHQ/s1600/DJ-Player-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart DJ Player Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "guardian of night": {
+        "name": "Guardian of Night",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/guardian-of-night.webp",
+        "source": "https://1.bp.blogspot.com/-XSlVnxqnpHk/ZjSqLWg9IxI/AAAAAAACSQo/8uEpbMTNZ7s9JHbe7QLCrGvgRmhUtTM9gCNcBGAsYHQ/s1600/Guardian-of-Night-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Guardian of Night Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "heart seeker": {
+        "name": "Heart Seeker",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/heart-seeker.webp",
+        "source": "https://1.bp.blogspot.com/-mWF4fwvCl0Q/ZjSqL8mFlGI/AAAAAAACSQw/7o2Pix4XXVUFFzKXJpOKYmSxNUZl5mJ6gCNcBGAsYHQ/s1600/Heart-Seeker-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Heart Seeker Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "law executor": {
+        "name": "Law Executor",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/law-executor.webp",
+        "source": "https://1.bp.blogspot.com/-5OeMhYk6x60/ZjSqMR8YhYI/AAAAAAACSQs/PzAhVT8HxcQjBCjxvAwWrXRbqk8b0NpkACNcBGAsYHQ/s1600/Law-Executor-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Law Executor Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "meditator": {
+        "name": "Meditator",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/meditator.webp",
+        "source": "https://1.bp.blogspot.com/-Ut7gxu4uGOU/ZjSqM_vPK6I/AAAAAAACSQ0/yb7u_EZ058w7T_1lPicIkFXnVWoYfSeewCNcBGAsYHQ/s1600/Meditator-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Meditator Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "naughty bodyguard": {
+        "name": "Naughty Bodyguard",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/naughty-bodyguard.webp",
+        "source": "https://1.bp.blogspot.com/-vfeexGkjpA4/ZjSqM07LX0I/AAAAAAACSQ4/xWEbpXR4Rp46oTo0GSGQIEgBQgQ7qHbPwCNcBGAsYHQ/s1600/Naughty-Bodyguard-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Naughty Bodyguard Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "pet cat": {
+        "name": "Pet Cat",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/pet-cat.webp",
+        "source": "https://1.bp.blogspot.com/-ADGj6BnIuvU/ZjSqM0A3ArI/AAAAAAACSQ8/xaXjRA5GcJgpXb7LopvFX6Lfe4woYRtyQCNcBGAsYHQ/s1600/Pet-Cat-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Pet Cat Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "puppet singer": {
+        "name": "Puppet Singer",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/puppet-singer.webp",
+        "source": "https://1.bp.blogspot.com/-6vrqKTZb8gs/ZjSqNCoz1FI/AAAAAAACSRA/7bxn7OpPVAoVmvp3NZ1kMFB9Cwhiq2NLwCNcBGAsYHQ/s1600/Puppet-Singer-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Puppet Singer Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "scroll delivery": {
+        "name": "Scroll Delivery",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/scroll-delivery.webp",
+        "source": "https://1.bp.blogspot.com/-wAJOjymLN54/ZjSqNNYnRRI/AAAAAAACSRI/Im8kjZPImwwdx8iqYdCSSFHqiy7MRYVHQCNcBGAsYHQ/s1600/Scroll-Delivery-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Scroll Delivery Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "the princess": {
+        "name": "The Princess",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/the-princess.webp",
+        "source": "https://1.bp.blogspot.com/-yb5gaBYoAdg/ZjSqNMTMSiI/AAAAAAACSRE/f9xqeot8008V9CyuB_VIO46zjOIIvzwDgCNcBGAsYHQ/s1600/The-Princess-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart The Princess Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      },
+      "traveller": {
+        "name": "Traveller",
+        "path": "/assets/images/collectibles/skullpanda/city-of-night/traveller.webp",
+        "source": "https://1.bp.blogspot.com/-yCP3m_IzdDo/ZjSqNjYbmzI/AAAAAAACSRM/9W_FRk4H9Kk51XMoR4gg8gkTgJ1VkdKsQCNcBGAsYHQ/s1600/Traveller-City-of-Night-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/city-of-night-series/",
+        "label": "Pop Mart Traveller Skullpanda City of Night Series Figure",
+        "sourceType": "wiki"
+      }
+    },
+    "skullpanda:everyday-wonderland": {
+      "the anxious": {
+        "name": "The Anxious",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-anxious.webp",
+        "source": "https://1.bp.blogspot.com/-to8eDb4OVQI/ZjSqNuQkYTI/AAAAAAACSRQ/HBt043m8fvMfhP_zbpUeY_faizfzR3H5QCNcBGAsYHQ/s1600/The-Anxious-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Anxious Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the bold": {
+        "name": "The Bold",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-bold.webp",
+        "source": "https://1.bp.blogspot.com/-bATqZC-NoRQ/ZjSqNnMYjPI/AAAAAAACSRU/3s-vDSV9YDAamhBmEDheEKwostJNdopHwCNcBGAsYHQ/s1600/The-Bold-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Bold Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the cold-hearted": {
+        "name": "The Cold-hearted",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-cold-hearted.webp",
+        "source": "https://1.bp.blogspot.com/-NxhOEVTaYWg/ZjSqODnVGTI/AAAAAAACSRY/LlSm-GgGfWAUUZkG9O_DSeMKCky3aGYoQCNcBGAsYHQ/s1600/The-Cold-Hearted-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Cold-hearted Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the fatuous": {
+        "name": "The Fatuous",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-fatuous.webp",
+        "source": "https://1.bp.blogspot.com/-r6PHTDpnHAQ/ZjSqOrze7pI/AAAAAAACSRg/gzaz0xfRBCAPQfBIBrwJDwaMv5N7Wyd5ACNcBGAsYHQ/s1600/The-Fatuous-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Fatuous Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the fidgety": {
+        "name": "The Fidgety",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-fidgety.webp",
+        "source": "https://1.bp.blogspot.com/-8nGQxrjA19Y/ZjSqPAzQE0I/AAAAAAACSRc/nvTaythAsPEuIRJKe2AkoFUa9qZ8hdurQCNcBGAsYHQ/s1600/The-Fidgety-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Fidgety Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the lethargic": {
+        "name": "The Lethargic",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-lethargic.webp",
+        "source": "https://1.bp.blogspot.com/-At-etl56UBA/ZjSqPo1VdzI/AAAAAAACSRk/l9N81THdObkJbdHdomTWNp-CszTmAnImQCNcBGAsYHQ/s1600/The-Lethargic-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Lethargic Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the obedient": {
+        "name": "The Obedient",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-obedient.webp",
+        "source": "https://1.bp.blogspot.com/-KkYYCy3Sf7M/ZjSqPzpe7EI/AAAAAAACSRs/ndX67N2LxWYn11-Fdffml0CMUkzYCKLdwCNcBGAsYHQ/s1600/The-Obedient-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Obedient Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the petulant": {
+        "name": "The Petulant",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-petulant.webp",
+        "source": "https://1.bp.blogspot.com/-Hm0aTXVYUEw/ZjSqPmD2NaI/AAAAAAACSRo/HYn-qAcR9lox-3xryQVVafR41R8HJYkkQCNcBGAsYHQ/s1600/The-Petulant-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Petulant Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the preachy": {
+        "name": "The Preachy",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-preachy.webp",
+        "source": "https://1.bp.blogspot.com/-0m0hn9qx8N0/ZjSqP1bs2ZI/AAAAAAACSRw/qqrXqlRHMbsG6Y9XCnbvdBq0VYgCHvshACNcBGAsYHQ/s1600/The-Preachy-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Preachy Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the sleepless": {
+        "name": "The Sleepless",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-sleepless.webp",
+        "source": "https://1.bp.blogspot.com/-wAJ7t6CnPqc/ZjSqQPe0ddI/AAAAAAACSR0/SzmuauLnZ8QymdSOuyTDGgagjLXc423ygCNcBGAsYHQ/s1600/The-Sleepless-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Sleepless Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the sophisticated": {
+        "name": "The Sophisticated",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-sophisticated.webp",
+        "source": "https://1.bp.blogspot.com/-ZjElE2ZVigc/ZjSqQLkKJrI/AAAAAAACSR4/c5eairUu9zgOes2VsgWCj1AySIENcqqNQCNcBGAsYHQ/s1600/The-Sophisticates-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Sophisticated Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "the timid": {
+        "name": "The Timid",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/the-timid.webp",
+        "source": "https://1.bp.blogspot.com/-w1xY-Wc5nls/ZjSqQd2j-9I/AAAAAAACSR8/PDdFGNj2KjEUkPOdl6XRc1ucuNqlWyKgQCNcBGAsYHQ/s1600/The-Timid-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart The Timid Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      },
+      "thing in itself": {
+        "name": "Thing in Itself",
+        "path": "/assets/images/collectibles/skullpanda/everyday-wonderland/thing-in-itself.webp",
+        "source": "https://1.bp.blogspot.com/-l5piIbV0AnE/ZjSqQfpLmFI/AAAAAAACSSE/c2Z1_AYjJCgBE4BOy9JboeaqXckxh9uDACNcBGAsYHQ/s1600/Thing-In-Itself-Everyday-Wonderland-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/everyday-wonderland-series/",
+        "label": "Pop Mart Thing in Itself Skullpanda Everyday Wonderland Series Figure",
+        "sourceType": "wiki"
+      }
+    },
+    "skullpanda:hypepanda": {
+      "dancer": {
+        "name": "Dancer",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/dancer.webp",
+        "source": "https://1.bp.blogspot.com/-u3v9ERpfwSQ/ZjSqQbMbJLI/AAAAAAACSSA/89AgIlHTzHMoQX3RDx4PVkCOzUGgL7jcQCNcBGAsYHQ/s1600/Dancer-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Dancer Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "elegant girl": {
+        "name": "Elegant Girl",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/elegant-girl.webp",
+        "source": "https://1.bp.blogspot.com/-c2IRNsOrD44/ZjSqQs-gQnI/AAAAAAACSSM/WgtS1J8z_54JqXIg-N_Kqz_LWkTXSVzkwCNcBGAsYHQ/s1600/Elegant-Girl-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Elegant Girl Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "fashion icon": {
+        "name": "Fashion Icon",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/fashion-icon.webp",
+        "source": "https://1.bp.blogspot.com/-pxI1dcmECD8/ZjSqQ534I4I/AAAAAAACSSI/5dQ5CNkp4rMKd6oXavvWnKv5Wq9TFUBvQCNcBGAsYHQ/s1600/Fashion-Icon-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Fashion Icon Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "hip hop singer": {
+        "name": "Hip Hop Singer",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/hip-hop-singer.webp",
+        "source": "https://1.bp.blogspot.com/-jQjnNwSkNHw/ZjSqRWcDJkI/AAAAAAACSSQ/r4YpffK1FpoJPKE2WNDZR5gdm1h_CFZJwCNcBGAsYHQ/s1600/Hip-Hop-Singer-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Hip Hop Singer Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "idol trainee": {
+        "name": "Idol Trainee",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/idol-trainee.webp",
+        "source": "https://1.bp.blogspot.com/-0-FaQyQY3Ho/ZjSqRVOkkxI/AAAAAAACSSU/rWFdnuGmrhMZrRHJ-YO5_xEqzBFSQGViQCNcBGAsYHQ/s1600/Idol-Trainee-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Idol Trainee Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "milk baby": {
+        "name": "Milk Baby",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/milk-baby.webp",
+        "source": "https://1.bp.blogspot.com/-9hEizLEzZ50/ZjSqRdf_7qI/AAAAAAACSSc/330nqZXHCZszU4LVvW6nUxes7Owi38MlgCNcBGAsYHQ/s1600/Milk-Baby-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Milk Baby Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "milk tea girl": {
+        "name": "Milk Tea Girl",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/milk-tea-girl.webp",
+        "source": "https://1.bp.blogspot.com/-96JUjrHRVLA/ZjSqSCkjqnI/AAAAAAACSSY/hOn4qiGgQKolGIykheV4I0aRXS3tD-nQwCNcBGAsYHQ/s1600/Milk-Tea-Girl-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Milk Tea Girl Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "mix & match style": {
+        "name": "Mix & Match Style",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/mix-match-style.webp",
+        "source": "https://1.bp.blogspot.com/-k26X48-spJM/ZjSqSZ3J5dI/AAAAAAACSSg/8GqBXfEYJtMT4V23Q8KxbjfBQ3YIKOWvQCNcBGAsYHQ/s1600/Mix-%2526-Match-Style-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Mix & Match Style Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "pink girl": {
+        "name": "Pink Girl",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/pink-girl.webp",
+        "source": "https://1.bp.blogspot.com/-JMqB1dd2fjI/ZjSqSaSumQI/AAAAAAACSSo/6cxB4ZP-Rm47pBGC2u51j1yZ5PsQFk1PgCNcBGAsYHQ/s1600/Pink-Girl-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Pink Girl Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "rapper": {
+        "name": "Rapper",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/rapper.webp",
+        "source": "https://1.bp.blogspot.com/-C860i7MVF6U/ZjSqSSYIr6I/AAAAAAACSSk/8Hnp2NNfgB09GiSmu4oMzJK50XGfO2dYwCNcBGAsYHQ/s1600/Rapper-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Rapper Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "skater boy": {
+        "name": "Skater Boy",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/skater-boy.webp",
+        "source": "https://1.bp.blogspot.com/-I41iTJ90e54/ZjSqSg-_OwI/AAAAAAACSSs/I8OOFq8BhwIA_P0F9nWcJnPQOYGJpvd_wCNcBGAsYHQ/s1600/Skater-Boy-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Skater Boy Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "stylist": {
+        "name": "Stylist",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/stylist.webp",
+        "source": "https://1.bp.blogspot.com/-XDA6KqtIdpQ/ZjSqTByscSI/AAAAAAACSSw/4hwOwzEkzT0zzfm-Y1YNTDK87QsN5GJZQCNcBGAsYHQ/s1600/Stylist-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Stylist Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      },
+      "vintage boy": {
+        "name": "Vintage Boy",
+        "path": "/assets/images/collectibles/skullpanda/hypepanda/vintage-boy.webp",
+        "source": "https://1.bp.blogspot.com/-FF4UDGeVWro/ZjSqTRSRSRI/AAAAAAACSS4/xjYC410P2xsTj_62o0PqHPM1z1eXrCa7wCNcBGAsYHQ/s1600/Vintage-Boy-Hypepanda-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/hypepanda-series/",
+        "label": "Pop Mart Vintage Boy Skullpanda Hypepanda Series Figure",
+        "sourceType": "wiki"
+      }
+    },
     "skullpanda:image-of-reality": {
       "the antigravity": {
         "name": "The Antigravity",
@@ -957,6 +1601,88 @@
         "path": "/assets/images/collectibles/skullpanda/image-of-reality/the-timelapse.webp",
         "source": "https://prod-global-biz.popmart.com/globalAdmin/1789106365792_81ef2f0b399ccc8854cf0ca035b3e13d.jpg?x-oss-process=image/resize,w_640",
         "page": "https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures"
+      }
+    },
+    "skullpanda:laid-back-tomorrow": {
+      "blue water shortcut": {
+        "name": "Blue Water Shortcut",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/blue-water-shortcut.webp",
+        "source": "https://1.bp.blogspot.com/-D-U2lQczdyI/ZjSqWc9OPoI/AAAAAAACSTw/k57Uqhs5sFMEBckNN_G4c3fra61I91UbwCNcBGAsYHQ/s1600/Blue-Water-Shortcut-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Blue Water Shortcut Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
+      },
+      "catch the moment": {
+        "name": "Catch the Moment",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/catch-the-moment.webp",
+        "source": "https://1.bp.blogspot.com/-h464pmPI1Sk/ZjSqWQIfsmI/AAAAAAACSTs/04xEf_KX2R4W0QgKIE3UGH3Zj0Lo_Nw5QCNcBGAsYHQ/s1600/Catch-The-Moment-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Catch the Moment Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
+      },
+      "coffee express": {
+        "name": "Coffee Express",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/coffee-express.webp",
+        "source": "https://1.bp.blogspot.com/-DxFErAMnAT4/ZjSqWv2Hk-I/AAAAAAACST0/iF7sQVRHVh4MN_hyJ0kpe8RfKmdHtiNnQCNcBGAsYHQ/s1600/Coffee-Express-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Coffee Express Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
+      },
+      "dispatch surprise": {
+        "name": "Dispatch Surprise",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/dispatch-surprise.webp",
+        "source": "https://1.bp.blogspot.com/-Uif4ZCV2ZNI/ZjSqWnZLtWI/AAAAAAACST4/AomcKnaLiXgGP04hJjT0ae1GGxN_Bx_fACNcBGAsYHQ/s1600/Dispatch-Surprise-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Dispatch Surprise Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
+      },
+      "easy off-roading": {
+        "name": "Easy Off-roading",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/easy-off-roading.webp",
+        "source": "https://1.bp.blogspot.com/-LThb9qB0B_o/ZjSqWmufPvI/AAAAAAACST8/KPSyYOMpVnIXHGUYZvpVEgmt6I0z2ckbgCNcBGAsYHQ/s1600/Easy-Off-Roading-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Easy Off-roading Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
+      },
+      "fantasy route": {
+        "name": "Fantasy Route",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/fantasy-route.webp",
+        "source": "https://1.bp.blogspot.com/-kcQWwEnX2TQ/ZjSqWwCQoMI/AAAAAAACSUA/KJE-aqJSPH81luwLVwTOLoh4wDo20YCdACNcBGAsYHQ/s1600/Fantasy-Route-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Fantasy Route Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
+      },
+      "full of sweetness": {
+        "name": "Full of Sweetness",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/full-of-sweetness.webp",
+        "source": "https://1.bp.blogspot.com/-vIt-NyxavPw/ZjSqWyxLAlI/AAAAAAACSUE/MOq7P4tV7mQh9OHdpDqG5QcDxIMgmqCJgCNcBGAsYHQ/s1600/Full-of-Sweetness-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Full of Sweetness Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
+      },
+      "hasty trail": {
+        "name": "Hasty Trail",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/hasty-trail.webp",
+        "source": "https://1.bp.blogspot.com/-XHF2tRezKlo/ZjSqW0e9v5I/AAAAAAACSUI/sA8Pb7Hy6LoBMMCmvdWUFeiS17_dWfXEQCNcBGAsYHQ/s1600/Hasty-Trail-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Hasty-Trail-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "sourceType": "wiki"
+      },
+      "out in the street": {
+        "name": "Out in the Street",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/out-in-the-street.webp",
+        "source": "https://1.bp.blogspot.com/-i8KL7Mxxmn8/ZjSqXLzmdTI/AAAAAAACSUM/JfDnm3Xp778dQfghsT2nZPTajhUe8AHQgCNcBGAsYHQ/s1600/Out-in-the-Street-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Out in the Street Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
+      },
+      "rushing out": {
+        "name": "Rushing Out",
+        "path": "/assets/images/collectibles/skullpanda/laid-back-tomorrow/rushing-out.webp",
+        "source": "https://1.bp.blogspot.com/-6wiiGCTz2CQ/ZjSqXG5RUVI/AAAAAAACSUQ/8-8oZ3oxX3AIlDz79YGcbIR7hrTLCoASQCNcBGAsYHQ/s1600/Rushing-Out-Laid-Back-Tomorrow-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/laid-back-tomorrow-series/",
+        "label": "Pop Mart Rushing Out Skullpanda Laid Back Tomorrow Series Figure",
+        "sourceType": "wiki"
       }
     },
     "skullpanda:limpressionnisme-plush-doll": {
@@ -1405,6 +2131,112 @@
         "page": "https://www.popmart.com/us/products/1715/skullpanda-tell-me-what-you-want-series-plush-pendant"
       }
     },
+    "skullpanda:the-addams-family": {
+      "dark night morticia": {
+        "name": "Dark Night Morticia",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/dark-night-morticia.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Dark-Night-Morticia.jpg",
+        "page": "https://skullpandaworld.com/product/dark-night-morticia/",
+        "label": "SKULLPANDA The Addams Family Series - Dark Night Morticia",
+        "sourceType": "wiki"
+      },
+      "deadpan wednesday": {
+        "name": "Deadpan Wednesday",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/deadpan-wednesday.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Deadpan-Wednesday.jpg",
+        "page": "https://skullpandaworld.com/product/deadpan-wednesday/",
+        "label": "SKULLPANDA The Addams Family Series - Deadpan Wednesday",
+        "sourceType": "wiki"
+      },
+      "gomez": {
+        "name": "Gomez",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/gomez.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Gomez.jpg",
+        "page": "https://skullpandaworld.com/product/gomez/",
+        "label": "SKULLPANDA The Addams Family Series - Gomez",
+        "sourceType": "wiki"
+      },
+      "grandma": {
+        "name": "Grandma",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/grandma.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Grandma.jpg",
+        "page": "https://skullpandaworld.com/product/grandma/",
+        "label": "SKULLPANDA The Addams Family Series - Grandma",
+        "sourceType": "wiki"
+      },
+      "great auntie sloom": {
+        "name": "Great Auntie Sloom",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/great-auntie-sloom.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Great-Auntie-Sloom.jpg",
+        "page": "https://skullpandaworld.com/product/great-auntie-sloom/",
+        "label": "SKULLPANDA The Addams Family Series - Great Auntie Sloom",
+        "sourceType": "wiki"
+      },
+      "it": {
+        "name": "It",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/it.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-IT.jpg",
+        "page": "https://skullpandaworld.com/product/it/",
+        "label": "SKULLPANDA The Addams Family Series - IT",
+        "sourceType": "wiki"
+      },
+      "kitty": {
+        "name": "Kitty",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/kitty.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Kitty.jpg",
+        "page": "https://skullpandaworld.com/product/kitty/",
+        "label": "SKULLPANDA The Addams Family Series - Kitty",
+        "sourceType": "wiki"
+      },
+      "lurch": {
+        "name": "Lurch",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/lurch.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Lurch.jpg",
+        "page": "https://skullpandaworld.com/product/lurch/",
+        "label": "SKULLPANDA The Addams Family Series - Lurch",
+        "sourceType": "wiki"
+      },
+      "parker": {
+        "name": "Parker",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/parker.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Parker.jpg",
+        "page": "https://skullpandaworld.com/product/parker/",
+        "label": "SKULLPANDA The Addams Family Series - Parker",
+        "sourceType": "wiki"
+      },
+      "pugsley": {
+        "name": "Pugsley",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/pugsley.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Pugsley.jpg",
+        "page": "https://skullpandaworld.com/product/pugsley/",
+        "label": "SKULLPANDA The Addams Family Series - Pugsley",
+        "sourceType": "wiki"
+      },
+      "quiet wednesday": {
+        "name": "Quiet Wednesday",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/quiet-wednesday.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Quiet-Wednesday.jpg",
+        "page": "https://skullpandaworld.com/product/quiet-wednesday/",
+        "label": "SKULLPANDA The Addams Family Series - Quiet Wednesday",
+        "sourceType": "wiki"
+      },
+      "scarlet morticia": {
+        "name": "Scarlet Morticia",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/scarlet-morticia.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Scarlet-Morticia.jpg",
+        "page": "https://skullpandaworld.com/product/scarlet-morticia/",
+        "label": "SKULLPANDA The Addams Family Series - Scarlet Morticia",
+        "sourceType": "wiki"
+      },
+      "uncle fester": {
+        "name": "Uncle Fester",
+        "path": "/assets/images/collectibles/skullpanda/the-addams-family/uncle-fester.webp",
+        "source": "https://skullpandaworld.com/wp-content/uploads/2025/02/SkullPandaWorld-Regular-The-Addams-Family-Series-Uncle-Fester.jpg",
+        "page": "https://skullpandaworld.com/product/uncle-fester/",
+        "label": "SKULLPANDA The Addams Family Series - Uncle Fester",
+        "sourceType": "wiki"
+      }
+    },
     "skullpanda:the-feast-begins": {
       "fine dining": {
         "name": "Fine Dining",
@@ -1563,6 +2395,112 @@
         "path": "/assets/images/collectibles/skullpanda/the-ink-plum-blossom/the-wind.webp",
         "source": "https://prod-global-static.oss-us-east-1.aliyuncs.com/globalAdmin/1714397831818____the-wind_____.png",
         "page": "https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures"
+      }
+    },
+    "skullpanda:the-mare-of-animals": {
+      "the blue morpho": {
+        "name": "The Blue Morpho",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-blue-morpho.webp",
+        "source": "https://1.bp.blogspot.com/-5_nTQ9Q3cpE/ZjSqdyzXLII/AAAAAAACSV8/Df98DKuHjisk2dRrO1QvwpLy5k82Gg_mwCNcBGAsYHQ/s1600/The-Blue-Morpho-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Blue Morpho Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the dream eater": {
+        "name": "The Dream Eater",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-dream-eater.webp",
+        "source": "https://1.bp.blogspot.com/--lD0kwQPjf0/ZjSqeKVu5nI/AAAAAAACSWA/W3zqpfqu3r8qkt0hokmJac6atpm-MDDYQCNcBGAsYHQ/s1600/The-Dream-Eater-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Dream Eater Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the elephant": {
+        "name": "The Elephant",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-elephant.webp",
+        "source": "https://1.bp.blogspot.com/-7jd003ICk0Q/ZjSqevBVdzI/AAAAAAACSWI/VKa-LAAJRykKMKTJggvijsgzEOfvAdlYgCNcBGAsYHQ/s1600/The-Elephant-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Elephant Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the feline": {
+        "name": "The Feline",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-feline.webp",
+        "source": "https://1.bp.blogspot.com/-GxL4hlFrY3w/ZjSqfHaKF0I/AAAAAAACSWE/T5hb5vEsNcMx_AxqTvczF2d0sz6JUnR0QCNcBGAsYHQ/s1600/The-Feline-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Feline Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the fox": {
+        "name": "The Fox",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-fox.webp",
+        "source": "https://1.bp.blogspot.com/-lmzyxURp4LI/ZjSqfrQvMuI/AAAAAAACSWM/M51ND0o7ed4Ezl6Y6BxhG6TOw4oVufUuQCNcBGAsYHQ/s1600/The-Fox-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Fox Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the halobios": {
+        "name": "The Halobios",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-halobios.webp",
+        "source": "https://1.bp.blogspot.com/-Xs0nyWL49Sk/ZjSqfqcDjSI/AAAAAAACSWQ/YZkkQIKqn-IJmcWdjI7J5mIBEZqZlvf2wCNcBGAsYHQ/s1600/The-Halobios-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Halobios Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the moth": {
+        "name": "The Moth",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-moth.webp",
+        "source": "https://1.bp.blogspot.com/-i2lMRXkizdg/ZjSqf1qIVLI/AAAAAAACSWY/t4JOqKB80XQoKoizSHzXOQZacbpx9dn5QCNcBGAsYHQ/s1600/The-Moth-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Moth Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the passenger pigeon": {
+        "name": "The Passenger Pigeon",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-passenger-pigeon.webp",
+        "source": "https://1.bp.blogspot.com/-hi9_Z5Ca9Oc/ZjSqgVYNjKI/AAAAAAACSWU/mZo18UEOSk8Ab1kG6F9T0I2lSpDphwImQCNcBGAsYHQ/s1600/The-Passenger-Pigeon-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Passenger Pigeon Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the penguin": {
+        "name": "The Penguin",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-penguin.webp",
+        "source": "https://1.bp.blogspot.com/-cPYgM1tzDgw/ZjSqgpl8nRI/AAAAAAACSWc/7RzIsWF1sFE26_YXDJmHUeEGQHAHBlMyQCNcBGAsYHQ/s1600/The-Penguin-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Penguin Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the polar bear": {
+        "name": "The Polar Bear",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-polar-bear.webp",
+        "source": "https://1.bp.blogspot.com/-ui1DPqWRasw/ZjSqg_827OI/AAAAAAACSWk/3lphmgidfX83YRsQI5FOAw_QkdXSqwW-QCNcBGAsYHQ/s1600/The-Polar-Bear-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Polar Bear Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the rabbit": {
+        "name": "The Rabbit",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-rabbit.webp",
+        "source": "https://1.bp.blogspot.com/-M59JgI1yRiQ/ZjSqg4smWYI/AAAAAAACSWg/1QHaRtF1UA8f9vW_DLnUC9u1uMeUZPtbwCNcBGAsYHQ/s1600/The-Rabbit-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Rabbit Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the rat": {
+        "name": "The Rat",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-rat.webp",
+        "source": "https://1.bp.blogspot.com/-uPMv65l91p4/ZjSqhMUM2JI/AAAAAAACSWo/HtFflDMjKDoQsmzC1Fo07UdyVgYUb_GfgCNcBGAsYHQ/s1600/The-Rat-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Rat Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
+      },
+      "the unicorn": {
+        "name": "The Unicorn",
+        "path": "/assets/images/collectibles/skullpanda/the-mare-of-animals/the-unicorn.webp",
+        "source": "https://1.bp.blogspot.com/-89AMWzLdBek/ZjSqhelSXwI/AAAAAAACSWs/Q-c845aCUqgXXMoFfZiBhZCsnaWzHvHLgCNcBGAsYHQ/s1600/The-Unicorn-The-Mare-of-Animals-Series-Skullpanda-Pop-Mart-1.jpg",
+        "page": "https://thetoypool.com/pop-mart/series/skullpanda/the-mare-of-animals-series/",
+        "label": "Pop Mart The Unicorn Skullpanda The Mare of Animals Series Figure",
+        "sourceType": "wiki"
       }
     },
     "skullpanda:the-mirage": {
