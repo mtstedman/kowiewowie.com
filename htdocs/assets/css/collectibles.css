@@ -16,7 +16,7 @@
 
 .collectibles-controls {
   display: grid;
-  grid-template-columns: minmax(14rem, 1fr) auto minmax(11rem, auto) auto;
+  grid-template-columns: minmax(14rem, 1.4fr) minmax(18rem, auto) minmax(14rem, auto) minmax(11rem, auto) auto;
   align-items: end;
   gap: 1rem;
   width: 100%;
@@ -162,8 +162,14 @@
 }
 
 .collectibles-status,
+.collectibles-storage-status,
 .collectibles-updated {
   margin: 0;
+}
+
+.collectibles-meta > div {
+  display: grid;
+  gap: 0.25rem;
 }
 
 .collectibles-status {
@@ -171,7 +177,8 @@
   color: var(--ink);
 }
 
-.collectibles-status[data-tone="error"] {
+.collectibles-status[data-tone="error"],
+.collectibles-storage-status[data-saved="false"] {
   color: var(--accent-warm);
 }
 
@@ -179,6 +186,7 @@
   color: var(--ink-soft);
 }
 
+.collectibles-storage-status,
 .collectibles-updated {
   color: var(--ink-soft);
   font-size: 0.9rem;
@@ -379,43 +387,136 @@
   font-size: 0.9rem;
 }
 
-.collectible-variant-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.collectible-inventory-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.8rem;
+  background: var(--glass-tint);
+  overscroll-behavior-inline: contain;
 }
 
-.collectible-variant {
-  display: grid;
-  gap: 0.45rem;
-  align-content: start;
-  min-width: 0;
+.collectible-inventory-table {
+  width: 100%;
+  min-width: 31rem;
+  border-collapse: collapse;
+  color: var(--ink);
+  font-size: 0.9rem;
 }
 
-.collectible-variant.is-secret .collectible-variant-media {
+.collectible-inventory-table th,
+.collectible-inventory-table td {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--glass-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.collectible-inventory-table thead th {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.collectible-inventory-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.collectible-inventory-row[hidden],
+.collectible-card[hidden] {
+  display: none;
+}
+
+.collectible-inventory-row.is-secret .collectible-thumbnail-toggle {
   border-color: var(--accent-warm);
 }
 
-.collectible-variant-body {
+.collectible-inventory-thumbnail {
+  width: 4.8rem;
+}
+
+.collectible-thumbnail-toggle {
   display: grid;
-  gap: 0.2rem;
-  justify-items: start;
-  min-width: 0;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.55rem;
+  background: var(--glass-tint-strong);
+  color: var(--ink-soft);
+  font: inherit;
+  cursor: zoom-in;
+  transition: width var(--motion-fast), height var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.collectible-thumbnail-toggle:hover {
+  border-color: var(--accent);
+}
+
+.collectible-thumbnail-toggle:focus-visible,
+.collectible-inventory-quantity input:focus-visible,
+.collectible-inventory-owned input:focus-visible {
+  outline: 2px solid var(--accent-warm);
+  outline-offset: 3px;
+}
+
+.collectible-thumbnail-toggle.is-expanded {
+  width: 9rem;
+  height: 9rem;
+  cursor: zoom-out;
+}
+
+.collectible-thumbnail-toggle:disabled {
+  cursor: default;
+}
+
+.collectible-thumbnail-toggle.is-missing,
+.collectible-thumbnail-toggle.is-missing:disabled {
+  background:
+    repeating-linear-gradient(45deg, transparent 0 8px, rgba(255, 255, 255, 0.05) 8px 16px),
+    var(--glass-tint);
+}
+
+.collectible-thumbnail-toggle .collectible-variant-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.collectible-card[data-brand="sonny-angel"] .collectible-thumbnail-toggle .collectible-variant-image {
+  object-fit: contain;
+  background: #fff;
+}
+
+.collectible-image-missing {
+  padding: 0.25rem;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.collectible-inventory-name {
+  min-width: 12rem;
+}
+
+.collectible-inventory-name > * {
+  display: block;
 }
 
 .collectible-variant-name {
   color: var(--ink);
   font-size: 0.92rem;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 .collectible-secret {
-  display: inline-block;
+  width: max-content;
+  margin-top: 0.2rem;
   padding: 0.1rem 0.5rem;
   border: 1px solid var(--accent-warm);
   border-radius: 999px;
@@ -427,13 +528,57 @@
 }
 
 .collectible-variant-price {
+  margin-top: 0.2rem;
   color: var(--ink-soft);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .collectible-price-source {
   color: var(--accent);
   text-underline-offset: 0.15em;
+}
+
+.collectible-inventory-owned,
+.collectible-inventory-quantity {
+  width: 5.5rem;
+  text-align: center !important;
+}
+
+.collectible-inventory-owned-control {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.collectible-inventory-owned input {
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: var(--accent);
+}
+
+.collectible-inventory-quantity input {
+  width: 4.5rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.5rem;
+  background: var(--glass-tint-strong);
+  color: var(--ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.collectible-inventory-quantity input[aria-invalid="true"] {
+  border-color: var(--accent-warm);
+}
+
+.collectible-owned-print,
+.collectible-quantity-print {
+  display: none;
 }
 
 .collectibles-more {
@@ -522,7 +667,7 @@
   }
 
   .collectibles-results {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.12in;
   }
 
@@ -570,8 +715,53 @@
     color: #222;
   }
 
-  .collectible-variant-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .collectible-inventory-scroll {
+    overflow: visible;
+    border-color: #999;
+    background: #fff;
+  }
+
+  .collectible-inventory-table {
+    min-width: 0;
+    color: #111;
+    font-size: 7.5pt;
+  }
+
+  .collectible-inventory-table th,
+  .collectible-inventory-table td {
+    padding: 0.035in 0.05in;
+    border-bottom-color: #bbb;
+  }
+
+  .collectible-thumbnail-toggle,
+  .collectible-thumbnail-toggle.is-expanded {
+    width: 0.42in;
+    height: 0.42in;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    color: #333;
+    cursor: default;
+  }
+
+  .collectible-inventory-thumbnail {
+    width: 0.5in;
+  }
+
+  .collectible-inventory-name {
+    min-width: 0;
+  }
+
+  .collectible-inventory-owned-control,
+  .collectible-inventory-quantity input {
+    display: none !important;
+  }
+
+  .collectible-owned-print,
+  .collectible-quantity-print {
+    display: inline;
+    color: #111;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -585,8 +775,8 @@
     gap: 0.75rem;
   }
 
-  .collectible-variant-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .collectible-inventory-table {
+    min-width: 28rem;
   }
 }
 
@@ -594,7 +784,8 @@
   .collectibles-search input,
   .collectibles-filter-option span,
   .collectible-variants-toggle,
-  .collectible-variants-icon {
+  .collectible-variants-icon,
+  .collectible-thumbnail-toggle {
     transition: none;
   }
 }

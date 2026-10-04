@@ -54,6 +54,23 @@ $pageStyles = ['/assets/css/collectibles.css'];
                             </label>
                         </div>
                     </fieldset>
+                    <fieldset class="collectibles-filter collectibles-inventory-filter">
+                        <legend>Inventory</legend>
+                        <div class="collectibles-filter-options">
+                            <label class="collectibles-filter-option">
+                                <input type="radio" name="inventory" value="all" checked>
+                                <span>All</span>
+                            </label>
+                            <label class="collectibles-filter-option">
+                                <input type="radio" name="inventory" value="owned">
+                                <span>Owned</span>
+                            </label>
+                            <label class="collectibles-filter-option">
+                                <input type="radio" name="inventory" value="missing">
+                                <span>Missing</span>
+                            </label>
+                        </div>
+                    </fieldset>
                     <div class="collectibles-sort">
                         <label for="collectibles-sort">Sort</label>
                         <select id="collectibles-sort" name="sort">
@@ -69,7 +86,10 @@ $pageStyles = ['/assets/css/collectibles.css'];
                 </form>
 
                 <div class="collectibles-meta">
-                    <p id="collectibles-status" class="collectibles-status" role="status" aria-live="polite" aria-atomic="true">Unboxing the catalog...</p>
+                    <div>
+                        <p id="collectibles-status" class="collectibles-status" role="status" aria-live="polite" aria-atomic="true">Unboxing the catalog...</p>
+                        <p id="collectibles-storage-status" class="collectibles-storage-status">Inventory is saved in this browser.</p>
+                    </div>
                     <p id="collectibles-updated" class="collectibles-updated" hidden></p>
                 </div>
 

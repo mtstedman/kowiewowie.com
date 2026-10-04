@@ -69,7 +69,9 @@ $assert(array_sum(array_map(static fn (array $product): int => count($product['v
 $assert(str_contains($page, 'value="sonny-angel"'), 'Unified collectibles page is missing the Sonny Angel filter.');
 $assert(str_contains($legacyPage, '/collectibles/?brand=sonny-angel'), 'Legacy Sonny Angel route does not redirect to the unified shelf.');
 $assert(str_contains($page, 'collectibles-export-pdf'), 'PDF export control is missing.');
+$assert(str_contains($page, 'name="inventory"') && str_contains($page, 'collectibles-storage-status'), 'Browser inventory controls are missing.');
 $assert(str_contains($script, 'window.print()') && str_contains($script, 'afterprint'), 'PDF export behavior is incomplete.');
+$assert(str_contains($script, 'collectible-inventory-table') && str_contains($script, 'collectible-thumbnail-toggle'), 'Spreadsheet inventory rendering is missing.');
 $assert(str_contains($styles, '@media print') && str_contains($styles, '@page'), 'PDF print layout is missing.');
 $popMartImage = 'https://prod-america-res.popmart.com/default/skullpanda-listing.jpg';
 $assert(
