@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=c87b4022a1c3';
+import * as inventoryModule from './collectibles-inventory.js?v=dbe0c595f834';
 
 const {
     INVENTORY_STORAGE_KEY,
@@ -22,9 +22,12 @@ const {
     isThumbnailActivationKey,
     setExpandedControl,
     partialFailureMessage,
-    normalizeYear,
-    requestedYear,
+    parseYearList,
+    parseIdList,
+    requestedYears,
+    describeYears,
     yearChoicesFromFacets,
+    matchChoices,
     newestFacetYear,
     seriesChoicesFromFacets,
     applyInventoryVisibility,
@@ -53,8 +56,12 @@ const {
     const updatedElement = document.getElementById('collectibles-updated');
     const resultsElement = document.getElementById('collectibles-results');
     const loadMoreButton = document.getElementById('collectibles-load-more');
-    const yearSelect = document.getElementById('collectibles-year');
-    const releaseSelect = document.getElementById('collectibles-release');
+    const yearInput = document.getElementById('collectibles-year-input');
+    const yearOptions = document.getElementById('collectibles-year-options');
+    const yearChips = document.getElementById('collectibles-year-chips');
+    const seriesInput = document.getElementById('collectibles-series-input');
+    const seriesOptions = document.getElementById('collectibles-series-options');
+    const seriesChips = document.getElementById('collectibles-series-chips');
     const sortSelect = document.getElementById('collectibles-sort');
     const exportButton = document.getElementById('collectibles-export-pdf');
 
@@ -66,8 +73,12 @@ const {
         || !(updatedElement instanceof HTMLElement)
         || !(resultsElement instanceof HTMLElement)
         || !(loadMoreButton instanceof HTMLButtonElement)
-        || !(yearSelect instanceof HTMLSelectElement)
-        || !(releaseSelect instanceof HTMLSelectElement)
+        || !(yearInput instanceof HTMLInputElement)
+        || !(yearOptions instanceof HTMLElement)
+        || !(yearChips instanceof HTMLElement)
+        || !(seriesInput instanceof HTMLInputElement)
+        || !(seriesOptions instanceof HTMLElement)
+        || !(seriesChips instanceof HTMLElement)
         || !(sortSelect instanceof HTMLSelectElement)
         || !(exportButton instanceof HTMLButtonElement)
     ) {
@@ -84,12 +95,14 @@ const {
         q: '',
         brand: '',
         sort: 'name-asc',
-        releaseId: '',
-        // The visitor's year choice ('' lets the shelf pick: see requestedYear),
-        // the default batch, and the year the loaded listings were asked for.
-        year: '',
+        // Chosen sets (set ids; older links may carry listing ids).
+        releaseIds: [],
+        // The visitor's years (null lets the shelf pick: see requestedYears; an
+        // empty list means every year), the default batch, and the years the
+        // loaded listings were asked for.
+        years: null,
         defaultYear: String(new Date().getFullYear()),
-        requestYear: 'all',
+        requestYears: [],
         facets: { years: [], series: [] },
         inventoryFilter: 'all',
         loaded: 0,
@@ -336,11 +349,6 @@ const {
         return { figures: rows.length, series: blocks.length };
     };
 
-    const yearDescription = (year) => {
-        if (year === 'unknown') return ' with no known release year';
-        return /^[0-9]{4}$/.test(year) ? ` from ${year}` : '';
-    };
-
     const describeResults = () => {
         const counts = visibleInventoryCounts();
         if (state.inventoryFilter !== 'all') {
@@ -350,14 +358,14 @@ const {
                 ? `No ${filterLabel} figures match these catalog controls.`
                 : `Showing ${counts.figures} ${filterLabel} ${figureWord} across ${counts.series} series.`;
         }
-        if (state.releaseId !== '') {
+        if (state.releaseIds.length > 0) {
             const figureWord = counts.figures === 1 ? 'figure' : 'figures';
             return counts.series === 0
-                ? 'No figures from this series match these catalog controls.'
-                : `Showing ${counts.figures} ${figureWord} from the selected series.`;
+                ? 'No figures from the chosen series match these catalog controls.'
+                : `Showing ${counts.figures} ${figureWord} from ${counts.series === 1 ? 'the chosen series' : `${counts.series} chosen series`}.`;
         }
         const listingWord = state.total === 1 ? 'listing' : 'listings';
-        const yearPhrase = yearDescription(state.requestYear);
+        const yearPhrase = describeYears(state.requestYears);
         if (state.loaded >= state.total) {
             return `Showing ${counts.series} series across all ${state.total} ${listingWord}${yearPhrase}.`;
         }
@@ -739,7 +747,7 @@ const {
         const releaseBlock = createElement('section', 'collectible-release-block');
         releaseBlock.dataset.releaseId = group.id;
         releaseBlock.dataset.rosterStatus = group.rosterStatus;
-        const matchingLegacyProduct = group.products.find((product) => String(product.id) === state.releaseId);
+        const matchingLegacyProduct = group.products.find((product) => state.releaseIds.includes(String(product.id)));
         releaseBlock.dataset.legacyReleaseId = String(matchingLegacyProduct?.id ?? group.products[0]?.id ?? '');
         if (group.unclassified) releaseBlock.classList.add('is-unclassified');
         const releaseHeadingId = `collectible-release-${state.releaseCount}`;
@@ -812,7 +820,7 @@ const {
                 });
                 // One requested year, or a line with no dated sets, needs no
                 // year labels.
-                const yearLabels = state.requestYear === 'all' && !(years.size === 1 && years.has('unknown'));
+                const yearLabels = state.requestYears.length !== 1 && !(years.size === 1 && years.has('unknown'));
                 const yearKeys = Array.from(years.keys())
                     .sort((left, right) => (Number(left === 'unknown') - Number(right === 'unknown')) || yearDirection * (Number(left) - Number(right)));
                 yearKeys
@@ -833,20 +841,20 @@ const {
         if (lastSyncedAt === null || lastSyncedAt === undefined || lastSyncedAt === '') {
             return { text: 'The collectibles catalog has not been synced yet. Check back after the next pull.', tone: 'empty' };
         }
-        if (state.releaseId !== '') {
-            return { text: 'No listings in the selected series match these catalog controls.', tone: 'empty' };
+        if (state.releaseIds.length > 0) {
+            return { text: 'No listings in the chosen series match these catalog controls.', tone: 'empty' };
         }
-        const elsewhere = yearChoicesFromFacets(state.facets, '')
-            .filter((choice) => choice.value !== 'all' && choice.value !== state.requestYear)
+        const elsewhere = yearChoicesFromFacets(state.facets, [])
+            .filter((choice) => !state.requestYears.includes(choice.value))
             .map((choice) => (choice.value === 'unknown' ? 'undated listings' : choice.value));
-        const hint = state.requestYear !== 'all' && elsewhere.length > 0
-            ? ` Other years have matches: ${elsewhere.slice(0, 4).join(', ')}${elsewhere.length > 4 ? ', …' : ''}. Choose another year or All years.`
+        const hint = state.requestYears.length > 0 && elsewhere.length > 0
+            ? ` Other years have matches: ${elsewhere.slice(0, 4).join(', ')}${elsewhere.length > 4 ? ', …' : ''}. Add a year, or clear the years for all of them.`
             : ' Try a different name or line.';
-        if (state.q !== '' || state.brand !== '' || state.requestYear !== 'all') {
+        if (state.q !== '' || state.brand !== '' || state.requestYears.length > 0) {
             const parts = [];
             if (state.q !== '') parts.push(`"${state.q}"`);
             if (state.brand !== '') parts.push(`in ${BRANDS[state.brand]}`);
-            const yearPhrase = yearDescription(state.requestYear);
+            const yearPhrase = describeYears(state.requestYears);
             return { text: `No collectibles${parts.length > 0 ? ` match ${parts.join(' ')}` : ''}${yearPhrase}.${hint}`, tone: 'empty' };
         }
         return { text: 'The latest sync found no collectibles on the shelf.', tone: 'empty' };
@@ -867,41 +875,151 @@ const {
         return 'The collectibles shelf would not load. Try again in a moment.';
     };
 
-    const renderYearOptions = () => {
-        const fragment = document.createDocumentFragment();
-        yearChoicesFromFacets(state.facets, state.requestYear).forEach((choice) => {
-            const option = document.createElement('option');
-            option.value = choice.value;
-            option.textContent = choice.label;
-            fragment.append(option);
+    // A type-to-filter, multi-select picker (the combobox pattern): chosen
+    // values are removable chips, the text box filters a listbox of choices,
+    // arrows move, Enter toggles, Escape closes, Backspace drops the last chip.
+    const createPicker = ({ input, options, chips, emptyLabel, getChoices, getSelected, onChange }) => {
+        let visible = [];
+        let active = -1;
+        const isOpen = () => !options.hidden;
+        const setOpen = (open) => {
+            options.hidden = !open;
+            input.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (!open) {
+                active = -1;
+                input.removeAttribute('aria-activedescendant');
+            }
+        };
+        const toggle = (value) => {
+            const selected = getSelected();
+            input.value = '';
+            onChange(selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]);
+        };
+        const renderOptions = () => {
+            visible = matchChoices(getChoices(), input.value);
+            if (active >= visible.length) active = visible.length - 1;
+            const chosen = new Set(getSelected());
+            const fragment = document.createDocumentFragment();
+            visible.forEach((choice, index) => {
+                const option = createElement('li', 'collectibles-picker-option');
+                option.id = `${options.id}-${index}`;
+                option.setAttribute('role', 'option');
+                option.setAttribute('aria-selected', chosen.has(choice.value) ? 'true' : 'false');
+                option.dataset.value = choice.value;
+                if (index === active) option.classList.add('is-active');
+                option.append(createElement('span', 'collectibles-picker-label', choice.label));
+                if (choice.detail) option.append(createElement('span', 'collectibles-picker-detail', choice.detail));
+                // Keep focus in the text box so the list stays open between picks.
+                option.addEventListener('mousedown', (event) => event.preventDefault());
+                option.addEventListener('click', () => toggle(choice.value));
+                fragment.append(option);
+            });
+            if (visible.length === 0) fragment.append(createElement('li', 'collectibles-picker-empty', 'No matches'));
+            options.replaceChildren(fragment);
+            if (active >= 0) input.setAttribute('aria-activedescendant', `${options.id}-${active}`);
+            else input.removeAttribute('aria-activedescendant');
+        };
+        const renderChips = () => {
+            const labels = new Map(getChoices().map((choice) => [choice.value, choice.label]));
+            const fragment = document.createDocumentFragment();
+            getSelected().forEach((value) => {
+                const label = labels.get(value) ?? value;
+                const chip = createElement('button', 'collectibles-picker-chip', label);
+                chip.type = 'button';
+                chip.dataset.value = value;
+                chip.setAttribute('aria-label', `Remove ${label}`);
+                chip.addEventListener('click', () => toggle(value));
+                fragment.append(chip);
+            });
+            chips.replaceChildren(fragment);
+            input.placeholder = getSelected().length === 0 ? emptyLabel : 'Add more…';
+        };
+        input.addEventListener('focus', () => {
+            renderOptions();
+            setOpen(true);
         });
-        yearSelect.replaceChildren(fragment);
-        yearSelect.value = state.requestYear;
+        input.addEventListener('blur', () => setOpen(false));
+        input.addEventListener('input', () => {
+            active = 0;
+            renderOptions();
+            setOpen(true);
+        });
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                setOpen(true);
+                renderOptions();
+                if (visible.length === 0) return;
+                const step = event.key === 'ArrowDown' ? 1 : -1;
+                active = active < 0 ? (step > 0 ? 0 : visible.length - 1) : (active + step + visible.length) % visible.length;
+                renderOptions();
+            } else if (event.key === 'Enter') {
+                // Never submit the search form from a picker.
+                event.preventDefault();
+                const target = visible[active] ?? (visible.length === 1 ? visible[0] : null);
+                if (isOpen() && target) toggle(target.value);
+            } else if (event.key === 'Escape' && isOpen()) {
+                event.preventDefault();
+                setOpen(false);
+            } else if (event.key === 'Backspace' && input.value === '') {
+                const selected = getSelected();
+                if (selected.length > 0) toggle(selected[selected.length - 1]);
+            }
+        });
+        return {
+            render() {
+                renderChips();
+                if (isOpen()) renderOptions();
+            },
+        };
     };
 
-    const renderReleaseOptions = () => {
+    const seriesPickerChoices = () => {
         const choices = seriesChoicesFromFacets(state.facets);
-        const duplicateLabels = new Map();
-        choices.forEach((choice) => {
-            const label = `${choice.title} — ${choice.brand}`;
-            duplicateLabels.set(label, (duplicateLabels.get(label) || 0) + 1);
-        });
-        const fragment = document.createDocumentFragment();
-        const allOption = document.createElement('option');
-        allOption.value = '';
-        allOption.textContent = 'All series';
-        fragment.append(allOption);
-        choices.forEach((choice) => {
-            const option = document.createElement('option');
-            option.value = choice.id;
-            const label = `${choice.title} — ${choice.brand}`;
-            option.textContent = duplicateLabels.get(label) > 1 ? `${label} (${choice.id})` : label;
-            fragment.append(option);
-        });
-        releaseSelect.replaceChildren(fragment);
-        releaseSelect.value = choices.some((choice) => choice.id === state.releaseId) ? state.releaseId : '';
-        releaseSelect.disabled = false;
-        releaseSelect.setAttribute('aria-busy', 'false');
+        const counts = new Map();
+        choices.forEach((choice) => counts.set(choice.title, (counts.get(choice.title) || 0) + 1));
+        return choices.map((choice) => ({
+            value: choice.id,
+            label: counts.get(choice.title) > 1 ? `${choice.title} (${choice.id})` : choice.title,
+            detail: choice.brand,
+        }));
+    };
+
+    const yearPicker = createPicker({
+        input: yearInput,
+        options: yearOptions,
+        chips: yearChips,
+        emptyLabel: 'All years',
+        getChoices: () => yearChoicesFromFacets(state.facets, state.requestYears),
+        getSelected: () => state.requestYears,
+        onChange: (years) => {
+            cancelDebounce();
+            state.years = years;
+            // Sets were listed for the old years.
+            state.releaseIds = [];
+            load(true);
+        },
+    });
+
+    const seriesPicker = createPicker({
+        input: seriesInput,
+        options: seriesOptions,
+        chips: seriesChips,
+        emptyLabel: 'All series — type to find',
+        getChoices: seriesPickerChoices,
+        getSelected: () => state.releaseIds,
+        onChange: (ids) => {
+            cancelDebounce();
+            // Keep the years that listed these sets rather than widening to all years.
+            if (state.years === null) state.years = [...state.requestYears];
+            state.releaseIds = ids;
+            load(true);
+        },
+    });
+
+    const renderPickers = () => {
+        yearPicker.render();
+        seriesPicker.render();
     };
 
     const syncUrl = () => {
@@ -913,8 +1031,8 @@ const {
         params.delete('sort');
         if (state.q !== '') params.set('q', state.q);
         if (state.brand !== '') params.set('brand', state.brand);
-        if (state.releaseId !== '') params.set('release', state.releaseId);
-        if (state.year !== '') params.set('year', state.year);
+        if (state.releaseIds.length > 0) params.set('release', state.releaseIds.join(','));
+        if (state.years !== null) params.set('year', state.years.length > 0 ? state.years.join(',') : 'all');
         if (state.sort !== 'name-asc') params.set('sort', state.sort);
         const query = params.toString();
         const nextUrl = `${window.location.pathname}${query !== '' ? `?${query}` : ''}${window.location.hash}`;
@@ -937,7 +1055,8 @@ const {
         state.controller = controller;
 
         if (reset) {
-            state.requestYear = requestedYear(state, state.defaultYear);
+            state.requestYears = requestedYears(state, state.defaultYear);
+            renderPickers();
             state.loaded = 0;
             state.total = 0;
             state.products = [];
@@ -954,7 +1073,7 @@ const {
         try {
             do {
                 const offset = state.loaded;
-                const params = catalogRequestParams(state.q, state.brand, state.sort, offset, state.requestYear, state.releaseId);
+                const params = catalogRequestParams(state.q, state.brand, state.sort, offset, state.requestYears, state.releaseIds);
 
                 const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
                     headers: { Accept: 'application/json' },
@@ -975,9 +1094,10 @@ const {
                     // The facets describe this search's years and sets; an
                     // older link's listing id comes back as its set's id.
                     state.facets = meta.facets && typeof meta.facets === 'object' ? meta.facets : { years: [], series: [] };
-                    if (state.releaseId !== '' && typeof meta.series === 'string' && meta.series !== '') state.releaseId = meta.series;
-                    renderYearOptions();
-                    renderReleaseOptions();
+                    if (state.releaseIds.length > 0 && Array.isArray(meta.series)) {
+                        state.releaseIds = meta.series.filter((id) => typeof id === 'string' && id !== '');
+                    }
+                    renderPickers();
                     syncUrl();
                 }
                 pageCount = appendCatalogPage(state, payload);
@@ -997,7 +1117,8 @@ const {
             updateLoadMore(pageCount);
             // Nothing in the default year yet for this line: show its newest batch.
             const newest = newestFacetYear(state.facets);
-            if (reset && state.loaded === 0 && state.year === '' && state.requestYear === state.defaultYear && newest !== '' && newest !== state.defaultYear) {
+            const onDefaultYear = state.years === null && state.requestYears.length === 1 && state.requestYears[0] === state.defaultYear;
+            if (reset && state.loaded === 0 && onDefaultYear && newest !== '' && newest !== state.defaultYear) {
                 state.defaultYear = newest;
                 return load(true, completeCatalog);
             }
@@ -1031,7 +1152,7 @@ const {
         if (q === state.q && brand === state.brand && sort === state.sort && state.loaded > 0) return;
         if (brand !== state.brand) {
             // Another line has its own sets and its own newest batch.
-            state.releaseId = '';
+            state.releaseIds = [];
             state.defaultYear = String(new Date().getFullYear());
         }
         state.q = q;
@@ -1066,19 +1187,6 @@ const {
         if (!state.loading && state.loaded < state.total) load(false, true);
         else updateLoadMore(1);
     }));
-    yearSelect.addEventListener('change', () => {
-        cancelDebounce();
-        state.year = normalizeYear(yearSelect.value);
-        state.releaseId = '';
-        load(true);
-    });
-    releaseSelect.addEventListener('change', () => {
-        cancelDebounce();
-        // Keep the year that listed this set rather than widening to all years.
-        if (state.year === '') state.year = state.requestYear;
-        state.releaseId = releaseSelect.value;
-        load(true);
-    });
     sortSelect.addEventListener('change', () => {
         cancelDebounce();
         applyFormState();
@@ -1132,8 +1240,8 @@ const {
     const initialParams = new URLSearchParams(window.location.search);
     state.q = normalizeQuery(initialParams.get('q'));
     state.brand = normalizeBrand(initialParams.get('brand'));
-    state.releaseId = String(initialParams.get('release') ?? '');
-    state.year = normalizeYear(initialParams.get('year'));
+    state.releaseIds = parseIdList(initialParams.get('release'));
+    state.years = initialParams.has('year') ? parseYearList(initialParams.get('year')) : null;
     state.sort = normalizeSort(initialParams.get('sort'));
     searchInput.value = state.q;
     sortSelect.value = state.sort;
@@ -1144,8 +1252,7 @@ const {
         input.checked = normalizeInventoryFilter(input.value) === state.inventoryFilter;
     });
 
-    state.requestYear = requestedYear(state, state.defaultYear);
-    renderYearOptions();
-    renderReleaseOptions();
+    state.requestYears = requestedYears(state, state.defaultYear);
+    renderPickers();
     load(true, true);
 })();

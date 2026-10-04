@@ -256,18 +256,20 @@ final class CollectiblesRepository
      * }
      */
     /**
-     * Listings matching the text and brand, narrowed to one release year
-     * (`all`, `unknown`, or a year) and one set. Series membership and years
+     * Listings matching the text and brand, narrowed to release years (years
+     * or `unknown`; none means every year) and sets. Series membership and years
      * are decided by the read-time classifier, so every matching listing is
      * classified (a few hundred at most) and only the requested page is
      * loaded in full. Facets describe the year and set choices for the same
      * text and brand: years ignore the year and set filters, sets ignore only
-     * the set filter. A set filter may name a set, a set-less group
+     * the set filter. A set may be named by its id, a set-less group
      * (`unclassified:<brand>:<line>`), or a listing id from older links.
      *
-     * @return array{items: list<array<string, mixed>>, total: int, last_synced_at: ?string, series: ?string, facets: array{years: list<array{year: ?int, series: int, listings: int}>, series: list<array{id: string, title: ?string, brand: string, line: string, year: ?int, listings: int}>}}
+     * @param list<string> $years
+     * @param list<string> $series
+     * @return array{items: list<array<string, mixed>>, total: int, last_synced_at: ?string, series: list<string>, facets: array{years: list<array{year: ?int, series: int, listings: int}>, series: list<array{id: string, title: ?string, brand: string, line: string, year: ?int, listings: int}>}}
      */
-    public function search(?string $query, ?string $brand, string $sort, int $limit, int $offset, ?string $year = null, ?string $series = null): array
+    public function search(?string $query, ?string $brand, string $sort, int $limit, int $offset, array $years = [], array $series = []): array
     {
         $conditions = [];
         $parameters = [];
@@ -342,15 +344,14 @@ final class CollectiblesRepository
             ];
         }
 
-        $seriesId = $series === null || $series === '' ? null : $series;
-        if ($seriesId !== null && isset($listings[$seriesId]) && !in_array($seriesId, array_column($listings, 'group'), true)) {
-            $seriesId = $listings[$seriesId]['group'];
+        $groups = array_flip(array_column($listings, 'group'));
+        $seriesIds = [];
+        foreach ($series as $requested) {
+            $resolved = !isset($groups[$requested]) && isset($listings[$requested]) ? $listings[$requested]['group'] : $requested;
+            if (!in_array($resolved, $seriesIds, true)) $seriesIds[] = $resolved;
         }
-        $inYear = static fn (array $listing): bool => match (true) {
-            $year === null || $year === 'all' => true,
-            $year === 'unknown' => $listing['year'] === null,
-            default => $listing['year'] === (int) $year,
-        };
+        $inYear = static fn (array $listing): bool => $years === []
+            || in_array($listing['year'] === null ? 'unknown' : (string) $listing['year'], $years, true);
 
         $years = [];
         $seriesFacets = [];
@@ -371,7 +372,7 @@ final class CollectiblesRepository
                 'listings' => 0,
             ];
             $seriesFacets[$listing['group']]['listings']++;
-            if ($seriesId === null || $listing['group'] === $seriesId) $selected[] = $listing;
+            if ($seriesIds === [] || in_array($listing['group'], $seriesIds, true)) $selected[] = $listing;
         }
         $yearFacets = array_map(
             static fn (array $entry): array => ['year' => $entry['year'], 'series' => count($entry['series']), 'listings' => $entry['listings']],
@@ -525,7 +526,7 @@ final class CollectiblesRepository
             'items' => $items,
             'total' => count($selected),
             'last_synced_at' => $lastSynced === false || $lastSynced === null ? null : $this->formatTimestamp((string) $lastSynced),
-            'series' => $seriesId,
+            'series' => $seriesIds,
             'facets' => ['years' => $yearFacets, 'series' => $seriesFacets],
         ];
     }

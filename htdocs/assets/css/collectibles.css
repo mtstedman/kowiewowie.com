@@ -15,7 +15,9 @@
 }
 
 .collectibles-controls {
-  display: grid;
+  /* Above the results, so an open picker list covers them. */
+  position: relative;
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -39,7 +41,7 @@
 
 .collectibles-search label,
 .collectibles-filter legend,
-.collectibles-release-filter label,
+.collectibles-picker > label,
 .collectibles-sort label {
   margin: 0;
   padding: 0;
@@ -78,7 +80,6 @@
   outline-offset: 3px;
 }
 
-.collectibles-release-filter,
 .collectibles-sort {
   display: grid;
   flex: 1 1 14rem;
@@ -86,15 +87,158 @@
   min-width: 0;
 }
 
-.collectibles-year-filter {
-  flex: 0 0 12.5rem;
+.collectibles-picker {
+  position: relative;
+  display: grid;
+  flex: 1 1 14rem;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.collectibles-year-picker {
+  flex: 0 1 15rem;
+}
+
+/* Chips and the text box share one pill-shaped field. */
+.collectibles-picker-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2.75rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.4rem;
+  background: var(--glass-tint);
+  cursor: text;
+}
+
+.collectibles-picker-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.12);
+}
+
+.collectibles-picker-chips {
+  display: contents;
+}
+
+.collectibles-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2rem;
+  padding: 0 0.55rem 0 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgba(0, 245, 255, 0.14);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.collectibles-picker-chip::after {
+  content: "\00d7";
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.collectibles-picker-chip:hover::after,
+.collectibles-picker-chip:focus-visible::after {
+  color: var(--accent-warm);
+}
+
+.collectibles-picker-input {
+  flex: 1 1 6rem;
+  min-width: 5rem;
+  min-height: 2rem;
+  padding: 0 0.4rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.collectibles-picker-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.collectibles-picker-input::placeholder {
+  color: var(--ink-soft);
+}
+
+.collectibles-picker-options {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 20;
+  width: max(100%, 16rem);
+  max-height: 18rem;
+  margin: 0;
+  padding: 0.3rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel-solid);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  list-style: none;
+}
+
+.collectibles-picker-options[hidden] {
+  display: none;
+}
+
+.collectibles-picker-option {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.6rem 0.45rem 1.6rem;
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  position: relative;
+}
+
+.collectibles-picker-option:hover,
+.collectibles-picker-option.is-active {
+  background: rgba(0, 245, 255, 0.1);
+}
+
+.collectibles-picker-option[aria-selected="true"]::before {
+  content: "\2713";
+  position: absolute;
+  left: 0.55rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.collectibles-picker-option[aria-selected="true"] .collectibles-picker-label {
+  font-weight: 700;
+}
+
+.collectibles-picker-detail {
+  flex: none;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.collectibles-picker-empty {
+  padding: 0.6rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
 }
 
 .collectibles-sort {
   flex: 0 1 12rem;
 }
 
-.collectibles-release-filter select,
 .collectibles-sort select {
   width: 100%;
   min-width: 0;
@@ -708,7 +852,7 @@
   }
 
   /* Paired selects keep the filter bar short on phones. */
-  .collectibles-controls > :is(.collectibles-release-filter, .collectibles-sort, .collectibles-export) {
+  .collectibles-controls > :is(.collectibles-sort, .collectibles-export) {
     flex: 1 1 calc(50% - 0.5rem);
   }
 

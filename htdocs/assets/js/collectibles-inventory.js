@@ -213,39 +213,65 @@ export const normalizeYear = (value) => {
     return /^(?:19|20)[0-9]{2}$/.test(text) ? text : '';
 };
 
-// The release year the shelf asks the API for: the visitor's own choice;
-// otherwise every year while searching or opening a set from a link;
-// otherwise the default batch (this year, or the newest year with listings).
-export const requestedYear = (state, defaultYear) => {
-    const chosen = normalizeYear(state && state.year);
-    if (chosen !== '') return chosen;
-    if ((state && state.q) || (state && state.releaseId)) return 'all';
+// A comma list from the URL, normalized and without repeats; for years,
+// "all" (or nothing) means no year filter.
+export const parseYearList = (value) => Array.from(new Set(String(value ?? '').split(',')
+    .map(normalizeYear)
+    .filter((year) => year !== '' && year !== 'all')));
+
+export const parseIdList = (value) => Array.from(new Set(String(value ?? '').split(',')
+    .map((id) => id.trim())
+    .filter((id) => /^[A-Za-z0-9:._-]{1,200}$/.test(id))));
+
+// The release years the shelf asks the API for (none means every year): the
+// visitor's own choice; otherwise every year while searching or opening sets
+// from a link; otherwise the default batch (this year, or the newest year
+// with listings).
+export const requestedYears = (state, defaultYear) => {
+    if (state && Array.isArray(state.years)) return state.years;
+    if ((state && state.q) || (state && Array.isArray(state.releaseIds) && state.releaseIds.length > 0)) return [];
     const fallback = normalizeYear(defaultYear);
-    return fallback === '' ? 'all' : fallback;
+    return fallback === '' || fallback === 'all' ? [] : [fallback];
+};
+
+// " from 2025 and 2026", " with no known release year", or "" for every year.
+export const describeYears = (years) => {
+    const dated = (Array.isArray(years) ? years : []).filter((year) => /^[0-9]{4}$/.test(year)).sort();
+    const undated = (Array.isArray(years) ? years : []).includes('unknown');
+    const list = dated.length <= 2 ? dated.join(' and ') : `${dated.slice(0, -1).join(', ')}, and ${dated.at(-1)}`;
+    if (dated.length === 0) return undated ? ' with no known release year' : '';
+    return ` from ${list}${undated ? ' or with no known release year' : ''}`;
 };
 
 const facetList = (facets, key) => (facets && typeof facets === 'object' && Array.isArray(facets[key]) ? facets[key] : [])
     .filter((entry) => entry && typeof entry === 'object');
 
 // Year choices from the API's year facets (which ignore the year filter):
-// every year, newest first, then undated listings. The requested year stays
-// selectable even when it has nothing for the current brand or search.
-export const yearChoicesFromFacets = (facets, selectedYear) => {
-    const choices = [{ value: 'all', label: 'All years' }];
+// newest first, then undated listings. Chosen years stay listed even when the
+// current brand or search has nothing in them.
+export const yearChoicesFromFacets = (facets, selectedYears = []) => {
     const years = facetList(facets, 'years');
-    const dated = years
+    const loaded = years.length > 0;
+    const choices = years
         .filter((entry) => Number.isInteger(entry.year))
-        .map((entry) => ({ value: String(entry.year), label: `${entry.year} (${Number(entry.series) || 0})` }));
-    const selected = normalizeYear(selectedYear);
-    if (/^[0-9]{4}$/.test(selected) && !dated.some((choice) => choice.value === selected)) {
-        dated.push({ value: selected, label: years.length === 0 ? selected : `${selected} (none)` });
-    }
-    dated.sort((left, right) => Number(right.value) - Number(left.value));
-    choices.push(...dated);
+        .map((entry) => ({ value: String(entry.year), label: String(entry.year), detail: `${Number(entry.series) || 0} series` }));
+    (Array.isArray(selectedYears) ? selectedYears : []).forEach((year) => {
+        if (/^[0-9]{4}$/.test(year) && !choices.some((choice) => choice.value === year)) {
+            choices.push({ value: year, label: year, detail: loaded ? 'none' : '' });
+        }
+    });
+    choices.sort((left, right) => Number(right.value) - Number(left.value));
     const undated = years.find((entry) => entry.year === null);
-    if (undated) choices.push({ value: 'unknown', label: `Year unknown (${Number(undated.series) || 0})` });
-    else if (selected === 'unknown') choices.push({ value: 'unknown', label: years.length === 0 ? 'Year unknown' : 'Year unknown (none)' });
+    if (undated) choices.push({ value: 'unknown', label: 'Year unknown', detail: `${Number(undated.series) || 0} series` });
+    else if ((selectedYears ?? []).includes('unknown')) choices.push({ value: 'unknown', label: 'Year unknown', detail: loaded ? 'none' : '' });
     return choices;
+};
+
+// Type-to-filter: choices whose label or detail contains the typed text.
+export const matchChoices = (choices, text) => {
+    const needle = String(text ?? '').trim().toLowerCase();
+    if (needle === '') return choices;
+    return choices.filter((choice) => `${choice.label} ${choice.detail ?? ''}`.toLowerCase().includes(needle));
 };
 
 // The newest year that has listings, for when the default year has none.
@@ -284,9 +310,10 @@ export const applyInventoryVisibility = (resultsElement, state, HTMLElementClass
         if (!(block instanceof HTMLElementClass)) return;
         const rows = Array.from(block.querySelectorAll('.collectible-inventory-row'))
             .filter((row) => row instanceof HTMLElementClass);
-        const releaseMatches = state.releaseId === ''
-            || block.dataset.releaseId === state.releaseId
-            || block.dataset.legacyReleaseId === state.releaseId;
+        const releaseIds = Array.isArray(state.releaseIds) ? state.releaseIds : [];
+        const releaseMatches = releaseIds.length === 0
+            || releaseIds.includes(block.dataset.releaseId)
+            || releaseIds.includes(block.dataset.legacyReleaseId);
         const inventoryMatches = state.inventoryFilter === 'all'
             || (rows.length > 0 && rows.some((row) => !row.hidden));
         block.hidden = !releaseMatches || !inventoryMatches;
@@ -300,12 +327,12 @@ export const applyInventoryVisibility = (resultsElement, state, HTMLElementClass
     });
 };
 
-export const catalogRequestParams = (query, brand, sort, offset, year = 'all', series = '') => {
+export const catalogRequestParams = (query, brand, sort, offset, years = [], series = []) => {
     const params = new URLSearchParams();
     if (query !== '') params.set('q', query);
     if (brand !== '') params.set('brand', brand);
-    params.set('year', normalizeYear(year) || 'all');
-    if (series !== '') params.set('series', series);
+    params.set('year', Array.isArray(years) && years.length > 0 ? years.join(',') : 'all');
+    if (Array.isArray(series) && series.length > 0) params.set('series', series.join(','));
     params.set('sort', sort);
     params.set('limit', String(PAGE_SIZE));
     params.set('offset', String(offset));

@@ -14,9 +14,12 @@ import {
   titleWithoutBrand,
   setExpandedControl,
   partialFailureMessage,
-  normalizeYear,
-  requestedYear,
+  parseYearList,
+  parseIdList,
+  requestedYears,
+  describeYears,
   yearChoicesFromFacets,
+  matchChoices,
   newestFacetYear,
   seriesChoicesFromFacets,
   applyInventoryVisibility,
@@ -63,7 +66,10 @@ for (const [brand, title, expected] of [
 const pageSource = await readFile(new URL('../htdocs/collectibles/index.php', import.meta.url), 'utf8');
 const applicationSource = await readFile(new URL('../htdocs/assets/js/collectibles.js', import.meta.url), 'utf8');
 assert.match(pageSource, /<script type="module" src="\/assets\/js\/collectibles\.js/);
-assert.match(pageSource, /<label for="collectibles-release">Series<\/label>/);
+assert.match(pageSource, /<label for="collectibles-series-input">Series<\/label>/);
+assert.match(pageSource, /<label for="collectibles-year-input">Year<\/label>/);
+assert.equal((pageSource.match(/role="combobox"/g) || []).length, 2, 'Year and Series are type-to-filter comboboxes, not dropdowns.');
+assert.equal((pageSource.match(/aria-multiselectable="true"/g) || []).length, 2, 'Year and Series take several choices.');
 assert.doesNotMatch(applicationSource, /__collectiblesInventoryTest/);
 
 let activeDocument = null;
@@ -345,22 +351,30 @@ class MemoryStorage {
 
   // Years: the visitor's choice wins; searching or opening a set widens to
   // every year; otherwise the default batch.
-  assert.deepEqual(['2026', 'all', 'unknown', '', '', ''].map((value, index) => normalizeYear([' 2026 ', 'ALL', 'unknown', '1850', '2026-01', 'yesterday'][index])), ['2026', 'all', 'unknown', '', '', '']);
-  assert.equal(requestedYear({ year: '', q: '', releaseId: '' }, '2026'), '2026');
-  assert.equal(requestedYear({ year: '', q: 'dark maze', releaseId: '' }, '2026'), 'all');
-  assert.equal(requestedYear({ year: '', q: '', releaseId: 'skullpanda:city' }, '2026'), 'all');
-  assert.equal(requestedYear({ year: '2022', q: 'dark maze', releaseId: '' }, '2026'), '2022');
-  assert.equal(requestedYear({ year: '', q: '', releaseId: '' }, 'bogus'), 'all');
+  assert.deepEqual(parseYearList(' 2026,ALL, unknown,1850,2026, 2025 '), ['2026', 'unknown', '2025']);
+  assert.deepEqual(parseYearList('all'), [], '"all" means no year filter.');
+  assert.deepEqual(parseIdList('nommi:dream, bad id!,nommi:dream,123'), ['nommi:dream', '123']);
+  assert.deepEqual(requestedYears({ years: null, q: '', releaseIds: [] }, '2026'), ['2026']);
+  assert.deepEqual(requestedYears({ years: null, q: 'dark maze', releaseIds: [] }, '2026'), [], 'Searching widens to every year.');
+  assert.deepEqual(requestedYears({ years: null, q: '', releaseIds: ['skullpanda:city'] }, '2026'), [], 'Sets from a link widen to every year.');
+  assert.deepEqual(requestedYears({ years: ['2022', '2024'], q: 'dark maze', releaseIds: [] }, '2026'), ['2022', '2024'], 'Chosen years win.');
+  assert.deepEqual(requestedYears({ years: [], q: '', releaseIds: [] }, '2026'), [], 'Clearing every year means all years.');
+  assert.deepEqual(['', ' from 2026', ' from 2025 and 2026', ' from 2024, 2025, and 2026', ' with no known release year', ' from 2026 or with no known release year'],
+    [[], ['2026'], ['2026', '2025'], ['2026', '2024', '2025'], ['unknown'], ['2026', 'unknown']].map(describeYears));
   const yearFacets = { years: [{ year: 2024, series: 3, listings: 5 }, { year: null, series: 2, listings: 4 }, { year: 2025, series: 1, listings: 1 }] };
-  assert.deepEqual(yearChoicesFromFacets(yearFacets, '2026').map((choice) => [choice.value, choice.label]), [
-    ['all', 'All years'], ['2026', '2026 (none)'], ['2025', '2025 (1)'], ['2024', '2024 (3)'], ['unknown', 'Year unknown (2)'],
-  ], 'A requested year with no listings stays selectable, newest first, undated last.');
-  assert.deepEqual(yearChoicesFromFacets({}, '2026').map((choice) => choice.label), ['All years', '2026'], 'Before facets arrive the default year is shown plainly.');
+  assert.deepEqual(yearChoicesFromFacets(yearFacets, ['2026']).map((choice) => [choice.value, choice.label, choice.detail]), [
+    ['2026', '2026', 'none'], ['2025', '2025', '1 series'], ['2024', '2024', '3 series'], ['unknown', 'Year unknown', '2 series'],
+  ], 'A chosen year with no listings stays listed, newest first, undated last.');
+  assert.deepEqual(yearChoicesFromFacets({}, ['2026']).map((choice) => [choice.label, choice.detail]), [['2026', '']], 'Before facets arrive the default year is shown plainly.');
+  assert.deepEqual(matchChoices(yearChoicesFromFacets(yearFacets, []), '202').map((choice) => choice.value), ['2025', '2024']);
+  assert.deepEqual(matchChoices(yearChoicesFromFacets(yearFacets, []), 'UNK').map((choice) => choice.value), ['unknown']);
+  assert.deepEqual(matchChoices([{ value: 'a', label: 'City of Night', detail: 'SKULLPANDA' }, { value: 'b', label: 'Dream', detail: 'Nommi' }], 'skull').map((choice) => choice.value), ['a'], 'Typing matches the brand too.');
   assert.equal(newestFacetYear(yearFacets), '2025');
   assert.equal(newestFacetYear({ years: [{ year: null, series: 1, listings: 1 }] }), '');
-  const yearParams = catalogRequestParams('', 'nommi', 'name-asc', 0, '2025', 'nommi:dream');
-  assert.deepEqual([yearParams.get('year'), yearParams.get('series')], ['2025', 'nommi:dream']);
+  const listParams = catalogRequestParams('', 'nommi', 'name-asc', 0, ['2025', '2026'], ['nommi:dream', 'nommi:sky']);
+  assert.deepEqual([listParams.get('year'), listParams.get('series')], ['2025,2026', 'nommi:dream,nommi:sky']);
   assert.equal(catalogRequestParams('', '', 'name-asc', 0).get('year'), 'all', 'Callers that name no year ask for every year.');
+  assert.equal(catalogRequestParams('', '', 'name-asc', 0, [], []).has('series'), false);
 
   const quantities = new Map([
     [inventoryKey('release-a', 'Alpha'), 2],
@@ -414,7 +428,7 @@ class MemoryStorage {
   const visibleReleaseIds = () => releaseBlocks.filter((block) => !block.hidden).map((block) => block.dataset.releaseId);
   const visibleFigureKeys = () => Array.from(rows.values()).filter((row) => !row.hidden).map((row) => row.dataset.inventoryKey);
   const apply = (releaseId, inventoryFilter) => {
-    applyInventoryVisibility(results, { releaseId, inventoryFilter }, HTMLElement);
+    applyInventoryVisibility(results, { releaseIds: releaseId === '' ? [] : [releaseId], inventoryFilter }, HTMLElement);
     return visibleReleaseIds();
   };
 
@@ -525,8 +539,14 @@ class MemoryStorage {
   const updated = element('p', 'collectibles-updated');
   const results = element('div', 'collectibles-results');
   const loadMore = element('button', 'collectibles-load-more');
-  const yearSelect = element('select', 'collectibles-year');
-  const releaseSelect = element('select', 'collectibles-release');
+  const yearInput = element('input', 'collectibles-year-input');
+  const yearOptions = element('ul', 'collectibles-year-options');
+  const yearChips = element('span', 'collectibles-year-chips');
+  const seriesInput = element('input', 'collectibles-series-input');
+  const seriesOptions = element('ul', 'collectibles-series-options');
+  const seriesChips = element('span', 'collectibles-series-chips');
+  yearOptions.hidden = true;
+  seriesOptions.hidden = true;
   const sortSelect = element('select', 'collectibles-sort');
   const exportButton = element('button', 'collectibles-export-pdf');
   sortSelect.value = 'name-asc';
@@ -547,7 +567,7 @@ class MemoryStorage {
     input.checked = index === 0;
     return input;
   });
-  form.append(searchInput, ...brandInputs, yearSelect, releaseSelect, ...inventoryInputs, sortSelect, exportButton);
+  form.append(searchInput, ...brandInputs, yearInput, yearOptions, yearChips, seriesInput, seriesOptions, seriesChips, ...inventoryInputs, sortSelect, exportButton);
 
   const catalog = [
     {
@@ -700,16 +720,17 @@ class MemoryStorage {
     const offset = Number(params.get('offset') || '0');
     const query = String(params.get('q') || '').toLowerCase();
     const brand = String(params.get('brand') || '');
-    const year = String(params.get('year') || 'all');
+    const chosenYears = String(params.get('year') || 'all').split(',').filter((token) => token !== '' && token !== 'all');
     const base = catalog.filter((product) => (brand === '' || product.brand === brand)
       && (query === ''
         || product.title.toLowerCase().includes(query)
         || String(product.series_title || '').toLowerCase().includes(query)
         || product.variants.some((variant) => variant.name.toLowerCase().includes(query))));
-    let series = String(params.get('series') || '');
-    const legacy = base.find((product) => product.id === series);
-    if (series !== '' && !base.some((product) => groupOf(product) === series) && legacy) series = groupOf(legacy);
-    const inYear = (product) => year === 'all' || (year === 'unknown' ? yearOf(product) === null : yearOf(product) === Number(year));
+    const series = String(params.get('series') || '').split(',').filter(Boolean).map((id) => {
+      const legacy = base.find((product) => product.id === id);
+      return !base.some((product) => groupOf(product) === id) && legacy ? groupOf(legacy) : id;
+    });
+    const inYear = (product) => chosenYears.length === 0 || chosenYears.includes(yearOf(product) === null ? 'unknown' : String(yearOf(product)));
     const years = new Map();
     base.forEach((product) => {
       const key = String(yearOf(product));
@@ -724,7 +745,7 @@ class MemoryStorage {
       }
       seriesFacets.get(groupOf(product)).listings += 1;
     });
-    const matches = base.filter(inYear).filter((product) => series === '' || groupOf(product) === series);
+    const matches = base.filter(inYear).filter((product) => series.length === 0 || series.includes(groupOf(product)));
     return {
       ok: true,
       status: 200,
@@ -733,8 +754,8 @@ class MemoryStorage {
         meta: {
           total: matches.length,
           last_synced_at: '2026-10-04T00:00:00Z',
-          year,
-          series: series === '' ? null : series,
+          year: chosenYears.length === 0 ? 'all' : chosenYears.join(','),
+          series,
           facets: {
             years: Array.from(years.values()).map((entry) => ({ year: entry.year, series: entry.series.size, listings: entry.listings })),
             series: Array.from(seriesFacets.values()),
@@ -759,6 +780,19 @@ class MemoryStorage {
   const blockBySeries = (seriesId) => allBlocks().find((block) => block.dataset.releaseId === seriesId);
   const settled = () => results.getAttribute('aria-busy') === 'false';
   const thisYear = String(new Date().getFullYear());
+  const chipValues = (chips) => chips.children.map((chip) => chip.dataset.value);
+  const optionNodes = (options) => options.children.filter((option) => option.dataset && option.dataset.value !== undefined);
+  const openPicker = (input) => input.dispatchEvent({ type: 'focus' });
+  const pick = (input, options, value) => {
+    openPicker(input);
+    const option = optionNodes(options).find((node) => node.dataset.value === value);
+    assert.ok(option, `The picker should offer ${value}.`);
+    option.dispatchEvent({ type: 'click' });
+  };
+  const typeInto = (input, text) => {
+    input.value = text;
+    input.dispatchEvent({ type: 'input' });
+  };
 
   // The shelf opens on this year's batch; with nothing listed this year it
   // falls back to the newest year that has listings, without a whole-catalog
@@ -767,18 +801,26 @@ class MemoryStorage {
   assert.equal(requests[0].get('year'), thisYear, 'The first request asks for the current year only.');
   assert.equal(requests[1].get('year'), '2023', 'An empty current year falls back to the newest year with listings.');
   assert.equal(requests.every((params) => params.get('year') !== 'all'), true, 'The default view never asks for every year.');
-  assert.equal(yearSelect.value, '2023');
+  assert.deepEqual(chipValues(yearChips), ['2023'], 'The year shows as a removable chip.');
   assert.ok(blockBySeries('skullpanda:city-alt'));
   assert.equal(results.querySelectorAll('.collectible-year-title').length, 0, 'One requested year needs no year labels.');
   assert.match(status.textContent, /from 2023/);
   assert.doesNotMatch(location.search, /year=/, 'An automatic year is not written to the URL.');
-  assert.deepEqual(yearSelect.children.map((option) => option.value), ['all', '2023', '2022', 'unknown']);
+  openPicker(yearInput);
+  assert.equal(yearOptions.hidden, false);
+  assert.equal(yearInput.getAttribute('aria-expanded'), 'true');
+  assert.deepEqual(optionNodes(yearOptions).map((option) => option.dataset.value), ['2023', '2022', 'unknown']);
+  assert.deepEqual(optionNodes(yearOptions).map((option) => option.getAttribute('aria-selected')), ['true', 'false', 'false']);
+  yearInput.dispatchEvent({ type: 'blur' });
+  assert.equal(yearOptions.hidden, true);
 
-  yearSelect.value = 'all';
-  yearSelect.dispatchEvent({ type: 'change' });
+  // Removing the last year chip means every year.
+  yearChips.children[0].dispatchEvent({ type: 'click' });
   await waitFor(() => settled() && allBlocks().length === 6, 'All years should load every matching set.');
   assert.match(location.search, /year=all/);
   assert.equal(requests.at(-1).get('year'), 'all');
+  assert.deepEqual(chipValues(yearChips), []);
+  assert.equal(yearInput.placeholder, 'All years');
 
   const sonnyBlock = blockBySeries('sonny-angel:animal-1');
   assert.equal(sonnyBlock.querySelectorAll('.collectible-card').length, 2, 'Sonny Angel listings split across API pages must render in one canonical series group.');
@@ -806,33 +848,51 @@ class MemoryStorage {
   assert.equal(cityAltBlock.querySelector('.collectible-inventory-name').querySelector('.collectible-identifiers').textContent, 'SKU PM-CITY-DAWN');
   assert.equal(blockBySeries('nommi:dream-a').querySelectorAll('.collectible-card').length, 2, 'Nommi listings split across API pages must render in one canonical series group.');
 
-  const optionValues = releaseSelect.children.filter((option) => !option.disabled).map((option) => option.value);
-  assert.equal(new Set(optionValues).size, optionValues.length, 'Duplicate display titles must retain distinct option identities.');
-  assert.ok(optionValues.includes('sonny-angel:animal-1'));
-  assert.ok(optionValues.includes('skullpanda:city'));
-  assert.ok(optionValues.includes('skullpanda:city-alt'));
-  assert.ok(optionValues.includes('nommi:dream-a'));
-  assert.ok(optionValues.includes('unclassified:nommi'));
-  assert.equal(releaseSelect.children.filter((option) => option.textContent.startsWith('City of Night')).length, 2);
+  openPicker(seriesInput);
+  const seriesValues = optionNodes(seriesOptions).map((option) => option.dataset.value);
+  assert.equal(new Set(seriesValues).size, seriesValues.length, 'Duplicate display titles must retain distinct option identities.');
+  ['sonny-angel:animal-1', 'skullpanda:city', 'skullpanda:city-alt', 'nommi:dream-a', 'unclassified:nommi'].forEach((id) => assert.ok(seriesValues.includes(id), id));
+  assert.equal(optionNodes(seriesOptions).filter((option) => option.textContent.startsWith('City of Night')).length, 2);
+  typeInto(seriesInput, 'city');
+  assert.deepEqual(optionNodes(seriesOptions).map((option) => option.dataset.value).sort(), ['skullpanda:city', 'skullpanda:city-alt'], 'Typing filters the series list.');
+  typeInto(seriesInput, 'nommi');
+  assert.ok(optionNodes(seriesOptions).every((option) => option.textContent.includes('Nommi')), 'Typing a brand finds its series.');
+  typeInto(seriesInput, 'zzz');
+  assert.equal(optionNodes(seriesOptions).length, 0);
+  assert.equal(seriesOptions.querySelectorAll('.collectibles-picker-empty').length, 1);
+  typeInto(seriesInput, '');
 
-  // A set is fetched on its own; an older link's listing id resolves to its set.
-  releaseSelect.value = 'sonny-retail-b';
-  releaseSelect.dispatchEvent({ type: 'change' });
-  await waitFor(() => settled() && allBlocks().length === 1 && releaseSelect.value === 'sonny-angel:animal-1', 'A legacy listing id should load its whole set.');
-  assert.ok(requests.some((params) => params.get('series') === 'sonny-retail-b'), 'The older link asks for its listing id.');
-  assert.equal(requests.at(-1).get('series'), 'sonny-angel:animal-1', 'Later pages ask for the resolved set.');
-  assert.match(location.search, /release=sonny-angel%3Aanimal-1/);
+  // Several sets at once; Backspace in the empty box drops the last one.
+  pick(seriesInput, seriesOptions, 'sonny-angel:animal-1');
+  await waitFor(() => settled() && allBlocks().length === 1, 'One chosen set should load alone.');
+  pick(seriesInput, seriesOptions, 'skullpanda:city');
+  await waitFor(() => settled() && allBlocks().length === 2, 'Two chosen sets should load together.');
+  assert.deepEqual(chipValues(seriesChips), ['sonny-angel:animal-1', 'skullpanda:city']);
+  assert.equal(requests.at(-1).get('series'), 'sonny-angel:animal-1,skullpanda:city');
+  assert.match(location.search, /release=sonny-angel%3Aanimal-1%2Cskullpanda%3Acity/);
+  assert.match(status.textContent, /from 2 chosen series/);
   assert.equal(blockBySeries('sonny-angel:animal-1').querySelectorAll('.collectible-card').length, 2);
+  seriesInput.dispatchEvent({ type: 'keydown', key: 'Backspace' });
+  await waitFor(() => settled() && allBlocks().length === 1 && blockBySeries('sonny-angel:animal-1'), 'Backspace should drop the last set.');
+  seriesChips.children[0].dispatchEvent({ type: 'click' });
+  await waitFor(() => settled() && allBlocks().length === 6, 'Removing every set should show them all again.');
 
-  yearSelect.value = '2022';
-  yearSelect.dispatchEvent({ type: 'change' });
+  // Several years at once, by click or by typing and Enter.
+  pick(yearInput, yearOptions, '2022');
   await waitFor(() => settled() && allBlocks().length === 1 && blockBySeries('skullpanda:city'), 'Choosing a year should show only that year.');
-  assert.equal(releaseSelect.value, '', 'Changing the year clears the chosen set.');
-  assert.match(location.search, /year=2022/);
   assert.equal(results.querySelectorAll('.collectible-year-title').length, 0);
-
-  yearSelect.value = 'all';
-  yearSelect.dispatchEvent({ type: 'change' });
+  pick(yearInput, yearOptions, '2023');
+  await waitFor(() => settled() && allBlocks().length === 2, 'Two years should show both batches.');
+  assert.deepEqual(chipValues(yearChips), ['2022', '2023']);
+  assert.match(location.search, /year=2022%2C2023/);
+  assert.match(status.textContent, /from 2022 and 2023/);
+  assert.ok(results.querySelectorAll('.collectible-year-title').length > 0, 'Several years label each batch.');
+  typeInto(yearInput, '2022');
+  const enter = { type: 'keydown', key: 'Enter' };
+  yearInput.dispatchEvent(enter);
+  assert.equal(enter.defaultPrevented, true, 'Enter in a picker never submits the search form.');
+  await waitFor(() => settled() && allBlocks().length === 1 && blockBySeries('skullpanda:city-alt'), 'Typing a chosen year and Enter removes it.');
+  yearChips.children[0].dispatchEvent({ type: 'click' });
   await waitFor(() => settled() && allBlocks().length === 6, 'Returning to all years should reload every set.');
   assert.equal(allBlocks().filter((block) => !block.hidden).length, 6);
   assert.match(blockBySeries('skullpanda:city').querySelector('.collectible-release-status').textContent, /Roster incomplete/);
@@ -871,8 +931,7 @@ class MemoryStorage {
 
   inventoryInputs.forEach((input) => { input.checked = input.value === 'all'; });
   inventoryInputs.find((input) => input.value === 'all').dispatchEvent({ type: 'change' });
-  releaseSelect.value = 'skullpanda:city';
-  releaseSelect.dispatchEvent({ type: 'change' });
+  pick(seriesInput, seriesOptions, 'skullpanda:city');
   await waitFor(() => settled() && allBlocks().length === 1, 'Choosing a set should load just that set.');
   brandInputs.forEach((input) => { input.checked = input.value === 'nommi'; });
   brandInputs.find((input) => input.value === 'nommi').dispatchEvent({ type: 'change' });
@@ -880,8 +939,10 @@ class MemoryStorage {
     () => results.getAttribute('aria-busy') === 'false' && allBlocks().length === 3,
     'Changing brands should reload the matching catalog groups.',
   );
-  assert.equal(releaseSelect.value, '', 'A series from another brand must not remain invisibly selected.');
-  assert.equal(releaseSelect.children.filter((option) => !option.disabled).every((option) => option.value === '' || option.textContent.includes('Nommi')), true);
+  assert.deepEqual(chipValues(seriesChips), [], 'A series from another brand must not remain invisibly selected.');
+  openPicker(seriesInput);
+  assert.ok(optionNodes(seriesOptions).length > 0 && optionNodes(seriesOptions).every((option) => option.textContent.includes('Nommi')));
+  seriesInput.dispatchEvent({ type: 'blur' });
 
   searchInput.value = 'no-match';
   form.dispatchEvent({ type: 'submit' });

@@ -165,18 +165,28 @@ final class Application
                     'sort' => 'Use name-asc, name-desc, price-asc, price-desc, newest, or oldest.',
                 ]);
             }
-            $year = trim((string) ($request->query['year'] ?? 'all'));
-            if ($year === '') $year = 'all';
-            if (!in_array($year, ['all', 'unknown'], true) && preg_match('/^(?:19|20)[0-9]{2}$/', $year) !== 1) {
-                throw new ApiException(422, 'validation_error', 'year must be all, unknown, or a four-digit year.', [
-                    'year' => 'Use all, unknown, or a year such as 2026.',
-                ]);
+            // year and series take comma lists; no year (or "all") means every year.
+            $years = [];
+            foreach (explode(',', strtolower((string) ($request->query['year'] ?? 'all'))) as $token) {
+                $token = trim($token);
+                if ($token === '' || $token === 'all') continue;
+                if ($token !== 'unknown' && preg_match('/^(?:19|20)[0-9]{2}$/', $token) !== 1) {
+                    throw new ApiException(422, 'validation_error', 'year must be all, unknown, or four-digit years, comma separated.', [
+                        'year' => 'Use all, unknown, or years such as 2025,2026.',
+                    ]);
+                }
+                if (!in_array($token, $years, true)) $years[] = $token;
             }
-            $series = trim((string) ($request->query['series'] ?? ''));
-            if ($series !== '' && preg_match('/^[A-Za-z0-9:._-]{1,200}$/', $series) !== 1) {
-                throw new ApiException(422, 'validation_error', 'series is not a valid set id.', [
-                    'series' => 'Use a set id from meta.facets.series.',
-                ]);
+            $series = [];
+            foreach (explode(',', (string) ($request->query['series'] ?? '')) as $token) {
+                $token = trim($token);
+                if ($token === '') continue;
+                if (preg_match('/^[A-Za-z0-9:._-]{1,200}$/', $token) !== 1 || count($series) >= 50) {
+                    throw new ApiException(422, 'validation_error', 'series must be up to 50 set ids, comma separated.', [
+                        'series' => 'Use set ids from meta.facets.series.',
+                    ]);
+                }
+                if (!in_array($token, $series, true)) $series[] = $token;
             }
             $limit = max(1, min(100, isset($request->query['limit']) ? (int) $request->query['limit'] : 48));
             $offset = max(0, isset($request->query['offset']) ? (int) $request->query['offset'] : 0);
@@ -186,8 +196,8 @@ final class Application
                 $sort,
                 $limit,
                 $offset,
-                $year,
-                $series === '' ? null : $series,
+                $years,
+                $series,
             );
 
             return Response::json([
@@ -199,7 +209,7 @@ final class Application
                     'count' => count($result['items']),
                     'total' => $result['total'],
                     'last_synced_at' => $result['last_synced_at'],
-                    'year' => $year,
+                    'year' => $years === [] ? 'all' : implode(',', $years),
                     'series' => $result['series'],
                     'facets' => $result['facets'],
                 ],

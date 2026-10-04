@@ -94,9 +94,9 @@ $dated = array_values(array_filter($facetYears, 'is_int'));
 $sorted = $dated;
 rsort($sorted);
 $assertSame($sorted, $dated, 'year facets run newest first');
-$assertSame(['Alpha', 'Beta'], array_column($repository->search(null, null, 'name-asc', 1000, 0, 'all', null)['items'][array_search('1', $ids($all), true)]['variants'] ?? [], 'name'), 'figures load for the page, without the brand line or the listing title');
+$assertSame(['Alpha', 'Beta'], array_column($repository->search(null, null, 'name-asc', 1000, 0, [], [])['items'][array_search('1', $ids($all), true)]['variants'] ?? [], 'name'), 'figures load for the page, without the brand line or the listing title');
 
-$nommi2025 = $repository->search(null, 'nommi', 'name-asc', 1000, 0, '2025');
+$nommi2025 = $repository->search(null, 'nommi', 'name-asc', 1000, 0, ['2025']);
 $want = $expectedIds(static fn (array $listing): bool => $listing['brand'] === 'nommi' && $listing['year'] === 2025);
 $assertSame(true, count($want) > 0, 'the fixture has 2025 Nommi listings');
 $assertSame(count($want), $nommi2025['total'], 'a year filter counts only that year');
@@ -114,19 +114,19 @@ $assertSame(
 );
 $assertSame(count($facetSets), count(array_unique(array_map(static fn (string $id): string => $expected[$id]['group'], $want))), 'set facets list only sets in the chosen year');
 
-$undated = $repository->search(null, 'skullpanda', 'name-asc', 1000, 0, 'unknown');
+$undated = $repository->search(null, 'skullpanda', 'name-asc', 1000, 0, ['unknown']);
 $assertSame($expectedIds(static fn (array $listing): bool => $listing['brand'] === 'skullpanda' && $listing['year'] === null), $ids($undated), 'year=unknown returns undated listings');
-$own = $repository->search(null, null, 'name-asc', 1000, 0, '2024');
+$own = $repository->search(null, null, 'name-asc', 1000, 0, ['2024']);
 $assertSame(true, in_array('1', $ids($own), true) === ($expected['1']['year'] === 2024), "a listing's own year counts when its set has none");
 
 $someSet = $nommi2025['items'][0]['series_id'] ?? null;
 $assertSame(true, is_string($someSet), 'a 2025 Nommi listing belongs to a set');
-$bySet = $repository->search(null, null, 'name-asc', 1000, 0, 'all', $someSet);
+$bySet = $repository->search(null, null, 'name-asc', 1000, 0, [], [$someSet]);
 $assertSame($expectedIds(static fn (array $listing): bool => $listing['group'] === $someSet), $ids($bySet), 'a set filter returns that set across all brands and years');
-$assertSame($someSet, $bySet['series'], 'the chosen set is echoed');
-$legacy = $repository->search(null, null, 'name-asc', 1000, 0, 'all', $ids($bySet)[0]);
-$assertSame([$someSet, $ids($bySet)], [$legacy['series'], $ids($legacy)], 'a listing id from an older link resolves to its set');
-$large = $repository->search(null, null, 'name-asc', 1000, 0, 'all', 'unclassified:skullpanda:large');
+$assertSame([$someSet], $bySet['series'], 'the chosen set is echoed');
+$legacy = $repository->search(null, null, 'name-asc', 1000, 0, [], [$ids($bySet)[0]]);
+$assertSame([[$someSet], $ids($bySet)], [$legacy['series'], $ids($legacy)], 'a listing id from an older link resolves to its set');
+$large = $repository->search(null, null, 'name-asc', 1000, 0, [], ['unclassified:skullpanda:large']);
 $assertSame($expectedIds(static fn (array $listing): bool => $listing['group'] === 'unclassified:skullpanda:large'), $ids($large), 'a set-less group filters by brand and line');
 $assertSame(true, $large['total'] > 0, 'the fixture has MEGA pieces');
 
@@ -137,7 +137,16 @@ for ($offset = 0; $offset < $all['total']; $offset += 7) {
     $paged = [...$paged, ...$ids($page)];
 }
 $assertSame($ids($all), $paged, 'pages concatenate to the whole result in order');
-$assertSame([], $repository->search(null, 'nommi', 'name-asc', 1000, 0, '1999')['items'], 'an empty year returns nothing');
+$assertSame([], $repository->search(null, 'nommi', 'name-asc', 1000, 0, ['1999'])['items'], 'an empty year returns nothing');
+
+// Several years, and several sets, at once.
+$twoYears = $repository->search(null, 'nommi', 'name-asc', 1000, 0, ['2024', '2025']);
+$assertSame($expectedIds(static fn (array $listing): bool => $listing['brand'] === 'nommi' && in_array($listing['year'], [2024, 2025], true)), $ids($twoYears), 'two years return both batches, in sort order');
+$yearAndUndated = $repository->search(null, 'skullpanda', 'name-asc', 1000, 0, ['2025', 'unknown']);
+$assertSame($expectedIds(static fn (array $listing): bool => $listing['brand'] === 'skullpanda' && ($listing['year'] === 2025 || $listing['year'] === null)), $ids($yearAndUndated), 'a year and undated listings combine');
+$twoSets = $repository->search(null, null, 'name-asc', 1000, 0, [], [$someSet, 'unclassified:skullpanda:large', $someSet]);
+$assertSame($expectedIds(static fn (array $listing): bool => in_array($listing['group'], [$someSet, 'unclassified:skullpanda:large'], true)), $ids($twoSets), 'two sets return both, in sort order');
+$assertSame([$someSet, 'unclassified:skullpanda:large'], $twoSets['series'], 'chosen sets are echoed once each');
 
 if ($failures !== []) {
     fwrite(STDERR, implode("\n", $failures) . "\n");

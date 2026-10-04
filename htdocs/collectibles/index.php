@@ -48,18 +48,23 @@ $pageStyles = ['/assets/css/collectibles.css'];
                             </label>
                         </div>
                     </fieldset>
-                    <div class="collectibles-release-filter collectibles-year-filter">
-                        <label for="collectibles-year">Year</label>
-                        <select id="collectibles-year" name="year">
-                            <option value="all">All years</option>
-                        </select>
+                    <div class="collectibles-picker collectibles-year-picker" data-picker="year">
+                        <label for="collectibles-year-input">Year</label>
+                        <div class="collectibles-picker-field">
+                            <span class="collectibles-picker-chips" id="collectibles-year-chips"></span>
+                            <input id="collectibles-year-input" class="collectibles-picker-input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="collectibles-year-options" aria-describedby="collectibles-picker-help" autocomplete="off" spellcheck="false" placeholder="All years">
+                        </div>
+                        <ul id="collectibles-year-options" class="collectibles-picker-options" role="listbox" aria-multiselectable="true" aria-label="Year choices" hidden></ul>
                     </div>
-                    <div class="collectibles-release-filter">
-                        <label for="collectibles-release">Series</label>
-                        <select id="collectibles-release" name="release" aria-busy="true" disabled>
-                            <option value="">Loading series…</option>
-                        </select>
+                    <div class="collectibles-picker collectibles-series-picker" data-picker="series">
+                        <label for="collectibles-series-input">Series</label>
+                        <div class="collectibles-picker-field">
+                            <span class="collectibles-picker-chips" id="collectibles-series-chips"></span>
+                            <input id="collectibles-series-input" class="collectibles-picker-input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="collectibles-series-options" aria-describedby="collectibles-picker-help" autocomplete="off" spellcheck="false" placeholder="All series — type to find">
+                        </div>
+                        <ul id="collectibles-series-options" class="collectibles-picker-options" role="listbox" aria-multiselectable="true" aria-label="Series choices" hidden></ul>
                     </div>
+                    <p id="collectibles-picker-help" class="collectibles-sr-only">Type to filter, Enter or click to add or remove a choice, Backspace removes the last one.</p>
                     <fieldset class="collectibles-filter collectibles-inventory-filter">
                         <legend>Inventory</legend>
                         <div class="collectibles-filter-options">
