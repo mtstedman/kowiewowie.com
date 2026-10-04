@@ -51,6 +51,7 @@ final class CollectiblesRepository
             $this->assertHttpsUrl($product['price_source_url'] ?? null);
         }
 
+        $resolveProductStatement = $this->pdo->prepare('SELECT external_id FROM collectible_products WHERE source_key = :source_key AND product_url = :product_url ORDER BY id LIMIT 1');
         $productStatement = $this->pdo->prepare(<<<'SQL'
             INSERT INTO collectible_products (
                 brand,
@@ -82,19 +83,28 @@ final class CollectiblesRepository
             ON CONFLICT (source_key, external_id) DO UPDATE SET
                 title = EXCLUDED.title,
                 product_url = EXCLUDED.product_url,
-                image_url = EXCLUDED.image_url,
-                price_cents = EXCLUDED.price_cents,
-                currency = EXCLUDED.currency,
-                price_kind = EXCLUDED.price_kind,
-                price_source_url = EXCLUDED.price_source_url,
-                price_observed_on = EXCLUDED.price_observed_on,
-                release_year = EXCLUDED.release_year,
+                image_url = CASE WHEN :preserve_existing THEN COALESCE(collectible_products.image_url, EXCLUDED.image_url) ELSE EXCLUDED.image_url END,
+                price_cents = CASE WHEN :preserve_existing THEN COALESCE(collectible_products.price_cents, EXCLUDED.price_cents) ELSE EXCLUDED.price_cents END,
+                currency = CASE WHEN :preserve_existing THEN COALESCE(collectible_products.currency, EXCLUDED.currency) ELSE EXCLUDED.currency END,
+                price_kind = CASE WHEN :preserve_existing THEN COALESCE(collectible_products.price_kind, EXCLUDED.price_kind) ELSE EXCLUDED.price_kind END,
+                price_source_url = CASE WHEN :preserve_existing THEN COALESCE(collectible_products.price_source_url, EXCLUDED.price_source_url) ELSE EXCLUDED.price_source_url END,
+                price_observed_on = CASE WHEN :preserve_existing THEN COALESCE(collectible_products.price_observed_on, EXCLUDED.price_observed_on) ELSE EXCLUDED.price_observed_on END,
+                release_year = COALESCE(EXCLUDED.release_year, collectible_products.release_year),
                 last_seen_at = now()
             RETURNING id
         SQL);
-        $deleteVariantsStatement = $this->pdo->prepare(<<<'SQL'
-            DELETE FROM collectible_variants
-            WHERE product_id = :product_id
+        $existingVariantsStatement = $this->pdo->prepare('SELECT id, name FROM collectible_variants WHERE product_id = :product_id ORDER BY id');
+        $updateVariantStatement = $this->pdo->prepare(<<<'SQL'
+            UPDATE collectible_variants SET
+                is_secret = :is_secret,
+                image_url = CASE WHEN :preserve_existing THEN COALESCE(image_url, :image_url) ELSE :image_url END,
+                price_cents = CASE WHEN :preserve_existing THEN COALESCE(price_cents, :price_cents) ELSE :price_cents END,
+                currency = CASE WHEN :preserve_existing THEN COALESCE(currency, :currency) ELSE :currency END,
+                price_kind = CASE WHEN :preserve_existing THEN COALESCE(price_kind, :price_kind) ELSE :price_kind END,
+                price_source_url = CASE WHEN :preserve_existing THEN COALESCE(price_source_url, :price_source_url) ELSE :price_source_url END,
+                price_observed_on = CASE WHEN :preserve_existing THEN COALESCE(price_observed_on, :price_observed_on) ELSE :price_observed_on END,
+                position = :position
+            WHERE id = :id
         SQL);
         $variantStatement = $this->pdo->prepare(<<<'SQL'
             INSERT INTO collectible_variants (
@@ -126,6 +136,11 @@ final class CollectiblesRepository
         $this->pdo->beginTransaction();
         try {
             foreach ($products as $product) {
+                if (str_starts_with($product['external_id'], 'catalog:')) {
+                    $resolveProductStatement->execute(['source_key' => $sourceKey, 'product_url' => $product['product_url']]);
+                    $resolvedExternalId = $resolveProductStatement->fetchColumn();
+                    if ($resolvedExternalId !== false) $product['external_id'] = (string) $resolvedExternalId;
+                }
                 $productStatement->execute([
                     'brand' => $brand,
                     'source_key' => $sourceKey,
@@ -139,25 +154,32 @@ final class CollectiblesRepository
                     'price_source_url' => $product['price_source_url'] ?? null,
                     'price_observed_on' => $product['price_observed_on'] ?? null,
                     'release_year' => $product['release_year'] ?? null,
+                    'preserve_existing' => ($product['preserve_existing'] ?? false) === true,
                 ]);
                 $productId = $productStatement->fetchColumn();
                 if ($productId === false) {
                     throw new \RuntimeException('The collectible product row could not be saved.');
                 }
 
-                $deleteVariantsStatement->execute(['product_id' => (string) $productId]);
+                $existingVariantsStatement->execute(['product_id' => (string) $productId]);
+                $existing = [];
+                foreach ($existingVariantsStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                    $key = function_exists('mb_strtolower') ? mb_strtolower((string) $row['name'], 'UTF-8') : strtolower((string) $row['name']);
+                    $existing[$key] ??= (string) $row['id'];
+                }
                 foreach ($product['variants'] as $position => $variant) {
-                    $variantStatement->bindValue(':product_id', (string) $productId, PDO::PARAM_STR);
-                    $variantStatement->bindValue(':name', $variant['name'], PDO::PARAM_STR);
-                    $variantStatement->bindValue(':is_secret', $variant['is_secret'], PDO::PARAM_BOOL);
-                    $variantStatement->bindValue(':image_url', $variant['image_url'], $variant['image_url'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-                    $variantStatement->bindValue(':price_cents', $variant['price_cents'], $variant['price_cents'] === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-                    $variantStatement->bindValue(':currency', $variant['currency'], $variant['currency'] === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-                    $variantStatement->bindValue(':price_kind', $variant['price_kind'] ?? null, ($variant['price_kind'] ?? null) === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-                    $variantStatement->bindValue(':price_source_url', $variant['price_source_url'] ?? null, ($variant['price_source_url'] ?? null) === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-                    $variantStatement->bindValue(':price_observed_on', $variant['price_observed_on'] ?? null, ($variant['price_observed_on'] ?? null) === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-                    $variantStatement->bindValue(':position', $position, PDO::PARAM_INT);
-                    $variantStatement->execute();
+                    $key = function_exists('mb_strtolower') ? mb_strtolower($variant['name'], 'UTF-8') : strtolower($variant['name']);
+                    $values = [
+                        'is_secret' => $variant['is_secret'], 'image_url' => $variant['image_url'],
+                        'price_cents' => $variant['price_cents'], 'currency' => $variant['currency'],
+                        'price_kind' => $variant['price_kind'] ?? null, 'price_source_url' => $variant['price_source_url'] ?? null,
+                        'price_observed_on' => $variant['price_observed_on'] ?? null, 'position' => $position,
+                    ];
+                    if (isset($existing[$key])) {
+                        $updateVariantStatement->execute($values + ['id' => $existing[$key], 'preserve_existing' => ($product['preserve_existing'] ?? false) === true]);
+                    } else {
+                        $variantStatement->execute($values + ['product_id' => (string) $productId, 'name' => $variant['name']]);
+                    }
                     $variantCount++;
                 }
             }
@@ -228,6 +250,7 @@ final class CollectiblesRepository
         $itemsStatement = $this->pdo->prepare(sprintf(<<<'SQL'
             SELECT
                 p.id,
+                p.external_id,
                 p.brand,
                 p.title,
                 p.product_url,
@@ -252,11 +275,15 @@ final class CollectiblesRepository
         $itemsStatement->bindValue(':offset', $offset, PDO::PARAM_INT);
         $itemsStatement->execute();
 
+        $catalogMappings = CollectibleCatalogSupplement::mappings(dirname(__DIR__, 3));
         $items = [];
         $itemIndexes = [];
         foreach ($itemsStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $id = (string) $row['id'];
             $itemIndexes[$id] = count($items);
+            $mapping = $catalogMappings['identity'][(string) $row['source_key'] . "\0" . (string) $row['external_id']]
+                ?? $catalogMappings['url'][(string) $row['source_key'] . "\0" . (string) $row['product_url']]
+                ?? ['series_id' => null, 'series_title' => null, 'series_roster_status' => 'unknown'];
             $items[] = [
                 'id' => $id,
                 'brand' => (string) $row['brand'],
@@ -271,6 +298,9 @@ final class CollectiblesRepository
                 'release_year' => $row['release_year'] === null ? null : (int) $row['release_year'],
                 'sort_price_cents' => $row['sort_price_cents'] === null ? null : (int) $row['sort_price_cents'],
                 'source_key' => (string) $row['source_key'],
+                'series_id' => $mapping['series_id'],
+                'series_title' => $mapping['series_title'],
+                'series_roster_status' => $mapping['series_roster_status'],
                 'last_seen_at' => $this->formatTimestamp((string) $row['last_seen_at']),
                 'variants' => [],
             ];

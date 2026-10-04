@@ -304,7 +304,7 @@ import {
             .filter((block) => block instanceof HTMLElement && !block.hidden);
         const rows = blocks.flatMap((block) => Array.from(block.querySelectorAll('.collectible-inventory-row'))
             .filter((row) => row instanceof HTMLElement && !row.hidden));
-        return { figures: rows.length, products: blocks.length };
+        return { figures: rows.length, series: blocks.length };
     };
 
     const describeResults = () => {
@@ -312,21 +312,21 @@ import {
         if (state.inventoryFilter !== 'all') {
             const filterLabel = state.inventoryFilter === 'owned' ? 'owned' : 'not owned';
             const figureWord = counts.figures === 1 ? 'figure' : 'figures';
-            const productWord = counts.products === 1 ? 'release' : 'releases';
             return counts.figures === 0
                 ? `No ${filterLabel} figures match these catalog controls.`
-                : `Showing ${counts.figures} ${filterLabel} ${figureWord} across ${counts.products} ${productWord}.`;
+                : `Showing ${counts.figures} ${filterLabel} ${figureWord} across ${counts.series} series.`;
         }
         if (state.releaseId !== '') {
             const figureWord = counts.figures === 1 ? 'figure' : 'figures';
-            return counts.products === 0
-                ? 'No figures from this release match these catalog controls.'
-                : `Showing ${counts.figures} ${figureWord} from the selected release.`;
+            return counts.series === 0
+                ? 'No figures from this series match these catalog controls.'
+                : `Showing ${counts.figures} ${figureWord} from the selected series.`;
         }
-        const productWord = state.total === 1 ? 'release' : 'releases';
-        return state.loaded >= state.total
-            ? `Showing all ${state.total} ${productWord}.`
-            : `Showing ${state.loaded} of ${state.total} ${productWord}.`;
+        const listingWord = state.total === 1 ? 'listing' : 'listings';
+        if (state.loaded >= state.total) {
+            return `Showing ${counts.series} series across all ${state.total} ${listingWord}.`;
+        }
+        return `Showing ${counts.series} series across ${state.loaded} of ${state.total} ${listingWord}.`;
     };
 
     const refreshInventoryVisibility = () => {
@@ -335,10 +335,10 @@ import {
             const counts = visibleInventoryCounts();
             const releaseNotice = state.releaseChoicesComplete
                 ? ''
-                : (state.releaseChoicesLoading ? ' Release choices are still loading.' : ' Release choices are incomplete; retry to finish loading them.');
+                : (state.releaseChoicesLoading ? ' Series choices are still loading.' : ' Series choices are incomplete; retry to finish loading them.');
             setStatus(`${describeResults()}${releaseNotice}`, !state.releaseChoicesComplete && !state.releaseChoicesLoading
                 ? 'error'
-                : (counts.products === 0 ? 'empty' : 'success'));
+                : (counts.series === 0 ? 'empty' : 'success'));
         }
     };
 
@@ -486,10 +486,66 @@ import {
         return row;
     };
 
+    const seriesIdForProduct = (product) => {
+        const safeProduct = product && typeof product === 'object' ? product : {};
+        return typeof safeProduct.series_id === 'string' && safeProduct.series_id !== ''
+            ? safeProduct.series_id
+            : `unclassified:${String(safeProduct.brand ?? 'collectible')}`;
+    };
+
+    const groupProductsBySeries = (products) => {
+        const groups = new Map();
+        (Array.isArray(products) ? products : []).forEach((product) => {
+            const safeProduct = product && typeof product === 'object' ? product : {};
+            const id = seriesIdForProduct(safeProduct);
+            const unclassified = !(typeof safeProduct.series_id === 'string' && safeProduct.series_id !== '');
+            const status = ['complete', 'partial', 'unknown'].includes(safeProduct.series_roster_status)
+                ? safeProduct.series_roster_status
+                : 'unknown';
+            if (!groups.has(id)) {
+                groups.set(id, {
+                    id,
+                    title: typeof safeProduct.series_title === 'string' && safeProduct.series_title.trim() !== ''
+                        ? safeProduct.series_title.trim()
+                        : 'Unclassified',
+                    brand: safeProduct.brand,
+                    rosterStatus: unclassified ? 'unknown' : status,
+                    unclassified,
+                    products: [],
+                });
+            }
+            const group = groups.get(id);
+            group.products.push(safeProduct);
+            const statusPriority = { complete: 0, partial: 1, unknown: 2 };
+            if (statusPriority[status] > statusPriority[group.rosterStatus]) group.rosterStatus = status;
+        });
+        return Array.from(groups.values());
+    };
+
+    const seriesRosterText = (group) => {
+        const figureCount = group.products.reduce((total, product) => total
+            + (Array.isArray(product.variants) ? product.variants.length : 0), 0);
+        const listingCount = group.products.length;
+        const figureLabel = `${figureCount} listed ${figureCount === 1 ? 'figure' : 'figures'}`;
+        const listingLabel = `${listingCount} retail ${listingCount === 1 ? 'listing' : 'listings'}`;
+        if (group.unclassified) {
+            return `Series membership is unknown. ${figureLabel} ${figureCount === 1 ? 'remains' : 'remain'} visible across ${listingLabel}.`;
+        }
+        if (group.rosterStatus === 'partial') {
+            return `Roster incomplete: ${figureLabel} across ${listingLabel}.`;
+        }
+        if (group.rosterStatus === 'complete') {
+            return figureCount === 0
+                ? `Known complete roster: no figures are listed across ${listingLabel}.`
+                : `Complete roster: ${figureLabel} across ${listingLabel}.`;
+        }
+        return `Roster completeness has not been confirmed: ${figureLabel} across ${listingLabel}.`;
+    };
+
     const renderProduct = (product) => {
         const safeProduct = product && typeof product === 'object' ? product : {};
         const productId = String(safeProduct.id);
-        const title = typeof safeProduct.title === 'string' && safeProduct.title.trim() !== '' ? safeProduct.title.trim() : 'Untitled series';
+        const title = typeof safeProduct.title === 'string' && safeProduct.title.trim() !== '' ? safeProduct.title.trim() : 'Untitled listing';
         const label = brandLabel(safeProduct.brand);
         const variants = Array.isArray(safeProduct.variants) ? safeProduct.variants : [];
         const fallbackPrice = variants
@@ -503,21 +559,6 @@ import {
             ? safeProduct.price_kind
             : (fallbackPrice && ['retail', 'asking', 'sold'].includes(fallbackPrice.price_kind) ? fallbackPrice.price_kind : '');
         const priceIsFromVariant = typeof safeProduct.price_cents !== 'number' && fallbackPrice !== null;
-
-        state.releaseCount += 1;
-        const releaseBlock = createElement('section', 'collectible-release-block');
-        releaseBlock.dataset.releaseId = productId;
-        const releaseHeadingId = `collectible-release-${state.releaseCount}`;
-        releaseBlock.setAttribute('aria-labelledby', releaseHeadingId);
-        const releaseHeading = createElement('header', 'collectible-release-heading');
-        releaseHeading.append(createElement('p', 'eyebrow collectible-release-brand', `${label} release`));
-        const releaseTitle = createElement('h3', 'collectible-release-title', title);
-        releaseTitle.id = releaseHeadingId;
-        releaseHeading.append(releaseTitle);
-        if (Number.isInteger(safeProduct.release_year)) {
-            releaseHeading.append(createElement('p', 'collectible-release-year', `Released ${safeProduct.release_year}`));
-        }
-        releaseBlock.append(releaseHeading);
 
         const card = createElement('article', 'collectible-card');
         card.dataset.productKey = productId;
@@ -534,7 +575,7 @@ import {
 
         const summary = createElement('div', 'collectible-card-summary');
         summary.append(createElement('p', 'eyebrow collectible-brand', label));
-        const heading = createElement('h3', 'collectible-title', title);
+        const heading = createElement('h4', 'collectible-title', title);
         heading.tabIndex = -1;
         summary.append(heading);
         if (Number.isInteger(safeProduct.release_year)) {
@@ -562,12 +603,12 @@ import {
         const countLabel = variants.length === 1 ? '1 variant' : `${variants.length} variants`;
         if (variants.length === 0) {
             variantSection.classList.add('is-empty');
-            variantSection.append(createElement('h4', 'collectible-variants-title', countLabel));
-            variantSection.append(createElement('p', 'collectible-variants-empty', 'No figure variants are listed for this series yet.'));
+            variantSection.append(createElement('h5', 'collectible-variants-title', countLabel));
+            variantSection.append(createElement('p', 'collectible-variants-empty', 'No figure variants are listed for this retail listing.'));
         } else {
             state.disclosureCount += 1;
             const panelId = `collectible-variants-${state.disclosureCount}`;
-            const headingElement = createElement('h4', 'collectible-variants-title');
+            const headingElement = createElement('h5', 'collectible-variants-title');
             const toggle = createElement('button', 'collectible-variants-toggle');
             toggle.type = 'button';
             toggle.setAttribute('aria-controls', panelId);
@@ -620,15 +661,44 @@ import {
             });
         }
         card.append(variantSection);
-        releaseBlock.append(card);
+        return card;
+    };
+
+    const renderSeries = (group) => {
+        state.releaseCount += 1;
+        const releaseBlock = createElement('section', 'collectible-release-block');
+        releaseBlock.dataset.releaseId = group.id;
+        releaseBlock.dataset.rosterStatus = group.rosterStatus;
+        const matchingLegacyProduct = group.products.find((product) => String(product.id) === state.releaseId);
+        releaseBlock.dataset.legacyReleaseId = String(matchingLegacyProduct?.id ?? group.products[0]?.id ?? '');
+        if (group.unclassified) releaseBlock.classList.add('is-unclassified');
+        const releaseHeadingId = `collectible-release-${state.releaseCount}`;
+        releaseBlock.setAttribute('aria-labelledby', releaseHeadingId);
+        const releaseHeading = createElement('header', 'collectible-release-heading');
+        releaseHeading.append(createElement('p', 'eyebrow collectible-release-brand', `${brandLabel(group.brand)} series`));
+        const releaseTitle = createElement('h3', 'collectible-release-title', group.title);
+        releaseTitle.id = releaseHeadingId;
+        releaseHeading.append(releaseTitle);
+        releaseHeading.append(createElement('p', 'collectible-release-status', seriesRosterText(group)));
+        releaseBlock.append(releaseHeading);
+        const products = createElement('div', 'collectible-release-products');
+        group.products.forEach((product) => products.append(renderProduct(product)));
+        releaseBlock.append(products);
         return releaseBlock;
     };
 
     const renderCatalog = () => {
         state.disclosureCount = 0;
         state.releaseCount = 0;
+        const groups = groupProductsBySeries(state.products);
+        if (state.sort === 'name-asc' || state.sort === 'name-desc') {
+            const direction = state.sort === 'name-desc' ? -1 : 1;
+            groups.sort((left, right) => direction * (left.title.localeCompare(right.title)
+                || brandLabel(left.brand).localeCompare(brandLabel(right.brand))
+                || left.id.localeCompare(right.id)));
+        }
         const fragment = document.createDocumentFragment();
-        state.products.forEach((product) => fragment.append(renderProduct(product)));
+        groups.forEach((group) => fragment.append(renderSeries(group)));
         resultsElement.replaceChildren(fragment);
         refreshInventoryVisibility();
     };
@@ -661,8 +731,29 @@ import {
         return 'The collectibles shelf would not load. Try again in a moment.';
     };
 
-    const renderReleaseOptions = () => {
+    const releaseChoicesForBrand = () => {
         const choices = releaseChoicesFromProducts(state.releaseProducts);
+        if (state.brand === '') return choices;
+        const brandSeries = new Set(state.releaseProducts
+            .filter((product) => normalizeBrand(product?.brand) === state.brand)
+            .map(seriesIdForProduct));
+        return choices.filter((choice) => brandSeries.has(choice.id));
+    };
+
+    const normalizeReleaseSelection = () => {
+        if (state.releaseId === '') return;
+        const choices = releaseChoicesFromProducts(state.releaseProducts);
+        if (!choices.some((choice) => choice.id === state.releaseId)) {
+            const legacyProduct = state.releaseProducts.find((product) => String(product?.id ?? '') === state.releaseId);
+            if (legacyProduct) state.releaseId = seriesIdForProduct(legacyProduct);
+        }
+        if (state.releaseChoicesComplete && !releaseChoicesForBrand().some((choice) => choice.id === state.releaseId)) {
+            state.releaseId = '';
+        }
+    };
+
+    const renderReleaseOptions = () => {
+        const choices = releaseChoicesForBrand();
         const duplicateLabels = new Map();
         choices.forEach((choice) => {
             const label = `${choice.title} — ${choice.brand}`;
@@ -671,7 +762,7 @@ import {
         const fragment = document.createDocumentFragment();
         const allOption = document.createElement('option');
         allOption.value = '';
-        allOption.textContent = 'All releases';
+        allOption.textContent = 'All series';
         fragment.append(allOption);
         choices.forEach((choice) => {
             const option = document.createElement('option');
@@ -684,8 +775,8 @@ import {
             const progress = document.createElement('option');
             progress.disabled = true;
             progress.textContent = state.releaseChoicesLoading
-                ? `Loading complete release list (${state.releaseLoaded}${state.releaseTotal > 0 ? ` of ${state.releaseTotal}` : ''})…`
-                : 'Release list incomplete — retry below';
+                ? `Loading complete series list (${state.releaseLoaded}${state.releaseTotal > 0 ? ` of ${state.releaseTotal}` : ''})…`
+                : 'Series list incomplete — retry below';
             fragment.append(progress);
         }
         releaseSelect.replaceChildren(fragment);
@@ -737,10 +828,7 @@ import {
             } while (state.releaseLoaded < state.releaseTotal);
             if (!releaseRequestGate.isCurrent(token)) return false;
             state.releaseChoicesComplete = true;
-            const choices = releaseChoicesFromProducts(state.releaseProducts);
-            if (state.releaseId !== '' && !choices.some((choice) => choice.id === state.releaseId)) {
-                state.releaseId = '';
-            }
+            normalizeReleaseSelection();
             renderReleaseOptions();
             syncUrl();
             refreshInventoryVisibility();
@@ -785,7 +873,7 @@ import {
         if (!state.releaseChoicesComplete) {
             loadMoreButton.hidden = false;
             loadMoreButton.disabled = state.loading || state.releaseChoicesLoading;
-            loadMoreButton.textContent = state.releaseChoicesLoading ? 'Loading releases…' : 'Retry loading releases';
+            loadMoreButton.textContent = state.releaseChoicesLoading ? 'Loading series…' : 'Retry loading series';
             return;
         }
         loadMoreButton.disabled = state.loading;
@@ -840,7 +928,7 @@ import {
                     if (pageCount === 0) {
                         throw new Error('The collectibles shelf stopped before the complete catalog finished loading.');
                     }
-                    setStatus(`Loading all matching releases (${state.loaded} of ${state.total})...`, 'loading');
+                    setStatus(`Loading all matching listings (${state.loaded} of ${state.total})...`, 'loading');
                 }
                 if (!completeCatalog || pageCount === 0) break;
             } while (state.loaded < state.total);
@@ -879,6 +967,8 @@ import {
         state.q = q;
         state.brand = brand;
         state.sort = sort;
+        normalizeReleaseSelection();
+        renderReleaseOptions();
         load(true);
     };
 
@@ -964,7 +1054,6 @@ import {
         document.title = 'Collectibles catalog';
         document.documentElement.classList.add('collectibles-printing');
         prepareForPrint();
-        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         window.print();
     });
 
@@ -982,6 +1071,7 @@ import {
         input.checked = normalizeInventoryFilter(input.value) === state.inventoryFilter;
     });
 
+    normalizeReleaseSelection();
     renderReleaseOptions();
     loadReleaseChoices(true);
     load(true, true);

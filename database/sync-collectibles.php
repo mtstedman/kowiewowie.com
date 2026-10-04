@@ -14,13 +14,18 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-$usage = "Usage: php database/sync-collectibles.php [--only=<source_key>]\n";
+$usage = "Usage: php database/sync-collectibles.php [--catalog-only] [--only=<source_key>]\n";
+$catalogOnly = false;
 
 $only = null;
 foreach (array_slice($argv, 1) as $argument) {
     if ($argument === '--help' || $argument === '-h') {
         fwrite(STDOUT, $usage);
         exit(0);
+    }
+    if ($argument === '--catalog-only') {
+        $catalogOnly = true;
+        continue;
     }
     if (str_starts_with($argument, '--only=')) {
         $only = substr($argument, strlen('--only='));
@@ -31,7 +36,7 @@ foreach (array_slice($argv, 1) as $argument) {
     exit(2);
 }
 
-$sources = CollectiblesSync::defaultSources();
+$sources = $catalogOnly ? CollectiblesSync::catalogSources() : CollectiblesSync::defaultSources();
 $sourceKeys = [];
 foreach ($sources as $source) {
     $sourceKeys[] = $source->sourceKey();

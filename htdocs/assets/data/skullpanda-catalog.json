@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-04",
+  "brand": "skullpanda",
+  "sourceKey": "popmart-us",
+  "coverage": {
+    "summary": "Six bounded SKULLPANDA series rosters verified from official Pop Mart US product pages; complete applies only to each listed series roster, not to the brand.",
+    "gaps": [
+      "Other Pop Mart SKULLPANDA products and series are outside this supplement.",
+      "Media and prices are intentionally not copied from the storefront.",
+      "Everyday Wonderland and other pages without accessible named style evidence remain unresolved."
+    ]
+  },
+  "series": [
+    {
+      "id": "image-of-reality",
+      "name": "Image Of Reality",
+      "releaseYear": 2024,
+      "rosterStatus": "complete",
+      "sources": [
+        {
+          "url": "https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures",
+          "tier": "official",
+          "checkedAt": "2026-10-04"
+        }
+      ],
+      "product": {
+        "externalId": "953",
+        "title": "SKULLPANDA Image Of Reality Series Figures",
+        "url": "https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures"
+      },
+      "members": [],
+      "figures": [
+        {"id":"image-of-reality:the-duality-black","name":"The Duality (Black)","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-philosophy","name":"The Philosophy","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-paradox","name":"The Paradox","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-pivot","name":"The Pivot","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-disguise","name":"The Disguise","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-imagination","name":"The Imagination","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-constraint","name":"The Constraint","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-soar","name":"The Soar","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-timelapse","name":"The Timelapse","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-duality-white","name":"The Duality (White)","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-merchant","name":"The Merchant","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-antigravity","name":"The Antigravity","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"image-of-reality:the-onlooker","name":"The Onlooker","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/953/skullpanda-image-of-reality-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "the-sound",
+      "name": "The Sound",
+      "releaseYear": 2024,
+      "rosterStatus": "complete",
+      "sources": [{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}],
+      "product": {"externalId":"1317","title":"SKULLPANDA The Sound Series Figures","url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures"},
+      "members": [],
+      "figures": [
+        {"id":"the-sound:the-joy","name":"The Joy","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-anger","name":"The Anger","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-serenity","name":"The Serenity","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-pensiveness","name":"The Pensiveness","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-trust","name":"The Trust","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-disgust","name":"The Disgust","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-ecstasy","name":"The Ecstasy","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-grief","name":"The Grief","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-admiration","name":"The Admiration","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-terror","name":"The Terror","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-vigilance","name":"The Vigilance","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-awe","name":"The Awe","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-sound:the-equilibrium","name":"The Equilibrium","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/1317/skullpanda-the-sound-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "the-ink-plum-blossom",
+      "name": "The Ink Plum Blossom",
+      "releaseYear": 2023,
+      "rosterStatus": "complete",
+      "sources": [{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}],
+      "product": {"externalId":"720","title":"SKULLPANDA The Ink Plum Blossom Series Figures","url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures"},
+      "members": [],
+      "figures": [
+        {"id":"the-ink-plum-blossom:the-forest","name":"The Forest","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-moss","name":"The Moss","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-bamboo","name":"The Bamboo","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-snow","name":"The Snow","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-wind","name":"The Wind","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-bridge","name":"The Bridge","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-moon","name":"The Moon","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-root","name":"The Root","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-valley","name":"The Valley","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-spring","name":"The Spring","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-scene","name":"The Scene","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-courtyard","name":"The Courtyard","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-ink-plum-blossom:the-plum-blossom","name":"The Plum Blossom","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/720/skullpanda-the-ink-plum-blossom-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "the-feast-begins",
+      "name": "The Feast Begins",
+      "releaseYear": 2025,
+      "rosterStatus": "complete",
+      "sources": [{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}],
+      "product": {"externalId":"4080","title":"SKULLPANDA The Feast Begins Series Figures","url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures"},
+      "members": [],
+      "figures": [
+        {"id":"the-feast-begins:the-dinner-knife","name":"The Dinner Knife","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-silver-fork","name":"The Silver Fork","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-caddy-spoon","name":"The Caddy Spoon","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-spoon-warmer","name":"The Spoon Warmer","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-napkin","name":"The Napkin","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-silver-claret-jug","name":"The Silver Claret Jug","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-sugar-tongs","name":"The Sugar Tongs","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-crumb-scoop","name":"The Crumb Scoop","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-aspic-server","name":"The Aspic Server","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-knife-rest","name":"The Knife Rest","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-egg-cup","name":"The Egg Cup","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:the-grape-scissors","name":"The Grape Scissors","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"the-feast-begins:fine-dining","name":"Fine Dining","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/4080/skullpanda-the-feast-begins-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "petals-in-four-acts",
+      "name": "Petals in Four Acts",
+      "releaseYear": 2026,
+      "rosterStatus": "complete",
+      "sources": [{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}],
+      "product": {"externalId":"6201","title":"SKULLPANDA Petals in Four Acts Series Figures","url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures"},
+      "members": [],
+      "figures": [
+        {"id":"petals-in-four-acts:the-fairys-trick","name":"The Fairy's Trick","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-budding-fable","name":"The Budding Fable","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-fatal-entwining","name":"The Fatal Entwining","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-burning-gloom","name":"The Burning Gloom","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-invitation-of-light","name":"The Invitation of Light","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-vow","name":"The Vow","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-withered-innocence","name":"The Withered Innocence","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-submerged-wreath","name":"The Submerged Wreath","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-elegiac-witness","name":"The Elegiac Witness","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-decay-awaited","name":"The Decay Awaited","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-crown-in-ashes","name":"The Crown in Ashes","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:the-threefold-requiem","name":"The Threefold Requiem","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"petals-in-four-acts:chronos-gardener","name":"Chronos' Gardener","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/6201/skullpanda-petals-in-four-acts-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "where-time-dwells",
+      "name": "WHERE TIME DWELLS",
+      "releaseYear": 2026,
+      "rosterStatus": "complete",
+      "sources": [{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}],
+      "product": {"externalId":"8890","title":"SKULLPANDA WHERE TIME DWELLS Series Figures","url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures"},
+      "members": [],
+      "figures": [
+        {"id":"where-time-dwells:colonnade-contemplation","name":"Colonnade Contemplation","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:mystic-veil","name":"Mystic Veil","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:spire-vigil","name":"Spire Vigil","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:beneath-flying-eaves","name":"Beneath Flying Eaves","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:spiral-minuet","name":"Spiral Minuet","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:jazz-age-sheen","name":"Jazz Age Sheen","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:breathing-veins","name":"Breathing Veins","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:bare-imprint","name":"Bare Imprint","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:beyond-light-trace","name":"Beyond Light Trace","isSecret":false,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]},
+        {"id":"where-time-dwells:grain-of-time","name":"Grain of Time","isSecret":true,"sources":[{"url":"https://www.popmart.com/us/products/8890/skullpanda-where-time-dwells-series-figures","tier":"official","checkedAt":"2026-10-04"}]}
+      ]
+    }
+  ]
+}

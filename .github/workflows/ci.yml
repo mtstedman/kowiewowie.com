@@ -68,6 +68,11 @@ jobs:
       - name: Validate Sonny Angels catalog assets and prices
         run: php tests/sonny-angels-catalog.php
 
+      - name: Validate authored collectibles catalogs and offline sync
+        run: |
+          php tests/collectibles-catalog-data.php
+          php tests/collectibles-catalog-sync.php
+
       - name: Run murder trivia regressions
         run: |
           php tests/trivia-question-catalog.php

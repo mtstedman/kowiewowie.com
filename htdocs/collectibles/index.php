@@ -55,9 +55,9 @@ $pageStyles = ['/assets/css/collectibles.css'];
                         </div>
                     </fieldset>
                     <div class="collectibles-release-filter">
-                        <label for="collectibles-release">Release</label>
+                        <label for="collectibles-release">Series</label>
                         <select id="collectibles-release" name="release" aria-busy="true" disabled>
-                            <option value="">Loading releases…</option>
+                            <option value="">Loading series…</option>
                         </select>
                     </div>
                     <fieldset class="collectibles-filter collectibles-inventory-filter">

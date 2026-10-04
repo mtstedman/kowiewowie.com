@@ -112,6 +112,8 @@ sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
 # must be imported before the code that requests it is published.
 sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
     php "$release_dir/database/seed-poe2-tree.php"
+sudo -n env WOWIE_ENV_FILE="$API_ENV_FILE" \
+    php "$release_dir/database/sync-collectibles.php" --catalog-only
 
 # Publish the code and the release's version document only after every database
 # update and the database version marker have committed successfully.

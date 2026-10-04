@@ -23,25 +23,169 @@ import {
 const pageSource = await readFile(new URL('../htdocs/collectibles/index.php', import.meta.url), 'utf8');
 const applicationSource = await readFile(new URL('../htdocs/assets/js/collectibles.js', import.meta.url), 'utf8');
 assert.match(pageSource, /<script type="module" src="\/assets\/js\/collectibles\.js/);
+assert.match(pageSource, /<label for="collectibles-release">Series<\/label>/);
 assert.match(applicationSource, /from '\.\/collectibles-inventory\.js'/);
 assert.doesNotMatch(applicationSource, /__collectiblesInventoryTest/);
 
+let activeDocument = null;
+
+class FakeTextNode {
+  constructor(text) {
+    this.textContent = String(text);
+    this.parentElement = null;
+  }
+
+  querySelectorAll() {
+    return [];
+  }
+}
+
 class HTMLElement {
   constructor(className = '', dataset = {}, children = []) {
+    this.tagName = 'DIV';
     this.className = className;
     this.dataset = { ...dataset };
-    this.children = children;
+    this.children = [];
+    this.parentElement = null;
     this.hidden = false;
+    this.disabled = false;
+    this.checked = false;
+    this.value = '';
+    this.type = '';
+    this.attributes = new Map();
+    this.listeners = new Map();
+    this._id = '';
+    this._textContent = '';
+    this.classList = {
+      add: (...names) => {
+        const classes = new Set(this.className.split(/\s+/).filter(Boolean));
+        names.forEach((name) => classes.add(name));
+        this.className = Array.from(classes).join(' ');
+      },
+      remove: (...names) => {
+        const removed = new Set(names);
+        this.className = this.className.split(/\s+/).filter((name) => name && !removed.has(name)).join(' ');
+      },
+      contains: (name) => this.className.split(/\s+/).includes(name),
+      toggle: (name, enabled) => {
+        const next = enabled === undefined ? !this.classList.contains(name) : Boolean(enabled);
+        if (next) this.classList.add(name);
+        else this.classList.remove(name);
+        return next;
+      },
+    };
+    this.append(...children);
+  }
+
+  set id(value) {
+    if (activeDocument && this._id) activeDocument.ids.delete(this._id);
+    this._id = String(value);
+    if (activeDocument && this._id) activeDocument.ids.set(this._id, this);
+  }
+
+  get id() {
+    return this._id;
+  }
+
+  set textContent(value) {
+    this._textContent = String(value ?? '');
+    this.children = [];
+  }
+
+  get textContent() {
+    return this._textContent + this.children.map((child) => child.textContent).join('');
+  }
+
+  append(...children) {
+    children.forEach((child) => {
+      if (child instanceof DocumentFragment) {
+        this.append(...child.children);
+        child.children = [];
+        return;
+      }
+      const node = child instanceof HTMLElement || child instanceof FakeTextNode
+        ? child
+        : new FakeTextNode(child);
+      node.parentElement = this;
+      this.children.push(node);
+    });
+  }
+
+  replaceChildren(...children) {
+    this.children.forEach((child) => { child.parentElement = null; });
+    this.children = [];
+    this._textContent = '';
+    this.append(...children);
+  }
+
+  remove() {
+    if (!this.parentElement) return;
+    this.parentElement.children = this.parentElement.children.filter((child) => child !== this);
+    this.parentElement = null;
+  }
+
+  addEventListener(type, listener) {
+    if (!this.listeners.has(type)) this.listeners.set(type, []);
+    this.listeners.get(type).push(listener);
+  }
+
+  dispatchEvent(event) {
+    const nextEvent = typeof event === 'string' ? { type: event } : event;
+    nextEvent.target = this;
+    nextEvent.preventDefault ||= () => { nextEvent.defaultPrevented = true; };
+    (this.listeners.get(nextEvent.type) || []).forEach((listener) => listener(nextEvent));
+    return !nextEvent.defaultPrevented;
+  }
+
+  setAttribute(name, value) {
+    this.attributes.set(name, String(value));
+  }
+
+  getAttribute(name) {
+    return this.attributes.has(name) ? this.attributes.get(name) : null;
+  }
+
+  removeAttribute(name) {
+    this.attributes.delete(name);
+  }
+
+  setCustomValidity(message) {
+    this.validationMessage = String(message);
+  }
+
+  matches(selector) {
+    if (selector.startsWith('.')) return this.classList.contains(selector.slice(1));
+    const inputName = selector.match(/^input\[name="([^"]+)"\]$/);
+    if (inputName) return this.tagName === 'INPUT' && this.name === inputName[1];
+    return this.tagName.toLowerCase() === selector.toLowerCase();
   }
 
   querySelectorAll(selector) {
-    const className = selector.startsWith('.') ? selector.slice(1) : selector;
     return this.children.flatMap((child) => [
-      ...(child.className.split(' ').includes(className) ? [child] : []),
+      ...(child instanceof HTMLElement && child.matches(selector) ? [child] : []),
       ...child.querySelectorAll(selector),
     ]);
   }
+
+  querySelector(selector) {
+    return this.querySelectorAll(selector)[0] || null;
+  }
+
+  closest(selector) {
+    let current = this;
+    while (current) {
+      if (current.matches(selector)) return current;
+      current = current.parentElement;
+    }
+    return null;
+  }
 }
+
+class HTMLFormElement extends HTMLElement {}
+class HTMLInputElement extends HTMLElement {}
+class HTMLButtonElement extends HTMLElement {}
+class HTMLSelectElement extends HTMLElement {}
+class DocumentFragment extends HTMLElement {}
 
 class MemoryStorage {
   constructor(initial = {}) {
@@ -140,12 +284,12 @@ class MemoryStorage {
 
 {
   const pageOne = [
-    { id: 'release-a', title: 'Shared title', brand: 'nommi', variants: [{ name: 'Alpha' }, { name: 'Beta' }] },
-    { id: 'release-c', title: 'Moon Search', brand: 'skullpanda', variants: [{ name: 'Needle' }, { name: 'Star' }] },
+    { id: 'release-a', title: 'Shared title', brand: 'nommi', series_id: 'nommi:shared-a', series_title: 'Shared title', series_roster_status: 'complete', variants: [{ name: 'Alpha' }, { name: 'Beta' }] },
+    { id: 'release-c', title: 'Moon Search', brand: 'skullpanda', series_id: 'skullpanda:moon', series_title: 'Moon Search', series_roster_status: 'partial', variants: [{ name: 'Needle' }, { name: 'Star' }] },
   ];
   const pageTwo = [
-    { id: 'release-b', title: 'Shared title', brand: 'nommi', variants: [{ name: 'Gamma' }] },
-    { id: 'release-d', title: 'Empty Search', brand: 'skullpanda', variants: [] },
+    { id: 'release-b', title: 'Shared title', brand: 'nommi', series_id: 'nommi:shared-b', series_title: 'Shared title', series_roster_status: 'unknown', variants: [{ name: 'Gamma' }] },
+    { id: 'release-d', title: 'Empty Search', brand: 'skullpanda', series_id: 'skullpanda:empty', series_title: 'Empty Search', series_roster_status: 'complete', variants: [] },
   ];
   const completeCatalog = [...pageOne, ...pageTwo];
   const choices = releaseChoicesFromProducts(completeCatalog);
@@ -153,8 +297,8 @@ class MemoryStorage {
   assert.equal(isReleaseExpanded('release-a', closedProducts), true, 'Figure inventory must be expanded by default.');
   closedProducts.add('release-a');
   assert.equal(isReleaseExpanded('release-a', closedProducts), false, 'A user may still collapse an expanded release.');
-  assert.deepEqual(Array.from(choices, (choice) => choice.id), ['release-d', 'release-c', 'release-a', 'release-b']);
-  assert.equal(choices.filter((choice) => choice.title === 'Shared title').length, 2, 'Same-titled releases must remain distinct by product ID.');
+  assert.deepEqual(Array.from(choices, (choice) => choice.id), ['skullpanda:empty', 'skullpanda:moon', 'nommi:shared-a', 'nommi:shared-b']);
+  assert.equal(choices.filter((choice) => choice.title === 'Shared title').length, 2, 'Same-titled series must remain distinct by canonical series ID.');
   assert.equal(choices.every((choice) => choice.brand.length > 0), true, 'Release choices must include brand labels.');
 
   const quantities = new Map([
@@ -271,4 +415,334 @@ class MemoryStorage {
   setExpandedControl(control, false);
   assert.equal(control.attributes.get('aria-expanded'), 'false');
   assert.equal(classes.has('is-expanded'), false);
+}
+
+
+{
+  class FakeDocument {
+    constructor() {
+      this.ids = new Map();
+      this.title = 'Collectibles';
+      this.documentElement = this.createElement('html');
+    }
+
+    createElement(tagName) {
+      const constructors = {
+        form: HTMLFormElement,
+        input: HTMLInputElement,
+        button: HTMLButtonElement,
+        select: HTMLSelectElement,
+      };
+      const ElementClass = constructors[tagName] || HTMLElement;
+      const element = new ElementClass();
+      element.tagName = tagName.toUpperCase();
+      return element;
+    }
+
+    createDocumentFragment() {
+      const fragment = new DocumentFragment();
+      fragment.tagName = '#FRAGMENT';
+      return fragment;
+    }
+
+    getElementById(id) {
+      return this.ids.get(id) || null;
+    }
+  }
+
+  const document = new FakeDocument();
+  activeDocument = document;
+  const element = (tagName, id) => {
+    const node = document.createElement(tagName);
+    node.id = id;
+    return node;
+  };
+  const form = element('form', 'collectibles-form');
+  const searchInput = element('input', 'collectibles-search-input');
+  const status = element('p', 'collectibles-status');
+  const storageStatus = element('p', 'collectibles-storage-status');
+  const updated = element('p', 'collectibles-updated');
+  const results = element('div', 'collectibles-results');
+  const loadMore = element('button', 'collectibles-load-more');
+  const releaseSelect = element('select', 'collectibles-release');
+  const sortSelect = element('select', 'collectibles-sort');
+  const exportButton = element('button', 'collectibles-export-pdf');
+  sortSelect.value = 'name-asc';
+
+  const brandValues = ['', 'skullpanda', 'nommi', 'sonny-angel'];
+  const brandInputs = brandValues.map((value, index) => {
+    const input = document.createElement('input');
+    input.name = 'brand';
+    input.value = value;
+    input.checked = index === 0;
+    return input;
+  });
+  const inventoryValues = ['all', 'owned', 'missing'];
+  const inventoryInputs = inventoryValues.map((value, index) => {
+    const input = document.createElement('input');
+    input.name = 'inventory';
+    input.value = value;
+    input.checked = index === 0;
+    return input;
+  });
+  form.append(searchInput, ...brandInputs, releaseSelect, ...inventoryInputs, sortSelect, exportButton);
+
+  const catalog = [
+    {
+      id: 'sonny-retail-a',
+      title: 'Animal Series Rabbit Retail',
+      brand: 'sonny-angel',
+      series_id: 'sonny-angel:animal-1',
+      series_title: 'Animal Series',
+      series_roster_status: 'complete',
+      variants: [{ name: 'Rabbit' }],
+    },
+    {
+      id: 'skull-retail-a',
+      title: 'City of Night First Retail',
+      brand: 'skullpanda',
+      series_id: 'skullpanda:city',
+      series_title: 'City of Night',
+      series_roster_status: 'partial',
+      variants: [{ name: 'Night' }, { name: 'Lantern' }],
+    },
+    {
+      id: 'nommi-retail-a',
+      title: 'Shared Dream Retail',
+      brand: 'nommi',
+      series_id: 'nommi:dream-a',
+      series_title: 'Shared Dream',
+      series_roster_status: 'unknown',
+      variants: [{ name: 'Cloud' }],
+    },
+    {
+      id: 'sonny-retail-b',
+      title: 'Animal Series Elephant Retail',
+      brand: 'sonny-angel',
+      series_id: 'sonny-angel:animal-1',
+      series_title: 'Animal Series',
+      series_roster_status: 'complete',
+      variants: [{ name: 'Elephant' }],
+    },
+    {
+      id: 'skull-retail-b',
+      title: 'City of Night Second Edition',
+      brand: 'skullpanda',
+      series_id: 'skullpanda:city-alt',
+      series_title: 'City of Night',
+      series_roster_status: 'complete',
+      variants: [{ name: 'Dawn' }],
+    },
+    {
+      id: 'nommi-unmapped',
+      title: 'Mystery Retail',
+      brand: 'nommi',
+      series_id: null,
+      series_title: null,
+      series_roster_status: 'unknown',
+      variants: [{ name: 'Mystery' }],
+    },
+    {
+      id: 'nommi-empty',
+      title: 'Known Empty Retail',
+      brand: 'nommi',
+      series_id: 'nommi:known-empty',
+      series_title: 'Known Empty',
+      series_roster_status: 'complete',
+      variants: [],
+    },
+    {
+      id: 'skull-retail-c',
+      title: 'City of Night Later Retail',
+      brand: 'skullpanda',
+      series_id: 'skullpanda:city',
+      series_title: 'City of Night',
+      series_roster_status: 'partial',
+      variants: [{ name: 'Moon' }],
+    },
+    {
+      id: 'nommi-retail-b',
+      title: 'Shared Dream Later Retail',
+      brand: 'nommi',
+      series_id: 'nommi:dream-a',
+      series_title: 'Shared Dream',
+      series_roster_status: 'unknown',
+      variants: [{ name: 'Star' }],
+    },
+  ];
+
+  const storage = new MemoryStorage({
+    [INVENTORY_STORAGE_KEY]: JSON.stringify({
+      version: 1,
+      quantities: { [inventoryKey('sonny-retail-a', 'Rabbit')]: 2 },
+    }),
+  });
+  const location = {
+    pathname: '/collectibles/',
+    search: '?release=sonny-retail-b',
+    hash: '',
+  };
+  const windowListeners = new Map();
+  let printCalls = 0;
+  const window = {
+    localStorage: storage,
+    location,
+    history: {
+      replaceState(_state, _title, nextUrl) {
+        const parsed = new URL(nextUrl, 'https://example.test');
+        location.pathname = parsed.pathname;
+        location.search = parsed.search;
+        location.hash = parsed.hash;
+      },
+    },
+    addEventListener(type, listener) {
+      if (!windowListeners.has(type)) windowListeners.set(type, []);
+      windowListeners.get(type).push(listener);
+    },
+    setTimeout,
+    clearTimeout,
+    print() { printCalls += 1; },
+  };
+
+  Object.assign(globalThis, {
+    document,
+    window,
+    HTMLElement,
+    HTMLFormElement,
+    HTMLInputElement,
+    HTMLButtonElement,
+    HTMLSelectElement,
+    requestAnimationFrame: (callback) => setTimeout(callback, 0),
+  });
+
+  let releaseFailurePending = true;
+  const releaseOffsets = [];
+  globalThis.fetch = async (requestUrl, options = {}) => {
+    const parsed = new URL(requestUrl, 'https://example.test');
+    const offset = Number(parsed.searchParams.get('offset') || '0');
+    const isCatalogRequest = Object.prototype.hasOwnProperty.call(options, 'credentials');
+    if (!isCatalogRequest) {
+      releaseOffsets.push(offset);
+      if (releaseFailurePending && offset === 2) {
+        releaseFailurePending = false;
+        return { ok: false, status: 503, json: async () => ({}) };
+      }
+    }
+    const query = isCatalogRequest ? String(parsed.searchParams.get('q') || '').toLowerCase() : '';
+    const brand = isCatalogRequest ? String(parsed.searchParams.get('brand') || '') : '';
+    const matches = catalog.filter((product) => (brand === '' || product.brand === brand)
+      && (query === ''
+        || product.title.toLowerCase().includes(query)
+        || String(product.series_title || '').toLowerCase().includes(query)
+        || product.variants.some((variant) => variant.name.toLowerCase().includes(query))));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: matches.slice(offset, offset + 1),
+        meta: { total: matches.length, last_synced_at: '2026-10-04T00:00:00Z' },
+      }),
+    };
+  };
+
+  const waitFor = async (predicate, message) => {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      if (predicate()) return;
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.fail(message);
+  };
+
+  const applicationUrl = new URL('../htdocs/assets/js/collectibles.js', import.meta.url);
+  applicationUrl.searchParams.set('integration', String(Date.now()));
+  await import(applicationUrl.href);
+  await waitFor(
+    () => results.getAttribute('aria-busy') === 'false' && results.querySelectorAll('.collectible-release-block').length === 6,
+    'The browser application should finish rendering the complete multi-page catalog.',
+  );
+
+  const allBlocks = () => results.querySelectorAll('.collectible-release-block');
+  const blockBySeries = (seriesId) => allBlocks().find((block) => block.dataset.releaseId === seriesId);
+  const sonnyBlock = blockBySeries('sonny-angel:animal-1');
+  assert.equal(sonnyBlock.querySelectorAll('.collectible-card').length, 2, 'Sonny Angel listings split across API pages must render in one canonical series group.');
+  assert.equal(blockBySeries('skullpanda:city').querySelectorAll('.collectible-card').length, 2, 'Skullpanda listings split across API pages must render in one canonical series group.');
+  assert.equal(blockBySeries('nommi:dream-a').querySelectorAll('.collectible-card').length, 2, 'Nommi listings split across API pages must render in one canonical series group.');
+  assert.equal(sonnyBlock.dataset.legacyReleaseId, 'sonny-retail-b', 'A legacy product selection must resolve to its containing series while choices are incomplete.');
+  assert.equal(sonnyBlock.hidden, false);
+  assert.equal(allBlocks().filter((block) => !block.hidden).length, 1, 'The persisted legacy release selection must filter the grouped tree.');
+  assert.equal(loadMore.hidden, false);
+  assert.match(loadMore.textContent, /Retry loading series/);
+
+  loadMore.dispatchEvent({ type: 'click' });
+  await waitFor(() => releaseSelect.disabled === false, 'Retrying must finish the failed multi-page series-choice request.');
+  assert.ok(releaseOffsets.filter((offset) => offset === 2).length >= 2, 'The failed release page must be requested again.');
+  assert.equal(releaseSelect.value, 'sonny-angel:animal-1', 'Legacy product IDs must normalize to the canonical series ID.');
+  assert.match(location.search, /release=sonny-angel%3Aanimal-1/);
+
+  const optionValues = releaseSelect.children.filter((option) => !option.disabled).map((option) => option.value);
+  assert.equal(new Set(optionValues).size, optionValues.length, 'Duplicate display titles must retain distinct option identities.');
+  assert.ok(optionValues.includes('sonny-angel:animal-1'));
+  assert.ok(optionValues.includes('skullpanda:city'));
+  assert.ok(optionValues.includes('skullpanda:city-alt'));
+  assert.ok(optionValues.includes('nommi:dream-a'));
+  assert.ok(optionValues.includes('unclassified:nommi'));
+  assert.equal(releaseSelect.children.filter((option) => option.textContent.startsWith('City of Night')).length, 2);
+
+  releaseSelect.value = '';
+  releaseSelect.dispatchEvent({ type: 'change' });
+  assert.equal(allBlocks().filter((block) => !block.hidden).length, 6);
+  assert.match(blockBySeries('skullpanda:city').querySelector('.collectible-release-status').textContent, /Roster incomplete/);
+  assert.match(blockBySeries('unclassified:nommi').querySelector('.collectible-release-status').textContent, /Series membership is unknown/);
+  assert.match(blockBySeries('nommi:known-empty').querySelector('.collectible-release-status').textContent, /Known complete roster: no figures/);
+
+  exportButton.dispatchEvent({ type: 'click' });
+  assert.equal(printCalls, 1, 'PDF export should prepare and print the grouped catalog.');
+  assert.equal(results.querySelectorAll('.collectible-variants-toggle').every((toggle) => toggle.getAttribute('aria-expanded') === 'true'), true);
+  (windowListeners.get('afterprint') || []).forEach((listener) => listener());
+  assert.equal(exportButton.disabled, false);
+
+  const disclosure = sonnyBlock.querySelector('.collectible-variants-toggle');
+  const disclosurePanel = document.getElementById(disclosure.getAttribute('aria-controls'));
+  assert.equal(disclosure.getAttribute('aria-expanded'), 'true');
+  disclosure.dispatchEvent({ type: 'click' });
+  assert.equal(disclosure.getAttribute('aria-expanded'), 'false');
+  assert.equal(disclosurePanel.hidden, true, 'Grouped disclosure controls must continue to collapse their own retail listing.');
+
+  inventoryInputs.forEach((input) => { input.checked = input.value === 'owned'; });
+  inventoryInputs.find((input) => input.value === 'owned').dispatchEvent({ type: 'change' });
+  assert.deepEqual(allBlocks().filter((block) => !block.hidden).map((block) => block.dataset.releaseId), ['sonny-angel:animal-1']);
+  const rabbitRow = results.querySelectorAll('.collectible-inventory-row')
+    .find((row) => row.dataset.inventoryKey === inventoryKey('sonny-retail-a', 'Rabbit'));
+  const rabbitQuantity = rabbitRow.querySelectorAll('input').find((input) => input.type === 'text');
+  rabbitQuantity.value = '0';
+  rabbitQuantity.dispatchEvent({ type: 'change' });
+  assert.equal(allBlocks().filter((block) => !block.hidden).length, 0, 'Quantity edits must immediately update grouped Owned filtering.');
+  const elephantRow = results.querySelectorAll('.collectible-inventory-row')
+    .find((row) => row.dataset.inventoryKey === inventoryKey('sonny-retail-b', 'Elephant'));
+  const elephantQuantity = elephantRow.querySelectorAll('input').find((input) => input.type === 'text');
+  elephantQuantity.value = '3';
+  elephantQuantity.dispatchEvent({ type: 'change' });
+  assert.deepEqual(allBlocks().filter((block) => !block.hidden).map((block) => block.dataset.releaseId), ['sonny-angel:animal-1']);
+  assert.equal(JSON.parse(storage.getItem(INVENTORY_STORAGE_KEY)).quantities[inventoryKey('sonny-retail-b', 'Elephant')], 3);
+
+  inventoryInputs.forEach((input) => { input.checked = input.value === 'all'; });
+  inventoryInputs.find((input) => input.value === 'all').dispatchEvent({ type: 'change' });
+  releaseSelect.value = 'skullpanda:city';
+  releaseSelect.dispatchEvent({ type: 'change' });
+  brandInputs.forEach((input) => { input.checked = input.value === 'nommi'; });
+  brandInputs.find((input) => input.value === 'nommi').dispatchEvent({ type: 'change' });
+  await waitFor(
+    () => results.getAttribute('aria-busy') === 'false' && allBlocks().length === 3,
+    'Changing brands should reload the matching catalog groups.',
+  );
+  assert.equal(releaseSelect.value, '', 'A series from another brand must not remain invisibly selected.');
+  assert.equal(releaseSelect.children.filter((option) => !option.disabled).every((option) => option.value === '' || option.textContent.includes('Nommi')), true);
+
+  searchInput.value = 'no-match';
+  form.dispatchEvent({ type: 'submit' });
+  await waitFor(
+    () => results.getAttribute('aria-busy') === 'false' && results.children.length === 0,
+    'An empty catalog response should clear the grouped tree.',
+  );
+  assert.match(status.textContent, /No collectibles match/);
 }

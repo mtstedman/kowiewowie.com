@@ -23,6 +23,36 @@ $assert = static function (bool $condition, string $message) use (&$failures): v
     }
 };
 
+$seriesById = array_column($catalog['series'], null, 'id');
+$figuresById = array_column($catalog['figures'], null, 'id');
+$assert(count($seriesById) === count($catalog['series']), 'Series IDs must remain unique.');
+$assert(count($figuresById) === count($catalog['figures']), 'Figure IDs must remain unique.');
+foreach ($catalog['figures'] as $figure) {
+    $assert(isset($seriesById[$figure['seriesId']]), "Unknown series reference: {$figure['seriesId']} ({$figure['id']})");
+}
+
+$strawberryJam = $figuresById['strawberry-love-series-strawberry-jam'] ?? null;
+$strawberryRobby = $figuresById['strawberry-love-series-strawberry-robby-angel'] ?? null;
+$assert(
+    is_array($strawberryJam)
+        && $strawberryJam['seriesId'] === 'strawberry-love-series'
+        && $strawberryJam['name'] === 'Strawberry Jam'
+        && $strawberryJam['variant'] === 'secret',
+    'Strawberry Jam must retain its stable ID, series reference, name and secret classification.',
+);
+$assert(
+    is_array($strawberryRobby)
+        && $strawberryRobby['seriesId'] === 'strawberry-love-series'
+        && $strawberryRobby['name'] === 'Strawberry Robby Angel'
+        && $strawberryRobby['variant'] === 'robby',
+    'Strawberry Robby Angel must retain its stable ID, series reference, name and Robby classification.',
+);
+$strawberryLoveRegulars = array_filter(
+    $catalog['figures'],
+    static fn (array $figure): bool => $figure['seriesId'] === 'strawberry-love-series' && $figure['variant'] === 'regular',
+);
+$assert(count($strawberryLoveRegulars) === 6, 'Strawberry Love must retain its six regular figures without duplicates.');
+
 $images = [];
 foreach (array_merge($catalog['series'], $catalog['figures']) as $record) {
     foreach ($record['images'] as $image) {
@@ -65,7 +95,7 @@ $assert($marketplaceAskingSources['www.depop.com'] === 7, 'Expected seven Depop 
 $source = new SonnyAngelCatalogSource($catalogPath);
 $products = CollectiblesSync::normalizeProducts($source->fetchProducts());
 $assert(count($products) === 138, 'Expected 138 Sonny Angel series products for the unified shelf.');
-$assert(array_sum(array_map(static fn (array $product): int => count($product['variants']), $products)) === 737, 'Expected 737 Sonny Angel figure variants for the unified shelf.');
+$assert(array_sum(array_map(static fn (array $product): int => count($product['variants']), $products)) === 739, 'Expected 739 Sonny Angel figure variants for the unified shelf.');
 $assert(str_contains($page, 'value="sonny-angel"'), 'Unified collectibles page is missing the Sonny Angel filter.');
 $assert(str_contains($legacyPage, '/collectibles/?brand=sonny-angel'), 'Legacy Sonny Angel route does not redirect to the unified shelf.');
 $assert(str_contains($page, 'collectibles-export-pdf'), 'PDF export control is missing.');

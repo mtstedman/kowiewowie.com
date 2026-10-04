@@ -29,7 +29,7 @@ final class CollectiblesSync
 
     private CollectiblesRepository $repository;
 
-    /** @var list<PopMartCollectionSource|ShopifyCollectionSource|SonnyAngelCatalogSource> */
+    /** @var list<PopMartCollectionSource|ShopifyCollectionSource|SonnyAngelCatalogSource|CollectibleCatalogSupplement> */
     private array $sources;
 
     /**
@@ -39,7 +39,7 @@ final class CollectiblesSync
     {
         $sources ??= self::defaultSources();
         foreach ($sources as $source) {
-            if (!$source instanceof PopMartCollectionSource && !$source instanceof ShopifyCollectionSource && !$source instanceof SonnyAngelCatalogSource) {
+            if (!$source instanceof PopMartCollectionSource && !$source instanceof ShopifyCollectionSource && !$source instanceof SonnyAngelCatalogSource && !$source instanceof CollectibleCatalogSupplement) {
                 throw new InvalidArgumentException('Unsupported collectible source.');
             }
         }
@@ -68,7 +68,24 @@ final class CollectiblesSync
                 self::NOMMI_KEYWORD,
             ),
             new SonnyAngelCatalogSource(dirname(__DIR__, 3) . '/htdocs/assets/data/sonny-angels.json'),
+            ...self::supplementSources(),
         ];
+    }
+
+    /** @return list<SonnyAngelCatalogSource|CollectibleCatalogSupplement> */
+    public static function catalogSources(): array
+    {
+        return [
+            new SonnyAngelCatalogSource(dirname(__DIR__, 3) . '/htdocs/assets/data/sonny-angels.json'),
+            ...self::supplementSources(),
+        ];
+    }
+
+    /** @return list<CollectibleCatalogSupplement> */
+    private static function supplementSources(): array
+    {
+        $root = dirname(__DIR__, 3) . '/htdocs/assets/data/';
+        return [new CollectibleCatalogSupplement($root . 'skullpanda-catalog.json'), new CollectibleCatalogSupplement($root . 'nommi-catalog.json')];
     }
 
     /**
@@ -205,6 +222,7 @@ final class CollectiblesSync
                 'price_source_url' => self::httpsUrlOrNull($product['price_source_url'] ?? null),
                 'price_observed_on' => self::dateOrNull($product['price_observed_on'] ?? null),
                 'release_year' => self::releaseYearOrNull($product['release_year'] ?? null),
+                'preserve_existing' => ($product['preserve_existing'] ?? false) === true,
                 'variants' => $variants,
             ];
         }

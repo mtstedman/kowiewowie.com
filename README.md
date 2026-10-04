@@ -25,7 +25,7 @@ database/
   seed-chess-openings.php       Validated common-opening graph import
   seed-poe2-tree.php            Pinned PoE 2 passive-tree import used by deploys
   build-poe2-tree-art.mjs       Generates the PoE 2 planner's art manifest from the pinned sheets
-  sync-collectibles.php         Skullpanda/Nommi storefront catalog sync
+  sync-collectibles.php         Offline authored catalogs and optional storefront sync
   data/chess-openings.tsv       Curated CC0 ECO/name/PGN starter catalog
   data/poe2-passive-tree/       Pinned GGG passive-tree export and provenance
   grant-role.php                User/editor/admin role management
@@ -141,64 +141,51 @@ classifications, positions, and directed moves.
 
 ## Collectibles catalog sync
 
-The unified Skullpanda, Nommi, and Sonny Angel catalog is filled by two
-server-side storefront pulls plus the versioned Sonny data file. Apply the
-schema first, then run the sync:
+The searchable Skullpanda, Nommi, and Sonny Angel tree has a deterministic
+local refresh that does not contact storefronts. Apply the schema, then import
+all three authored catalogs:
 
 ```bash
 php docs/postgres/db-version-minter.php
-php database/sync-collectibles.php
-php database/sync-collectibles.php --only=popmart-us
+php database/sync-collectibles.php --catalog-only
+php database/sync-collectibles.php --catalog-only --only=popmart-us
 ```
 
-`--only=<source_key>` limits the run to one source. The command prints one line
-per source and exits non-zero when any selected source failed. Sources run
-independently: a source that errors, stays rate limited after three
-`Retry-After` retries, or returns no products is reported as failed and writes
-nothing, so existing rows are never removed or blanked. Re-running is safe;
-products are upserted by `(source_key, external_id)`.
+`--catalog-only` loads `htdocs/assets/data/sonny-angels.json` plus the
+Skullpanda and Nommi catalog supplements. It can be combined with
+`--only=<source_key>` for a single local source. The command prints one outcome
+per selected source and exits non-zero for invalid catalog data or persistence
+failure. It is safe to repeat: products and figures are merged without creating
+duplicates. Partial supplements preserve saved retail prices, images,
+observation metadata, and storefront variants that the authored roster does not
+mention.
 
-| `source_key`   | Brand      | Source                                                                 | Currency |
-| -------------- | ---------- | ---------------------------------------------------------------------- | -------- |
-| `popmart-us`   | skullpanda | Official Pop Mart US store, `https://www.popmart.com/us/collection/skullpanda` | USD      |
-| `toysez-nommi` | nommi      | TOYSEZ (third-party Shopify retailer), `https://toysez.com/collections/nommi`   | USD      |
-| `sonny-angels-catalog` | sonny-angel | Versioned, sourced catalog in `htdocs/assets/data/sonny-angels.json` | Mixed |
+Deployments run this catalog-only command from the staged release after schema
+readiness and deterministic seeds, but before publishing the release. A failed
+local import therefore prevents publication without depending on storefront
+availability. Run the same command manually whenever an authored catalog is
+updated.
 
-- **Skullpanda** walks the collection pages (`?page=N`, at most 30) and then
-  reads each product page for its main image and figure names. A `(Secret)`
-  suffix marks a secret figure. Pop Mart prices the series or blind box, so
-  figure variants carry no price. Only the public HTML pages are read; Pop
-  Mart's signed backend API is not used.
-- **Nommi** is a TOP TOY (MINISO) character and is not sold by Pop Mart, and no
-  official machine-readable feed was found, so it comes from a retailer's
-  Shopify feed: the first request uses `<collection>/products.json?limit=250`,
-  then later requests add `&page=N` until an empty or short page (at most 20),
-  keeping products whose title, vendor, or tags contain `nommi`.
-- **Sonny Angel** imports the locally versioned catalog and locally hosted
-  images into the same searchable database shelf. A figure's representative
-  market price prefers sold evidence, then asking price, then retail; the kind,
-  observation date, and source URL remain attached to that price.
+| `source_key` | Brand | Authored coverage and provenance |
+| --- | --- | --- |
+| `popmart-us` | Skullpanda | `htdocs/assets/data/skullpanda-catalog.json` contains six bounded series rosters transcribed from official Pop Mart US product pages. Each listed roster is marked complete, but the file is not a complete brand checklist; unresolved and other series remain outside it. |
+| `toysez-nommi` | Nommi | `htdocs/assets/data/nommi-catalog.json` uses labeled TOYSEZ collection evidence for the complete Fantasy World and Interesting Fruits rosters, and TOYSEZ/KIKAGOODS evidence for additional title-only series. No official brand-wide checklist was available, so those remaining rosters and some release years stay unknown. |
+| `sonny-angels-catalog` | Sonny Angel | `htdocs/assets/data/sonny-angels.json` is a non-exhaustive catalog sourced mainly from the official Sonny Angel archive and announcements, with limited secondary evidence for named secrets and Robby figures. It records 138 series and 739 figures, but does not claim every release or visually verified image/name pairing. |
 
-Checked on 2026-10-01 for the Nommi source: a full production sync returned
-166 products tagged `Nommi`, each with a `cdn.shopify.com` image and no named
-variants (the products use Shopify's single `Default Title` variant), and
-`https://toysez.com/meta.json` reports the store currency as `USD`. The store
-rate limits the redundant `page=1` query shape, so the sync omits it for the
-first request and stops immediately when that first page is short. A full
-production Pop Mart sync returned 82 Skullpanda products and 58 named variants.
+Series status describes the evidence for that individual series, not the whole
+brand: `complete` means the cited source supports the full listed roster,
+`partial` means some named figures are known but the roster may be incomplete,
+and `unknown` means the series is grouped without inventing figure names. Sonny
+series with figures are exposed as partial and empty rosters as unknown. These
+stable series identities drive the grouped UI for all three brands.
 
-Prices are stored in minor units with the observed currency. Storefront prices
-are retail listings, while Sonny prices retain whether they are retail, asking,
-or sold evidence and link to the observation source. Sonny images are local;
-the two storefront catalogs retain their remote HTTPS image URLs.
-
-Requests use HTTPS only, wait at least one second between requests to the same
-host, and time out after 20 seconds, so a full run takes a few minutes. A daily
-run is enough, for example in `/etc/cron.d/wowiekowie-collectibles`:
-
-```cron
-17 4 * * * www-data cd /var/www/wowiekowie.com && php database/sync-collectibles.php >> /var/log/wowiekowie-collectibles.log 2>&1
-```
+Running `php database/sync-collectibles.php` without `--catalog-only` retains
+the normal storefront refresh. `--only=<source_key>` still restricts either
+mode. Storefront refreshes keep the authored series grouping and rosters while
+adding current retail observations; source failures remain isolated and do not
+blank existing rows. Storefront requests use HTTPS, rate limiting, and bounded
+timeouts, so they may take a few minutes and should be scheduled separately
+from deployment.
 
 ## Local development
 

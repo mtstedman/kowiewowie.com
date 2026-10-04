@@ -224,7 +224,7 @@
 
 .collectible-release-brand,
 .collectible-release-title,
-.collectible-release-year {
+.collectible-release-status {
   margin: 0;
 }
 
@@ -234,9 +234,20 @@
   line-height: 1.2;
 }
 
-.collectible-release-year {
+.collectible-release-status {
+  flex-basis: 100%;
   color: var(--ink-soft);
   font-size: 0.9rem;
+}
+
+.collectible-release-block[data-roster-status="partial"] .collectible-release-status,
+.collectible-release-block.is-unclassified .collectible-release-status {
+  color: var(--accent-warm);
+}
+
+.collectible-release-products {
+  display: grid;
+  gap: 1rem;
 }
 
 .collectible-card {

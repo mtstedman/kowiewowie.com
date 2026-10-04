@@ -148,11 +148,14 @@ export const releaseChoicesFromProducts = (products) => {
     const choices = new Map();
     (Array.isArray(products) ? products : []).forEach((product) => {
         const safeProduct = product && typeof product === 'object' ? product : {};
-        const id = String(safeProduct.id ?? '');
-        if (id === '' || choices.has(id)) return;
-        const title = typeof safeProduct.title === 'string' && safeProduct.title.trim() !== ''
-            ? safeProduct.title.trim()
-            : 'Untitled series';
+        const productId = String(safeProduct.id ?? '');
+        const id = typeof safeProduct.series_id === 'string' && safeProduct.series_id !== ''
+            ? safeProduct.series_id
+            : `unclassified:${String(safeProduct.brand ?? 'collectible')}`;
+        if (productId === '' || choices.has(id)) return;
+        const title = typeof safeProduct.series_title === 'string' && safeProduct.series_title.trim() !== ''
+            ? safeProduct.series_title.trim()
+            : 'Unclassified';
         choices.set(id, {
             id,
             title,
@@ -176,7 +179,9 @@ export const applyInventoryVisibility = (resultsElement, state, HTMLElementClass
         if (!(block instanceof HTMLElementClass)) return;
         const rows = Array.from(block.querySelectorAll('.collectible-inventory-row'))
             .filter((row) => row instanceof HTMLElementClass);
-        const releaseMatches = state.releaseId === '' || block.dataset.releaseId === state.releaseId;
+        const releaseMatches = state.releaseId === ''
+            || block.dataset.releaseId === state.releaseId
+            || block.dataset.legacyReleaseId === state.releaseId;
         const inventoryMatches = state.inventoryFilter === 'all'
             || (rows.length > 0 && rows.some((row) => !row.hidden));
         block.hidden = !releaseMatches || !inventoryMatches;

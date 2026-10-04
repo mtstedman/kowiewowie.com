@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-04",
+  "brand": "nommi",
+  "sourceKey": "toysez-nommi",
+  "coverage": {
+    "summary": "Two bounded Nommi rosters are transcribed from labeled secondary TOYSEZ collection evidence; additional positively sourced marketed series are title-only records with unresolved rosters.",
+    "gaps": [
+      "No official brand-wide checklist was available, so this supplement does not claim complete Nommi coverage.",
+      "Fantasy World and Interesting Fruits are complete only as the six regular plus one secret rosters evidenced by their cited TOYSEZ collections.",
+      "The remaining series have unknown rosters; retail case sizes, purchase options, restocks and collector V-numbers are not figures or manufacturing batches.",
+      "Repository ingestion preserves numeric Shopify product identities, but the cited collection evidence did not expose those IDs; catalog: identities and nullable member IDs avoid guessing them.",
+      "Release years remain null where the research did not establish a durable release date for the exact marketed series."
+    ]
+  },
+  "series": [
+    {
+      "id": "fantasy-world",
+      "name": "Fantasy World",
+      "releaseYear": null,
+      "rosterStatus": "complete",
+      "sources": [
+        {"url":"https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}
+      ],
+      "product": {
+        "externalId": "catalog:fantasy-world",
+        "title": "Nommi Fantasy World Vinyl Plush Doll Series",
+        "url": "https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series"
+      },
+      "members": [
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-nepenthe"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-morpheus"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-solace"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-aurora"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-reverie"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-eclipse"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-secret-starflare1-72"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-whole-set-opened"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-fantasy-world-vinyl-plush-doll-series-whole-set-brand-new-with-plastic"}
+      ],
+      "figures": [
+        {"id":"fantasy-world:nepenthe","name":"Nepenthe","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"fantasy-world:morpheus","name":"Morpheus","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"fantasy-world:solace","name":"Solace","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"fantasy-world:aurora","name":"Aurora","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"fantasy-world:reverie","name":"Reverie","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"fantasy-world:eclipse","name":"Eclipse","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"fantasy-world:starflare","name":"Starflare","isSecret":true,"sources":[{"url":"https://toysez.com/collections/nommi-fantasy-world-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id": "interesting-fruits",
+      "name": "Interesting Fruits",
+      "releaseYear": null,
+      "rosterStatus": "complete",
+      "sources": [
+        {"url":"https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}
+      ],
+      "product": {
+        "externalId": "catalog:interesting-fruits",
+        "title": "Nommi Interesting Fruits Vinyl Plush Doll Series",
+        "url": "https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series"
+      },
+      "members": [
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-orange"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-avocado"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-blueberry"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-apple"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-lemon"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-strawberries"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-secret-toffee1-72"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-whole-set-opened"},
+        {"externalId":null,"url":"https://toysez.com/products/nommi-interesting-fruits-vinyl-plush-doll-series-whole-set-brand-new-with-plastic"}
+      ],
+      "figures": [
+        {"id":"interesting-fruits:orange","name":"Orange","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"interesting-fruits:avocado","name":"Avocado","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"interesting-fruits:blueberry","name":"Blueberry","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"interesting-fruits:apple","name":"Apple","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"interesting-fruits:lemon","name":"Lemon","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"interesting-fruits:strawberries","name":"Strawberries","isSecret":false,"sources":[{"url":"https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]},
+        {"id":"interesting-fruits:toffee","name":"Toffee","isSecret":true,"sources":[{"url":"https://toysez.com/collections/nommi-interesting-fruits-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}]}
+      ]
+    },
+    {
+      "id":"sitting-zoo",
+      "name":"Sitting Zoo",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-sitting-zoo-vinyl-plush-pendant-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:sitting-zoo","title":"Nommi Sitting Zoo Vinyl Plush Pendant Series","url":"https://toysez.com/collections/nommi-sitting-zoo-vinyl-plush-pendant-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"magical-christmas-eve",
+      "name":"Magical Christmas Eve",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-magical-christmas-eve-plush-dolls-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:magical-christmas-eve","title":"Nommi Magical Christmas Eve Plush Dolls Series","url":"https://toysez.com/collections/nommi-magical-christmas-eve-plush-dolls-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"weather-forecast",
+      "name":"Weather Forecast",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-weather-forecast-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:weather-forecast","title":"Nommi Weather Forecast Plush Dolls Blind Box Series","url":"https://toysez.com/collections/nommi-weather-forecast-plush-dolls-blind-box-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"mibao-town",
+      "name":"Mibao Town",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:mibao-town","title":"Nommi Mibao Fairy Tale Town Plush Dolls Blind Box Series","url":"https://toysez.com/collections/nommi-mibao-fairy-tale-town-plush-dolls-blind-box-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"about-the-childhood",
+      "name":"About The Childhood",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-about-the-childhood-plush-dolls-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:about-the-childhood","title":"Nommi About the Childhood Plush Dolls Blind Box Series","url":"https://toysez.com/collections/nommi-about-the-childhood-plush-dolls-blind-box-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"collecting-cutie-bags",
+      "name":"Collecting Cutie Bags",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://us.kikagoods.com/collections/fantasy-plush/products/nommi-collecting-cutie-bags-series-plush-blind-box","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:collecting-cutie-bags","title":"Nommi Collecting Cutie Bags Series Plush Blind Box","url":"https://us.kikagoods.com/collections/fantasy-plush/products/nommi-collecting-cutie-bags-series-plush-blind-box"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"good-night-bear-400",
+      "name":"Good Night Bear 400%",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-good-night-bear-400-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:good-night-bear-400","title":"Nommi Good Night Bear 400% Vinyl Plush Doll Series","url":"https://toysez.com/collections/nommi-good-night-bear-400-vinyl-plush-doll-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"glutinous-rice-100-sweetness",
+      "name":"Glutinous Rice 100% Sweetness",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://us.kikagoods.com/products/nommi-glutinous-rice-100-sweetness-series-plush-blind-box","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:glutinous-rice-100-sweetness","title":"Nommi Glutinous Rice 100% Sweetness Series Plush Blind Box","url":"https://us.kikagoods.com/products/nommi-glutinous-rice-100-sweetness-series-plush-blind-box"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"a-bite-of-sweetheart",
+      "name":"A Bite of Sweetheart",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-amarilith-a-bite-of-sweetheart-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:a-bite-of-sweetheart","title":"Nommi Amarilith A Bite of Sweetheart Vinyl Plush Doll Series","url":"https://toysez.com/collections/nommi-amarilith-a-bite-of-sweetheart-vinyl-plush-doll-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"loveliness-never-ends",
+      "name":"Loveliness Never Ends",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-loveliness-never-ends-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:loveliness-never-ends","title":"Nommi Loveliness Never Ends Vinyl Plush Doll Series","url":"https://toysez.com/collections/nommi-loveliness-never-ends-vinyl-plush-doll-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"baby-sweetheart-bunny",
+      "name":"Baby Sweetheart Bunny",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-baby-sweetheart-bunny-vinyl-plush-pendant-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:baby-sweetheart-bunny","title":"Nommi Baby Sweetheart Bunny Vinyl Plush Pendant Series","url":"https://toysez.com/collections/nommi-baby-sweetheart-bunny-vinyl-plush-pendant-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"mushroom-hat-400",
+      "name":"Mushroom Hat 400%",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-mushroom-hat-400-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:mushroom-hat-400","title":"Nommi Mushroom Hat 400% Vinyl Plush Doll Series","url":"https://toysez.com/collections/nommi-mushroom-hat-400-vinyl-plush-doll-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"puppy-diary",
+      "name":"Puppy Diary",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-puppy-diary-vinyl-plush-doll-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:puppy-diary","title":"Nommi Puppy Diary Vinyl Plush Doll Series","url":"https://toysez.com/collections/nommi-puppy-diary-vinyl-plush-doll-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"fairytale-town",
+      "name":"Fairytale Town",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://us.kikagoods.com/collections/nommi-series/products/nommi-fairytale-town-series-plush-blind-box","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:fairytale-town","title":"Nommi Fairytale Town Series Plush Blind Box","url":"https://us.kikagoods.com/collections/nommi-series/products/nommi-fairytale-town-series-plush-blind-box"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"forest-kingdom",
+      "name":"Forest Kingdom",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://toysez.com/collections/nommi-forest-kingdom-bjd-blind-box-series","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:forest-kingdom","title":"Nommi Forest Kingdom BJD Blind Box Series","url":"https://toysez.com/collections/nommi-forest-kingdom-bjd-blind-box-series"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"pinky-energy",
+      "name":"Pinky Energy",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://www.kikagoods.com/products/nommi-pinky-energy-series-plush-blind-box","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:pinky-energy","title":"Nommi Pinky Energy Series Plush Blind Box","url":"https://www.kikagoods.com/products/nommi-pinky-energy-series-plush-blind-box"},
+      "members":[],
+      "figures":[]
+    },
+    {
+      "id":"treasure-collector",
+      "name":"Treasure Collector",
+      "releaseYear":null,
+      "rosterStatus":"unknown",
+      "sources":[{"url":"https://www.kikagoods.com/products/nommi-treasure-collector-series-plush-blind-box","tier":"secondary","checkedAt":"2026-10-04"}],
+      "product":{"externalId":"catalog:treasure-collector","title":"Nommi Treasure Collector Series Plush Blind Box","url":"https://www.kikagoods.com/products/nommi-treasure-collector-series-plush-blind-box"},
+      "members":[],
+      "figures":[]
+    }
+  ]
+}
