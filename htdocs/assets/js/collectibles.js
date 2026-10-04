@@ -143,7 +143,8 @@ const {
 
     const isSafeImageUrl = (value) => isHttpsUrl(value)
         || (typeof value === 'string'
-            && /^\/assets\/images\/sonny-angels\/[A-Za-z0-9_./()@%+,&-]+$/.test(value)
+            && (/^\/assets\/images\/sonny-angels\/[A-Za-z0-9_./()@%+,&-]+$/.test(value)
+                || /^\/assets\/images\/collectibles\/[a-z0-9-]+\/[a-z0-9-]+\/[a-z0-9-]+\.webp$/.test(value))
             && !value.includes('/../')
             && !value.includes('/./'));
 

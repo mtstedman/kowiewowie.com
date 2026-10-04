@@ -498,6 +498,27 @@ final class CollectiblesRepository
             }
         }
 
+        // Figures without a stored picture take a downloaded one, by name or, for a
+        // single-figure listing, by the figure it sells; a set without box art
+        // shows its first pictured figure.
+        $figureImages = CollectibleFigureImages::load(dirname(__DIR__, 3));
+        foreach ($items as &$item) {
+            foreach ($item['variants'] as &$variant) {
+                $variant['image_url'] ??= $figureImages->forFigure($item['series_id'], $variant['name'])
+                    ?? (count($item['variants']) === 1 ? $figureImages->forFigure($item['series_id'], $item['listing_figure']) : null);
+            }
+            unset($variant);
+            if ($item['image_url'] === null) {
+                foreach ($item['variants'] as $variant) {
+                    if ($variant['image_url'] !== null) {
+                        $item['image_url'] = $variant['image_url'];
+                        break;
+                    }
+                }
+            }
+        }
+        unset($item);
+
         $lastSynced = $this->pdo->query('SELECT max(last_seen_at) FROM collectible_products')->fetchColumn();
 
         return [

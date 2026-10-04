@@ -75,6 +75,7 @@ jobs:
           php tests/collectibles-listing-classifier.php
           php tests/collectibles-refresh.php
           php tests/collectibles-search-filters.php
+          php tests/collectibles-figure-images.php
 
       - name: Run murder trivia regressions
         run: |
