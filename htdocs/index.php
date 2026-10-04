@@ -63,7 +63,6 @@ require __DIR__ . '/partials/head.php';
                     <div class="hero-actions" aria-label="Site sections and nonsense controls">
                         <a class="button" href="/recipes/">Open the recipe drawer <span aria-hidden="true">-&gt;</span></a>
                         <button class="button" type="button" data-silly-button>Shuffle the tiny chaos</button>
-                        <a class="text-link" href="/decks/">Decks</a>
                         <a class="text-link" href="/games/">Games</a>
                         <a class="text-link" href="/trivia/">Trivia</a>
                         <a class="text-link" href="/music/">Music</a>
@@ -88,13 +87,13 @@ require __DIR__ . '/partials/head.php';
                         </article>
                         <article>
                             <span class="feature-number">02</span>
-                            <h3>Decks</h3>
-                            <p>Slides and structured thoughts, because sometimes an idea needs a little stage lighting.</p>
+                            <h3>Games</h3>
+                            <p>Playable bits, shared-link trivia rooms, and Magic decks with decklists and play guides, all on the same table.</p>
                         </article>
                         <article>
                             <span class="feature-number">03</span>
-                            <h3>Games, trivia, music, videos</h3>
-                            <p>Playable bits, shared-link trivia rooms, sound bookmarks, watch pages, and side quests from the rest of the desk.</p>
+                            <h3>Music, videos, and more</h3>
+                            <p>Sound bookmarks, watch pages, and side quests from the rest of the desk.</p>
                         </article>
                     </div>
                 </section>

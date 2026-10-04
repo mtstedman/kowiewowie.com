@@ -59,6 +59,13 @@ $metaDescription = 'Board games and per-game strategy notes from wowiekowie.com.
                         <p>Explore the pinned passive tree, inspect nodes, and test legal class and ascendancy allocations.</p>
                         <a class="text-link" href="/path-of-exile-2/" aria-label="Open the Path of Exile 2 passive-tree planner">Plan a passive tree <span aria-hidden="true">-&gt;</span></a>
                     </article>
+
+                    <article class="games-feature-card">
+                        <span class="feature-number">Card table</span>
+                        <h3>Magic Decks</h3>
+                        <p>Browse Magic: The Gathering decklists, colors, counts, and play guides for the next game night.</p>
+                        <a class="text-link" href="/decks/" aria-label="Browse Magic Decks">Browse decks <span aria-hidden="true">-&gt;</span></a>
+                    </article>
                 </div>
 
                 <div class="section-heading games-content-heading">

@@ -5,10 +5,10 @@ declare(strict_types=1);
 $root = dirname(__DIR__);
 $publicPages = [
     'htdocs/index.php' => ['requestUri' => '/', 'currentSection' => null],
-    'htdocs/decks/index.php' => ['requestUri' => '/decks/', 'currentSection' => 'decks'],
-    'htdocs/decks/deck.php' => ['requestUri' => '/decks/deck.php', 'currentSection' => 'decks'],
-    'htdocs/decks/guides.php' => ['requestUri' => '/decks/guides.php', 'currentSection' => 'decks'],
-    'htdocs/decks/guide.php' => ['requestUri' => '/decks/guide.php', 'currentSection' => 'decks'],
+    'htdocs/decks/index.php' => ['requestUri' => '/decks/', 'currentSection' => 'games'],
+    'htdocs/decks/deck.php' => ['requestUri' => '/decks/deck.php', 'currentSection' => 'games'],
+    'htdocs/decks/guides.php' => ['requestUri' => '/decks/guides.php', 'currentSection' => 'games'],
+    'htdocs/decks/guide.php' => ['requestUri' => '/decks/guide.php', 'currentSection' => 'games'],
     'htdocs/chess/index.php' => ['requestUri' => '/chess/', 'currentSection' => 'games'],
     'htdocs/chess/game.php' => ['requestUri' => '/chess/game.php', 'currentSection' => 'games'],
     'htdocs/trivia/index.php' => ['requestUri' => '/trivia/', 'currentSection' => 'games'],
@@ -116,6 +116,45 @@ function assert_primary_nav_current(string $html, ?string $expectedSection, stri
     }
 }
 
+function games_subnav_links(string $html, string $context): array
+{
+    public_ux_assert(
+        (bool) preg_match('/<nav class="games-subnav" aria-label="Games navigation">.*?<\/nav>/s', $html, $matches),
+        $context . ' is missing the games sub-navigation.'
+    );
+    preg_match_all('/<a\b[^>]*>/i', $matches[0], $linkMatches);
+
+    return $linkMatches[0];
+}
+
+function assert_games_subnav_decks(string $html, bool $expectDecksCurrent, string $context): void
+{
+    $decksLinks = [];
+    $currentLinks = [];
+    foreach (games_subnav_links($html, $context) as $link) {
+        if (strpos($link, 'href="/decks/"') !== false) {
+            $decksLinks[] = $link;
+        }
+        if (strpos($link, 'aria-current="page"') !== false) {
+            $currentLinks[] = $link;
+        }
+    }
+
+    public_ux_assert(count($decksLinks) === 1, $context . ' games sub-navigation must render exactly one /decks/ link.');
+
+    if ($expectDecksCurrent) {
+        public_ux_assert(
+            count($currentLinks) === 1 && $currentLinks[0] === $decksLinks[0],
+            $context . ' games sub-navigation must mark only the /decks/ link aria-current="page".'
+        );
+    } else {
+        public_ux_assert(
+            strpos($decksLinks[0], 'aria-current') === false,
+            $context . ' games sub-navigation must not mark the /decks/ link current.'
+        );
+    }
+}
+
 foreach ($publicPages as $scriptPath => $routeExpectation) {
     $html = render_public_page($root, $scriptPath, $routeExpectation['requestUri']);
     $skipLink = '<a class="skip-link" href="#main-content">Skip to main content</a>';
@@ -132,6 +171,15 @@ foreach ($publicPages as $scriptPath => $routeExpectation) {
     public_ux_assert(!preg_match('/<script\b(?![^>]*\bsrc=)[^>]*>/i', $html), $scriptPath . ' must not render inline script bodies.');
     public_ux_assert(!preg_match('/\s+on[a-z]+\s*=/i', $html), $scriptPath . ' must not render inline event handlers.');
     assert_primary_nav_current($html, $routeExpectation['currentSection'], $scriptPath);
+    public_ux_assert(
+        strpos(primary_nav_html($html, $scriptPath), 'href="/decks/"') === false,
+        $scriptPath . ' primary navigation must not list Decks as a top-level section.'
+    );
+
+    if ($routeExpectation['currentSection'] === 'games') {
+        $firstSegment = explode('/', trim($routeExpectation['requestUri'], '/'))[0];
+        assert_games_subnav_decks($html, $firstSegment === 'decks', $scriptPath);
+    }
 }
 
 foreach ($currentSectionRequestUriCases as $case) {

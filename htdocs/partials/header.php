@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 $publicNavItems = [
     'recipes' => ['href' => '/recipes/', 'label' => 'Recipes'],
-    'decks' => ['href' => '/decks/', 'label' => 'Decks'],
     'games' => ['href' => '/games/', 'label' => 'Games'],
     'music' => ['href' => '/music/', 'label' => 'Music'],
     'videos' => ['href' => '/videos/', 'label' => 'Videos'],
@@ -17,6 +16,7 @@ $publicSectionAliases = [
     'chess' => 'games',
     'trivia' => 'games',
     'palworld' => 'games',
+    'decks' => 'games',
 ];
 
 $gameSubNavItems = [
@@ -25,6 +25,7 @@ $gameSubNavItems = [
     'trivia' => ['href' => '/trivia/', 'label' => 'Murder Trivia Party'],
     'risk' => ['href' => '/risk/', 'label' => 'Risk'],
     'palworld' => ['href' => '/palworld/', 'label' => 'Palworld'],
+    'decks' => ['href' => '/decks/', 'label' => 'Magic Decks'],
 ];
 
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
