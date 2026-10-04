@@ -139,6 +139,7 @@ final class CollectiblesRepository
                 if (str_starts_with($product['external_id'], 'catalog:')) {
                     $resolveProductStatement->execute(['source_key' => $sourceKey, 'product_url' => $product['product_url']]);
                     $resolvedExternalId = $resolveProductStatement->fetchColumn();
+                    $resolveProductStatement->closeCursor();
                     if ($resolvedExternalId !== false) $product['external_id'] = (string) $resolvedExternalId;
                 }
                 $productStatement->execute([
@@ -154,9 +155,11 @@ final class CollectiblesRepository
                     'price_source_url' => $product['price_source_url'] ?? null,
                     'price_observed_on' => $product['price_observed_on'] ?? null,
                     'release_year' => $product['release_year'] ?? null,
-                    'preserve_existing' => ($product['preserve_existing'] ?? false) === true,
+                    'preserve_existing' => $this->sqlBoolean(($product['preserve_existing'] ?? false) === true),
                 ]);
                 $productId = $productStatement->fetchColumn();
+                // SQLite refuses to commit while a RETURNING cursor is open.
+                $productStatement->closeCursor();
                 if ($productId === false) {
                     throw new \RuntimeException('The collectible product row could not be saved.');
                 }
@@ -170,13 +173,13 @@ final class CollectiblesRepository
                 foreach ($product['variants'] as $position => $variant) {
                     $key = function_exists('mb_strtolower') ? mb_strtolower($variant['name'], 'UTF-8') : strtolower($variant['name']);
                     $values = [
-                        'is_secret' => $variant['is_secret'], 'image_url' => $variant['image_url'],
+                        'is_secret' => $this->sqlBoolean($this->databaseBoolean($variant['is_secret'])), 'image_url' => $variant['image_url'],
                         'price_cents' => $variant['price_cents'], 'currency' => $variant['currency'],
                         'price_kind' => $variant['price_kind'] ?? null, 'price_source_url' => $variant['price_source_url'] ?? null,
                         'price_observed_on' => $variant['price_observed_on'] ?? null, 'position' => $position,
                     ];
                     if (isset($existing[$key])) {
-                        $updateVariantStatement->execute($values + ['id' => $existing[$key], 'preserve_existing' => ($product['preserve_existing'] ?? false) === true]);
+                        $updateVariantStatement->execute($values + ['id' => $existing[$key], 'preserve_existing' => $this->sqlBoolean(($product['preserve_existing'] ?? false) === true)]);
                     } else {
                         $variantStatement->execute($values + ['product_id' => (string) $productId, 'name' => $variant['name']]);
                     }
@@ -388,6 +391,16 @@ final class CollectiblesRepository
     private function formatTimestamp(string $timestamp): string
     {
         return (new \DateTimeImmutable($timestamp))->format(DATE_ATOM);
+    }
+
+    /**
+     * A PHP bool never goes to execute(): with native prepares PDO sends false
+     * as '', which PostgreSQL rejects as a boolean (the catalog sync failed on
+     * it). '1'/'0' read correctly in PostgreSQL and in the SQLite tests.
+     */
+    private function sqlBoolean(bool $value): string
+    {
+        return $value ? '1' : '0';
     }
 
     private function databaseBoolean(mixed $value): bool

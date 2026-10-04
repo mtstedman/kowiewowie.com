@@ -11,6 +11,23 @@ use Wowie\Api\Collectibles\SonnyAngelCatalogSource;
 
 require __DIR__ . '/../api/bootstrap.php';
 
+/**
+ * SQLite accepts '' as a boolean; PostgreSQL does not, and PDO sends PHP false
+ * as ''. Fail any statement given a PHP bool so SQLite runs catch it too.
+ */
+final class RejectsPhpBooleansStatement extends PDOStatement
+{
+    protected function __construct() {}
+
+    public function execute(?array $params = null): bool
+    {
+        foreach ($params ?? [] as $name => $value) {
+            if (is_bool($value)) throw new LogicException("Parameter {$name} is a PHP bool; PostgreSQL receives '' for false.");
+        }
+        return parent::execute($params);
+    }
+}
+
 $root = dirname(__DIR__);
 $failures = [];
 $assert = static function (bool $condition, string $message) use (&$failures): void {
@@ -94,6 +111,7 @@ if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
 } else {
     $pdo = new PDO('sqlite::memory:');
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [RejectsPhpBooleansStatement::class]);
     $pdo->sqliteCreateFunction('now', static fn (): string => '2026-10-04T00:00:00+00:00');
     $pdo->exec(<<<'SQL'
         CREATE TABLE collectible_products (
@@ -208,6 +226,7 @@ if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     );
     $isolationPdo = new PDO('sqlite::memory:');
     $isolationPdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $isolationPdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [RejectsPhpBooleansStatement::class]);
     $isolationPdo->sqliteCreateFunction('now', static fn (): string => '2026-10-04T00:00:00+00:00');
     foreach ($pdo->query("SELECT sql FROM sqlite_master WHERE type = 'table' AND name IN ('collectible_products', 'collectible_variants') ORDER BY name DESC")->fetchAll(PDO::FETCH_COLUMN) as $sql) $isolationPdo->exec((string) $sql);
     $sync = new CollectiblesSync(new CollectiblesRepository($isolationPdo), [
