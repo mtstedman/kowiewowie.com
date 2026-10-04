@@ -3583,6 +3583,80 @@
         "sourceType": "official"
       }
     },
+    "sonny-angel:collectors-trophy": {
+      "elephant/blue": {
+        "name": "Elephant/Blue",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/elephant-blue.webp",
+        "source": "https://cdn.shopify.com/s/files/1/0082/3168/2103/products/products_thumbnail_collecterstrophy_elephant_blue.png?v=1628132312",
+        "page": "https://web.archive.org/web/20211209142330/https://www.sonnyangelstore.com/en/products/collecterstrophy_elephant_blue",
+        "label": "Single-product page titled \"Sonny Angel Collector's Trophy Elephant/Blue\" (official Sonny Angel Store, archived); og:image file products_thumbnail_collecterstrophy_elephant_blue",
+        "sourceType": "archive"
+      },
+      "lucky cat size l": {
+        "name": "Lucky Cat Size L",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/lucky-cat-size-l.webp",
+        "source": "https://cdn.shopify.com/s/files/1/0082/3168/2103/products/variants_SAS65849.png?v=1674626110",
+        "page": "https://web.archive.org/web/20230329195230/https://www.sonnyangelstore.com/en/products/luckycat2023",
+        "label": "Variant image (featured_image) of variant \"Lucky Cat Size -L-\" (SKU SAS65849) on the official Lucky Cat Collector's Trophy page; image also carries an 'L' badge",
+        "sourceType": "archive"
+      },
+      "lucky cat size s": {
+        "name": "Lucky Cat Size S",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/lucky-cat-size-s.webp",
+        "source": "https://cdn.shopify.com/s/files/1/0082/3168/2103/products/variants_SAS65850.png?v=1674626110",
+        "page": "https://web.archive.org/web/20230329195230/https://www.sonnyangelstore.com/en/products/luckycat2023",
+        "label": "Variant image (featured_image) of variant \"Lucky Cat Size -S-\" (SKU SAS65850) on the official Lucky Cat Collector's Trophy page; image also carries an 'S' badge",
+        "sourceType": "archive"
+      },
+      "pink (2013)": {
+        "name": "Pink (2013)",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/pink-2013.webp",
+        "source": "https://web.archive.org/web/20140626065838id_/http://sonnyangel.com/news/20131105/sa_33cm_2.png",
+        "page": "https://web.archive.org/web/20140109232153/http://www.sonnyangel.com/news/20131105/index.html",
+        "label": "Main image of the official news page devoted to the single 2013 'Sonny Angel Collector's Trophy' (spec: 'Special color pink', 500 pieces); file sa_33cm_2.png (image URL is an http-origin archive copy served over https)",
+        "sourceType": "archive"
+      },
+      "red (2016)": {
+        "name": "Red (2016)",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/red-2016.webp",
+        "source": "https://web.archive.org/web/20160529032716id_/https://www.sonnyangelstore.com/media/catalog/product/cache/3/small_image/300x/17f82f742ffe127f42dca9de82fb58b1/p/k/pkg_33cm_red.jpg",
+        "page": "https://web.archive.org/web/20160326030215/https://www.sonnyangelstore.com/others/sa-trophy-2016.html",
+        "label": "Product image alt \"Sonny Angel Collector's Trophy (Red)\" on the archived official store page for the 2016 Red & White trophies (file pkg_33cm_red.jpg)",
+        "sourceType": "archive"
+      },
+      "robby angel gold": {
+        "name": "Robby Angel Gold",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/robby-angel-gold.webp",
+        "source": "https://cdn.shopify.com/s/files/1/0082/3168/2103/products/products_thumbnail_collecterstrophy_robby_violet_3d22cead-af0a-47b4-b655-e0107ad69f26.png?v=1639401114",
+        "page": "https://web.archive.org/web/20220118194627/https://www.sonnyangelstore.com/en/products/collecterstrophy_robby_gold",
+        "label": "Single-product page titled \"Robby Angel Collecter's Trophy Gold\" (official Sonny Angel Store, archived); this is its og:image. NOTE: the file name reuses 'robby_violet' but the image shows the gold Robby trophy (checked visually)",
+        "sourceType": "archive"
+      },
+      "robby angel pink": {
+        "name": "Robby Angel Pink",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/robby-angel-pink.webp",
+        "source": "https://cdn.shopify.com/s/files/1/0082/3168/2103/products/products_thumbnail_collecterstrophy_robby_pink.png?v=1628133095",
+        "page": "https://web.archive.org/web/20211209123101/https://www.sonnyangelstore.com/en/products/collecterstrophy_robby_pink",
+        "label": "Single-product page titled \"Robby Angel Collector's Trophy Pink\" (official Sonny Angel Store, archived); og:image file products_thumbnail_collecterstrophy_robby_pink",
+        "sourceType": "archive"
+      },
+      "robby angel violet": {
+        "name": "Robby Angel Violet",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/robby-angel-violet.webp",
+        "source": "https://cdn.shopify.com/s/files/1/0082/3168/2103/products/products_thumbnail_collecterstrophy_robby_violet.png?v=1634179006",
+        "page": "https://web.archive.org/web/20211016170423/https://www.sonnyangelstore.com/en/products/collecterstrophy_robby_violet",
+        "label": "Single-product page titled \"Robby Angel Collecter's Trophy Violet\" (official Sonny Angel Store, archived); og:image file products_thumbnail_collecterstrophy_robby_violet",
+        "sourceType": "archive"
+      },
+      "white (2016)": {
+        "name": "White (2016)",
+        "path": "/assets/images/collectibles/sonny-angel/collectors-trophy/white-2016.webp",
+        "source": "https://web.archive.org/web/20160529033047id_/https://www.sonnyangelstore.com/media/catalog/product/cache/3/small_image/300x/17f82f742ffe127f42dca9de82fb58b1/p/k/pkg_33cm_white.jpg",
+        "page": "https://web.archive.org/web/20160326030215/https://www.sonnyangelstore.com/others/sa-trophy-2016.html",
+        "label": "Product image alt \"Sonny Angel Collector's Trophy (White)\" on the archived official store page for the 2016 Red & White trophies (file pkg_33cm_white.jpg)",
+        "sourceType": "archive"
+      }
+    },
     "sonny-angel:easter-series-2018": {
       "easter bunny": {
         "name": "Easter Bunny",
