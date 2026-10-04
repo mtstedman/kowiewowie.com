@@ -210,4 +210,30 @@ return [
 
     ['name' => 'Sleepy Kitty', 'text' => '(=ↀωↀ=)', 'category' => 'Critters'],
     ['name' => 'Little Chick', 'text' => '(≧◡≦) ᵖⁱᵖ', 'category' => 'Critters'],
+
+    ['name' => 'Curious Tilt', 'text' => '(・・?)', 'category' => 'Classic Faces'],
+
+    ['name' => 'Cheer Burst', 'text' => '(★^O^★)', 'category' => 'Happy and Hype'],
+    ['name' => 'Wide Grin', 'text' => '(≧◡≦)', 'category' => 'Happy and Hype'],
+
+    ['name' => 'Quiet Sob', 'text' => '(个_个)', 'category' => 'Sad Hours'],
+    ['name' => 'Lonely Drift', 'text' => '(´-`)', 'category' => 'Sad Hours'],
+
+    ['name' => 'Loud Objection', 'text' => '(#`Д´)', 'category' => 'Angry and Intense'],
+    ['name' => 'Grumble Mode', 'text' => '(￣ヘ￣#)', 'category' => 'Angry and Intense'],
+
+    ['name' => 'Static Noise', 'text' => '(⊙﹏⊙)', 'category' => 'Shrugs and Chaos'],
+    ['name' => 'Dizzy Spin', 'text' => '(@_@)', 'category' => 'Shrugs and Chaos'],
+
+    ['name' => 'Table Setter', 'text' => '┳━┳ ノ( ゜-゜ノ)', 'category' => 'Table Drama'],
+
+    ['name' => 'Champion Pose', 'text' => '٩(◕‿◕)۶', 'category' => 'Victory Laps'],
+    ['name' => 'Clean Sweep', 'text' => '(＾◇＾)／', 'category' => 'Victory Laps'],
+
+    ['name' => 'Flower Gift', 'text' => '(´• ω •`)ﾉ', 'category' => 'Soft and Sweet'],
+
+    ['name' => 'Lurking Goblin', 'text' => 'ᕕ( ͡° ͜ʖ ͡°)ᕗ', 'category' => 'Goblin Energy'],
+    ['name' => 'Smug Gremlin', 'text' => '( ͡~ ͜ʖ ͡°)', 'category' => 'Goblin Energy'],
+
+    ['name' => 'Sunny Bean', 'text' => '^(☆ 3 ☆)^', 'category' => 'Beans'],
 ];
