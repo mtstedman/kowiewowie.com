@@ -135,7 +135,6 @@
     }
 
     const selector = [
-        '.site-header',
         '.foundation',
         '.feature-grid > article',
         '.aside',

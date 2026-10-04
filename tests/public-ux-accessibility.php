@@ -23,6 +23,12 @@ $publicPages = [
     'htdocs/videos/video.php' => ['requestUri' => '/videos/video.php', 'currentSection' => 'videos'],
 ];
 
+$focusedHeaderPages = [
+    'htdocs/login/index.php' => ['requestUri' => '/login/', 'currentSection' => null, 'gameAlias' => null],
+    'htdocs/risk/index.php' => ['requestUri' => '/risk/', 'currentSection' => 'games', 'gameAlias' => '/risk/'],
+    'htdocs/palworld/index.php' => ['requestUri' => '/palworld/', 'currentSection' => 'games', 'gameAlias' => '/palworld/'],
+];
+
 $currentSectionRequestUriCases = [
     ['requestUri' => null, 'currentSection' => null, 'label' => 'missing REQUEST_URI'],
     ['requestUri' => '', 'currentSection' => null, 'label' => 'empty REQUEST_URI'],
@@ -127,32 +133,37 @@ function games_subnav_links(string $html, string $context): array
     return $linkMatches[0];
 }
 
-function assert_games_subnav_decks(string $html, bool $expectDecksCurrent, string $context): void
+function assert_games_subnav_current(string $html, string $expectedPath, string $context): void
 {
-    $decksLinks = [];
+    $expectedLinks = [];
     $currentLinks = [];
     foreach (games_subnav_links($html, $context) as $link) {
-        if (strpos($link, 'href="/decks/"') !== false) {
-            $decksLinks[] = $link;
+        if (strpos($link, 'href="' . $expectedPath . '"') !== false) {
+            $expectedLinks[] = $link;
         }
         if (strpos($link, 'aria-current="page"') !== false) {
             $currentLinks[] = $link;
         }
     }
 
-    public_ux_assert(count($decksLinks) === 1, $context . ' games sub-navigation must render exactly one /decks/ link.');
+    public_ux_assert(count($expectedLinks) === 1, $context . ' games sub-navigation must render exactly one ' . $expectedPath . ' link.');
+    public_ux_assert(
+        count($currentLinks) === 1 && $currentLinks[0] === $expectedLinks[0],
+        $context . ' games sub-navigation must mark only ' . $expectedPath . ' aria-current="page".'
+    );
+}
 
-    if ($expectDecksCurrent) {
-        public_ux_assert(
-            count($currentLinks) === 1 && $currentLinks[0] === $decksLinks[0],
-            $context . ' games sub-navigation must mark only the /decks/ link aria-current="page".'
-        );
-    } else {
-        public_ux_assert(
-            strpos($decksLinks[0], 'aria-current') === false,
-            $context . ' games sub-navigation must not mark the /decks/ link current.'
-        );
-    }
+function assert_account_header(string $html, bool $expectLoginCurrent, string $context): void
+{
+    public_ux_assert(substr_count($html, 'class="site-account-view" data-account-view=') === 4, $context . ' must render all account states.');
+    public_ux_assert((bool) preg_match('/data-account-view="loading" hidden/', $html), $context . ' loading account state must start hidden.');
+    public_ux_assert((bool) preg_match('/data-account-view="signed-out">/', $html), $context . ' signed-out account state must start visible.');
+    public_ux_assert((bool) preg_match('/data-account-view="authenticated" hidden/', $html), $context . ' authenticated account state must start hidden.');
+    public_ux_assert((bool) preg_match('/data-account-view="error" hidden/', $html), $context . ' error account state must start hidden.');
+    public_ux_assert(
+        (bool) preg_match('/data-account-login-link' . ($expectLoginCurrent ? ' aria-current="page"' : '') . '>Log in<\/a>/', $html),
+        $context . ' login control current state is incorrect.'
+    );
 }
 
 foreach ($publicPages as $scriptPath => $routeExpectation) {
@@ -171,6 +182,11 @@ foreach ($publicPages as $scriptPath => $routeExpectation) {
     public_ux_assert(!preg_match('/<script\b(?![^>]*\bsrc=)[^>]*>/i', $html), $scriptPath . ' must not render inline script bodies.');
     public_ux_assert(!preg_match('/\s+on[a-z]+\s*=/i', $html), $scriptPath . ' must not render inline event handlers.');
     assert_primary_nav_current($html, $routeExpectation['currentSection'], $scriptPath);
+    $isLoginPage = $scriptPath === 'htdocs/login/index.php';
+    assert_account_header($html, $isLoginPage, $scriptPath);
+    $expectedReturnPath = parse_url($routeExpectation['requestUri'], PHP_URL_PATH) ?: '/';
+    $expectedLoginHref = $isLoginPage ? '/login/' : '/login/?return_to=' . rawurlencode($expectedReturnPath);
+    public_ux_assert(strpos($html, 'href="' . $expectedLoginHref . '" data-account-login-link') !== false, $scriptPath . ' login return destination is incorrect.');
     public_ux_assert(
         strpos(primary_nav_html($html, $scriptPath), 'href="/decks/"') === false,
         $scriptPath . ' primary navigation must not list Decks as a top-level section.'
@@ -178,7 +194,30 @@ foreach ($publicPages as $scriptPath => $routeExpectation) {
 
     if ($routeExpectation['currentSection'] === 'games') {
         $firstSegment = explode('/', trim($routeExpectation['requestUri'], '/'))[0];
-        assert_games_subnav_decks($html, $firstSegment === 'decks', $scriptPath);
+        assert_games_subnav_current($html, '/' . $firstSegment . '/', $scriptPath);
+    } else {
+        public_ux_assert(strpos($html, 'class="games-subnav"') === false, $scriptPath . ' must not render the Games sub-navigation.');
+    }
+}
+
+foreach ($focusedHeaderPages as $scriptPath => $routeExpectation) {
+    $html = render_public_page($root, $scriptPath, $routeExpectation['requestUri']);
+    $skipTarget = '<span id="main-content" class="skip-target" tabindex="-1"></span>';
+    $isLoginPage = $scriptPath === 'htdocs/login/index.php';
+
+    public_ux_assert(substr_count($html, 'id="main-content"') === 1, $scriptPath . ' must render exactly one main-content target.');
+    public_ux_assert(strpos($html, $skipTarget) !== false, $scriptPath . ' main-content target must be statically focusable.');
+    assert_primary_nav_current($html, $routeExpectation['currentSection'], $scriptPath);
+    assert_account_header($html, $isLoginPage, $scriptPath);
+
+    $expectedReturnPath = parse_url($routeExpectation['requestUri'], PHP_URL_PATH) ?: '/';
+    $expectedLoginHref = $isLoginPage ? '/login/' : '/login/?return_to=' . rawurlencode($expectedReturnPath);
+    public_ux_assert(strpos($html, 'href="' . $expectedLoginHref . '" data-account-login-link') !== false, $scriptPath . ' login return destination is incorrect.');
+
+    if ($routeExpectation['gameAlias'] !== null) {
+        assert_games_subnav_current($html, $routeExpectation['gameAlias'], $scriptPath);
+    } else {
+        public_ux_assert(strpos($html, 'class="games-subnav"') === false, $scriptPath . ' must not render the Games sub-navigation.');
     }
 }
 
@@ -206,6 +245,19 @@ foreach (['padding', 'min-height', 'min-width', 'display', 'gap', 'border-width'
 foreach (['.skip-link', '.wordmark', '.site-nav a'] as $selector) {
     public_ux_assert((bool) preg_match('/' . preg_quote($selector, '/') . '\s*\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s', $css), $selector . ' must preserve a 44px minimum tap target.');
 }
+public_ux_assert(
+    (bool) preg_match('/\.site-header \.site-account-link,.*?\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s', $css),
+    'Header account controls must preserve 44px minimum tap targets.'
+);
+public_ux_assert((bool) preg_match('/\.site-account-view\[hidden\]\s*\{[^}]*display:\s*none/s', $css), 'Hidden account views must remain removed from layout.');
+public_ux_assert((bool) preg_match('/\.site-header \.site-account-link \[data-account-name\]\s*\{[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/s', $css), 'Long account names must remain contained.');
+public_ux_assert(strpos($css, '.site-header::before') === false, 'The disabled header shimmer pseudo-element must not retain redundant CSS.');
+foreach (['.site-nav', '.games-subnav'] as $scrollingNav) {
+    public_ux_assert(
+        (bool) preg_match('/' . preg_quote($scrollingNav, '/') . '\s*\{[^}]*overflow-x:\s*auto[^}]*overscroll-behavior-x:\s*contain/s', $css),
+        $scrollingNav . ' must preserve contained local horizontal scrolling.'
+    );
+}
 
 foreach (['@media (max-width: 900px)', '@media (max-width: 760px)', '@media (max-width: 640px)', '@media (prefers-reduced-motion: reduce)'] as $mediaRule) {
     public_ux_assert(strpos($css, $mediaRule) !== false, 'Expected responsive rule missing: ' . $mediaRule);
@@ -226,9 +278,14 @@ public_ux_assert(
     'The mobile site-nav rule is missing.'
 );
 public_ux_assert(
-    (bool) preg_match('/\bflex\s*:\s*0\s+1\s+auto\s*;/', $mobileNavRule['rule'])
-        && (bool) preg_match('/\bmin-width\s*:\s*0\s*;/', $mobileNavRule['rule']),
-    'The mobile site nav must reset the desktop flex basis so it cannot reserve a full screen of vertical space.'
+    (bool) preg_match('/\bflex\s*:\s*1\s+0\s+100%\s*;/', $mobileNavRule['rule'])
+        && (bool) preg_match('/\bwidth\s*:\s*100%\s*;/', $mobileNavRule['rule']),
+    'The mobile site nav must occupy one bounded, horizontally scrollable row.'
+);
+public_ux_assert(
+    (bool) preg_match('/@media \(max-width: 900px\)\s*\{.*?\.site-header-main\s*\{(?P<rule>[^}]*)\}/s', $css, $mobileHeaderMainRule)
+        && (bool) preg_match('/\bflex-wrap\s*:\s*wrap\s*;/', $mobileHeaderMainRule['rule']),
+    'The mobile header row must wrap its wordmark and account controls without page overflow.'
 );
 
 $publicShellScript = file_get_contents($root . '/htdocs/assets/js/public-shell.js');
@@ -238,7 +295,10 @@ public_ux_assert(strpos($publicShellScript, "addEventListener('click'") !== fals
 public_ux_assert(strpos($publicShellScript, 'target.focus') !== false, 'Public shell script must transfer focus to the skip target.');
 public_ux_assert(strpos($publicShellScript, 'requestAnimationFrame') !== false, 'Public shell script must host the shimmer animation behavior.');
 public_ux_assert(strpos($publicShellScript, "'--glass-mx'") !== false, 'Public shell script must update panel shimmer coordinates.');
-public_ux_assert(strpos($publicShellScript, "'--glass-x'") !== false, 'Public shell script must update header shimmer coordinates.');
+public_ux_assert(strpos($publicShellScript, "'--glass-x'") !== false, 'Public shell script must update panel shimmer coordinates.');
+public_ux_assert(strpos($publicShellScript, "'.site-header'") === false, 'Public shell script must not attach pointer shimmer work to the site header.');
+public_ux_assert(strpos($publicShellScript, "view.getAttribute('data-account-view') !== viewName") !== false, 'Public shell script must keep inactive account views hidden.');
+public_ux_assert(strpos($publicShellScript, "accountRoot.setAttribute('data-account-state', viewName)") !== false, 'Public shell script must expose the active account state.');
 public_ux_assert(!preg_match('/\son[a-z]+\s*=/', $publicShellScript), 'Public shell script must not contain inline-handler markup.');
 
 fwrite(STDOUT, 'Public UX/accessibility regression checks passed.' . PHP_EOL);
