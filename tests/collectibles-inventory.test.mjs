@@ -11,6 +11,7 @@ import {
   quantityMatchesFilter,
   quantityForOwnedToggle,
   isThumbnailActivationKey,
+  titleWithoutBrand,
   setExpandedControl,
   partialFailureMessage,
   releaseChoicesFromProducts,
@@ -33,6 +34,26 @@ import {
     const expected = `?v=${createHash('sha256').update(await readFile(new URL(path, moduleDir))).digest('hex').slice(0, 12)}`;
     assert.equal(query, expected, `collectibles.js must import ${path}${expected}`);
   }
+}
+
+// Cards sit under their brand's heading, so titles drop the brand words.
+for (const [brand, title, expected] of [
+  ['skullpanda', 'SKULLPANDA The Ink Plum Blossom Series Figures', 'The Ink Plum Blossom Series Figures'],
+  ['skullpanda', 'MEGA α SKULLPANDA 1000% Red Crystal', 'MEGA 1000% Red Crystal'],
+  ['skullpanda', 'POP ATTACH θ SKULLPANDA Off Mode Series', 'POP ATTACH Off Mode Series'],
+  ['skullpanda', "θSKULLPANDA L'impressionnisme Series Plush Doll", "L'impressionnisme Series Plush Doll"],
+  ['skullpanda', 'Pop Mart Skullpanda Candy Monster Town Series', 'Candy Monster Town Series'],
+  ['skullpanda', 'SKULLPANDA CHEERS TO MYSELF SERIES-Badge Pendant Blind Box', 'CHEERS TO MYSELF SERIES-Badge Pendant Blind Box'],
+  ['skullpanda', 'SKULLPANDA', 'SKULLPANDA'],
+  ['skullpanda', 'The Attic of Oddities Series Figures', 'The Attic of Oddities Series Figures'],
+  ['nommi', 'Nommi About the Childhood Plush Dolls Blind Box Series: Carousel (Confirmed Style)', 'About the Childhood Plush Dolls Blind Box Series: Carousel (Confirmed Style)'],
+  ['nommi', 'Nommi: Whole Set', 'Whole Set'],
+  ['sonny-angel', 'Christmas Presents from Sonny Angel', 'Christmas Presents from Sonny Angel'],
+  ['sonny-angel', 'Sonny Angel Animal Series 3', 'Animal Series 3'],
+  ['', 'SKULLPANDA Aisling Figure', 'SKULLPANDA Aisling Figure'],
+  ['nommi', 'SKULLPANDA Aisling Figure', 'SKULLPANDA Aisling Figure'],
+]) {
+  assert.equal(titleWithoutBrand(title, brand), expected, `${brand}: ${title}`);
 }
 
 const pageSource = await readFile(new URL('../htdocs/collectibles/index.php', import.meta.url), 'utf8');

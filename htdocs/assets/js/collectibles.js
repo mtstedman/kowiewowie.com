@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=28a3a1eb8582';
+import * as inventoryModule from './collectibles-inventory.js?v=74ac37f3e1a5';
 
 const {
     INVENTORY_STORAGE_KEY,
@@ -33,6 +33,7 @@ const {
     normalizeLine,
     unclassifiedSeriesId,
     unclassifiedSeriesTitle,
+    titleWithoutBrand,
 } = /** @type {typeof import('./collectibles-inventory.js')} */ (inventoryModule);
 
 (() => {
@@ -371,7 +372,7 @@ const {
     const renderVariantRow = (variant, product, productPrice) => {
         const safeVariant = variant && typeof variant === 'object' ? variant : {};
         const identityName = typeof safeVariant.name === 'string' ? safeVariant.name : 'Unnamed figure';
-        const name = identityName.trim() !== '' ? identityName.trim() : 'Unnamed figure';
+        const name = identityName.trim() !== '' ? titleWithoutBrand(identityName, normalizeBrand(product.brand)) : 'Unnamed figure';
         const isSecret = safeVariant.is_secret === true;
         const key = inventoryKey(product.id, identityName);
         const quantity = inventory.get(key);
@@ -596,7 +597,10 @@ const {
     const renderProduct = (product) => {
         const safeProduct = product && typeof product === 'object' ? product : {};
         const productId = String(safeProduct.id);
-        const title = typeof safeProduct.title === 'string' && safeProduct.title.trim() !== '' ? safeProduct.title.trim() : 'Untitled listing';
+        const title = titleWithoutBrand(
+            typeof safeProduct.title === 'string' && safeProduct.title.trim() !== '' ? safeProduct.title.trim() : 'Untitled listing',
+            normalizeBrand(safeProduct.brand)
+        );
         const label = brandLabel(safeProduct.brand);
         const variants = Array.isArray(safeProduct.variants) ? safeProduct.variants : [];
         const fallbackPrice = variants
@@ -696,7 +700,7 @@ const {
             table.append(tableHead);
             const tableBody = document.createElement('tbody');
             variants.forEach((variant) => {
-                tableBody.append(renderVariantRow(variant, { id: productId, title }, productPrice));
+                tableBody.append(renderVariantRow(variant, { id: productId, title, brand: safeProduct.brand }, productPrice));
             });
             table.append(tableBody);
             tableWrap.append(table);

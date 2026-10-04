@@ -9,6 +9,28 @@ export const BRANDS = {
     'sonny-angel': 'Sonny Angel',
 };
 
+// Every card already sits under its brand's heading and eyebrow, so a store
+// title's own brand words ("Nommi …", "MEGA α SKULLPANDA 1000% …", "θSKULLPANDA
+// … Plush", "Pop Mart Skullpanda …") are dropped for display, with Pop Mart's
+// α/θ marks that cling to them. A brand that ends the title is part of the name
+// ("Christmas Presents from Sonny Angel") and stays.
+const BRAND_TITLE_PATTERNS = Object.freeze({
+    skullpanda: /(?:\bpop\s*mart\s+)?(?:[αθ]\s*)?\bskull\s*panda\b/giu,
+    nommi: /(?:\bpop\s*mart\s+)?\bnommi\b/giu,
+    'sonny-angel': /(?:\bpop\s*mart\s+)?\bsonny\s*angels?\b/giu,
+});
+export const titleWithoutBrand = (title, brand) => {
+    const text = typeof title === 'string' ? title.trim() : '';
+    const pattern = BRAND_TITLE_PATTERNS[brand];
+    if (pattern === undefined || text === '') return text;
+    const stripped = text
+        .replace(pattern, (match, offset) => (offset + match.length >= text.length && offset > 0 ? match : ' '))
+        .replace(/\s+/gu, ' ')
+        .replace(/^[\s:;,|\-–—]+/u, '')
+        .trim();
+    return stripped === '' ? text : stripped;
+};
+
 export const inventoryKey = (productId, variantName) => JSON.stringify([String(productId), variantName]);
 
 // Product lines, in shelf order: store-fed brands by format, Sonny Angel by
