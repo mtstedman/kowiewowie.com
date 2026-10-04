@@ -7,6 +7,7 @@ export const BRANDS = {
     skullpanda: 'SKULLPANDA',
     nommi: 'Nommi',
     'sonny-angel': 'Sonny Angel',
+    'pop-bean': 'POP BEAN',
 };
 
 // Every card already sits under its brand's heading and eyebrow, so a store
@@ -18,6 +19,7 @@ const BRAND_TITLE_PATTERNS = Object.freeze({
     skullpanda: /(?:\bpop\s*mart\s+)?(?:[αθ]\s*)?\bskull\s*panda\b/giu,
     nommi: /(?:\bpop\s*mart\s+)?\bnommi\b/giu,
     'sonny-angel': /(?:\bpop\s*mart\s+)?\bsonny\s*angels?\b/giu,
+    'pop-bean': /(?:\bpop\s*mart\s+)?\bpop\s*beans?\b/giu,
 });
 export const titleWithoutBrand = (title, brand) => {
     const text = typeof title === 'string' ? title.trim() : '';

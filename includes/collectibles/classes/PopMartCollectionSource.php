@@ -7,7 +7,9 @@ namespace Wowie\Api\Collectibles;
 use RuntimeException;
 
 /**
- * Skullpanda catalog source backed by the public Pop Mart US storefront pages.
+ * A Pop Mart line's catalog source backed by the public Pop Mart US storefront
+ * pages: SKULLPANDA by default, or another line with its own source key and
+ * collection page.
  *
  * Only the server-rendered collection and product pages are read. Pop Mart's
  * backend JSON API requires a request signature and is deliberately not used.
@@ -16,6 +18,8 @@ final class PopMartCollectionSource
 {
     public const SOURCE_KEY = 'popmart-us';
     public const BRAND = 'skullpanda';
+    public const POP_BEAN_SOURCE_KEY = 'popmart-us-pop-bean';
+    public const POP_BEAN_BRAND = 'pop-bean';
     public const CURRENCY = 'USD';
     public const HOST = 'www.popmart.com';
     public const IMAGE_HOST = 'prod-global-biz.popmart.com';
@@ -37,19 +41,26 @@ final class PopMartCollectionSource
 
     private CollectibleHttpClient $http;
 
-    public function __construct(CollectibleHttpClient $http)
-    {
+    public function __construct(
+        CollectibleHttpClient $http,
+        private readonly string $sourceKey = self::SOURCE_KEY,
+        private readonly string $brand = self::BRAND,
+        private readonly string $collectionUrl = self::COLLECTION_URL,
+    ) {
+        if (!str_starts_with($collectionUrl, self::ORIGIN . '/us/collection/')) {
+            throw new \InvalidArgumentException('A Pop Mart collection must be a popmart.com/us collection page.');
+        }
         $this->http = $http;
     }
 
     public function sourceKey(): string
     {
-        return self::SOURCE_KEY;
+        return $this->sourceKey;
     }
 
     public function brand(): string
     {
-        return self::BRAND;
+        return $this->brand;
     }
 
     /**
@@ -71,7 +82,7 @@ final class PopMartCollectionSource
         $listed = [];
         for ($page = 1; $page <= self::MAX_PAGES; $page++) {
             try {
-                $html = $this->http->get(self::COLLECTION_URL . '?page=' . $page);
+                $html = $this->http->get($this->collectionUrl . '?page=' . $page);
             } catch (RuntimeException $error) {
                 if ($page > 1 && $error->getCode() === 404) {
                     break;

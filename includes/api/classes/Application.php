@@ -153,9 +153,9 @@ final class Application
                     : substr($query, 0, 100);
             }
             $brand = trim((string) ($request->query['brand'] ?? ''));
-            if ($brand !== '' && !in_array($brand, ['skullpanda', 'nommi', 'sonny-angel'], true)) {
-                throw new ApiException(422, 'validation_error', 'brand must be skullpanda, nommi, or sonny-angel.', [
-                    'brand' => 'Use skullpanda, nommi, or sonny-angel.',
+            if ($brand !== '' && !in_array($brand, ['skullpanda', 'nommi', 'sonny-angel', 'pop-bean'], true)) {
+                throw new ApiException(422, 'validation_error', 'brand must be skullpanda, nommi, sonny-angel, or pop-bean.', [
+                    'brand' => 'Use skullpanda, nommi, sonny-angel, or pop-bean.',
                 ]);
             }
             $sort = trim((string) ($request->query['sort'] ?? 'name-asc'));

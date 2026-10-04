@@ -65,7 +65,7 @@ if (is_file($statePath)) {
         // A damaged state file must not cause a burst of requests: every
         // source waits one normal interval before trying again.
         $log("state file {$statePath} is unreadable; treating every source as just refreshed");
-        foreach ([PopMartCollectionSource::SOURCE_KEY, CollectiblesSync::NOMMI_SOURCE_KEY] as $key) {
+        foreach ([PopMartCollectionSource::SOURCE_KEY, PopMartCollectionSource::POP_BEAN_SOURCE_KEY, CollectiblesSync::NOMMI_SOURCE_KEY] as $key) {
             $state[$key] = ['next_allowed_at' => time() + CollectiblesRefreshScheduler::DEFAULT_INTERVAL_SECONDS];
         }
     }

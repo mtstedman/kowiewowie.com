@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=dbe0c595f834';
+import * as inventoryModule from './collectibles-inventory.js?v=adcf471780c3';
 
 const {
     INVENTORY_STORAGE_KEY,

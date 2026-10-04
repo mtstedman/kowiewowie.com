@@ -1,4 +1,4 @@
-<!-- schema-version: 20 -->
+<!-- schema-version: 21 -->
 
 # PostgreSQL schema
 
@@ -402,7 +402,7 @@ Sonny Angel catalog. They are a refreshable catalog snapshot, not
 user-authored content, and use `bigint` identity keys rather than UUIDs.
 
 `collectible_products` stores one series-level product per upstream listing:
-`id` (identity primary key), `brand` (`skullpanda`, `nommi`, or `sonny-angel`), `source_key`
+`id` (identity primary key), `brand` (`skullpanda`, `nommi`, `sonny-angel`, or `pop-bean`), `source_key`
 naming the upstream source, the source's `external_id`, `title`,
 `product_url`, optional `image_url`, optional `price_cents`, optional
 `currency`, optional price kind/source/date metadata, optional `release_year`,

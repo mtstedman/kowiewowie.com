@@ -57,6 +57,8 @@ for (const [brand, title, expected] of [
   ['nommi', 'Nommi: Whole Set', 'Whole Set'],
   ['sonny-angel', 'Christmas Presents from Sonny Angel', 'Christmas Presents from Sonny Angel'],
   ['sonny-angel', 'Sonny Angel Animal Series 3', 'Animal Series 3'],
+  ['pop-bean', 'POP BEAN Lucky Cat Series', 'Lucky Cat Series'],
+  ['pop-bean', 'Pop Mart Pop Beans Mini Series', 'Mini Series'],
   ['', 'SKULLPANDA Aisling Figure', 'SKULLPANDA Aisling Figure'],
   ['nommi', 'SKULLPANDA Aisling Figure', 'SKULLPANDA Aisling Figure'],
 ]) {
@@ -551,7 +553,7 @@ class MemoryStorage {
   const exportButton = element('button', 'collectibles-export-pdf');
   sortSelect.value = 'name-asc';
 
-  const brandValues = ['', 'skullpanda', 'nommi', 'sonny-angel'];
+  const brandValues = ['', 'skullpanda', 'nommi', 'sonny-angel', 'pop-bean'];
   const brandInputs = brandValues.map((value, index) => {
     const input = document.createElement('input');
     input.name = 'brand';

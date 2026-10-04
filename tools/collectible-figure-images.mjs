@@ -5,8 +5,8 @@
 //
 //   Nommi:      TOYSEZ sells most figures as single listings, each with its own
 //               photo on Shopify's CDN (no requests to the storefront itself).
-//   SKULLPANDA: each Pop Mart set page lists its figures with their pictures in
-//               the page data (props.pageProps.serverSeoData.commonInfo.toys).
+//   SKULLPANDA and POP BEAN: each Pop Mart set page lists its figures with their
+//               pictures in the page data (props.pageProps.serverSeoData.commonInfo.toys).
 //
 // Polite by design: Pop Mart pages are fetched 6-9 s apart, images 1.5 s apart
 // per host, and the first 429/403/503 stops the run (files already saved are
@@ -32,7 +32,7 @@ const API = 'https://wowiekowie.com/api/v1/collectibles';
 const USER_AGENT = 'wowiekowie.com collectibles catalog (figure pictures; contact via wowiekowie.com)';
 const args = new Map(process.argv.slice(2).map((arg) => arg.replace(/^--/, '').split('=')).map(([key, value]) => [key, value ?? true]));
 const fromFile = args.has('from') ? String(args.get('from')) : null;
-const brands = fromFile !== null ? ['from'] : (args.has('brand') ? [String(args.get('brand'))] : ['nommi', 'skullpanda']);
+const brands = fromFile !== null ? ['from'] : (args.has('brand') ? [String(args.get('brand'))] : ['nommi', 'skullpanda', 'pop-bean']);
 const dryRun = args.has('dry-run');
 
 class Refused extends Error {}
@@ -80,8 +80,8 @@ const nommiFigures = async () => (await listings('nommi'))
     return { seriesId: listing.series_id, name: listing.listing_figure, source: source.href, page: listing.product_url };
   });
 
-const skullpandaFigures = async (known) => {
-  const sets = (await listings('skullpanda'))
+const popMartFigures = async (brand, known) => {
+  const sets = (await listings(brand))
     .filter((listing) => listing.listing_kind === 'series' && listing.series_id && /^https:\/\/www\.popmart\.com\//.test(listing.product_url));
   const figures = [];
   for (const set of sets) {
@@ -118,7 +118,7 @@ const researchedFigures = (file) => Object.entries(JSON.parse(readFileSync(file,
     label: entry.label,
     sourceType: entry.source_type,
   })))
-  .filter((figure) => /^(?:sonny-angel|skullpanda|nommi):[a-z0-9-]+$/.test(figure.seriesId)
+  .filter((figure) => /^(?:sonny-angel|skullpanda|nommi|pop-bean):[a-z0-9-]+$/.test(figure.seriesId)
     && /^https:\/\//.test(String(figure.source)) && /^https:\/\//.test(String(figure.page)));
 
 const manifest = existsSync(MANIFEST)
@@ -133,7 +133,7 @@ let saved = 0;
 let stopped = null;
 try {
   for (const brand of brands) {
-    const figures = brand === 'from' ? researchedFigures(fromFile) : (brand === 'nommi' ? await nommiFigures() : await skullpandaFigures(known));
+    const figures = brand === 'from' ? researchedFigures(fromFile) : (brand === 'nommi' ? await nommiFigures() : await popMartFigures(brand, known));
     for (const figure of figures) {
       const key = figureKey(figure.name);
       if (known.has(`${figure.seriesId}\u0000${key}`)) continue;

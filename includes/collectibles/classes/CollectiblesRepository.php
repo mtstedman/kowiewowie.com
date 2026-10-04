@@ -37,8 +37,8 @@ final class CollectiblesRepository
         if ($products === []) {
             throw new InvalidArgumentException('The product list must not be empty.');
         }
-        if (!in_array($brand, ['skullpanda', 'nommi', 'sonny-angel'], true)) {
-            throw new InvalidArgumentException('The brand must be skullpanda, nommi, or sonny-angel.');
+        if (!in_array($brand, ['skullpanda', 'nommi', 'sonny-angel', 'pop-bean'], true)) {
+            throw new InvalidArgumentException('The brand must be skullpanda, nommi, sonny-angel, or pop-bean.');
         }
 
         foreach ($products as $product) {
@@ -562,7 +562,7 @@ final class CollectiblesRepository
     {
         $normalize = static fn (string $text): string => strtolower(trim((string) preg_replace('/\s+/u', ' ', $text)));
         $candidate = $normalize($name);
-        $brandNames = ['skullpanda' => ['skullpanda', 'skull panda'], 'nommi' => ['nommi'], 'sonny-angel' => ['sonny angel', 'sonny angels']][$brand] ?? [];
+        $brandNames = ['skullpanda' => ['skullpanda', 'skull panda'], 'nommi' => ['nommi'], 'pop-bean' => ['pop bean', 'popbean'], 'sonny-angel' => ['sonny angel', 'sonny angels']][$brand] ?? [];
 
         return $candidate === $normalize($title) || in_array($candidate, [...$brandNames, 'pop mart', 'popmart'], true);
     }

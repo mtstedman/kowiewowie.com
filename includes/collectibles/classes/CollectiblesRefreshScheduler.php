@@ -22,7 +22,10 @@ final class CollectiblesRefreshScheduler
 {
     public const DEFAULT_INTERVAL_SECONDS = 20 * 3600;
     /** Per-source success intervals; Pop Mart reads ~100 pages a run. */
-    public const INTERVAL_SECONDS = [PopMartCollectionSource::SOURCE_KEY => 44 * 3600];
+    public const INTERVAL_SECONDS = [
+        PopMartCollectionSource::SOURCE_KEY => 44 * 3600,
+        PopMartCollectionSource::POP_BEAN_SOURCE_KEY => 44 * 3600,
+    ];
     public const RATE_LIMIT_BACKOFF_SECONDS = 12 * 3600;
     public const RATE_LIMIT_BACKOFF_CAP_SECONDS = 7 * 86400;
     public const FAILURE_BACKOFF_SECONDS = 2 * 3600;

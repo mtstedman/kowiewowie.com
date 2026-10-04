@@ -135,7 +135,7 @@ final class CollectibleCatalogSupplement
         try { $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR); } catch (JsonException $e) { throw new RuntimeException('The collectible catalog supplement is invalid JSON.', 0, $e); }
 
         if (!is_array($data) || !self::hasKeys($data, ['schemaVersion', 'checkedAt', 'brand', 'sourceKey', 'coverage', 'series'])) throw new InvalidArgumentException('The collectible catalog supplement has an invalid shape.');
-        $sourceKeys = ['skullpanda' => 'popmart-us', 'nommi' => 'toysez-nommi'];
+        $sourceKeys = ['skullpanda' => 'popmart-us', 'nommi' => 'toysez-nommi', 'pop-bean' => 'popmart-us-pop-bean'];
         if (($data['schemaVersion'] ?? null) !== 1 || !self::date($data['checkedAt'] ?? null) || !is_string($data['brand'] ?? null) || !isset($sourceKeys[$data['brand']]) || ($data['sourceKey'] ?? null) !== $sourceKeys[$data['brand']]) throw new InvalidArgumentException('The collectible catalog supplement has an invalid shape.');
         $coverage = $data['coverage'];
         if (!is_array($coverage) || !self::hasKeys($coverage, ['summary', 'gaps']) || !self::nonEmptyString($coverage['summary'] ?? null) || !is_array($coverage['gaps'] ?? null) || !array_is_list($coverage['gaps']) || $coverage['gaps'] === []) throw new InvalidArgumentException('The collectible catalog supplement has invalid coverage.');
