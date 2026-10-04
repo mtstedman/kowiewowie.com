@@ -15,11 +15,17 @@ if (PHP_SAPI === 'cli-server' && $path !== '/') {
 if ($path === '/health') {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
+    $revisionPath = __DIR__ . '/.deployment-revision';
+    $revision = is_readable($revisionPath) ? strtolower(trim((string) file_get_contents($revisionPath))) : null;
+    if (!is_string($revision) || preg_match('/\A[a-f0-9]{40}\z/', $revision) !== 1) {
+        $revision = null;
+    }
 
     echo json_encode(
         [
             'status' => 'ok',
             'service' => 'wowiekowie.com',
+            'revision' => $revision,
             'time' => gmdate(DATE_ATOM),
         ],
         JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES

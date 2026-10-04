@@ -17,6 +17,15 @@ jobs:
       - name: Check out the release
         uses: actions/checkout@v6
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install frontend validation dependencies
+        run: npm ci --no-audit --no-fund
+
       - name: Validate PostgreSQL version chain
         run: php docs/postgres/db-version-minter.php --validate
 
@@ -47,6 +56,14 @@ jobs:
         run: |
           php tests/public-ux-accessibility.php
           php tests/public-page-security.php
+
+      - name: Run deployment revision regressions
+        run: php tests/deployment-revision.php
+
+      - name: Validate collectibles production modules
+        run: |
+          npm run typecheck
+          node tests/collectibles-inventory.test.mjs
 
       - name: Validate Sonny Angels catalog assets and prices
         run: php tests/sonny-angels-catalog.php

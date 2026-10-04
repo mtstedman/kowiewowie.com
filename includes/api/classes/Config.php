@@ -23,6 +23,17 @@ final class Config
         return $this->projectRoot;
     }
 
+    public function deploymentRevision(): ?string
+    {
+        $path = $this->projectRoot . '/htdocs/.deployment-revision';
+        if (!is_readable($path)) {
+            return null;
+        }
+        $revision = strtolower(trim((string) file_get_contents($path)));
+
+        return preg_match('/\A[a-f0-9]{40}\z/', $revision) === 1 ? $revision : null;
+    }
+
     public function get(string $name, ?string $default = null): ?string
     {
         $value = getenv($name);

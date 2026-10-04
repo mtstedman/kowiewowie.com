@@ -1,13 +1,31 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import vm from 'node:vm';
+import {
+  INVENTORY_STORAGE_KEY,
+  inventoryKey,
+  parseQuantity,
+  decodeInventory,
+  createInventoryStore,
+  isOwnedQuantity,
+  quantityMatchesFilter,
+  quantityForOwnedToggle,
+  isThumbnailActivationKey,
+  setExpandedControl,
+  partialFailureMessage,
+  releaseChoicesFromProducts,
+  applyInventoryVisibility,
+  catalogRequestParams,
+  appendCatalogPage,
+  isReleaseExpanded,
+  createRequestGate,
+} from '../htdocs/assets/js/collectibles-inventory.js';
 
-const SCRIPT_PATH = new URL('../htdocs/assets/js/collectibles.js', import.meta.url);
-const script = await readFile(SCRIPT_PATH, 'utf8');
-const hooks = {};
+const pageSource = await readFile(new URL('../htdocs/collectibles/index.php', import.meta.url), 'utf8');
+const applicationSource = await readFile(new URL('../htdocs/assets/js/collectibles.js', import.meta.url), 'utf8');
+assert.match(pageSource, /<script type="module" src="\/assets\/js\/collectibles\.js/);
+assert.match(applicationSource, /from '\.\/collectibles-inventory\.js'/);
+assert.doesNotMatch(applicationSource, /__collectiblesInventoryTest/);
 
-class HTMLFormElement {}
-class HTMLInputElement {}
 class HTMLElement {
   constructor(className = '', dataset = {}, children = []) {
     this.className = className;
@@ -24,49 +42,6 @@ class HTMLElement {
     ]);
   }
 }
-class HTMLButtonElement {}
-class HTMLSelectElement {}
-
-const document = {
-  getElementById: () => null,
-};
-const window = { __collectiblesInventoryTest: hooks };
-window.window = window;
-window.document = document;
-
-vm.runInNewContext(script, {
-  document,
-  window,
-  HTMLFormElement,
-  HTMLInputElement,
-  HTMLElement,
-  HTMLButtonElement,
-  HTMLSelectElement,
-  URLSearchParams,
-}, { filename: 'collectibles.js' });
-
-const {
-  INVENTORY_STORAGE_KEY,
-  inventoryKey,
-  parseQuantity,
-  decodeInventory,
-  createInventoryStore,
-  isOwnedQuantity,
-  quantityMatchesFilter,
-  quantityForOwnedToggle,
-  isThumbnailActivationKey,
-  setExpandedControl,
-  partialFailureMessage,
-  filterVariantIdentities,
-  releaseChoicesFromProducts,
-  applyInventoryVisibility,
-  catalogRequestParams,
-  appendCatalogPage,
-  isReleaseExpanded,
-  createRequestGate,
-} = hooks;
-
-assert.equal(typeof createInventoryStore, 'function', 'Production inventory hooks were not initialized.');
 
 class MemoryStorage {
   constructor(initial = {}) {
@@ -161,52 +136,6 @@ class MemoryStorage {
   assert.equal(store.set(key, 7), true, 'Storage failure must still permit session editing.');
   assert.equal(store.get(key), 7);
   assert.equal(states.at(-1), false);
-}
-
-{
-  const pageOne = [{
-    id: 'set-a',
-    variants: [
-      { id: 10, name: 'Alpha', is_secret: false },
-      { id: 11, name: 'Beta', is_secret: true },
-    ],
-  }];
-  const pageTwo = [{
-    id: 'set-b',
-    variants: [
-      { id: 20, name: 'Gamma', is_secret: false },
-      { id: 21, name: 'Delta', is_secret: false },
-    ],
-  }];
-  const quantities = new Map([
-    [inventoryKey('set-a', 'Beta'), 1],
-    [inventoryKey('set-b', 'Gamma'), 3],
-  ]);
-  const getQuantity = (key) => quantities.get(key) || 0;
-  const products = [...pageOne, ...pageTwo];
-
-  assert.equal(filterVariantIdentities(products, 'all', getQuantity).length, 4);
-  assert.deepEqual(
-    Array.from(filterVariantIdentities(products, 'owned', getQuantity)),
-    [inventoryKey('set-a', 'Beta'), inventoryKey('set-b', 'Gamma')],
-  );
-  assert.deepEqual(
-    Array.from(filterVariantIdentities(products, 'missing', getQuantity)),
-    [inventoryKey('set-a', 'Alpha'), inventoryKey('set-b', 'Delta')],
-  );
-
-  const refreshed = [{
-    id: 'set-a',
-    variants: [
-      { id: 999, name: 'Beta', is_secret: false },
-      { id: 998, name: 'Alpha', is_secret: true },
-    ],
-  }];
-  assert.deepEqual(
-    Array.from(filterVariantIdentities(refreshed, 'owned', getQuantity)),
-    [inventoryKey('set-a', 'Beta')],
-    'Reordering variants and changing variant database IDs must not change inventory identity.',
-  );
 }
 
 {

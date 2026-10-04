@@ -129,6 +129,7 @@ final class Application
                 'status' => 'ok',
                 'service' => 'api.wowiekowie.com',
                 'database' => 'ok',
+                'revision' => $this->config->deploymentRevision(),
                 'time' => gmdate(DATE_ATOM),
             ]);
         }

@@ -110,6 +110,6 @@ $pageStyles = ['/assets/css/collectibles.css'];
         <?php include __DIR__ . '/../partials/footer.php'; ?>
     </div>
 
-    <script src="/assets/js/collectibles.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/collectibles.js') ?>"></script>
+    <script type="module" src="/assets/js/collectibles.js?v=<?= filemtime(dirname(__DIR__) . '/assets/js/collectibles.js') ?>"></script>
 </body>
 </html>

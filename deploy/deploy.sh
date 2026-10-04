@@ -41,6 +41,8 @@ readonly REVISION="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 readonly WEB_ROOT="/var/www/wowiekowie.com"
 readonly API_ENV_FILE="/etc/wowiekowie.com/api.env"
 readonly LOCK_FILE="/tmp/wowiekowie.com-deploy.lock"
+readonly NPM="${WOWIE_NPM:-$(command -v npm)}"
+readonly NODE="${WOWIE_NODE:-$(command -v node)}"
 
 if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
     printf 'Refusing to deploy branch %s; production deployments must come from %s.\n' \
@@ -77,13 +79,22 @@ trap cleanup EXIT
 
 printf 'Deploying wowiekowie.com at %s\n' "${REVISION:0:12}"
 
-git -C "$REPO_ROOT" archive "$REVISION" htdocs api includes database docs | tar -x -C "$release_dir"
+git -C "$REPO_ROOT" archive "$REVISION" \
+    htdocs api includes database docs tests package.json package-lock.json tsconfig.json \
+    | tar -x -C "$release_dir"
+printf '%s\n' "$REVISION" >"$release_dir/htdocs/.deployment-revision"
 
 while IFS= read -r -d '' php_file; do
     php -l "$php_file" >/dev/null
 done < <(find "$release_dir/htdocs" "$release_dir/api" "$release_dir/includes" "$release_dir/database" "$release_dir/docs" -type f -name '*.php' -print0)
 
 php "$release_dir/docs/postgres/db-version-minter.php" --validate
+"$NPM" --prefix "$release_dir" ci --no-audit --no-fund
+"$NPM" --prefix "$release_dir" run typecheck
+"$NODE" "$release_dir/tests/collectibles-inventory.test.mjs"
+php "$release_dir/tests/public-ux-accessibility.php"
+php "$release_dir/tests/public-page-security.php"
+php "$release_dir/tests/deployment-revision.php"
 
 if ! sudo -n test -r "$API_ENV_FILE"; then
     printf 'Missing readable API environment file: %s\n' "$API_ENV_FILE" >&2
@@ -130,10 +141,16 @@ curl --noproxy '*' --fail --silent --show-error \
 
 curl --noproxy '*' --fail --silent --show-error \
     --resolve wowiekowie.com:443:127.0.0.1 \
+    https://wowiekowie.com/health \
+    | php -r '$payload = json_decode(stream_get_contents(STDIN), true); exit(is_array($payload) && ($payload["status"] ?? null) === "ok" && ($payload["revision"] ?? null) === $argv[1] ? 0 : 1);' "$REVISION"
+
+curl --noproxy '*' --fail --silent --show-error \
+    --resolve wowiekowie.com:443:127.0.0.1 \
     https://wowiekowie.com/api/games >/dev/null
 
 curl --noproxy '*' --fail --silent --show-error \
     --resolve api.wowiekowie.com:443:127.0.0.1 \
-    https://api.wowiekowie.com/health >/dev/null
+    https://api.wowiekowie.com/health \
+    | php -r '$payload = json_decode(stream_get_contents(STDIN), true); exit(is_array($payload) && ($payload["status"] ?? null) === "ok" && ($payload["database"] ?? null) === "ok" && ($payload["revision"] ?? null) === $argv[1] ? 0 : 1);' "$REVISION"
 
 printf 'Deployment complete: %s\n' "${REVISION:0:12}"
