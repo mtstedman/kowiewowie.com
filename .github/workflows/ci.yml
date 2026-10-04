@@ -44,7 +44,9 @@ jobs:
           node tests/dongs-copy-feedback.test.mjs
 
       - name: Run public UX accessibility regressions
-        run: php tests/public-ux-accessibility.php
+        run: |
+          php tests/public-ux-accessibility.php
+          php tests/public-page-security.php
 
       - name: Validate Sonny Angels catalog assets and prices
         run: php tests/sonny-angels-catalog.php

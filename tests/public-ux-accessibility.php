@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require __DIR__ . '/support/public-page.php';
+
 $root = dirname(__DIR__);
 $publicPages = [
     'htdocs/index.php' => ['requestUri' => '/', 'currentSection' => null],
@@ -40,46 +42,6 @@ $currentSectionRequestUriCases = [
     ['requestUri' => '/deck/', 'currentSection' => null, 'label' => 'unknown near-match path'],
     ['requestUri' => '/recipes-and-more/', 'currentSection' => null, 'label' => 'unknown prefix path'],
 ];
-
-function public_ux_assert(bool $condition, string $message): void
-{
-    if (!$condition) {
-        fwrite(STDERR, $message . PHP_EOL);
-        exit(1);
-    }
-}
-
-function render_public_page(string $root, string $scriptPath, ?string $requestUri): string
-{
-    $script = $root . '/' . $scriptPath;
-    $requestUriCode = $requestUri === null
-        ? 'unset($_SERVER["REQUEST_URI"]);'
-        : '$_SERVER["REQUEST_URI"] = ' . var_export($requestUri, true) . ';';
-    $code = $requestUriCode
-        . '$_SERVER["REQUEST_METHOD"] = "GET";'
-        . 'require ' . var_export($script, true) . ';';
-    $process = proc_open(
-        [PHP_BINARY, '-d', 'display_errors=1', '-r', $code],
-        [
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ],
-        $pipes,
-        $root
-    );
-
-    public_ux_assert(is_resource($process), 'Unable to render ' . $scriptPath);
-
-    $html = stream_get_contents($pipes[1]);
-    $errorOutput = stream_get_contents($pipes[2]);
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-
-    $status = proc_close($process);
-    public_ux_assert($status === 0, $scriptPath . ' failed to render: ' . trim($errorOutput));
-
-    return $html;
-}
 
 function primary_nav_html(string $html, string $context): string
 {
@@ -178,9 +140,6 @@ foreach ($publicPages as $scriptPath => $routeExpectation) {
     public_ux_assert($skipPosition < $navPosition, $scriptPath . ' skip link must render before primary navigation.');
     public_ux_assert(substr_count($html, 'id="main-content"') === 1, $scriptPath . ' must render exactly one main-content target.');
     public_ux_assert(strpos($html, $skipTarget) !== false, $scriptPath . ' main-content target must be statically focusable.');
-    public_ux_assert(strpos($html, '<script src="/assets/js/public-shell.js?v=') !== false, $scriptPath . ' must load the public shell script.');
-    public_ux_assert(!preg_match('/<script\b(?![^>]*\bsrc=)[^>]*>/i', $html), $scriptPath . ' must not render inline script bodies.');
-    public_ux_assert(!preg_match('/\s+on[a-z]+\s*=/i', $html), $scriptPath . ' must not render inline event handlers.');
     assert_primary_nav_current($html, $routeExpectation['currentSection'], $scriptPath);
     $isLoginPage = $scriptPath === 'htdocs/login/index.php';
     assert_account_header($html, $isLoginPage, $scriptPath);
