@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import {
   INVENTORY_STORAGE_KEY,
@@ -20,11 +21,24 @@ import {
   createRequestGate,
 } from '../htdocs/assets/js/collectibles-inventory.js';
 
+// The page versions only collectibles.js, and production caches static
+// JavaScript for a week, so its inventory import must carry the module's own
+// content hash or a stale cached copy breaks the whole shelf.
+{
+  const moduleDir = new URL('../htdocs/assets/js/', import.meta.url);
+  const page = await readFile(new URL('collectibles.js', moduleDir), 'utf8');
+  const imports = [...page.matchAll(/^import [^;]+ from '(\.\/[^'?]+)(\?v=[^']*)?';$/gm)];
+  assert.deepEqual(imports.map(([, path]) => path), ['./collectibles-inventory.js']);
+  for (const [, path, query] of imports) {
+    const expected = `?v=${createHash('sha256').update(await readFile(new URL(path, moduleDir))).digest('hex').slice(0, 12)}`;
+    assert.equal(query, expected, `collectibles.js must import ${path}${expected}`);
+  }
+}
+
 const pageSource = await readFile(new URL('../htdocs/collectibles/index.php', import.meta.url), 'utf8');
 const applicationSource = await readFile(new URL('../htdocs/assets/js/collectibles.js', import.meta.url), 'utf8');
 assert.match(pageSource, /<script type="module" src="\/assets\/js\/collectibles\.js/);
 assert.match(pageSource, /<label for="collectibles-release">Series<\/label>/);
-assert.match(applicationSource, /from '\.\/collectibles-inventory\.js'/);
 assert.doesNotMatch(applicationSource, /__collectiblesInventoryTest/);
 
 let activeDocument = null;

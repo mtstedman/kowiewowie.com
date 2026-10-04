@@ -1,4 +1,14 @@
-import {
+// Production caches static JavaScript for seven days and the page versions
+// only this file, so the inventory module carries the first 12 hex digits of
+// its own SHA-256; a browser still holding an older copy would otherwise fail
+// to link and leave the shelf stuck loading. tests/collectibles-inventory.test.mjs
+// fails when the token is stale and prints the expected one. TypeScript cannot
+// resolve a query-string specifier, so the namespace is cast to the unversioned
+// module's type below.
+// @ts-ignore
+import * as inventoryModule from './collectibles-inventory.js?v=28a3a1eb8582';
+
+const {
     INVENTORY_STORAGE_KEY,
     PAGE_SIZE,
     BRANDS,
@@ -23,7 +33,7 @@ import {
     normalizeLine,
     unclassifiedSeriesId,
     unclassifiedSeriesTitle,
-} from './collectibles-inventory.js';
+} = /** @type {typeof import('./collectibles-inventory.js')} */ (inventoryModule);
 
 (() => {
     const API_ENDPOINT = '/api/v1/collectibles';
