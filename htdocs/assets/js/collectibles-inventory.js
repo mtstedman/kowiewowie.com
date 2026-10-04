@@ -11,6 +11,38 @@ export const BRANDS = {
 
 export const inventoryKey = (productId, variantName) => JSON.stringify([String(productId), variantName]);
 
+// Product lines, in shelf order: store-fed brands by format, Sonny Angel by
+// its archive family. The API files every listing under one of these.
+export const LINE_LABELS = Object.freeze({
+    figures: 'Figure series',
+    plush: 'Plush series',
+    pendants: 'Pendants & charms',
+    large: 'MEGA & large',
+    accessories: 'Series accessories',
+    standalone: 'Standalone pieces',
+    regular: 'Regular series',
+    limited: 'Limited & seasonal',
+    artist: 'Artist Collection',
+    hippers: 'HIPPERS',
+    master: 'Master Collection',
+    other: 'Other',
+});
+export const LINE_ORDER = Object.freeze(Object.keys(LINE_LABELS));
+export const normalizeLine = (value) => (typeof value === 'string' && Object.prototype.hasOwnProperty.call(LINE_LABELS, value) ? value : '');
+export const lineLabel = (line) => LINE_LABELS[normalizeLine(line)] ?? 'Other';
+
+// Listings outside any series group by brand and, when the API names it,
+// product line ("unclassified:skullpanda:large").
+export const unclassifiedSeriesId = (product) => {
+    const safeProduct = product && typeof product === 'object' ? product : {};
+    const line = normalizeLine(safeProduct.line);
+    return `unclassified:${String(safeProduct.brand ?? 'collectible')}${line === '' ? '' : `:${line}`}`;
+};
+export const unclassifiedSeriesTitle = (product) => {
+    const line = normalizeLine(product && typeof product === 'object' ? product.line : '');
+    return line === '' ? 'Unclassified' : `${LINE_LABELS[line]}: not part of a series`;
+};
+
 const isInventoryKey = (value) => {
     try {
         const parts = JSON.parse(value);
@@ -149,13 +181,12 @@ export const releaseChoicesFromProducts = (products) => {
     (Array.isArray(products) ? products : []).forEach((product) => {
         const safeProduct = product && typeof product === 'object' ? product : {};
         const productId = String(safeProduct.id ?? '');
-        const id = typeof safeProduct.series_id === 'string' && safeProduct.series_id !== ''
-            ? safeProduct.series_id
-            : `unclassified:${String(safeProduct.brand ?? 'collectible')}`;
+        const classified = typeof safeProduct.series_id === 'string' && safeProduct.series_id !== '';
+        const id = classified ? safeProduct.series_id : unclassifiedSeriesId(safeProduct);
         if (productId === '' || choices.has(id)) return;
-        const title = typeof safeProduct.series_title === 'string' && safeProduct.series_title.trim() !== ''
+        const title = classified && typeof safeProduct.series_title === 'string' && safeProduct.series_title.trim() !== ''
             ? safeProduct.series_title.trim()
-            : 'Unclassified';
+            : unclassifiedSeriesTitle(safeProduct);
         choices.set(id, {
             id,
             title,
@@ -185,6 +216,13 @@ export const applyInventoryVisibility = (resultsElement, state, HTMLElementClass
         const inventoryMatches = state.inventoryFilter === 'all'
             || (rows.length > 0 && rows.some((row) => !row.hidden));
         block.hidden = !releaseMatches || !inventoryMatches;
+    });
+    // A line or year section shows only while one of its series does.
+    Array.from(resultsElement.querySelectorAll('.collectible-group')).forEach((group) => {
+        if (!(group instanceof HTMLElementClass)) return;
+        const blocks = Array.from(group.querySelectorAll('.collectible-release-block'))
+            .filter((block) => block instanceof HTMLElementClass);
+        group.hidden = blocks.length > 0 && blocks.every((block) => block.hidden);
     });
 };
 

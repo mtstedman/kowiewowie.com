@@ -72,6 +72,7 @@ jobs:
         run: |
           php tests/collectibles-catalog-data.php
           php tests/collectibles-catalog-sync.php
+          php tests/collectibles-listing-classifier.php
 
       - name: Run murder trivia regressions
         run: |

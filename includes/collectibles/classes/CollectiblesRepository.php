@@ -284,9 +284,14 @@ final class CollectiblesRepository
         foreach ($itemsStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $id = (string) $row['id'];
             $itemIndexes[$id] = count($items);
-            $mapping = $catalogMappings['identity'][(string) $row['source_key'] . "\0" . (string) $row['external_id']]
-                ?? $catalogMappings['url'][(string) $row['source_key'] . "\0" . (string) $row['product_url']]
-                ?? ['series_id' => null, 'series_title' => null, 'series_roster_status' => 'unknown'];
+            $mapping = CollectibleListingClassifier::classify(
+                $catalogMappings,
+                (string) $row['source_key'],
+                (string) $row['brand'],
+                (string) $row['external_id'],
+                (string) $row['product_url'],
+                (string) $row['title'],
+            );
             $items[] = [
                 'id' => $id,
                 'brand' => (string) $row['brand'],
@@ -304,6 +309,10 @@ final class CollectiblesRepository
                 'series_id' => $mapping['series_id'],
                 'series_title' => $mapping['series_title'],
                 'series_roster_status' => $mapping['series_roster_status'],
+                'series_release_year' => $mapping['series_release_year'],
+                'line' => $mapping['line'],
+                'listing_kind' => $mapping['listing_kind'],
+                'listing_figure' => $mapping['listing_figure'],
                 'last_seen_at' => $this->formatTimestamp((string) $row['last_seen_at']),
                 'variants' => [],
             ];

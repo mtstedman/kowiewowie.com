@@ -245,6 +245,60 @@
   color: var(--accent-warm);
 }
 
+/* Brand: line sections, then release-year batches, then sets. */
+.collectible-line {
+  display: grid;
+  gap: var(--space-md, 1.25rem);
+  min-width: 0;
+}
+
+.collectible-line + .collectible-line {
+  margin-top: 1.5rem;
+}
+
+.collectible-line-title {
+  margin: 0;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--line);
+  color: var(--ink);
+  font-size: clamp(1.35rem, 1.15rem + 0.9vw, 1.9rem);
+  line-height: 1.15;
+}
+
+.collectible-year {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.collectible-year-title {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.collectible-listings-heading {
+  grid-column: 1 / -1;
+  margin: 0.25rem 0 -0.25rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.collectible-listing-kind {
+  justify-self: start;
+  margin: 0;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-cool, var(--ink-soft));
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .collectible-release-products {
   display: grid;
   gap: 1rem;
@@ -723,8 +777,18 @@
   }
 
   .collectible-release-title,
-  .collectible-release-year {
+  .collectible-release-year,
+  .collectible-line-title,
+  .collectible-year-title {
     color: #111;
+  }
+
+  .collectible-line {
+    break-before: page;
+  }
+
+  .collectible-line:first-child {
+    break-before: auto;
   }
 
   .collectible-card {

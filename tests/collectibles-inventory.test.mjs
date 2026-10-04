@@ -504,6 +504,9 @@ class MemoryStorage {
       series_id: 'skullpanda:city',
       series_title: 'City of Night',
       series_roster_status: 'partial',
+      series_release_year: 2022,
+      line: 'figures',
+      listing_kind: 'accessory',
       variants: [{ name: 'Night' }, { name: 'Lantern' }],
     },
     {
@@ -558,6 +561,9 @@ class MemoryStorage {
       series_id: 'skullpanda:city',
       series_title: 'City of Night',
       series_roster_status: 'partial',
+      series_release_year: 2022,
+      line: 'figures',
+      listing_kind: 'series',
       variants: [{ name: 'Moon' }],
     },
     {
@@ -666,6 +672,16 @@ class MemoryStorage {
   const sonnyBlock = blockBySeries('sonny-angel:animal-1');
   assert.equal(sonnyBlock.querySelectorAll('.collectible-card').length, 2, 'Sonny Angel listings split across API pages must render in one canonical series group.');
   assert.equal(blockBySeries('skullpanda:city').querySelectorAll('.collectible-card').length, 2, 'Skullpanda listings split across API pages must render in one canonical series group.');
+  // Sets sit under brand, product line, and release year; the set's own card
+  // leads and store listings follow under their own heading.
+  const cityBlock = blockBySeries('skullpanda:city');
+  const cityCards = cityBlock.querySelectorAll('.collectible-card');
+  assert.equal(cityCards[0].dataset.productKey, 'skull-retail-c', 'The set card must lead its series block.');
+  assert.equal(cityBlock.querySelector('.collectible-listings-heading').textContent, 'Store listings (1)');
+  assert.equal(cityCards[1].querySelector('.collectible-listing-kind').textContent, 'Series accessory');
+  const figureLines = results.querySelectorAll('.collectible-line').filter((section) => section.dataset.line === 'figures');
+  assert.ok(figureLines.some((section) => section.querySelectorAll('.collectible-year').some((year) => year.dataset.year === '2022'
+    && year.querySelectorAll('.collectible-release-block').includes(cityBlock))), 'City of Night must sit in the 2022 batch of its figure line.');
   assert.equal(blockBySeries('nommi:dream-a').querySelectorAll('.collectible-card').length, 2, 'Nommi listings split across API pages must render in one canonical series group.');
   assert.equal(sonnyBlock.dataset.legacyReleaseId, 'sonny-retail-b', 'A legacy product selection must resolve to its containing series while choices are incomplete.');
   assert.equal(sonnyBlock.hidden, false);

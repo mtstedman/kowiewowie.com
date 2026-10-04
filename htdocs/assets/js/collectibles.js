@@ -18,6 +18,11 @@ import {
     appendCatalogPage,
     isReleaseExpanded,
     createRequestGate,
+    LINE_ORDER,
+    lineLabel,
+    normalizeLine,
+    unclassifiedSeriesId,
+    unclassifiedSeriesTitle,
 } from './collectibles-inventory.js';
 
 (() => {
@@ -490,7 +495,22 @@ import {
         const safeProduct = product && typeof product === 'object' ? product : {};
         return typeof safeProduct.series_id === 'string' && safeProduct.series_id !== ''
             ? safeProduct.series_id
-            : `unclassified:${String(safeProduct.brand ?? 'collectible')}`;
+            : unclassifiedSeriesId(safeProduct);
+    };
+
+    // A listing's place inside its set: the set itself first, then what the
+    // store sells of it.
+    const LISTING_KIND_ORDER = { series: 0, 'whole-set': 1, box: 2, figure: 3, accessory: 4, standalone: 5 };
+    const listingKindLabel = (product) => {
+        switch (product?.listing_kind) {
+            case 'whole-set': return 'Whole set';
+            case 'box': return 'Blind box';
+            case 'figure': return typeof product.listing_figure === 'string' && product.listing_figure !== ''
+                ? `Single figure: ${product.listing_figure}`
+                : 'Single figure';
+            case 'accessory': return 'Series accessory';
+            default: return '';
+        }
     };
 
     const groupProductsBySeries = (products) => {
@@ -505,17 +525,25 @@ import {
             if (!groups.has(id)) {
                 groups.set(id, {
                     id,
-                    title: typeof safeProduct.series_title === 'string' && safeProduct.series_title.trim() !== ''
+                    title: !unclassified && typeof safeProduct.series_title === 'string' && safeProduct.series_title.trim() !== ''
                         ? safeProduct.series_title.trim()
-                        : 'Unclassified',
+                        : unclassifiedSeriesTitle(safeProduct),
                     brand: safeProduct.brand,
                     rosterStatus: unclassified ? 'unknown' : status,
                     unclassified,
+                    line: normalizeLine(safeProduct.line) || (unclassified ? 'standalone' : 'figures'),
+                    year: null,
+                    lineKnown: normalizeLine(safeProduct.line) !== '',
                     products: [],
                 });
             }
             const group = groups.get(id);
             group.products.push(safeProduct);
+            // The batch: the series' release year, else a listing's own.
+            const year = Number.isInteger(safeProduct.series_release_year)
+                ? safeProduct.series_release_year
+                : (Number.isInteger(safeProduct.release_year) ? safeProduct.release_year : null);
+            if (year !== null && !unclassified && (group.year === null || Number.isInteger(safeProduct.series_release_year))) group.year = year;
             const statusPriority = { complete: 0, partial: 1, unknown: 2 };
             if (statusPriority[status] > statusPriority[group.rosterStatus]) group.rosterStatus = status;
         });
@@ -528,6 +556,9 @@ import {
         const listingCount = group.products.length;
         const figureLabel = `${figureCount} listed ${figureCount === 1 ? 'figure' : 'figures'}`;
         const listingLabel = `${listingCount} retail ${listingCount === 1 ? 'listing' : 'listings'}`;
+        if (group.unclassified && group.lineKnown) {
+            return `Not part of a catalog series: ${listingLabel}.`;
+        }
         if (group.unclassified) {
             return `Series membership is unknown. ${figureLabel} ${figureCount === 1 ? 'remains' : 'remain'} visible across ${listingLabel}.`;
         }
@@ -575,6 +606,8 @@ import {
 
         const summary = createElement('div', 'collectible-card-summary');
         summary.append(createElement('p', 'eyebrow collectible-brand', label));
+        const kindLabel = listingKindLabel(safeProduct);
+        if (kindLabel !== '') summary.append(createElement('p', 'collectible-listing-kind', kindLabel));
         const heading = createElement('h4', 'collectible-title', title);
         heading.tabIndex = -1;
         summary.append(heading);
@@ -682,7 +715,21 @@ import {
         releaseHeading.append(createElement('p', 'collectible-release-status', seriesRosterText(group)));
         releaseBlock.append(releaseHeading);
         const products = createElement('div', 'collectible-release-products');
-        group.products.forEach((product) => products.append(renderProduct(product)));
+        const ordered = group.products
+            .map((product, index) => ({ product, index }))
+            .sort((left, right) => (LISTING_KIND_ORDER[left.product.listing_kind] ?? 6) - (LISTING_KIND_ORDER[right.product.listing_kind] ?? 6)
+                || left.index - right.index)
+            .map(({ product }) => product);
+        const hasSetCard = ordered.some((product) => product.listing_kind === 'series');
+        let listingsHeadingAdded = false;
+        ordered.forEach((product) => {
+            if (hasSetCard && product.listing_kind !== 'series' && !listingsHeadingAdded) {
+                const listingCount = ordered.filter((item) => item.listing_kind !== 'series').length;
+                products.append(createElement('p', 'collectible-listings-heading', `Store listings (${listingCount})`));
+                listingsHeadingAdded = true;
+            }
+            products.append(renderProduct(product));
+        });
         releaseBlock.append(products);
         return releaseBlock;
     };
@@ -698,7 +745,44 @@ import {
                 || left.id.localeCompare(right.id)));
         }
         const fragment = document.createDocumentFragment();
-        groups.forEach((group) => fragment.append(renderSeries(group)));
+        // Brand, then product line, then batch (release year), then set. The
+        // chosen sort orders the sets within each batch.
+        const brandOrder = Object.keys(BRANDS);
+        const yearDirection = state.sort === 'oldest' ? 1 : -1;
+        const sections = new Map();
+        groups.forEach((group) => {
+            const key = `${normalizeBrand(group.brand)}\u0000${group.line}`;
+            if (!sections.has(key)) sections.set(key, { brand: group.brand, line: group.line, groups: [] });
+            sections.get(key).groups.push(group);
+        });
+        Array.from(sections.values())
+            .sort((left, right) => (brandOrder.indexOf(normalizeBrand(left.brand)) - brandOrder.indexOf(normalizeBrand(right.brand)))
+                || (LINE_ORDER.indexOf(left.line) - LINE_ORDER.indexOf(right.line)))
+            .forEach((section) => {
+                const lineSection = createElement('section', 'collectible-group collectible-line');
+                lineSection.dataset.line = section.line;
+                const lineHeadingId = `collectible-line-${normalizeBrand(section.brand)}-${section.line}`;
+                lineSection.setAttribute('aria-labelledby', lineHeadingId);
+                const lineHeading = createElement('h2', 'collectible-line-title', `${brandLabel(section.brand)}: ${lineLabel(section.line)}`);
+                lineHeading.id = lineHeadingId;
+                lineSection.append(lineHeading);
+                const years = new Map();
+                section.groups.forEach((group) => {
+                    const yearKey = group.year === null ? 'unknown' : String(group.year);
+                    if (!years.has(yearKey)) years.set(yearKey, []);
+                    years.get(yearKey).push(group);
+                });
+                Array.from(years.keys())
+                    .sort((left, right) => (Number(left === 'unknown') - Number(right === 'unknown')) || yearDirection * (Number(left) - Number(right)))
+                    .forEach((yearKey) => {
+                        const yearSection = createElement('div', 'collectible-group collectible-year');
+                        yearSection.dataset.year = yearKey;
+                        yearSection.append(createElement('p', 'collectible-year-title', yearKey === 'unknown' ? 'Release year unknown' : yearKey));
+                        years.get(yearKey).forEach((group) => yearSection.append(renderSeries(group)));
+                        lineSection.append(yearSection);
+                    });
+                fragment.append(lineSection);
+            });
         resultsElement.replaceChildren(fragment);
         refreshInventoryVisibility();
     };

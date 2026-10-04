@@ -11,7 +11,7 @@ use RuntimeException;
 /** Validated adapter for the versioned Skullpanda and Nommi catalog supplements. */
 final class CollectibleCatalogSupplement
 {
-    /** @var array<string, array<string, array{series_id:string,series_title:string,series_roster_status:string}>> */
+    /** @var array<string, array<string, mixed>> */
     private static array $mappingCache = [];
 
     public function __construct(private readonly string $catalogPath)
@@ -65,16 +65,40 @@ final class CollectibleCatalogSupplement
         return $products;
     }
 
-    /** @return array<string, array<string, array{series_id:string,series_title:string,series_roster_status:string}>> */
+    /**
+     * Series lookups for the shelf: exact store identities and URLs, plus a
+     * title index the listing classifier matches unmapped store listings
+     * against (see CollectibleListingClassifier).
+     *
+     * @return array{identity: array<string, array<string, mixed>>, url: array<string, array<string, mixed>>, titles: array<string, list<array<string, mixed>>>}
+     */
     public static function mappings(string $projectRoot): array
     {
         if (isset(self::$mappingCache[$projectRoot])) return self::$mappingCache[$projectRoot];
-        $maps = ['identity' => [], 'url' => []];
+        $maps = ['identity' => [], 'url' => [], 'titles' => []];
         foreach (['skullpanda-catalog.json', 'nommi-catalog.json'] as $file) {
             $source = new self($projectRoot . '/htdocs/assets/data/' . $file);
             $catalog = $source->catalog();
             foreach ($catalog['series'] as $series) {
-                $value = ['series_id' => $catalog['brand'] . ':' . $series['id'], 'series_title' => $series['name'], 'series_roster_status' => $series['rosterStatus']];
+                $value = [
+                    'series_id' => $catalog['brand'] . ':' . $series['id'],
+                    'series_title' => $series['name'],
+                    'series_roster_status' => $series['rosterStatus'],
+                    'series_release_year' => $series['releaseYear'],
+                    'series_line' => CollectibleListingClassifier::lineForTitle($catalog['brand'], $series['product']['title']),
+                    'series_product_external_id' => $series['product']['externalId'],
+                ];
+                $maps['titles'][$catalog['sourceKey']][] = [
+                    'value' => $value,
+                    'product_title' => CollectibleListingClassifier::normalize($series['product']['title']),
+                    'name' => CollectibleListingClassifier::normalize($series['name']),
+                    // The store's own collection/product slugs, cited as sources.
+                    'aliases' => array_values(array_unique(array_filter(array_map(
+                        static fn (array $source): ?string => CollectibleListingClassifier::slugTitle($source['url']),
+                        array_merge($series['sources'], [['url' => $series['product']['url']]]),
+                    )))),
+                    'figures' => array_map(static fn (array $figure): string => $figure['name'], $series['figures']),
+                ];
                 $maps['identity'][$catalog['sourceKey'] . "\0" . $series['product']['externalId']] = $value;
                 $maps['url'][$catalog['sourceKey'] . "\0" . $series['product']['url']] = $value;
                 foreach ($series['members'] as $member) {
@@ -89,7 +113,15 @@ final class CollectibleCatalogSupplement
             $counts = [];
             foreach (is_array($sonny['figures'] ?? null) ? $sonny['figures'] : [] as $figure) if (is_array($figure) && is_string($figure['seriesId'] ?? null)) $counts[$figure['seriesId']] = ($counts[$figure['seriesId']] ?? 0) + 1;
             foreach ($sonny['series'] as $series) if (is_array($series) && is_string($series['id'] ?? null) && is_string($series['name'] ?? null)) {
-                $maps['identity'][SonnyAngelCatalogSource::SOURCE_KEY . "\0" . $series['id']] = ['series_id' => 'sonny-angel:' . $series['id'], 'series_title' => $series['name'], 'series_roster_status' => ($counts[$series['id']] ?? 0) > 0 ? 'partial' : 'unknown'];
+                $maps['identity'][SonnyAngelCatalogSource::SOURCE_KEY . "\0" . $series['id']] = [
+                    'series_id' => 'sonny-angel:' . $series['id'],
+                    'series_title' => $series['name'],
+                    'series_roster_status' => ($counts[$series['id']] ?? 0) > 0 ? 'partial' : 'unknown',
+                    'series_release_year' => is_int($series['releaseYear'] ?? null) ? $series['releaseYear'] : null,
+                    // Sonny Angel's own archive families are its lines.
+                    'series_line' => is_string($series['family'] ?? null) && $series['family'] !== '' ? $series['family'] : 'other',
+                    'series_product_external_id' => $series['id'],
+                ];
             }
         }
         return self::$mappingCache[$projectRoot] = $maps;
