@@ -250,6 +250,7 @@
   display: grid;
   gap: var(--space-md, 1.25rem);
   min-width: 0;
+  padding-top: 0.75rem;
 }
 
 .collectible-line + .collectible-line {

@@ -772,12 +772,14 @@ import {
                     if (!years.has(yearKey)) years.set(yearKey, []);
                     years.get(yearKey).push(group);
                 });
+                // A line with no dated sets needs no year label.
+                const onlyUndated = years.size === 1 && years.has('unknown');
                 Array.from(years.keys())
                     .sort((left, right) => (Number(left === 'unknown') - Number(right === 'unknown')) || yearDirection * (Number(left) - Number(right)))
                     .forEach((yearKey) => {
                         const yearSection = createElement('div', 'collectible-group collectible-year');
                         yearSection.dataset.year = yearKey;
-                        yearSection.append(createElement('p', 'collectible-year-title', yearKey === 'unknown' ? 'Release year unknown' : yearKey));
+                        if (!onlyUndated) yearSection.append(createElement('p', 'collectible-year-title', yearKey === 'unknown' ? 'Release year unknown' : yearKey));
                         years.get(yearKey).forEach((group) => yearSection.append(renderSeries(group)));
                         lineSection.append(yearSection);
                     });

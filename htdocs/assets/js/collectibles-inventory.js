@@ -38,9 +38,18 @@ export const unclassifiedSeriesId = (product) => {
     const line = normalizeLine(safeProduct.line);
     return `unclassified:${String(safeProduct.brand ?? 'collectible')}${line === '' ? '' : `:${line}`}`;
 };
+const UNCLASSIFIED_TITLES = Object.freeze({
+    figures: 'Other figure series',
+    plush: 'Other plush',
+    pendants: 'Other pendants & charms',
+    large: 'MEGA & large pieces',
+    accessories: 'Other series accessories',
+    standalone: 'Standalone pieces',
+});
 export const unclassifiedSeriesTitle = (product) => {
     const line = normalizeLine(product && typeof product === 'object' ? product.line : '');
-    return line === '' ? 'Unclassified' : `${LINE_LABELS[line]}: not part of a series`;
+    if (line === '') return 'Unclassified';
+    return UNCLASSIFIED_TITLES[line] ?? `Other ${LINE_LABELS[line].toLowerCase()}`;
 };
 
 const isInventoryKey = (value) => {
