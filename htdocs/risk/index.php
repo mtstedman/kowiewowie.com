@@ -117,7 +117,7 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
                         <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
                         <p id="risk-start-note" class="risk-start-note">New game deals the world with the setup above.</p>
-                        <p id="risk-invite-note" class="risk-start-note">Invite players opens an online lobby with one seat per opponent; seats nobody claims are played by bots.</p>
+                        <p id="risk-invite-note" class="risk-start-note">Invite players replaces the game on the table with an online lobby, one seat per opponent. Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press Start game, open seats become bots.</p>
                     </div>
 
                     <section id="risk-lobby-panel" class="risk-subpanel risk-lobby" aria-labelledby="risk-lobby-title" hidden>
@@ -130,8 +130,9 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                                 <button class="risk-button" type="button" id="risk-invite-copy-button">Copy link</button>
                             </div>
                         </div>
+                        <button class="risk-button" type="button" id="risk-invite-retry-button" hidden>Try again</button>
                         <ol id="risk-lobby-roster" class="risk-lobby-roster" aria-label="Seats in this online game"></ol>
-                        <p id="risk-lobby-note" class="risk-lobby-note">Anyone with the link takes the next open seat. Empty seats become bots when the host starts the game.</p>
+                        <p id="risk-lobby-note" class="risk-lobby-note">Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press Start game, open seats become bots.</p>
                         <div class="risk-lobby-actions">
                             <button class="risk-button risk-button-primary" type="button" id="risk-lobby-start-button" hidden>Start game</button>
                             <button class="risk-button" type="button" id="risk-lobby-leave-button">Leave lobby</button>
@@ -227,7 +228,7 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     </div>
                     <div>
                         <h3>Playing online</h3>
-                        <p>Press <strong>Invite players</strong> to open an online lobby with one seat per opponent, then share the invite link. Each friend who opens it takes the next open seat. When you press <strong>Start game</strong>, every seat still open is played by a bot. Each player acts only on their own turn and sees only their own cards. Defenders always roll the most dice allowed. The host's browser plays the bot seats. If the host goes quiet for 20 seconds, another player's browser takes over the bots. Reload the page or reopen its link to return to your seat.</p>
+                        <p>Press <strong>Invite players</strong> to replace the game on the table with an online lobby, one seat per opponent. Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press <strong>Start game</strong>, open seats become bots. Reloading the lobby keeps the same invite link. Each player acts only on their own turn and sees only their own cards. Defenders always roll the most dice allowed. The host's browser plays the bot seats. If the host goes quiet for 20 seconds, another player's browser takes over the bots. Reload the page or reopen its link to return to your seat.</p>
                     </div>
                     <div>
                         <h3>Setup</h3>

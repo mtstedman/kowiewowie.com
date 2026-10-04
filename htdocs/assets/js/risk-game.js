@@ -153,6 +153,9 @@ import * as riskApi from './risk-api.js';
         return;
     }
 
+    // Optional: lets the host fetch the invite link again after a failed request.
+    const inviteRetryButton = byElementId('risk-invite-retry-button');
+
     // Optional guidance and feedback regions: the game still runs if a page omits them.
     const objectiveElements = {
         title: byElementId('risk-objective-title'),
@@ -374,6 +377,8 @@ import * as riskApi from './risk-api.js';
      * ------------------------------------------------------------------ */
 
     const ONLINE_GAME_KEY = 'wowie.risk.game';
+    // Prefix for the host's stored invite link, one entry per waiting game id.
+    const INVITE_URL_KEY_PREFIX = 'wowie.risk.invite.';
     const POLL_MS = 2500;
     const BOT_TAKEOVER_MS = 20000;
     // Per-browser view and input state; it is stripped from every posted snapshot.
@@ -406,7 +411,11 @@ import * as riskApi from './risk-api.js';
         deals: 0,
         // Auto-place for this browser's own seat; never posted.
         autoSetup: false,
+        // The lobby's invite link (absolute); also kept in localStorage per game so reloads reuse it.
         inviteUrl: '',
+        // True while the host's invite-link request is in flight; inviteFailed shows the retry button.
+        inviteRequesting: false,
+        inviteFailed: false,
         notice: '',
         noticeKind: '',
         lobbyKey: ''
@@ -3001,8 +3010,8 @@ import * as riskApi from './risk-api.js';
             return {
                 title: 'Online lobby',
                 text: online.isHost
-                    ? 'Share the invite link, then press Start game. Seats nobody claims are played by bots.'
-                    : 'You have a seat. The game begins when the host presses Start game.',
+                    ? 'Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. Press Start game when everyone is in; open seats become bots.'
+                    : 'You have a seat. The game begins when the host presses Start game; open seats become bots.',
                 blocker: ''
             };
         }
@@ -3321,6 +3330,7 @@ import * as riskApi from './risk-api.js';
      * ------------------------------------------------------------------ */
 
     const onlineErrorMessages = {
+        identity_required: 'Your browser could not be identified for online play. Allow cookies for this site, reload the page and try again.',
         link_not_found: 'This invite link is not valid. Ask the host for a new one.',
         link_revoked: 'This invite link was withdrawn by the host.',
         link_expired: 'This invite link has expired. Ask the host for a new one.',
@@ -3375,6 +3385,35 @@ import * as riskApi from './risk-api.js';
     const rememberedOnlineGame = () => {
         try {
             return window.localStorage.getItem(ONLINE_GAME_KEY) || '';
+        } catch {
+            return '';
+        }
+    };
+
+    // One invite link per lobby: the host's link is stored per game id so a reload or resume reuses it.
+    const rememberInviteUrl = (gameId, url) => {
+        if (!gameId) {
+            return;
+        }
+
+        try {
+            if (url) {
+                window.localStorage.setItem(`${INVITE_URL_KEY_PREFIX}${gameId}`, url);
+            } else {
+                window.localStorage.removeItem(`${INVITE_URL_KEY_PREFIX}${gameId}`);
+            }
+        } catch {
+            // Storage can be unavailable (private mode); the host then gets a fresh link on reload.
+        }
+    };
+
+    const rememberedInviteUrl = (gameId) => {
+        if (!gameId) {
+            return '';
+        }
+
+        try {
+            return window.localStorage.getItem(`${INVITE_URL_KEY_PREFIX}${gameId}`) || '';
         } catch {
             return '';
         }
@@ -3435,6 +3474,8 @@ import * as riskApi from './risk-api.js';
         const wasOpen = Boolean(online.gameId);
         const session = online.session + 1;
 
+        // Leaving the lobby forgets its stored invite link; links already shared keep working.
+        rememberInviteUrl(online.gameId, '');
         stopPolling();
         Object.assign(online, {
             gameId: null,
@@ -3455,6 +3496,8 @@ import * as riskApi from './risk-api.js';
             deals: 0,
             autoSetup: false,
             inviteUrl: '',
+            inviteRequesting: false,
+            inviteFailed: false,
             notice: '',
             noticeKind: '',
             lobbyKey: ''
@@ -3674,6 +3717,11 @@ import * as riskApi from './risk-api.js';
         online.game = { ...game, state: null };
         online.isHost = Boolean(game.viewer_is_host);
         clearConnectionNotice();
+
+        // Once the game leaves the waiting state its invite link is no longer needed in this browser.
+        if (game.status !== 'waiting') {
+            rememberInviteUrl(game.id, '');
+        }
 
         if (!Number.isInteger(game.viewer_seat)) {
             const wasPlaying = isOnline();
@@ -3904,14 +3952,28 @@ import * as riskApi from './risk-api.js';
         }
     };
 
-    const setInviteUrl = (url) => {
+    // Keeps the absolute invite URL in memory and, for a known game, in storage for later reloads.
+    const setInviteUrl = (url, gameId = online.gameId) => {
         online.inviteUrl = typeof url === 'string' && url !== ''
             ? new URL(url, window.location.origin).href
             : '';
+
+        if (online.inviteUrl !== '') {
+            rememberInviteUrl(gameId, online.inviteUrl);
+        }
     };
 
+    // Asks the server for an invite link; only used when this browser has none stored for the lobby.
     const requestInviteLink = async () => {
+        if (!online.gameId || online.inviteRequesting) {
+            return;
+        }
+
         const session = online.session;
+
+        online.inviteRequesting = true;
+        online.inviteFailed = false;
+        renderLobby();
 
         try {
             const link = await riskApi.createInviteLink(online.gameId);
@@ -3920,13 +3982,23 @@ import * as riskApi from './risk-api.js';
                 return;
             }
 
+            online.inviteRequesting = false;
             setInviteUrl(link?.url);
+            online.inviteFailed = online.inviteUrl === '';
+
+            if (online.inviteFailed) {
+                showOnlineNotice('The invite link could not be created. Press Try again to get it.', 'invite');
+            } else if (online.noticeKind === 'invite') {
+                showOnlineNotice('');
+            }
         } catch (error) {
             if (session !== online.session) {
                 return;
             }
 
-            showOnlineNotice(onlineErrorText(error));
+            online.inviteRequesting = false;
+            online.inviteFailed = true;
+            showOnlineNotice(`${onlineErrorText(error)} Press Try again to get the invite link.`, 'invite');
         }
 
         renderLobby();
@@ -3944,6 +4016,12 @@ import * as riskApi from './risk-api.js';
         online.version = 0;
         rememberOnlineGame(game.id);
         setPageGameParam(game.id);
+
+        // A host resuming a waiting lobby reuses its stored link instead of minting another one.
+        if (game.status === 'waiting' && game.viewer_is_host && online.inviteUrl === '') {
+            online.inviteUrl = rememberedInviteUrl(game.id);
+        }
+
         receiveGame(game, { force: true });
 
         if (!online.gameId) {
@@ -3983,7 +4061,7 @@ import * as riskApi from './risk-api.js';
 
             online.requesting = false;
             showOnlineNotice('');
-            setInviteUrl(game?.invite_link?.url);
+            setInviteUrl(game?.invite_link?.url, typeof game?.id === 'string' ? game.id : null);
             enterOnlineGame(game);
 
             if (canFocus(elements.inviteCopyButton)) {
@@ -4041,7 +4119,7 @@ import * as riskApi from './risk-api.js';
 
         try {
             await navigator.clipboard.writeText(input.value);
-            showOnlineNotice('Invite link copied. Send it to the players you want to challenge.');
+            showOnlineNotice('Invite link copied. Send it to your friends: each friend who opens it takes the next open seat.');
         } catch {
             input.focus();
             input.select();
@@ -4148,8 +4226,8 @@ import * as riskApi from './risk-api.js';
             const taken = players.length;
 
             return online.isHost
-                ? `Share the invite link. ${taken} of ${game.seat_count} seats taken; press Start game when everyone is in.`
-                : `${seatText} Waiting for ${host ? host.display_name : 'the host'} to start the game.`;
+                ? `${taken} of ${game.seat_count} seats taken. Press Start game when everyone is in; open seats become bots.`
+                : `${seatText} Waiting for ${host ? host.display_name : 'the host'} to press Start game.`;
         }
 
         if (game.status === 'active') {
@@ -4251,6 +4329,18 @@ import * as riskApi from './risk-api.js';
             urlInput.value = online.inviteUrl;
         }
 
+        if (inviteRetryButton) {
+            const retryButton = asButton(inviteRetryButton);
+
+            retryButton.hidden = !(waiting && online.isHost && online.inviteUrl === '' && (online.inviteFailed || online.inviteRequesting));
+            retryButton.disabled = online.inviteRequesting;
+            setText(retryButton, online.inviteRequesting ? 'Getting invite link…' : 'Try again');
+        }
+
+        // Link-sharing steps are for the host; a joiner only needs to know what happens next.
+        setText(elements.lobbyNote, online.isHost
+            ? 'Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press Start game, open seats become bots.'
+            : 'You have a seat. When the host presses Start game, open seats become bots and the game begins.');
         elements.lobbyNote.hidden = !waiting;
         startButton.hidden = !(waiting && online.isHost);
         startButton.disabled = online.requesting;
@@ -4285,6 +4375,9 @@ import * as riskApi from './risk-api.js';
     });
     elements.inviteCopyButton.addEventListener('click', () => {
         copyInviteLink();
+    });
+    inviteRetryButton?.addEventListener('click', () => {
+        requestInviteLink();
     });
     elements.inviteUrl.addEventListener('focus', () => {
         asInput(elements.inviteUrl).select();

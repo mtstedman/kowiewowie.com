@@ -56,27 +56,21 @@ final class RiskRepository
         $actor = $this->seatActor($identity);
         return $this->transaction(function () use ($token, $actor, $identity): array {
             $statement = $this->pdo->prepare(<<<'SQL'
-                SELECT g.* FROM risk_games g
+                SELECT g.*, l.revoked_at AS link_revoked_at, l.expires_at AS link_expires_at
+                FROM risk_games g
                 JOIN risk_game_links l ON l.game_id = g.id
                 WHERE l.token_hash = :token_hash
-                FOR UPDATE OF g
+                FOR UPDATE OF g, l
             SQL);
-            $hash = hash('sha256', $token);
-            $statement->execute(['token_hash' => $hash]);
+            $statement->execute(['token_hash' => hash('sha256', $token)]);
             $game = $statement->fetch(PDO::FETCH_ASSOC);
             if (!is_array($game)) {
                 throw new ApiException(404, 'link_not_found', 'That Risk invitation link does not exist.');
             }
-            $statement = $this->pdo->prepare('SELECT * FROM risk_game_links WHERE token_hash = :token_hash FOR UPDATE');
-            $statement->execute(['token_hash' => $hash]);
-            $link = $statement->fetch(PDO::FETCH_ASSOC);
-            if (!is_array($link)) {
-                throw new ApiException(404, 'link_not_found', 'That Risk invitation link does not exist.');
-            }
-            if ($link['revoked_at'] !== null) {
+            if ($game['link_revoked_at'] !== null) {
                 throw new ApiException(409, 'link_revoked', 'That Risk invitation link has been revoked.');
             }
-            if ($link['expires_at'] !== null && strtotime((string) $link['expires_at']) <= time()) {
+            if ($game['link_expires_at'] !== null && strtotime((string) $game['link_expires_at']) <= time()) {
                 throw new ApiException(410, 'link_expired', 'That Risk invitation link has expired.');
             }
             if ($game['status'] !== 'waiting') {
