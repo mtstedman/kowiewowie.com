@@ -362,3 +362,93 @@ export const createRequestGate = () => {
         },
     };
 };
+
+// Spreadsheet export: one row per figure, or per listing that names none, with
+// the visitor's owned flag and quantity beside the catalog facts.
+export const EXPORT_COLUMNS = Object.freeze([
+    'Brand', 'Line', 'Year', 'Series', 'Listing', 'Listing type', 'Figure', 'Secret',
+    'Owned', 'Quantity', 'Price', 'Currency', 'Price type', 'SKU', 'Barcode', 'Listing URL',
+]);
+const EXPORT_LISTING_TYPES = Object.freeze({
+    series: 'Series',
+    'whole-set': 'Whole set',
+    box: 'Blind box',
+    figure: 'Single figure',
+    accessory: 'Series accessory',
+    standalone: 'Standalone',
+});
+
+// The catalog half of a row. The context is the set the shelf files the
+// listing under (its line, batch year, and title); a null variant is a
+// listing with no figures to own. A figure's own price, SKU, and barcode win
+// over its listing's.
+export const exportRecord = (product, variant, context = {}) => {
+    const safeProduct = product && typeof product === 'object' ? product : {};
+    const own = variant && typeof variant === 'object' ? variant : null;
+    const text = (value) => (typeof value === 'string' ? value.trim() : '');
+    const brandKey = text(safeProduct.brand).toLowerCase();
+    const brand = Object.prototype.hasOwnProperty.call(BRANDS, brandKey) ? brandKey : '';
+    const hasPrice = (item) => item !== null && Number.isFinite(item.price_cents) && text(item.currency) !== '';
+    const priced = hasPrice(own) ? own : (hasPrice(safeProduct) ? safeProduct : null);
+    const identified = own ?? safeProduct;
+    const barcode = text(identified.barcode);
+    return {
+        brand: brand !== '' ? BRANDS[brand] : (text(safeProduct.brand) || 'Collectible'),
+        line: lineLabel(context.line ?? safeProduct.line),
+        year: Number.isInteger(context.year) ? context.year
+            : (Number.isInteger(safeProduct.release_year) ? safeProduct.release_year : null),
+        series: text(context.series) || text(safeProduct.series_title),
+        listing: titleWithoutBrand(text(safeProduct.title) || 'Untitled listing', brand),
+        listingType: EXPORT_LISTING_TYPES[safeProduct.listing_kind] ?? '',
+        figure: own === null ? null : (text(own.name) === '' ? 'Unnamed figure' : titleWithoutBrand(text(own.name), brand)),
+        secret: own !== null && own.is_secret === true,
+        priceCents: priced === null ? null : priced.price_cents,
+        currency: priced === null ? '' : text(priced.currency).toUpperCase(),
+        priceKind: priced !== null && ['retail', 'asking', 'sold'].includes(priced.price_kind) ? priced.price_kind : '',
+        sku: text(identified.sku),
+        barcode: /^[0-9]{8,14}$/.test(barcode) ? barcode : '',
+        url: text(safeProduct.product_url).startsWith('https://') ? text(safeProduct.product_url) : '',
+    };
+};
+
+// A record and the visitor's quantity as EXPORT_COLUMNS cells. A listing with
+// no figures leaves the figure and ownership cells blank.
+export const exportRow = (record, quantity) => {
+    const isFigure = record.figure !== null;
+    const price = Number.isFinite(record.priceCents) ? (record.priceCents / 100).toFixed(2) : '';
+    return [
+        record.brand,
+        record.line,
+        record.year === null ? '' : String(record.year),
+        record.series,
+        record.listing,
+        record.listingType,
+        isFigure ? record.figure : '',
+        isFigure ? (record.secret ? 'Yes' : 'No') : '',
+        isFigure ? (isOwnedQuantity(quantity) ? 'Yes' : 'No') : '',
+        isFigure ? String(Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 0) : '',
+        price,
+        price === '' ? '' : record.currency,
+        price === '' ? '' : record.priceKind,
+        record.sku,
+        record.barcode,
+        record.url,
+    ];
+};
+
+// RFC 4180 cells. Text a spreadsheet would run as a formula (a leading =, +,
+// -, @, tab, or carriage return) gets an apostrophe so store text stays text.
+const csvCell = (value) => {
+    let text = value === null || value === undefined ? '' : String(value);
+    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+// The byte-order mark lets Excel read α, θ, and accented names as UTF-8.
+export const toCsv = (rows) => `﻿${rows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`;
+
+// "collectibles-nommi-2026-10-05.csv", dated in the visitor's own time zone.
+export const exportFilename = (stem, date) => {
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${stem}-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}.csv`;
+};

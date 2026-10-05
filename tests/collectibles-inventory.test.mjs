@@ -27,6 +27,11 @@ import {
   appendCatalogPage,
   isReleaseExpanded,
   createRequestGate,
+  EXPORT_COLUMNS,
+  exportRecord,
+  exportRow,
+  toCsv,
+  exportFilename,
 } from '../htdocs/assets/js/collectibles-inventory.js';
 
 // The page versions only collectibles.js, and production caches static
@@ -65,14 +70,63 @@ for (const [brand, title, expected] of [
   assert.equal(titleWithoutBrand(title, brand), expected, `${brand}: ${title}`);
 }
 
+// Spreadsheet rows: the set's context, a figure's own price and codes over its
+// listing's, quoted cells, and no store text a spreadsheet would run.
+{
+  const product = {
+    id: '7',
+    brand: 'skullpanda',
+    title: 'SKULLPANDA Dark Maze Series',
+    price_cents: 1999,
+    currency: 'usd',
+    price_kind: 'retail',
+    listing_kind: 'series',
+    release_year: 2023,
+    sku: 'BOX-1',
+    barcode: '6941848212345',
+    product_url: 'https://example.test/dark-maze',
+  };
+  const context = { line: 'figures', year: 2022, series: 'Dark Maze' };
+  assert.equal(EXPORT_COLUMNS.length, 16);
+  assert.deepEqual(
+    exportRow(exportRecord(product, { name: 'Lost', is_secret: false }, context), 0),
+    ['SKULLPANDA', 'Figure series', '2022', 'Dark Maze', 'Dark Maze Series', 'Series', 'Lost', 'No', 'No', '0', '19.99', 'USD', 'retail', '', '', 'https://example.test/dark-maze'],
+    'A figure takes its set\'s line, year, and title, and its listing\'s price.',
+  );
+  const secret = exportRow(exportRecord(product, {
+    name: '=HYPERLINK("x"), the "Secret"',
+    is_secret: true,
+    price_cents: 9900,
+    currency: 'USD',
+    price_kind: 'asking',
+    sku: 'FIG-9',
+    barcode: 'not-a-code',
+  }, context), 2);
+  assert.deepEqual(secret.slice(6, 15), ['=HYPERLINK("x"), the "Secret"', 'Yes', 'Yes', '2', '99.00', 'USD', 'asking', 'FIG-9', ''],
+    'A figure\'s own price and SKU win; a malformed barcode is left out.');
+  assert.deepEqual(
+    exportRow(exportRecord({ brand: 'nommi', title: 'Nommi Mystery Plush', line: 'plush' }, null), null),
+    ['Nommi', 'Plush series', '', '', 'Mystery Plush', '', '', '', '', '', '', '', '', '', '', ''],
+    'A listing with no figures leaves the figure and ownership cells blank.',
+  );
+  const csv = toCsv([EXPORT_COLUMNS, secret]);
+  assert.ok(csv.startsWith('\ufeffBrand,Line,Year,Series,'), 'The byte-order mark lets Excel read UTF-8.');
+  assert.ok(csv.endsWith('\r\n'));
+  assert.match(csv, /,"'=HYPERLINK\(""x""\), the ""Secret""",Yes,Yes,2,99\.00,/, 'Formulas are defused and quotes doubled.');
+  assert.equal(toCsv([['-1', '+1', '@a', 'plain', 'a\nb']]), "\ufeff'-1,'+1,'@a,plain,\"a\nb\"\r\n");
+  assert.equal(exportFilename('my-collectibles', new Date(2026, 0, 5)), 'my-collectibles-2026-01-05.csv');
+}
+
 const pageSource = await readFile(new URL('../htdocs/collectibles/index.php', import.meta.url), 'utf8');
 const applicationSource = await readFile(new URL('../htdocs/assets/js/collectibles.js', import.meta.url), 'utf8');
 assert.match(pageSource, /<script type="module" src="\/assets\/js\/collectibles\.js/);
-assert.match(pageSource, /<label for="collectibles-series-input">Series<\/label>/);
-assert.match(pageSource, /<label for="collectibles-year-input">Year<\/label>/);
+assert.match(pageSource, /<label for="collectibles-series-input"[^>]*>Series<\/label>/);
+assert.match(pageSource, /<label for="collectibles-year-input"[^>]*>Year<\/label>/);
 assert.equal((pageSource.match(/role="combobox"/g) || []).length, 2, 'Year and Series are type-to-filter comboboxes, not dropdowns.');
 assert.equal((pageSource.match(/aria-multiselectable="true"/g) || []).length, 2, 'Year and Series take several choices.');
 assert.doesNotMatch(applicationSource, /__collectiblesInventoryTest/);
+['collectibles-export-toggle', 'collectibles-export-csv', 'collectibles-export-collection', 'collectibles-export-pdf']
+  .forEach((id) => assert.match(pageSource, new RegExp(`id="${id}"`), `The export menu offers ${id}.`));
 
 let activeDocument = null;
 
@@ -216,6 +270,21 @@ class HTMLElement {
 
   querySelector(selector) {
     return this.querySelectorAll(selector)[0] || null;
+  }
+
+  focus() {
+    if (activeDocument) activeDocument.activeElement = this;
+  }
+
+  click() {
+    this.dispatchEvent({ type: 'click' });
+  }
+
+  contains(node) {
+    for (let current = node; current; current = current.parentElement) {
+      if (current === this) return true;
+    }
+    return false;
   }
 
   closest(selector) {
@@ -502,6 +571,8 @@ class MemoryStorage {
       this.ids = new Map();
       this.title = 'Collectibles';
       this.documentElement = this.createElement('html');
+      this.body = this.createElement('body');
+      this.activeElement = null;
     }
 
     createElement(tagName) {
@@ -552,6 +623,18 @@ class MemoryStorage {
   seriesOptions.hidden = true;
   const sortSelect = element('select', 'collectibles-sort');
   const exportButton = element('button', 'collectibles-export-pdf');
+  const exportContainer = element('div', 'collectibles-export');
+  const exportToggle = element('button', 'collectibles-export-toggle');
+  const exportMenu = element('div', 'collectibles-export-menu');
+  const exportCsvButton = element('button', 'collectibles-export-csv');
+  const exportCsvDetail = element('span', 'collectibles-export-csv-detail');
+  const exportCollectionButton = element('button', 'collectibles-export-collection');
+  const exportCollectionDetail = element('span', 'collectibles-export-collection-detail');
+  exportMenu.hidden = true;
+  exportCsvButton.append(exportCsvDetail);
+  exportCollectionButton.append(exportCollectionDetail);
+  exportMenu.append(exportCsvButton, exportCollectionButton, exportButton);
+  exportContainer.append(exportToggle, exportMenu);
   sortSelect.value = 'name-asc';
 
   const brandValues = ['', 'skullpanda', 'nommi', 'sonny-angel', 'pop-bean'];
@@ -570,7 +653,7 @@ class MemoryStorage {
     input.checked = index === 0;
     return input;
   });
-  form.append(searchInput, ...brandInputs, yearInput, yearOptions, yearChips, seriesInput, seriesOptions, seriesChips, ...inventoryInputs, sortSelect, exportButton);
+  form.append(searchInput, ...brandInputs, yearInput, yearOptions, yearChips, seriesInput, seriesOptions, seriesChips, ...inventoryInputs, sortSelect, exportContainer);
 
   const catalog = [
     {
@@ -902,8 +985,13 @@ class MemoryStorage {
   assert.match(blockBySeries('unclassified:nommi').querySelector('.collectible-release-status').textContent, /Series membership is unknown/);
   assert.match(blockBySeries('nommi:known-empty').querySelector('.collectible-release-status').textContent, /Known complete roster: no figures/);
 
+  exportToggle.dispatchEvent({ type: 'click' });
+  assert.equal(exportMenu.hidden, false, 'Export opens its menu.');
+  assert.equal(exportToggle.getAttribute('aria-expanded'), 'true');
   exportButton.dispatchEvent({ type: 'click' });
   assert.equal(printCalls, 1, 'PDF export should prepare and print the grouped catalog.');
+  assert.equal(exportMenu.hidden, true, 'Choosing an export closes the menu.');
+  assert.equal(document.activeElement, exportToggle, 'Focus returns to the Export button.');
   assert.equal(results.querySelectorAll('.collectible-variants-toggle').every((toggle) => toggle.getAttribute('aria-expanded') === 'true'), true);
   (windowListeners.get('afterprint') || []).forEach((listener) => listener());
   assert.equal(exportButton.disabled, false);
@@ -931,6 +1019,49 @@ class MemoryStorage {
   elephantQuantity.dispatchEvent({ type: 'change' });
   assert.deepEqual(allBlocks().filter((block) => !block.hidden).map((block) => block.dataset.releaseId), ['sonny-angel:animal-1']);
   assert.equal(JSON.parse(storage.getItem(INVENTORY_STORAGE_KEY)).quantities[inventoryKey('sonny-retail-b', 'Elephant')], 3);
+
+  // Spreadsheet exports: what the shelf shows (here, owned figures only), and
+  // every owned figure across the whole catalog.
+  const downloads = [];
+  const { createObjectURL, revokeObjectURL } = URL;
+  URL.createObjectURL = (blob) => `blob:test/${downloads.push({ blob })}`;
+  URL.revokeObjectURL = () => {};
+  const bodyAppend = document.body.append.bind(document.body);
+  document.body.append = (...nodes) => {
+    nodes.forEach((node) => { if (node.tagName === 'A') downloads.at(-1).filename = node.download; });
+    bodyAppend(...nodes);
+  };
+  const today = new Date();
+  const datePart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const csvLines = async (download) => (await download.blob.text()).replace(/^\ufeff/, '').replace(/\r\n$/, '').split('\r\n');
+
+  exportToggle.dispatchEvent({ type: 'click' });
+  assert.equal(exportCsvDetail.textContent, '1 figure from 1 series, with owned and quantity columns.');
+  assert.equal(exportCollectionButton.disabled, false);
+  exportCsvButton.dispatchEvent({ type: 'click' });
+  await waitFor(() => downloads.length === 1 && exportToggle.textContent === 'Export', 'The shown figures should download.');
+  assert.equal(downloads[0].filename, `collectibles-all-lines-${datePart}.csv`);
+  assert.deepEqual(await csvLines(downloads[0]), [
+    EXPORT_COLUMNS.join(','),
+    'Sonny Angel,Figure series,,Animal Series,Animal Series Elephant Retail,,Elephant,No,Yes,3,,,,,,',
+  ], 'The Owned view exports only the owned figure.');
+  assert.match(status.textContent, /^Downloaded collectibles-all-lines-.+\.csv with 1 figure\.$/);
+
+  exportToggle.dispatchEvent({ type: 'click' });
+  exportCollectionButton.dispatchEvent({ type: 'click' });
+  assert.equal(exportToggle.getAttribute('aria-busy'), 'true', 'The Export button shows it is working.');
+  await waitFor(() => downloads.length === 2 && exportToggle.textContent === 'Export', 'The collection should download.');
+  const collectionRequest = requests.at(-1);
+  assert.equal(collectionRequest.get('year'), 'all', 'The collection reads every year.');
+  assert.equal(collectionRequest.get('limit'), '100');
+  assert.equal(downloads[1].filename, `my-collectibles-${datePart}.csv`);
+  assert.deepEqual((await csvLines(downloads[1])).slice(1), [
+    'Sonny Angel,Figure series,,Animal Series,Animal Series Elephant Retail,,Elephant,No,Yes,3,,,,,,',
+  ]);
+  assert.equal(status.textContent, `Downloaded my-collectibles-${datePart}.csv with 1 owned figure.`);
+  assert.equal(exportToggle.getAttribute('aria-busy'), null);
+  URL.createObjectURL = createObjectURL;
+  URL.revokeObjectURL = revokeObjectURL;
 
   inventoryInputs.forEach((input) => { input.checked = input.value === 'all'; });
   inventoryInputs.find((input) => input.value === 'all').dispatchEvent({ type: 'change' });

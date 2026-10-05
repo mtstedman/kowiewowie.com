@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=00bb11ba507f';
+import * as inventoryModule from './collectibles-inventory.js?v=9fc4aec0d9fc';
 
 const {
     INVENTORY_STORAGE_KEY,
@@ -41,6 +41,11 @@ const {
     unclassifiedSeriesId,
     unclassifiedSeriesTitle,
     titleWithoutBrand,
+    EXPORT_COLUMNS,
+    exportRecord,
+    exportRow,
+    toCsv,
+    exportFilename,
 } = /** @type {typeof import('./collectibles-inventory.js')} */ (inventoryModule);
 
 (() => {
@@ -64,6 +69,13 @@ const {
     const seriesChips = document.getElementById('collectibles-series-chips');
     const sortSelect = document.getElementById('collectibles-sort');
     const exportButton = document.getElementById('collectibles-export-pdf');
+    const exportContainer = document.getElementById('collectibles-export');
+    const exportToggle = document.getElementById('collectibles-export-toggle');
+    const exportMenu = document.getElementById('collectibles-export-menu');
+    const exportCsvButton = document.getElementById('collectibles-export-csv');
+    const exportCsvDetail = document.getElementById('collectibles-export-csv-detail');
+    const exportCollectionButton = document.getElementById('collectibles-export-collection');
+    const exportCollectionDetail = document.getElementById('collectibles-export-collection-detail');
 
     if (
         !(form instanceof HTMLFormElement)
@@ -81,6 +93,13 @@ const {
         || !(seriesChips instanceof HTMLElement)
         || !(sortSelect instanceof HTMLSelectElement)
         || !(exportButton instanceof HTMLButtonElement)
+        || !(exportContainer instanceof HTMLElement)
+        || !(exportToggle instanceof HTMLButtonElement)
+        || !(exportMenu instanceof HTMLElement)
+        || !(exportCsvButton instanceof HTMLButtonElement)
+        || !(exportCsvDetail instanceof HTMLElement)
+        || !(exportCollectionButton instanceof HTMLButtonElement)
+        || !(exportCollectionDetail instanceof HTMLElement)
     ) {
         return;
     }
@@ -133,6 +152,10 @@ const {
         browserStorage = null;
     }
     const inventory = createInventoryStore(browserStorage, setStorageStatus);
+    // Each rendered figure row (and each figure-less listing card) keeps the
+    // catalog facts its spreadsheet row needs, so an export of the shelf
+    // follows exactly what is on screen.
+    const exportRecords = new WeakMap();
 
     const normalizeQuery = (value) => String(value ?? '').trim().slice(0, MAX_QUERY_LENGTH).trim();
 
@@ -251,7 +274,7 @@ const {
         const time = document.createElement('time');
         time.dateTime = lastSyncedAt;
         time.textContent = formatted;
-        updatedElement.append('Last updated ', time);
+        updatedElement.append('Catalog updated ', time, '.');
         updatedElement.hidden = false;
     };
 
@@ -615,7 +638,7 @@ const {
         return `Roster completeness has not been confirmed: ${figureLabel} across ${listingLabel}.`;
     };
 
-    const renderProduct = (product, collapsedByDefault = false) => {
+    const renderProduct = (product, collapsedByDefault = false, context = {}) => {
         const safeProduct = product && typeof product === 'object' ? product : {};
         const productId = String(safeProduct.id);
         const title = titleWithoutBrand(
@@ -678,7 +701,10 @@ const {
         header.append(summary);
         card.append(header);
 
-        if (variants.length === 0) return card;
+        if (variants.length === 0) {
+            exportRecords.set(card, exportRecord(safeProduct, null, context));
+            return card;
+        }
         const variantSection = createElement('div', 'collectible-variants');
         const countLabel = variants.length === 1 ? '1 figure' : `${variants.length} figures`;
         state.disclosureCount += 1;
@@ -718,7 +744,9 @@ const {
         table.append(tableHead);
         const tableBody = document.createElement('tbody');
         variants.forEach((variant) => {
-            tableBody.append(renderVariantRow(variant, { id: productId, title, brand: safeProduct.brand }, productPrice));
+            const row = renderVariantRow(variant, { id: productId, title, brand: safeProduct.brand }, productPrice);
+            exportRecords.set(row, exportRecord(safeProduct, variant, context));
+            tableBody.append(row);
         });
         table.append(tableBody);
         tableWrap.append(table);
@@ -742,6 +770,24 @@ const {
         return card;
     };
 
+    // A set's listings in shelf order: the set's own card, then what the
+    // store sells of it.
+    const orderedListings = (group) => {
+        const ordered = group.products
+            .map((product, index) => ({ product, index }))
+            .sort((left, right) => (LISTING_KIND_ORDER[left.product.listing_kind] ?? 6) - (LISTING_KIND_ORDER[right.product.listing_kind] ?? 6)
+                || left.index - right.index)
+            .map(({ product }) => product);
+        const primaryIndex = Math.max(0, ordered.findIndex((product) => product.listing_kind === 'series'));
+        return {
+            primary: ordered[primaryIndex],
+            supplemental: ordered.filter((product, index) => index !== primaryIndex),
+        };
+    };
+
+    // What an exported row says about the set a listing is filed under.
+    const seriesContext = (group) => ({ line: group.line, year: group.year, series: group.title });
+
     const renderSeries = (group) => {
         state.releaseCount += 1;
         const releaseBlock = createElement('section', 'collectible-release-block');
@@ -759,18 +805,12 @@ const {
         releaseHeading.append(createElement('p', 'collectible-release-status', seriesRosterText(group)));
         releaseBlock.append(releaseHeading);
         const products = createElement('div', 'collectible-release-products');
-        const ordered = group.products
-            .map((product, index) => ({ product, index }))
-            .sort((left, right) => (LISTING_KIND_ORDER[left.product.listing_kind] ?? 6) - (LISTING_KIND_ORDER[right.product.listing_kind] ?? 6)
-                || left.index - right.index)
-            .map(({ product }) => product);
-        const primaryIndex = Math.max(0, ordered.findIndex((product) => product.listing_kind === 'series'));
-        const primary = ordered[primaryIndex];
-        const supplemental = ordered.filter((product, index) => index !== primaryIndex);
+        const { primary, supplemental } = orderedListings(group);
+        const context = seriesContext(group);
         if (primary) {
             // Keep the shelf scan-friendly. Figure rosters open on demand
             // instead of turning every series summary into a tall table.
-            const card = renderProduct(primary, true);
+            const card = renderProduct(primary, true, context);
             if (primary.listing_kind === 'series') card.classList.add('is-set-card');
             products.append(card);
         }
@@ -782,66 +822,77 @@ const {
                 'collectible-listings-heading',
                 `Store listings (${supplemental.length})`
             ));
-            supplemental.forEach((product) => listingDetails.append(renderProduct(product, true)));
+            supplemental.forEach((product) => listingDetails.append(renderProduct(product, true, context)));
             products.append(listingDetails);
         }
         releaseBlock.append(products);
         return releaseBlock;
     };
 
-    const renderCatalog = () => {
-        state.disclosureCount = 0;
-        state.releaseCount = 0;
-        const groups = groupProductsBySeries(state.products);
-        if (state.sort === 'name-asc' || state.sort === 'name-desc') {
-            const direction = state.sort === 'name-desc' ? -1 : 1;
+    // Brand, then product line, then batch (release year), then set. The
+    // chosen sort orders the sets within each batch.
+    const shelfSections = (catalogProducts, sort) => {
+        const groups = groupProductsBySeries(catalogProducts);
+        if (sort === 'name-asc' || sort === 'name-desc') {
+            const direction = sort === 'name-desc' ? -1 : 1;
             groups.sort((left, right) => direction * (left.title.localeCompare(right.title)
                 || brandLabel(left.brand).localeCompare(brandLabel(right.brand))
                 || left.id.localeCompare(right.id)));
         }
-        const fragment = document.createDocumentFragment();
-        // Brand, then product line, then batch (release year), then set. The
-        // chosen sort orders the sets within each batch.
         const brandOrder = Object.keys(BRANDS);
-        const yearDirection = state.sort === 'oldest' ? 1 : -1;
+        const yearDirection = sort === 'oldest' ? 1 : -1;
         const sections = new Map();
         groups.forEach((group) => {
             const key = `${normalizeBrand(group.brand)}\u0000${group.line}`;
             if (!sections.has(key)) sections.set(key, { brand: group.brand, line: group.line, groups: [] });
             sections.get(key).groups.push(group);
         });
-        Array.from(sections.values())
+        return Array.from(sections.values())
             .sort((left, right) => (brandOrder.indexOf(normalizeBrand(left.brand)) - brandOrder.indexOf(normalizeBrand(right.brand)))
                 || (LINE_ORDER.indexOf(left.line) - LINE_ORDER.indexOf(right.line)))
-            .forEach((section) => {
-                const lineSection = createElement('section', 'collectible-group collectible-line');
-                lineSection.dataset.line = section.line;
-                const lineHeadingId = `collectible-line-${normalizeBrand(section.brand)}-${section.line}`;
-                lineSection.setAttribute('aria-labelledby', lineHeadingId);
-                const lineHeading = createElement('h2', 'collectible-line-title', `${brandLabel(section.brand)}: ${lineLabel(section.line)}`);
-                lineHeading.id = lineHeadingId;
-                lineSection.append(lineHeading);
+            .map((section) => {
                 const years = new Map();
                 section.groups.forEach((group) => {
                     const yearKey = group.year === null ? 'unknown' : String(group.year);
                     if (!years.has(yearKey)) years.set(yearKey, []);
                     years.get(yearKey).push(group);
                 });
-                // One requested year, or a line with no dated sets, needs no
-                // year labels.
-                const yearLabels = state.requestYears.length !== 1 && !(years.size === 1 && years.has('unknown'));
                 const yearKeys = Array.from(years.keys())
                     .sort((left, right) => (Number(left === 'unknown') - Number(right === 'unknown')) || yearDirection * (Number(left) - Number(right)));
-                yearKeys
-                    .forEach((yearKey) => {
-                        const yearSection = createElement('div', 'collectible-group collectible-year');
-                        yearSection.dataset.year = yearKey;
-                        if (yearLabels) yearSection.append(createElement('p', 'collectible-year-title', yearKey === 'unknown' ? 'Release year unknown' : yearKey));
-                        years.get(yearKey).forEach((group) => yearSection.append(renderSeries(group)));
-                        lineSection.append(yearSection);
-                    });
-                fragment.append(lineSection);
+                return {
+                    brand: section.brand,
+                    line: section.line,
+                    years: yearKeys.map((key) => ({ key, groups: years.get(key) })),
+                };
             });
+    };
+
+    const renderCatalog = () => {
+        state.disclosureCount = 0;
+        state.releaseCount = 0;
+        const fragment = document.createDocumentFragment();
+        shelfSections(state.products, state.sort).forEach((section) => {
+            const brandKey = normalizeBrand(section.brand);
+            const lineSection = createElement('section', 'collectible-group collectible-line');
+            lineSection.dataset.line = section.line;
+            if (brandKey !== '') lineSection.dataset.brand = brandKey;
+            const lineHeadingId = `collectible-line-${brandKey}-${section.line}`;
+            lineSection.setAttribute('aria-labelledby', lineHeadingId);
+            const lineHeading = createElement('h2', 'collectible-line-title', `${brandLabel(section.brand)}: ${lineLabel(section.line)}`);
+            lineHeading.id = lineHeadingId;
+            lineSection.append(lineHeading);
+            // One requested year, or a line with no dated sets, needs no
+            // year labels.
+            const yearLabels = state.requestYears.length !== 1 && !(section.years.length === 1 && section.years[0].key === 'unknown');
+            section.years.forEach(({ key, groups }) => {
+                const yearSection = createElement('div', 'collectible-group collectible-year');
+                yearSection.dataset.year = key;
+                if (yearLabels) yearSection.append(createElement('p', 'collectible-year-title', key === 'unknown' ? 'Release year unknown' : key));
+                groups.forEach((group) => yearSection.append(renderSeries(group)));
+                lineSection.append(yearSection);
+            });
+            fragment.append(lineSection);
+        });
         resultsElement.replaceChildren(fragment);
         refreshInventoryVisibility();
     };
@@ -874,7 +925,7 @@ const {
             try {
                 const payload = await response.json();
                 if (payload && typeof payload === 'object' && payload.details && typeof payload.details === 'object' && payload.details.brand) {
-                    return 'That line filter is not available. Choose All, Skullpanda, Nommi, Sonny Angel, or POP BEAN.';
+                    return 'That line filter is not available. Choose All lines, SKULLPANDA, Nommi, Sonny Angel, or POP BEAN.';
                 }
             } catch (error) {
                 // Fall through to the generic search message.
@@ -1184,8 +1235,16 @@ const {
             applyFormState();
         }, SEARCH_DEBOUNCE_MS);
     });
+    // On a phone the line tabs scroll sideways; keep the chosen one in view.
+    const revealCheckedBrand = () => {
+        const tab = brandInputs.find((input) => input.checked)?.closest('.collectibles-line-tab');
+        const strip = tab?.parentElement;
+        if (!(tab instanceof HTMLElement) || !(strip instanceof HTMLElement) || strip.scrollWidth <= strip.clientWidth) return;
+        strip.scrollLeft = Math.max(0, tab.offsetLeft - strip.offsetLeft - 16);
+    };
     brandInputs.forEach((input) => input.addEventListener('change', () => {
         cancelDebounce();
+        revealCheckedBrand();
         applyFormState();
     }));
     inventoryFilterInputs.forEach((input) => input.addEventListener('change', () => {
@@ -1209,15 +1268,194 @@ const {
         if (!state.loading && state.loaded < state.total) load(false, true);
     });
 
+    // Export: the shown figures or the visitor's whole collection as a
+    // spreadsheet, or the shown shelf through the print dialog.
+    const COLLECTION_PAGE_SIZE = 100;
+    let exportBusy = false;
+
+    const setExportBusy = (busy) => {
+        exportBusy = busy;
+        exportToggle.textContent = busy ? 'Preparing…' : 'Export';
+        if (busy) {
+            exportToggle.setAttribute('aria-disabled', 'true');
+            exportToggle.setAttribute('aria-busy', 'true');
+        } else {
+            exportToggle.removeAttribute('aria-disabled');
+            exportToggle.removeAttribute('aria-busy');
+        }
+    };
+
+    const describeExports = () => {
+        const counts = visibleInventoryCounts();
+        exportCsvButton.disabled = counts.series === 0;
+        if (counts.series === 0) {
+            exportCsvDetail.textContent = 'Nothing is on screen yet. Change the search first.';
+        } else if (state.loaded < state.total) {
+            exportCsvDetail.textContent = 'Every figure that matches this search, with owned and quantity columns.';
+        } else {
+            exportCsvDetail.textContent = `${counts.figures} ${counts.figures === 1 ? 'figure' : 'figures'} from ${counts.series} series, with owned and quantity columns.`;
+        }
+        const owned = inventory.snapshot().size;
+        exportCollectionButton.disabled = owned === 0;
+        exportCollectionDetail.textContent = owned === 0
+            ? 'Mark figures as owned, then export them here.'
+            : 'Every figure you own, across all lines and years.';
+    };
+
+    const setExportMenu = (open) => {
+        if (open) describeExports();
+        exportMenu.hidden = !open;
+        exportToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
+    const closeExportMenu = () => {
+        setExportMenu(false);
+        exportToggle.focus();
+    };
+
+    const finishLoading = async () => {
+        const completed = await load(false, true);
+        return completed && state.loaded >= state.total;
+    };
+
+    // The shelf in screen order: figure rows the inventory filter shows, and
+    // listings with no figures while it shows everything.
+    const shownExportRows = () => {
+        const rows = [];
+        let figures = 0;
+        Array.from(resultsElement.querySelectorAll('.collectible-release-block'))
+            .filter((block) => block instanceof HTMLElement && !block.hidden)
+            .forEach((block) => {
+                Array.from(block.querySelectorAll('.collectible-card')).forEach((card) => {
+                    const figureRows = Array.from(card.querySelectorAll('.collectible-inventory-row'));
+                    if (figureRows.length === 0) {
+                        if (state.inventoryFilter === 'all' && exportRecords.has(card)) rows.push(exportRow(exportRecords.get(card), null));
+                        return;
+                    }
+                    figureRows.forEach((row) => {
+                        if (row instanceof HTMLElement && !row.hidden && exportRecords.has(row)) {
+                            rows.push(exportRow(exportRecords.get(row), inventory.get(row.dataset.inventoryKey)));
+                            figures += 1;
+                        }
+                    });
+                });
+            });
+        return { rows, figures };
+    };
+
+    // Every line and year, whatever the shelf is showing.
+    const fetchWholeCatalog = async () => {
+        const catalog = { products: [], loaded: 0, total: 0 };
+        let pageCount = 0;
+        do {
+            const params = catalogRequestParams('', '', 'name-asc', catalog.loaded);
+            params.set('limit', String(COLLECTION_PAGE_SIZE));
+            const response = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok) throw new Error('The catalog did not load.');
+            pageCount = appendCatalogPage(catalog, await response.json());
+        } while (pageCount > 0 && catalog.loaded < catalog.total);
+        if (catalog.loaded < catalog.total) throw new Error('The catalog stopped loading early.');
+        return catalog.products;
+    };
+
+    // Every owned figure in shelf order. Owned entries for listings the
+    // catalog no longer carries are counted, not exported.
+    const collectionExportRows = (catalogProducts) => {
+        const rows = [];
+        const found = new Set();
+        shelfSections(catalogProducts, 'name-asc').forEach((section) => section.years.forEach(({ groups }) => groups.forEach((group) => {
+            const context = seriesContext(group);
+            const { primary, supplemental } = orderedListings(group);
+            [primary, ...supplemental].filter(Boolean).forEach((product) => {
+                (Array.isArray(product.variants) ? product.variants : []).forEach((variant) => {
+                    const key = inventoryKey(String(product.id), typeof variant?.name === 'string' ? variant.name : 'Unnamed figure');
+                    const quantity = inventory.get(key);
+                    if (!isOwnedQuantity(quantity) || found.has(key)) return;
+                    found.add(key);
+                    rows.push(exportRow(exportRecord(product, variant, context), quantity));
+                });
+            });
+        })));
+        return { rows, missing: inventory.snapshot().size - found.size };
+    };
+
+    const downloadCsv = (filename, rows) => {
+        const url = URL.createObjectURL(new Blob([toCsv([EXPORT_COLUMNS, ...rows])], { type: 'text/csv;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.hidden = true;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+
+    exportToggle.addEventListener('click', () => {
+        if (!exportBusy) setExportMenu(exportMenu.hidden);
+    });
+    exportContainer.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !exportMenu.hidden) {
+            event.preventDefault();
+            closeExportMenu();
+        }
+    });
+    // A click or tap anywhere else, or focus moving on, closes the menu.
+    window.addEventListener('pointerdown', (event) => {
+        if (!exportMenu.hidden && !(event.target instanceof Node && exportContainer.contains(event.target))) setExportMenu(false);
+    });
+    exportContainer.addEventListener('focusout', (event) => {
+        if (!exportMenu.hidden && event.relatedTarget instanceof Node && !exportContainer.contains(event.relatedTarget)) setExportMenu(false);
+    });
+
+    exportCsvButton.addEventListener('click', async () => {
+        if (exportBusy || state.loading) return;
+        closeExportMenu();
+        setExportBusy(true);
+        try {
+            if (state.loaded < state.total && !(await finishLoading())) return;
+            const { rows, figures } = shownExportRows();
+            const filename = exportFilename(`collectibles-${state.brand || 'all-lines'}`, new Date());
+            downloadCsv(filename, rows);
+            const listings = rows.length - figures;
+            setStatus(`Downloaded ${filename} with ${figures} ${figures === 1 ? 'figure' : 'figures'}${listings === 0 ? ''
+                : ` and ${listings} ${listings === 1 ? 'listing' : 'listings'} with no figure list`}.`, 'success');
+        } finally {
+            setExportBusy(false);
+        }
+    });
+
+    exportCollectionButton.addEventListener('click', async () => {
+        if (exportBusy) return;
+        closeExportMenu();
+        setExportBusy(true);
+        try {
+            const { rows, missing } = collectionExportRows(await fetchWholeCatalog());
+            if (rows.length === 0) {
+                setStatus('None of your owned figures are in the current catalog, so there was nothing to export.', 'empty');
+                return;
+            }
+            const filename = exportFilename('my-collectibles', new Date());
+            downloadCsv(filename, rows);
+            const skipped = missing === 0 ? ''
+                : ` ${missing} owned ${missing === 1 ? 'figure is' : 'figures are'} no longer in the catalog and ${missing === 1 ? 'was' : 'were'} left out.`;
+            setStatus(`Downloaded ${filename} with ${rows.length} owned ${rows.length === 1 ? 'figure' : 'figures'}.${skipped}`, 'success');
+        } catch (error) {
+            setStatus('Your collection was not exported because the catalog did not load. Try again in a moment.', 'error');
+        } finally {
+            setExportBusy(false);
+        }
+    });
+
     let printTitle = null;
     const restorePrint = () => {
         if (printTitle === null) return;
         document.title = printTitle;
         printTitle = null;
         document.documentElement.classList.remove('collectibles-printing');
-        exportButton.disabled = false;
-        exportButton.removeAttribute('aria-busy');
-        exportButton.textContent = 'Export PDF';
     };
     window.addEventListener('beforeprint', prepareForPrint);
     window.addEventListener('afterprint', () => {
@@ -1225,19 +1463,14 @@ const {
         restorePrint();
     });
     exportButton.addEventListener('click', async () => {
-        if (state.loading) return;
-        exportButton.disabled = true;
-        exportButton.setAttribute('aria-busy', 'true');
-        exportButton.textContent = 'Preparing PDF…';
+        if (exportBusy || state.loading) return;
+        closeExportMenu();
+        // A complete shelf prints at once; otherwise the rest loads first.
         if (state.loaded < state.total) {
-            const completed = await load(false, true);
-            if (!completed || state.loaded < state.total) {
-                restorePrint();
-                exportButton.disabled = false;
-                exportButton.removeAttribute('aria-busy');
-                exportButton.textContent = 'Export PDF';
-                return;
-            }
+            setExportBusy(true);
+            const completed = await finishLoading();
+            setExportBusy(false);
+            if (!completed) return;
         }
         printTitle = document.title;
         document.title = 'Collectibles catalog';
@@ -1260,6 +1493,7 @@ const {
     inventoryFilterInputs.forEach((input) => {
         input.checked = normalizeInventoryFilter(input.value) === state.inventoryFilter;
     });
+    revealCheckedBrand();
 
     state.requestYears = requestedYears(state, state.defaultYear);
     renderPickers();

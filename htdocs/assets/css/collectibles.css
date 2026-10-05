@@ -1,5 +1,6 @@
 .collectibles-library {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   padding: 0;
   overflow: visible;
@@ -27,16 +28,36 @@
   border: 0;
 }
 
-.collectibles-controls {
-  /* Above the results, so an open picker list covers them. */
+/* Each line keeps one of the site's neon accents: the tab strip, its legend
+   dots, and the line headings in the results all use it. */
+.collectibles-library {
+  --brand-skullpanda: var(--accent-cool);
+  --brand-nommi: var(--accent-strong);
+  --brand-sonny-angel: var(--accent-warm);
+  --brand-pop-bean: var(--accent);
+  --field-height: 2.6rem;
+  --field-label: var(--muted);
+}
+
+.collectibles-hero h1 {
+  max-width: 30ch;
+  font-size: var(--step-3);
+}
+
+/* Above the results, so an open picker list or export menu covers them. */
+.collectibles-form {
   position: relative;
   z-index: 5;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.65rem 0.8rem;
-  width: 100%;
-  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.8rem;
+}
+
+/* What to find: the line tabs, then search, year, and series in one row. */
+.collectibles-controls {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   background: rgba(5, 18, 32, 0.76);
@@ -45,32 +66,167 @@
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
-.collectibles-search {
+.collectibles-lines {
+  display: flex;
+  gap: 0.15rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0.6rem;
+  border: 0;
+  box-shadow: inset 0 -1px 0 var(--glass-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+
+.collectibles-lines::-webkit-scrollbar {
+  display: none;
+}
+
+.collectibles-line-tab {
+  --tab-color: var(--ink);
+  position: relative;
+  display: flex;
+  flex: none;
+  margin: 0;
+  cursor: pointer;
+}
+
+.collectibles-line-tab[data-brand="skullpanda"] { --tab-color: var(--brand-skullpanda); }
+.collectibles-line-tab[data-brand="nommi"] { --tab-color: var(--brand-nommi); }
+.collectibles-line-tab[data-brand="sonny-angel"] { --tab-color: var(--brand-sonny-angel); }
+.collectibles-line-tab[data-brand="pop-bean"] { --tab-color: var(--brand-pop-bean); }
+
+.collectibles-line-tab input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.collectibles-line-tab span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 3px 0.8rem 0;
+  border-bottom: 3px solid transparent;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: color var(--motion-fast), border-color var(--motion-fast);
+}
+
+.collectibles-line-tab[data-brand] span::before {
+  content: "";
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--tab-color);
+}
+
+.collectibles-line-tab:hover span {
+  color: var(--ink);
+  border-bottom-color: color-mix(in srgb, var(--tab-color) 40%, transparent);
+}
+
+.collectibles-line-tab input:checked + span {
+  border-bottom-color: var(--tab-color);
+  color: var(--ink);
+}
+
+.collectibles-line-tab input:focus-visible + span {
+  border-radius: 8px 8px 0 0;
+  outline: 2px solid var(--accent-warm);
+  outline-offset: -5px;
+}
+
+.collectibles-fields {
   display: grid;
-  flex: 2 1 16rem;
-  gap: 0.35rem;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: 0.6rem;
+  padding: 0.75rem;
+}
+
+/* One field shape for every control: the label sits inside, before the value. */
+.collectibles-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  min-height: var(--field-height);
+  padding: 0.2rem 0.45rem 0.2rem 0.95rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.3rem;
+  background: var(--glass-tint);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.collectibles-field:hover {
+  border-color: var(--line-strong);
+}
+
+.collectibles-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.12);
+}
+
+.collectibles-field-label {
+  flex: none;
+  margin: 0 0.25rem 0 0;
+  color: var(--field-label);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: inherit;
+}
+
+.collectibles-search {
+  position: relative;
   min-width: 0;
 }
 
-.collectibles-search label,
-.collectibles-filter legend,
-.collectibles-picker > label,
-.collectibles-sort label {
-  margin: 0;
-  padding: 0;
-  color: var(--ink-soft);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+/* A magnifier drawn in CSS: the lens, then its handle. */
+.collectibles-search::before,
+.collectibles-search::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.collectibles-search::before {
+  top: calc(var(--field-height) / 2 - 0.5rem);
+  left: 1rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--field-label);
+  border-radius: 50%;
+}
+
+.collectibles-search::after {
+  top: calc(var(--field-height) / 2 + 0.28rem);
+  left: 1.62rem;
+  width: 0.42rem;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--field-label);
+  transform: rotate(45deg);
+  transform-origin: left center;
 }
 
 .collectibles-search input {
   width: 100%;
   min-width: 0;
-  min-height: 2.4rem;
-  padding: 0.4rem 0.8rem;
+  min-height: var(--field-height);
+  padding: 0.4rem 1rem 0.4rem 2.5rem;
   border: 1px solid var(--glass-border);
-  border-radius: 999px;
+  border-radius: 1.3rem;
   background: var(--glass-tint);
   color: var(--ink);
   font: inherit;
@@ -81,54 +237,29 @@
   appearance: none;
 }
 
+.collectibles-search input:hover {
+  border-color: var(--line-strong);
+}
+
 .collectibles-search input::placeholder {
-  color: var(--ink-soft);
+  color: var(--field-label);
 }
 
 .collectibles-search input:focus-visible {
   border-color: var(--accent);
   background: var(--glass-tint-strong);
-  box-shadow: var(--shadow-sm), 0 0 0 4px rgba(0, 245, 255, 0.14);
+  box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.12);
   outline: 2px solid transparent;
   outline-offset: 3px;
 }
 
-.collectibles-sort {
-  display: grid;
-  flex: 1 1 14rem;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
 .collectibles-picker {
   position: relative;
-  display: grid;
-  flex: 1 1 14rem;
-  gap: 0.35rem;
   min-width: 0;
 }
 
-.collectibles-year-picker {
-  flex: 0 1 15rem;
-}
-
-/* Chips and the text box share one pill-shaped field. */
 .collectibles-picker-field {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem;
-  min-height: 2.4rem;
-  padding: 0.2rem 0.4rem;
-  border: 1px solid var(--glass-border);
-  border-radius: 1.4rem;
-  background: var(--glass-tint);
   cursor: text;
-}
-
-.collectibles-picker-field:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.12);
 }
 
 .collectibles-picker-chips {
@@ -164,10 +295,10 @@
 }
 
 .collectibles-picker-input {
-  flex: 1 1 6rem;
-  min-width: 5rem;
+  flex: 1 1 4rem;
+  min-width: 3rem;
   min-height: 1.8rem;
-  padding: 0 0.4rem;
+  padding: 0 0.3rem;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -248,114 +379,34 @@
   font-size: 0.9rem;
 }
 
-.collectibles-sort {
-  flex: 0 1 12rem;
-}
-
-.collectibles-sort select {
-  width: 100%;
-  min-width: 0;
-  min-height: 2.4rem;
-  padding: 0.45rem 2.25rem 0.45rem 0.9rem;
-  font-size: 0.95rem;
-  border: 1px solid var(--glass-border);
-  border-radius: 999px;
-  background: var(--glass-tint);
-  color: var(--ink);
-  font: inherit;
-}
-
-.collectibles-export {
-  flex: 0 0 auto;
-  min-height: 2.4rem;
-  padding-block: 0.35rem;
-}
-
-.collectibles-filter {
-  display: grid;
-  flex: 0 1 auto;
-  gap: 0.35rem;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.collectibles-filter-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.collectibles-filter-option {
+/* How to view the results and what to do with them. */
+.collectibles-toolbar {
   position: relative;
-  display: inline-flex;
-  margin: 0;
-  cursor: pointer;
-}
-
-.collectibles-filter-option input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.collectibles-filter-option span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.4rem;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--glass-border);
-  border-radius: 999px;
-  background: var(--glass-tint);
-  color: var(--ink);
-  font-size: 0.88rem;
-  font-weight: 600;
-  transition: border-color var(--motion-fast), background var(--motion-fast), box-shadow var(--motion-fast);
-}
-
-.collectibles-filter-option:hover span {
-  border-color: var(--accent);
-}
-
-.collectibles-filter-option input:checked + span {
-  border-color: var(--accent);
-  background: rgba(0, 245, 255, 0.16);
-}
-
-.collectibles-filter-option input:focus-visible + span {
-  outline: 2px solid var(--accent-warm);
-  outline-offset: 3px;
-}
-
-.collectibles-meta {
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.35rem 1rem;
+  gap: 0.65rem 1.25rem;
   padding-inline: 0.15rem;
 }
 
+.collectibles-meta {
+  display: grid;
+  flex: 1 1 20rem;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
 .collectibles-status,
-.collectibles-storage-status,
-.collectibles-updated {
+.collectibles-meta-note {
   margin: 0;
 }
 
-.collectibles-meta > div {
-  display: grid;
-  gap: 0.25rem;
-}
-
 .collectibles-status {
-  font-weight: 600;
   color: var(--ink);
   font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .collectibles-status[data-tone="error"],
@@ -367,10 +418,218 @@
   color: var(--ink-soft);
 }
 
-.collectibles-storage-status,
-.collectibles-updated {
+.collectibles-meta-note {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.collectibles-view {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.collectibles-segmented {
+  display: inline-flex;
+  min-width: 0;
+  margin: 0;
+  padding: 0.2rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.3rem;
+  background: var(--glass-tint);
+}
+
+.collectibles-segment {
+  position: relative;
+  display: flex;
+  margin: 0;
+  cursor: pointer;
+}
+
+.collectibles-segment input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.collectibles-segment span {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(var(--field-height) - 0.4rem - 2px);
+  padding: 0 0.85rem;
+  border-radius: 1.1rem;
   color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.collectibles-segment:hover span {
+  color: var(--ink);
+}
+
+.collectibles-segment input:checked + span {
+  background: rgba(0, 245, 255, 0.16);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.collectibles-segment input:focus-visible + span {
+  outline: 2px solid var(--accent-warm);
+  outline-offset: 2px;
+}
+
+.collectibles-sort {
+  position: relative;
+  flex-wrap: nowrap;
+  padding-right: 0.2rem;
+}
+
+.collectibles-sort select {
+  min-width: 0;
+  min-height: calc(var(--field-height) - 0.4rem - 2px);
+  padding: 0 2rem 0 0.1rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
   font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.collectibles-sort select:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.collectibles-sort option {
+  background: var(--panel-solid);
+  color: var(--ink);
+}
+
+/* Chevrons for the sort field and the export button. */
+.collectibles-sort::after,
+.collectibles-export-toggle::after {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.12rem) rotate(45deg);
+  transition: transform var(--motion-fast);
+  pointer-events: none;
+}
+
+.collectibles-sort::after {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  color: var(--field-label);
+  transform: translateY(-65%) rotate(45deg);
+}
+
+.collectibles-export {
+  position: relative;
+}
+
+.collectibles-export-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--field-height);
+  padding: 0 1.05rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 1.3rem;
+  background: rgba(0, 245, 255, 0.08);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.collectibles-export-toggle:hover,
+.collectibles-export-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+  background: rgba(0, 245, 255, 0.16);
+}
+
+.collectibles-export-toggle[aria-expanded="true"]::after {
+  transform: translateY(0.1rem) rotate(-135deg);
+}
+
+.collectibles-export-toggle[aria-busy="true"] {
+  cursor: progress;
+}
+
+.collectibles-export-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 0.1rem;
+  width: min(21rem, calc(100vw - 2.5rem));
+  padding: 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel-solid);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.collectibles-export-menu[hidden] {
+  display: none;
+}
+
+.collectibles-export-option {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collectibles-export-option:hover:not(:disabled),
+.collectibles-export-option:focus-visible {
+  background: rgba(0, 245, 255, 0.1);
+}
+
+.collectibles-export-option:focus-visible {
+  outline-offset: -2px;
+}
+
+.collectibles-export-option:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.collectibles-export-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.collectibles-export-detail {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .collectibles-results {
@@ -444,12 +703,29 @@
 }
 
 .collectible-line-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   margin: 0;
   padding-bottom: 0.3rem;
   border-bottom: 1px solid var(--line);
   color: var(--ink);
   font-size: clamp(1.02rem, 0.98rem + 0.3vw, 1.2rem);
   line-height: 1.2;
+}
+
+.collectible-line[data-brand="skullpanda"] { --line-brand: var(--brand-skullpanda); }
+.collectible-line[data-brand="nommi"] { --line-brand: var(--brand-nommi); }
+.collectible-line[data-brand="sonny-angel"] { --line-brand: var(--brand-sonny-angel); }
+.collectible-line[data-brand="pop-bean"] { --line-brand: var(--brand-pop-bean); }
+
+.collectible-line[data-brand] .collectible-line-title::before {
+  content: "";
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--line-brand);
 }
 
 .collectible-year {
@@ -902,6 +1178,17 @@
   cursor: progress;
 }
 
+/* Search takes its own row; year and series share the next. */
+@media (max-width: 1000px) {
+  .collectibles-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .collectibles-search {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 860px) {
   .collectible-year {
     grid-template-columns: minmax(0, 1fr);
@@ -919,8 +1206,8 @@
   }
 
   .hero.hero-compact h1 {
-    font-size: clamp(1.75rem, 8vw, 2.05rem);
-    line-height: 1.04;
+    font-size: clamp(1.5rem, 6.4vw, 1.9rem);
+    line-height: 1.08;
   }
 
   .hero.hero-compact .lede {
@@ -928,19 +1215,46 @@
     line-height: 1.45;
   }
 
-  .collectibles-controls {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.6rem;
-    padding: 0.65rem;
+  /* The tab strip scrolls sideways; its fading edge says there is more. */
+  .collectibles-lines {
+    padding: 0 2rem 0 0.35rem;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
   }
 
-  .collectibles-controls > * {
-    min-width: 0;
+  .collectibles-line-tab span {
+    min-height: 2.85rem;
+    padding-inline: 0.65rem;
+    font-size: 0.9rem;
   }
 
-  .collectibles-controls > :is(.collectibles-search, .collectibles-filter) {
-    grid-column: 1 / -1;
+  .collectibles-fields {
+    gap: 0.5rem;
+    padding: 0.6rem;
+  }
+
+  .collectibles-field {
+    padding-left: 0.8rem;
+  }
+
+  .collectibles-view {
+    flex: 1 1 100%;
+  }
+
+  .collectibles-segmented {
+    flex: 1 1 100%;
+  }
+
+  .collectibles-segment {
+    flex: 1 1 0;
+  }
+
+  .collectibles-sort {
+    flex: 1 1 auto;
+  }
+
+  .collectibles-sort select {
+    flex: 1 1 auto;
   }
 
   .collectible-inventory-owned,
@@ -948,42 +1262,18 @@
     width: 3.25rem;
   }
 
-  .collectibles-filter-options {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 0.35rem;
-    padding: 0.1rem 0.1rem 0.25rem;
-    overflow-x: auto;
-    scrollbar-width: thin;
-    overscroll-behavior-inline: contain;
+  .collectibles-picker-input {
+    flex-basis: 1.5rem;
+    min-width: 1.5rem;
   }
 
-  .collectibles-filter-option span {
-    justify-content: center;
-    width: auto;
-    min-height: 2.25rem;
-    padding: 0.3rem 0.7rem;
-    white-space: nowrap;
+  /* With a choice made, the chip says enough; "Add…" would only be clipped. */
+  .collectibles-picker-chips:not(:empty) + .collectibles-picker-input::placeholder {
+    color: transparent;
   }
 
-  .collectibles-filter-option {
-    flex: 0 0 auto;
-  }
-
-  .collectibles-series-picker .collectibles-picker-input {
-    width: 2rem;
-    min-width: 2rem;
-  }
-
-  .collectibles-year-picker .collectibles-picker-input {
-    width: 2rem;
-    min-width: 2rem;
-  }
-
-  .collectibles-picker-field {
-    width: 100%;
-    min-width: 0;
-    overflow: hidden;
+  .collectibles-field-label {
+    margin-right: 0.1rem;
   }
 
   .collectibles-picker-options {
@@ -1010,8 +1300,18 @@
 }
 
 @media print {
+  /* Paper is white: the page's light-on-dark colors print as dark ink. */
   :root {
     color-scheme: light;
+    --ink: #111;
+    --ink-soft: #333;
+    --muted: #555;
+    --accent: #006d77;
+    --accent-warm: #8a5a00;
+    --line: #bbb;
+    --glass-border: #bbb;
+    --glass-tint: #fff;
+    --glass-tint-strong: #fff;
   }
 
   body {
@@ -1022,8 +1322,7 @@
 
   .site-header,
   .page-shell > footer,
-  .collectibles-controls,
-  .collectibles-meta,
+  .collectibles-form,
   .collectibles-more,
   .hero-actions {
     display: none !important;
@@ -1057,6 +1356,9 @@
 
   .collectible-release-block {
     break-inside: avoid;
+    border-color: #999;
+    background: #fff;
+    box-shadow: none;
   }
 
   .collectible-release-title,
@@ -1191,7 +1493,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .collectibles-search input,
-  .collectibles-filter-option span,
+  .collectibles-line-tab span,
+  .collectibles-field,
+  .collectibles-segment span,
+  .collectibles-sort::after,
+  .collectibles-export-toggle,
+  .collectibles-export-toggle::after,
   .collectible-variants-toggle,
   .collectible-variants-icon,
   .collectible-thumbnail-toggle {
