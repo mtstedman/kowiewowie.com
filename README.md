@@ -13,7 +13,7 @@ api/                            API front controller and autoloader
 includes/
   api/classes/                  API application/configuration
   auth/classes/                 JWT, refresh-token, and OAuth services
-  collectibles/classes/         Collectible catalog repository and storefront sync
+  collectibles/classes/         Collectible catalog, saved collections, and storefront sync
   content/classes/              PostgreSQL content repository
   content/functions/            Stateless validation and slug helpers
   database/classes/             PDO connection and schema version minter
@@ -38,6 +38,7 @@ docs/postgres/
 tests/api-smoke.php             Database and API integration checks
 tests/trivia-murder-game.php    Isolated full-game database playthrough
 tests/poe2-tree-api.php         PoE 2 passive-tree import and API checks
+tests/collectibles-collection.php  Saved-collection API checks (guest cookie, account merge)
 ```
 
 PostgreSQL owns users, OAuth identities, rotating refresh tokens, recipes,
@@ -91,6 +92,23 @@ POST /v1/trivia/rooms/<uuid>/replay
 Room creation returns a raw join token once. Later room mutations require the
 resolved browser identity to own the host or player seat; the shared link alone
 is only a seating claim.
+
+The collectibles shelf saves which figures a visitor owns. A signed-in
+visitor's collection belongs to their account; anyone else's belongs to their
+browser through the HttpOnly `wowie_collection` cookie, which is set with the
+first saved figure, lasts 400 days (the longest browsers keep a cookie), and is
+renewed by every collection request. The first collection read while signed in
+merges that browser's guest collection into the account, keeping the larger
+quantity of each figure. Collection routes are:
+
+```text
+GET  /v1/collectibles/collection
+PUT  /v1/collectibles/collection/figures   {product_id, figure_name, quantity}
+POST /v1/collectibles/collection/merge     {figures: [{product_id, figure_name, quantity}]}
+```
+
+A quantity of zero removes the figure. Writes must come from the site's own
+origin or `WOWIE_CORS_ORIGINS`, as for PoE 2 builds.
 
 ## Database configuration
 

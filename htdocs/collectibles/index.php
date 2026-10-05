@@ -77,7 +77,7 @@ $pageStyles = ['/assets/css/collectibles.css'];
                             <p id="collectibles-status" class="collectibles-status" role="status" aria-live="polite" aria-atomic="true">Unboxing the catalog...</p>
                             <p class="collectibles-meta-note">
                                 <span id="collectibles-updated" class="collectibles-updated" hidden></span>
-                                <span id="collectibles-storage-status" class="collectibles-storage-status">Inventory is saved in this browser.</span>
+                                <span id="collectibles-storage-status" class="collectibles-storage-status">Loading your collection…</span>
                             </p>
                         </div>
                         <div class="collectibles-view">

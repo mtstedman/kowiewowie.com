@@ -1,9 +1,9 @@
-<!-- schema-version: 21 -->
+<!-- schema-version: 22 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 19**. `migration-chain.json` is the ordered,
+current release pin is **version 22**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -36,11 +36,14 @@ per-file execution ledger.
 | 17 | `016_poe2_passive_tree.sql` | Indexed Path of Exile 2 passive-tree exports: versions, classes, ascendancies, nodes, edges, unlock and radius lists, and overrides |
 | 18 | `017_poe2_considered_nodes.sql` | Path of Exile 2 saved builds keep a list of considered passive node IDs |
 | 19 | `018_risk_games.sql` | Online Risk games, seated human and bot players, and reusable hashed invite links |
+| 20 | `019_collectible_identifiers.sql` | Retail SKUs and barcodes on collectible products and figures |
+| 21 | `020_pop_bean_brand.sql` | POP BEAN joins the collectible brands |
+| 22 | `021_collectible_collections.sql` | Owned collectible figures, saved for a registered user or a long-lived guest browser cookie |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 19 inventory
+## Current version 22 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -59,7 +62,8 @@ their full basenames are already stored in production's migration ledger.
 - Risk: `risk_games`, `risk_game_players`, and `risk_game_links`
 - Open deck: `open_deck_slots`, `open_deck_set_nominations`,
   `open_deck_fill_votes`, and `open_deck_eviction_votes`
-- Collectibles: `collectible_products` and `collectible_variants`
+- Collectibles: `collectible_products` and `collectible_variants`; collections
+  in `collectible_owned_figures` and `collectible_guest_collections`
 - Palworld breeding: `palworld_dataset`, `palworld_pals`,
   `palworld_breeding_pairs`, and `palworld_passive_skills`
 - Path of Exile 2: `poe2_saved_builds`, `poe2_tree_versions`,
@@ -430,6 +434,32 @@ A refresh that omits an identifier keeps the stored one.
 with an uppercase ISO 4217 `currency` code; for example, USD 19.99 is stored as
 `1999` with `USD`. A variant whose `price_cents` is `NULL` inherits its
 product's price.
+
+## Collectible collections
+
+A collection records which figures a visitor owns and how many.
+`collectible_owned_figures` holds one row per owned figure: `user_id`
+referencing `users(id)`, or `guest_collection_id` referencing
+`collectible_guest_collections(id)` (exactly one is set; both cascade on
+delete), the shelf's listing `product_id` (1-200 characters of
+`A-Za-z0-9:._-`), the figure's `figure_name` (up to 300 characters), and a
+`quantity` of 1 to 1,000,000; a figure that is no longer owned has no row.
+`product_id` and `figure_name` are the keys the shelf uses rather than foreign
+keys, so a catalog refresh that retires a listing never deletes what someone
+owns. The partial unique indexes `collectible_owned_figures_user_key` and
+`collectible_owned_figures_guest_key` keep one row per owner and figure and
+serve each owner's collection read.
+
+`collectible_guest_collections` is a browser without an account: the
+SHA-256 `cookie_token_hash` of its random `wowie_collection` cookie (the token
+itself is never stored) and `last_seen_at`. The cookie lasts 400 days, the
+longest browsers keep one, and every collection request renews it; the row has
+no expiry. A guest collection is created only when its browser first saves a
+figure. When that browser next reads its collection while signed in, the guest
+figures merge into the account (the larger quantity wins) and the guest row
+is deleted.
+
+Both tables refresh `updated_at` through `set_updated_at()` triggers.
 
 ## Chess opening book
 

@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=96a1851077b0';
+import * as inventoryModule from './collectibles-inventory.js?v=f73e3f52137a';
 
 const {
     INVENTORY_STORAGE_KEY,
@@ -14,7 +14,9 @@ const {
     BRANDS,
     inventoryKey,
     parseQuantity,
-    createInventoryStore,
+    MAX_QUANTITY,
+    legacyInventoryFigures,
+    createCollectionStore,
     normalizeInventoryFilter,
     isOwnedQuantity,
     quantityMatchesFilter,
@@ -142,11 +144,63 @@ const {
         lastSyncedAt: null,
     };
 
-    const setStorageStatus = (persistent) => {
-        storageStatusElement.textContent = persistent
-            ? 'Inventory is saved in this browser.'
-            : 'Inventory changes are kept for this session, but are not saved.';
-        storageStatusElement.dataset.saved = persistent ? 'true' : 'false';
+    // The collection is saved on the server: the account's when signed in,
+    // otherwise this browser's, which the long-lived wowie_collection cookie names.
+    const COLLECTION_ENDPOINT = '/api/v1/collectibles/collection';
+    // The site header loads this same specifier, so the page shares its one
+    // session and never spends the refresh cookie twice.
+    const AUTH_MODULE_URL = '/assets/js/auth-api.js';
+    let authLoad = null;
+    const loadAuth = () => {
+        authLoad ??= import(AUTH_MODULE_URL).catch(() => null);
+        return authLoad;
+    };
+    // Signed in, requests carry the access token; otherwise the cookie alone.
+    const authorization = async () => {
+        const auth = await loadAuth();
+        if (!auth) return {};
+        try {
+            await auth.restoreSession();
+            const token = await auth.getAccessToken();
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch (error) {
+            return {};
+        }
+    };
+    const collectionRequest = async (path, method = 'GET', body = undefined) => {
+        const headers = { Accept: 'application/json', ...(await authorization()) };
+        if (body !== undefined) headers['Content-Type'] = 'application/json';
+        const response = await fetch(`${COLLECTION_ENDPOINT}${path}`, {
+            method,
+            headers,
+            credentials: 'same-origin',
+            body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        let payload = null;
+        try {
+            payload = await response.json();
+        } catch (error) {
+            payload = null;
+        }
+        if (!response.ok) {
+            throw Object.assign(new Error(typeof payload?.message === 'string' ? payload.message : 'The collection could not be reached.'), {
+                status: response.status,
+                code: typeof payload?.error === 'string' ? payload.error : '',
+            });
+        }
+        return { figures: Array.isArray(payload?.data) ? payload.data : [], owner: payload?.meta?.owner };
+    };
+
+    const STORAGE_MESSAGES = {
+        loading: 'Loading your collection…',
+        account: 'Your collection is saved to your account.',
+        guest: 'Your collection is saved in this browser. Log in to keep it on every device.',
+        error: "Your collection didn't load, so changes can't be saved. Reload the page to try again.",
+    };
+    const setStorageStatus = (status, moved = 0) => {
+        storageStatusElement.textContent = `${STORAGE_MESSAGES[status]}${moved === 0 ? ''
+            : ` ${moved === 1 ? 'The figure' : `The ${moved} figures`} this browser saved before ${moved === 1 ? 'was' : 'were'} added to it.`}`;
+        storageStatusElement.dataset.saved = status === 'error' ? 'false' : 'true';
     };
 
     let browserStorage = null;
@@ -155,7 +209,38 @@ const {
     } catch (error) {
         browserStorage = null;
     }
-    const inventory = createInventoryStore(browserStorage, setStorageStatus);
+    const inventory = createCollectionStore({
+        load: () => collectionRequest(''),
+        merge: (figures) => collectionRequest('/merge', 'POST', { figures }),
+        save: (figure) => collectionRequest('/figures', 'PUT', figure),
+    }, { onRevert: (key, quantity, error) => revertFigure(key, quantity, error) });
+
+    const loadCollection = async () => {
+        setStorageStatus('loading');
+        let result;
+        try {
+            result = await inventory.load();
+        } catch (error) {
+            setStorageStatus('error');
+            return;
+        }
+        // What an older visit kept in this browser moves into the saved
+        // collection once; if that fails it stays here for the next visit.
+        let moved = 0;
+        const legacy = legacyInventoryFigures(browserStorage);
+        if (legacy.length > 0) {
+            try {
+                await inventory.merge(legacy);
+                moved = legacy.length;
+                browserStorage.removeItem(INVENTORY_STORAGE_KEY);
+            } catch (error) {
+                // Kept for the next visit.
+            }
+        }
+        setStorageStatus(result.owner === 'account' ? 'account' : 'guest', moved);
+    };
+    // The shelf draws its first figures once this settles; it never rejects.
+    let collectionReady = loadCollection();
     // Each rendered figure row (and each figure-less listing card) keeps the
     // catalog facts its spreadsheet row needs, so an export of the shelf
     // follows exactly what is on screen.
@@ -435,6 +520,30 @@ const {
         }
     };
 
+    const syncRowQuantity = (row, quantity) => {
+        const checkbox = row.querySelector('.collectible-owned-checkbox');
+        const quantityInput = row.querySelector('.collectible-quantity-input');
+        const ownedPrint = row.querySelector('.collectible-owned-print');
+        const quantityPrint = row.querySelector('.collectible-quantity-print');
+        if (checkbox instanceof HTMLInputElement && quantityInput instanceof HTMLInputElement
+            && ownedPrint instanceof HTMLElement && quantityPrint instanceof HTMLElement) {
+            updateRowQuantity(row, checkbox, quantityInput, ownedPrint, quantityPrint, quantity);
+        }
+    };
+
+    // A save that failed: every row for that figure returns to what is saved.
+    const revertFigure = (key, quantity, error) => {
+        Array.from(resultsElement.querySelectorAll('.collectible-inventory-row'))
+            .forEach((row) => {
+                if (row instanceof HTMLElement && row.dataset.inventoryKey === key) syncRowQuantity(row, quantity);
+            });
+        refreshInventoryVisibility();
+        const figureName = JSON.parse(key)[1] || 'a figure';
+        setStatus(error?.code === 'collection_full'
+            ? error.message
+            : `Your change to ${figureName} wasn't saved, so it was undone. Check your connection and try again.`, 'error');
+    };
+
     const updateRowQuantity = (row, checkbox, quantityInput, ownedPrint, quantityPrint, quantity) => {
         row.dataset.quantity = String(quantity);
         checkbox.checked = isOwnedQuantity(quantity);
@@ -525,6 +634,7 @@ const {
         const ownedLabel = createElement('label', 'collectible-inventory-owned-control');
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
+        checkbox.className = 'collectible-owned-checkbox';
         checkbox.checked = isOwnedQuantity(quantity);
         checkbox.setAttribute('aria-label', `Owned: ${name} in ${product.title}`);
         ownedLabel.append(checkbox, createElement('span', 'collectibles-sr-only', `Owned: ${name} in ${product.title}`));
@@ -535,6 +645,7 @@ const {
         const quantityCell = createElement('td', 'collectible-inventory-quantity');
         const quantityInput = document.createElement('input');
         quantityInput.type = 'text';
+        quantityInput.className = 'collectible-quantity-input';
         quantityInput.inputMode = 'numeric';
         quantityInput.pattern = '[0-9]*';
         quantityInput.value = String(quantity);
@@ -545,25 +656,32 @@ const {
         quantityCell.append(quantityInput, quantityPrint);
         row.append(quantityCell);
 
+        // A change shows at once; the collection saves it, or undoes it if saving fails.
+        const saveQuantity = (nextQuantity) => {
+            if (!inventory.isReady()) {
+                updateRowQuantity(row, checkbox, quantityInput, ownedPrint, quantityPrint, Number(quantityInput.dataset.committed || '0'));
+                setStatus("Your collection didn't load, so this change wasn't saved. Reload the page to try again.", 'error');
+                return;
+            }
+            inventory.set(key, nextQuantity);
+            updateRowQuantity(row, checkbox, quantityInput, ownedPrint, quantityPrint, nextQuantity);
+            refreshInventoryVisibility();
+        };
+
         const commitQuantity = () => {
             const parsed = parseQuantity(quantityInput.value);
             if (!parsed.valid) {
                 const previous = Number(quantityInput.dataset.committed || '0');
                 quantityInput.value = String(previous);
                 quantityInput.setAttribute('aria-invalid', 'true');
-                setStatus(`Quantity for ${name} was not changed. Enter a nonnegative whole number.`, 'error');
+                setStatus(`Quantity for ${name} was not changed. Enter a whole number from 0 to ${MAX_QUANTITY.toLocaleString('en-US')}.`, 'error');
                 return;
             }
-            inventory.set(key, parsed.quantity);
-            updateRowQuantity(row, checkbox, quantityInput, ownedPrint, quantityPrint, parsed.quantity);
-            refreshInventoryVisibility();
+            saveQuantity(parsed.quantity);
         };
 
         checkbox.addEventListener('change', () => {
-            const nextQuantity = quantityForOwnedToggle(checkbox.checked, Number(quantityInput.dataset.committed || '0'));
-            inventory.set(key, nextQuantity);
-            updateRowQuantity(row, checkbox, quantityInput, ownedPrint, quantityPrint, nextQuantity);
-            refreshInventoryVisibility();
+            saveQuantity(quantityForOwnedToggle(checkbox.checked, Number(quantityInput.dataset.committed || '0')));
         });
         quantityInput.addEventListener('input', () => {
             quantityInput.removeAttribute('aria-invalid');
@@ -1199,6 +1317,9 @@ const {
                 }
                 const payload = await response.json();
                 if (!requestGate.isCurrent(token)) return false;
+                // Rows show their owned quantities from the first page on.
+                await collectionReady;
+                if (!requestGate.isCurrent(token)) return false;
                 const meta = payload && payload.meta && typeof payload.meta === 'object' ? payload.meta : {};
                 state.lastSyncedAt = typeof meta.last_synced_at === 'string' ? meta.last_synced_at : state.lastSyncedAt;
                 if (offset === 0) {
@@ -1528,6 +1649,22 @@ const {
         document.documentElement.classList.add('collectibles-printing');
         prepareForPrint();
         window.print();
+    });
+
+    // Signing in or out in the site header switches to that collection.
+    loadAuth().then((auth) => {
+        if (!auth) return;
+        let signedIn = null;
+        auth.subscribe((accountState) => {
+            const now = accountState.status === 'authenticated' ? true : (accountState.status === 'signed-out' ? false : null);
+            if (now === null) return;
+            const changed = signedIn !== null && signedIn !== now;
+            signedIn = now;
+            if (!changed) return;
+            collectionReady = loadCollection().then(() => {
+                if (state.products.length > 0) renderCatalog();
+            });
+        });
     });
 
     const initialParams = new URLSearchParams(window.location.search);

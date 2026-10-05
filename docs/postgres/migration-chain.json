@@ -189,6 +189,15 @@
           "sha256": "a39076755f7397b97f944b44e0c7cee4ea0072b16693fd5f81a98286c622d668"
         }
       ]
+    },
+    {
+      "version": 22,
+      "updates": [
+        {
+          "file": "updates/021_collectible_collections.sql",
+          "sha256": "a705527c74b1a5369768cc51bdabc831b8d2f0614c0dc5a11620744732f707f5"
+        }
+      ]
     }
   ]
 }

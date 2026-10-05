@@ -6,7 +6,9 @@ import {
   inventoryKey,
   parseQuantity,
   decodeInventory,
-  createInventoryStore,
+  MAX_QUANTITY,
+  legacyInventoryFigures,
+  createCollectionStore,
   isOwnedQuantity,
   quantityMatchesFilter,
   quantityForOwnedToggle,
@@ -352,6 +354,8 @@ class MemoryStorage {
   assert.equal(parseQuantity('1.5').valid, false);
   assert.equal(parseQuantity('many').valid, false);
   assert.equal(parseQuantity(String(Number.MAX_SAFE_INTEGER + 1)).valid, false);
+  assert.equal(parseQuantity(String(MAX_QUANTITY)).valid, true);
+  assert.equal(parseQuantity(String(MAX_QUANTITY + 1)).valid, false, 'A collection records up to a million of one figure.');
 }
 
 {
@@ -368,51 +372,87 @@ class MemoryStorage {
   assert.equal(quantityMatchesFilter(3, 'missing'), false);
 }
 
+// The saved collection: nothing changes before it loads; a change shows at
+// once and saves in order; a failed save returns to the last saved quantity.
 {
-  const storage = new MemoryStorage();
-  const persistenceStates = [];
-  const first = createInventoryStore(storage, (persistent) => persistenceStates.push(persistent));
   const alphaKey = inventoryKey('set-a', 'Shared figure');
   const betaKey = inventoryKey('set-b', 'Shared figure');
   assert.notEqual(inventoryKey('set|a', 'figure'), inventoryKey('set', 'a|figure'), 'Serialized identities must be collision-safe.');
-  first.set(alphaKey, 2);
-  first.set(betaKey, 5);
+  const server = new Map([[alphaKey, 2]]);
+  const listed = () => ({ figures: Array.from(server, ([key, quantity]) => {
+    const [product_id, figure_name] = JSON.parse(key);
+    return { product_id, figure_name, quantity };
+  }) });
+  const saves = [];
+  const failing = new Set();
+  const reverts = [];
+  const store = createCollectionStore({
+    load: async () => listed(),
+    merge: async (figures) => {
+      figures.forEach((figure) => {
+        const key = inventoryKey(figure.product_id, figure.figure_name);
+        server.set(key, Math.max(server.get(key) || 0, figure.quantity));
+      });
+      return listed();
+    },
+    save: async (figure) => {
+      saves.push(figure);
+      await new Promise((resolve) => setImmediate(resolve));
+      if (failing.has(figure.quantity)) throw new Error('offline');
+      const key = inventoryKey(figure.product_id, figure.figure_name);
+      if (figure.quantity === 0) server.delete(key);
+      else server.set(key, figure.quantity);
+    },
+  }, { onRevert: (key, quantity) => reverts.push([key, quantity]) });
 
-  const second = createInventoryStore(storage, () => {});
-  assert.equal(second.get(alphaKey), 2, 'Quantity must survive a browser reload.');
-  assert.equal(second.get(betaKey), 5, 'Same-named figures in different sets must remain independent.');
-  assert.notEqual(alphaKey, betaKey);
-  assert.equal(persistenceStates.at(-1), true);
+  assert.equal(await store.set(alphaKey, 5), false, 'Nothing changes before the collection loads.');
+  assert.equal(store.get(alphaKey), 0);
+  await store.load();
+  assert.equal(store.get(alphaKey), 2, 'The saved collection loads.');
+  const first = store.set(betaKey, 5);
+  const second = store.set(betaKey, 6);
+  assert.equal(store.get(betaKey), 6, 'A change shows at once.');
+  assert.deepEqual([await first, await second], [true, true]);
+  assert.deepEqual(saves.map((figure) => figure.quantity), [5, 6], 'Saves run in order.');
+  assert.deepEqual(saves[0], { product_id: 'set-b', figure_name: 'Shared figure', quantity: 5 });
+  assert.equal(server.get(betaKey), 6);
 
-  const persisted = JSON.parse(storage.getItem(INVENTORY_STORAGE_KEY));
-  assert.equal(persisted.version, 1);
-  assert.deepEqual(persisted.quantities, { [alphaKey]: 2, [betaKey]: 5 });
+  failing.add(9);
+  assert.equal(await store.set(alphaKey, 9), false);
+  assert.equal(store.get(alphaKey), 2, 'A failed save returns to the saved quantity.');
+  assert.deepEqual(reverts, [[alphaKey, 2]]);
+  const superseded = store.set(betaKey, 9);
+  const latest = store.set(betaKey, 7);
+  assert.deepEqual([await superseded, await latest], [false, true]);
+  assert.equal(store.get(betaKey), 7, 'A later change supersedes an earlier failure.');
+  assert.equal(reverts.length, 1, 'A superseded failure undoes nothing.');
 
-  first.set(alphaKey, 0);
-  assert.equal(first.get(alphaKey), 0);
-  assert.equal(first.snapshot().has(betaKey), true, 'Editing one row must not prune temporarily absent inventory entries.');
+  assert.equal(await store.set(alphaKey, 0), true);
+  assert.equal(server.has(alphaKey), false, 'Zero removes the figure.');
+  assert.equal(await store.set(betaKey, MAX_QUANTITY + 1), false);
+  assert.equal(await store.set(betaKey, -1), false);
+  await store.merge([{ product_id: 'set-c', figure_name: 'New', quantity: 3 }]);
+  assert.equal(store.get(inventoryKey('set-c', 'New')), 3, 'A merge returns the whole collection.');
+  assert.equal(store.snapshot().get(betaKey), 7);
 }
 
+// What an older visit kept in this browser, ready to move into the collection.
 {
-  const malformedStorage = new MemoryStorage({ [INVENTORY_STORAGE_KEY]: '{not json' });
-  assert.doesNotThrow(() => createInventoryStore(malformedStorage, () => {}));
-  assert.equal(createInventoryStore(malformedStorage, () => {}).snapshot().size, 0);
+  const kept = new MemoryStorage({
+    [INVENTORY_STORAGE_KEY]: JSON.stringify({
+      version: 1,
+      quantities: { [inventoryKey('7', 'Moon')]: 2, [inventoryKey('7', 'Sun')]: 0, [inventoryKey('8', 'Big')]: MAX_QUANTITY + 5 },
+    }),
+  });
+  assert.deepEqual(legacyInventoryFigures(kept), [
+    { product_id: '7', figure_name: 'Moon', quantity: 2 },
+    { product_id: '8', figure_name: 'Big', quantity: MAX_QUANTITY },
+  ]);
+  assert.deepEqual(legacyInventoryFigures(new MemoryStorage({ [INVENTORY_STORAGE_KEY]: '{not json' })), []);
+  assert.deepEqual(legacyInventoryFigures(new MemoryStorage()), []);
+  assert.deepEqual(legacyInventoryFigures(null), []);
+  assert.deepEqual(legacyInventoryFigures({ getItem() { throw new Error('denied'); } }), []);
   assert.throws(() => decodeInventory(JSON.stringify({ version: 99, quantities: {} })));
-}
-
-{
-  const failedStorage = {
-    getItem() { throw new Error('denied'); },
-    setItem() { throw new Error('denied'); },
-    removeItem() { throw new Error('denied'); },
-  };
-  const states = [];
-  const store = createInventoryStore(failedStorage, (persistent) => states.push(persistent));
-  const key = inventoryKey('offline', 'Session figure');
-  assert.equal(store.isPersistent(), false);
-  assert.equal(store.set(key, 7), true, 'Storage failure must still permit session editing.');
-  assert.equal(store.get(key), 7);
-  assert.equal(states.at(-1), false);
 }
 
 {
@@ -817,8 +857,38 @@ class MemoryStorage {
     : (Number.isInteger(product.release_year) ? product.release_year : null));
   const groupOf = (product) => product.series_id || `unclassified:${product.brand}${product.line ? `:${product.line}` : ''}`;
   const requests = [];
-  globalThis.fetch = async (requestUrl) => {
-    const params = new URL(requestUrl, 'https://example.test').searchParams;
+  // A stand-in for the collection API: this browser's saved figures.
+  const savedCollection = new Map();
+  const collectionRequests = [];
+  let failSaves = false;
+  const collectionPayload = () => ({
+    data: Array.from(savedCollection, ([key, quantity]) => {
+      const [product_id, figure_name] = JSON.parse(key);
+      return { product_id, figure_name, quantity };
+    }),
+    meta: { owner: 'guest', count: savedCollection.size },
+  });
+  globalThis.fetch = async (requestUrl, options = {}) => {
+    const url = new URL(requestUrl, 'https://example.test');
+    if (url.pathname.startsWith('/api/v1/collectibles/collection')) {
+      const body = options.body ? JSON.parse(options.body) : null;
+      collectionRequests.push(`${options.method || 'GET'} ${url.pathname}`);
+      if (url.pathname.endsWith('/figures')) {
+        if (failSaves) return { ok: false, status: 503, json: async () => ({ error: 'unavailable', message: 'Down.' }) };
+        const key = inventoryKey(body.product_id, body.figure_name);
+        if (body.quantity === 0) savedCollection.delete(key);
+        else savedCollection.set(key, body.quantity);
+        return { ok: true, status: 200, json: async () => ({ data: body, meta: { owner: 'guest' } }) };
+      }
+      if (url.pathname.endsWith('/merge')) {
+        body.figures.forEach((figure) => {
+          const key = inventoryKey(figure.product_id, figure.figure_name);
+          savedCollection.set(key, Math.max(savedCollection.get(key) || 0, figure.quantity));
+        });
+      }
+      return { ok: true, status: 200, json: async () => collectionPayload() };
+    }
+    const params = url.searchParams;
     requests.push(params);
     const offset = Number(params.get('offset') || '0');
     const query = String(params.get('q') || '').toLowerCase();
@@ -902,6 +972,11 @@ class MemoryStorage {
   // download.
   await waitFor(() => settled() && requests.length >= 2 && allBlocks().length === 1, 'The shelf should open on the newest batch.');
   assert.equal(requests[0].get('year'), thisYear, 'The first request asks for the current year only.');
+  // The collection loads from the server, and what this browser kept before moves into it once.
+  assert.deepEqual(collectionRequests, ['GET /api/v1/collectibles/collection', 'POST /api/v1/collectibles/collection/merge']);
+  assert.equal(savedCollection.get(inventoryKey('sonny-retail-a', 'Rabbit')), 2);
+  assert.equal(storage.getItem(INVENTORY_STORAGE_KEY), null, 'The old browser copy is cleared once moved.');
+  assert.equal(storageStatus.textContent, 'Your collection is saved in this browser. Log in to keep it on every device. The figure this browser saved before was added to it.');
   assert.equal(requests[1].get('year'), '2023', 'An empty current year falls back to the newest year with listings.');
   assert.equal(requests.every((params) => params.get('year') !== 'all'), true, 'The default view never asks for every year.');
   assert.deepEqual(chipValues(yearChips), ['2023'], 'The year shows as a removable chip.');
@@ -1051,10 +1126,23 @@ class MemoryStorage {
   elephantQuantity.value = '3';
   elephantQuantity.dispatchEvent({ type: 'change' });
   assert.deepEqual(allBlocks().filter((block) => !block.hidden).map((block) => block.dataset.releaseId), ['sonny-angel:animal-1']);
-  assert.equal(JSON.parse(storage.getItem(INVENTORY_STORAGE_KEY)).quantities[inventoryKey('sonny-retail-b', 'Elephant')], 3);
+  await waitFor(() => savedCollection.get(inventoryKey('sonny-retail-b', 'Elephant')) === 3, 'A quantity edit should be saved.');
+  assert.equal(savedCollection.has(inventoryKey('sonny-retail-a', 'Rabbit')), false, 'A quantity of zero removes the saved figure.');
   assert.equal(status.textContent, 'Showing 1 owned figure across 1 series. You own 1 of 9 figures here, 3 copies in all.',
     'Ownership counts the whole search, not just the Owned view, and follows quantity edits.');
   assert.equal(setCount('sonny-angel:animal-1').textContent, '1 of 2 owned, 3 copies', 'A set\'s count follows quantity edits.');
+
+  // A save that fails is undone and reported.
+  failSaves = true;
+  const elephantOwned = elephantRow.querySelectorAll('input').find((input) => input.type === 'checkbox');
+  elephantOwned.checked = false;
+  elephantOwned.dispatchEvent({ type: 'change' });
+  assert.equal(elephantRow.dataset.quantity, '0', 'The change shows at once.');
+  await waitFor(() => elephantRow.dataset.quantity === '3', 'A failed save should be undone.');
+  assert.equal(elephantOwned.checked, true);
+  assert.equal(status.textContent, "Your change to Elephant wasn't saved, so it was undone. Check your connection and try again.");
+  assert.equal(savedCollection.get(inventoryKey('sonny-retail-b', 'Elephant')), 3);
+  failSaves = false;
 
   // Spreadsheet exports: what the shelf shows (here, owned figures only), and
   // every owned figure across the whole catalog.

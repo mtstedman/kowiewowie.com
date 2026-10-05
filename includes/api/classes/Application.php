@@ -12,6 +12,7 @@ use Wowie\Api\Auth\OAuthService;
 use Wowie\Api\Chess\ChessEngine;
 use Wowie\Api\Chess\ChessIdentityService;
 use Wowie\Api\Chess\ChessRepository;
+use Wowie\Api\Collectibles\CollectibleCollectionRepository;
 use Wowie\Api\Collectibles\CollectiblesRepository;
 use Wowie\Api\Content\ContentRepository;
 use Wowie\Api\Content\ScryfallClient;
@@ -29,6 +30,7 @@ final class Application
     private readonly OAuthService $oauth;
     private readonly ContentRepository $content;
     private readonly CollectiblesRepository $collectibles;
+    private readonly CollectibleCollectionRepository $collection;
     private readonly ScryfallClient $scryfall;
     private readonly ChessRepository $chess;
     private readonly ChessIdentityService $chessGuests;
@@ -54,6 +56,7 @@ final class Application
         $this->oauth = new OAuthService($pdo, $this->auth, $config);
         $this->content = new ContentRepository($pdo);
         $this->collectibles = new CollectiblesRepository($pdo);
+        $this->collection = new CollectibleCollectionRepository($pdo);
         $this->scryfall = new ScryfallClient();
         $this->chess = new ChessRepository($pdo, new ChessEngine());
         $this->chessGuests = new ChessIdentityService($pdo);
@@ -119,7 +122,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/trivia/rooms', '/v1/risk/games', '/v1/poe2/tree', '/v1/poe2/builds'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/collectibles/collection', '/v1/trivia/rooms', '/v1/risk/games', '/v1/poe2/tree', '/v1/poe2/builds'],
             ]);
         }
 
@@ -275,6 +278,11 @@ final class Application
         $poe2Response = $this->dispatchPoe2($request);
         if ($poe2Response !== null) {
             return $poe2Response;
+        }
+
+        $collectionResponse = $this->dispatchCollection($request);
+        if ($collectionResponse !== null) {
+            return $collectionResponse;
         }
 
         $contentRoute = $this->contentRoute($request->path);
@@ -768,7 +776,7 @@ final class Application
         }
         if ($request->method !== 'GET') {
             // Checked before the owner is resolved so a rejected request never touches data.
-            $this->requirePoe2WriteOrigin($request);
+            $this->requireSiteWriteOrigin($request, 'PoE 2 build changes must come from this site or an allowed origin.');
         }
 
         $identity = $this->resolvePoe2Identity($request);
@@ -970,10 +978,92 @@ final class Application
     }
 
     /**
-     * Build writes are authorised by cookies, so a browser-sent Origin must be this site itself
-     * or an origin from the same WOWIE_CORS_ORIGINS allow-list that corsHeaders() uses.
+     * A visitor's collectible collection: which figures they own. It is the signed-in account's,
+     * or else the guest collection the long-lived wowie_collection cookie names. A guest gets the
+     * cookie with their first saved figure, and every request renews it. The first read while
+     * signed in merges that browser's guest collection into the account.
      */
-    private function requirePoe2WriteOrigin(Request $request): void
+    private function dispatchCollection(Request $request): ?Response
+    {
+        $routes = [
+            '/v1/collectibles/collection' => 'GET',
+            '/v1/collectibles/collection/figures' => 'PUT',
+            '/v1/collectibles/collection/merge' => 'POST',
+        ];
+        if (!isset($routes[$request->path])) {
+            return null;
+        }
+        if ($request->method !== $routes[$request->path]) {
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for this collection route.');
+        }
+        $writing = $request->method !== 'GET';
+        if ($writing) {
+            // Checked before the owner is resolved so a rejected request never touches data.
+            $this->requireSiteWriteOrigin($request, 'Collection changes must come from this site or an allowed origin.');
+        }
+
+        // Validated before any guest collection is created for it.
+        $figure = $request->path === '/v1/collectibles/collection/figures'
+            ? CollectibleCollectionRepository::validFigure($request->json())
+            : null;
+        $mergeFigures = $request->path === '/v1/collectibles/collection/merge'
+            ? CollectibleCollectionRepository::validMergeFigures($request->json()['figures'] ?? null)
+            : null;
+
+        // A malformed or invalid Authorization header still fails with 401 here.
+        $user = $this->optionalAuthenticatedUser($request) ?? $this->siteSessionUser();
+        $secure = $this->isSecureRequest($request);
+        $token = $this->collection->cookieToken();
+        $guestId = $token === null ? null : $this->collection->findGuest($token);
+        $adopted = null;
+        if ($user !== null) {
+            $owner = ['type' => 'user', 'id' => (string) $user['id']];
+            if ($guestId !== null && !$writing) {
+                $adopted = $this->collection->adoptGuest($guestId, $owner['id']);
+                $this->chessIdentityResponseHeaders = ['Set-Cookie' => CollectibleCollectionRepository::expiredCookieHeader($secure)];
+            }
+        } elseif ($guestId !== null) {
+            $owner = ['type' => 'guest', 'id' => $guestId];
+            $this->chessIdentityResponseHeaders = ['Set-Cookie' => CollectibleCollectionRepository::cookieHeader((string) $token, $secure)];
+        } elseif ($writing) {
+            $guest = $this->collection->createGuest();
+            $owner = ['type' => 'guest', 'id' => $guest['id']];
+            $this->chessIdentityResponseHeaders = ['Set-Cookie' => CollectibleCollectionRepository::cookieHeader($guest['token'], $secure)];
+        } else {
+            $owner = null;
+        }
+        $ownerName = $owner !== null && $owner['type'] === 'user' ? 'account' : 'guest';
+
+        if ($figure !== null) {
+            return Response::json([
+                'data' => $this->collection->setFigure($owner, $figure),
+                'meta' => ['owner' => $ownerName],
+            ]);
+        }
+
+        $merged = $mergeFigures === null ? null : $this->collection->mergeFigures($owner, $mergeFigures);
+        $figures = $owner === null ? [] : $this->collection->figures($owner);
+
+        return Response::json([
+            'data' => $figures,
+            'meta' => ['owner' => $ownerName, 'count' => count($figures)]
+                + ($merged === null ? [] : ['merged' => $merged])
+                + ($adopted === null ? [] : ['merged_from_guest' => $adopted]),
+        ]);
+    }
+
+    private function isSecureRequest(Request $request): bool
+    {
+        $forwardedProto = strtolower(trim(explode(',', $request->header('x-forwarded-proto') ?? '')[0]));
+
+        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https';
+    }
+
+    /**
+     * Writes authorised by cookies (PoE 2 builds, collections) need a browser-sent Origin that is
+     * this site itself or one from the same WOWIE_CORS_ORIGINS allow-list that corsHeaders() uses.
+     */
+    private function requireSiteWriteOrigin(Request $request, string $message): void
     {
         $origin = $request->header('origin');
         if ($origin === null) {
@@ -998,7 +1088,7 @@ final class Application
             }
         }
 
-        throw new ApiException(403, 'origin_not_allowed', 'PoE 2 build changes must come from this site or an allowed origin.');
+        throw new ApiException(403, 'origin_not_allowed', $message);
     }
 
     private function isCookieAuthMode(Request $request): bool

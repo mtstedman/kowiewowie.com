@@ -1,5 +1,9 @@
+// Where the shelf kept owned figures before collections were saved on the
+// server; anything still there moves into the saved collection once.
 export const INVENTORY_STORAGE_KEY = 'collectibles-inventory:v1';
 export const INVENTORY_VERSION = 1;
+// The most of one figure a collection records (the API's limit too).
+export const MAX_QUANTITY = 1_000_000;
 
 export const PAGE_SIZE = 48;
 const INVENTORY_FILTERS = new Set(['all', 'owned', 'missing']);
@@ -96,7 +100,7 @@ export const parseQuantity = (value) => {
         return { valid: false, quantity: null };
     }
     const quantity = Number(text);
-    return Number.isSafeInteger(quantity)
+    return Number.isSafeInteger(quantity) && quantity <= MAX_QUANTITY
         ? { valid: true, quantity }
         : { valid: false, quantity: null };
 };
@@ -119,75 +123,90 @@ export const decodeInventory = (raw) => {
     return quantities;
 };
 
-export const createInventoryStore = (storage, reportPersistence) => {
-    let quantities = new Map();
-    let persistent = storage !== null && typeof storage === 'object';
-
-    if (persistent) {
-        try {
-            const probeKey = `${INVENTORY_STORAGE_KEY}:probe`;
-            storage.setItem(probeKey, '1');
-            storage.removeItem(probeKey);
-            try {
-                quantities = decodeInventory(storage.getItem(INVENTORY_STORAGE_KEY));
-            } catch (error) {
-                quantities = new Map();
-            }
-        } catch (error) {
-            persistent = false;
-        }
+// The owned figures an older visit kept in this browser, as the collection API
+// takes them; none when there are none or they cannot be read.
+export const legacyInventoryFigures = (storage) => {
+    try {
+        return Array.from(decodeInventory(storage ? storage.getItem(INVENTORY_STORAGE_KEY) : null))
+            .map(([key, quantity]) => {
+                const [productId, figureName] = JSON.parse(key);
+                return { product_id: productId, figure_name: figureName, quantity: Math.min(quantity, MAX_QUANTITY) };
+            });
+    } catch (error) {
+        return [];
     }
+};
 
-    const report = () => {
-        if (typeof reportPersistence === 'function') {
-            reportPersistence(persistent);
-        }
-    };
-
-    const persist = () => {
-        if (!persistent) {
-            report();
-            return;
-        }
-        const serialized = {};
-        quantities.forEach((quantity, key) => {
-            if (quantity > 0) {
-                serialized[key] = quantity;
+// The visitor's collection as the server saves it: their account's when signed
+// in, otherwise this browser's. api.load() and api.merge(figures) resolve to the
+// collection's figures; api.save(figure) saves one. A change shows at once and
+// saves in order; one that fails returns to its last saved quantity through
+// onRevert(key, quantity, error). Until the collection has loaded, nothing can
+// change, so a failed load never overwrites what is saved.
+/**
+ * @param {{ load: () => Promise<any>, merge: (figures: object[]) => Promise<any>, save: (figure: object) => Promise<any> }} api
+ * @param {{ onRevert?: (key: string, quantity: number, error: any) => void }} [options]
+ */
+export const createCollectionStore = (api, { onRevert } = {}) => {
+    let quantities = new Map();
+    let saved = new Map();
+    let ready = false;
+    let queue = Promise.resolve();
+    const fill = (figures) => {
+        quantities = new Map();
+        (Array.isArray(figures) ? figures : []).forEach((figure) => {
+            if (figure && typeof figure.product_id === 'string' && typeof figure.figure_name === 'string' && isOwnedQuantity(figure.quantity)) {
+                quantities.set(inventoryKey(figure.product_id, figure.figure_name), figure.quantity);
             }
         });
-        try {
-            storage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify({
-                version: INVENTORY_VERSION,
-                quantities: serialized,
-            }));
-        } catch (error) {
-            persistent = false;
-        }
-        report();
+        saved = new Map(quantities);
+        ready = true;
     };
-
-    report();
     return {
+        async load() {
+            ready = false;
+            const result = await api.load();
+            fill(result?.figures);
+            return result;
+        },
+        async merge(figures) {
+            const result = await api.merge(figures);
+            fill(result?.figures);
+            return result;
+        },
         get(key) {
             return quantities.get(key) || 0;
         },
+        // Resolves true once saved, false when refused or undone.
         set(key, quantity) {
-            if (!Number.isSafeInteger(quantity) || quantity < 0) {
+            if (!ready || !Number.isSafeInteger(quantity) || quantity < 0 || quantity > MAX_QUANTITY) {
+                return Promise.resolve(false);
+            }
+            if (quantity === 0) quantities.delete(key);
+            else quantities.set(key, quantity);
+            const [productId, figureName] = JSON.parse(key);
+            const attempt = queue.then(() => api.save({ product_id: productId, figure_name: figureName, quantity }));
+            queue = attempt.catch(() => {});
+            return attempt.then(() => {
+                if (quantity === 0) saved.delete(key);
+                else saved.set(key, quantity);
+                return true;
+            }, (error) => {
+                // A later change to the same figure supersedes this one.
+                if ((quantities.get(key) || 0) === quantity) {
+                    const previous = saved.get(key) || 0;
+                    if (previous === 0) quantities.delete(key);
+                    else quantities.set(key, previous);
+                    if (typeof onRevert === 'function') onRevert(key, previous, error);
+                }
                 return false;
-            }
-            if (quantity === 0) {
-                quantities.delete(key);
-            } else {
-                quantities.set(key, quantity);
-            }
-            persist();
-            return true;
+            });
         },
         snapshot() {
             return new Map(quantities);
         },
-        isPersistent() {
-            return persistent;
+        isReady() {
+            return ready;
         },
     };
 };
