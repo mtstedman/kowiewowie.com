@@ -661,11 +661,6 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
-.collectible-release-block:has(.collectible-card.is-expanded),
-.collectible-release-block:has(.collectible-store-listings[open]) {
-  grid-column: 1 / -1;
-}
-
 .collectible-release-heading {
   display: flex;
   flex-wrap: wrap;
