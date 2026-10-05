@@ -337,7 +337,7 @@ final class CollectiblesRepository
                 'id' => (string) $row['id'],
                 'brand' => (string) $row['brand'],
                 'mapping' => $mapping,
-                'group' => $mapping['series_id'] ?? 'unclassified:' . $row['brand'] . ($mapping['line'] === '' ? '' : ':' . $mapping['line']),
+                'group' => self::listingGroup($mapping, (string) $row['brand']),
                 'year' => is_int($mapping['series_release_year'])
                     ? $mapping['series_release_year']
                     : ($row['release_year'] === null ? null : (int) $row['release_year']),
@@ -420,6 +420,10 @@ final class CollectiblesRepository
             foreach ($itemsStatement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
                 $rows[(string) $row['id']] = $row;
             }
+            $storeChrome = $this->imagesSharedAcrossSets(
+                array_values(array_filter(array_map(static fn (array $row): ?string => $row['image_url'] === null ? null : (string) $row['image_url'], $rows))),
+                $catalogMappings,
+            );
             foreach ($page as $listing) {
                 $row = $rows[$listing['id']] ?? null;
                 if ($row === null) continue;
@@ -430,7 +434,7 @@ final class CollectiblesRepository
                     'brand' => (string) $row['brand'],
                     'title' => (string) $row['title'],
                     'product_url' => (string) $row['product_url'],
-                    'image_url' => $row['image_url'] === null ? null : (string) $row['image_url'],
+                    'image_url' => $row['image_url'] === null || isset($storeChrome[(string) $row['image_url']]) ? null : (string) $row['image_url'],
                     'price_cents' => $row['price_cents'] === null ? null : (int) $row['price_cents'],
                     'currency' => $row['currency'] === null ? null : (string) $row['currency'],
                     'price_kind' => $row['price_kind'] === null ? null : (string) $row['price_kind'],
@@ -565,6 +569,50 @@ final class CollectiblesRepository
         $brandNames = ['skullpanda' => ['skullpanda', 'skull panda'], 'nommi' => ['nommi'], 'pop-bean' => ['pop bean', 'popbean'], 'sonny-angel' => ['sonny angel', 'sonny angels']][$brand] ?? [];
 
         return $candidate === $normalize($title) || in_array($candidate, [...$brandNames, 'pop mart', 'popmart'], true);
+    }
+
+    /** The set a listing is filed under, or its brand and line when it has none. */
+    private static function listingGroup(array $mapping, string $brand): string
+    {
+        return $mapping['series_id'] ?? 'unclassified:' . $brand . ($mapping['line'] === '' ? '' : ':' . $mapping['line']);
+    }
+
+    /**
+     * Pictures that listings of different sets all use as their main image.
+     * They are store chrome, not box art: a Pop Mart product page without a
+     * picture of its own falls back to the site-wide promo banner.
+     *
+     * @param list<string> $imageUrls
+     * @return array<string, true>
+     */
+    private function imagesSharedAcrossSets(array $imageUrls, array $catalogMappings): array
+    {
+        $parameters = [];
+        foreach (array_values(array_unique($imageUrls)) as $index => $url) {
+            $parameters['image_' . $index] = $url;
+        }
+        if ($parameters === []) {
+            return [];
+        }
+        $statement = $this->pdo->prepare(sprintf(
+            'SELECT source_key, brand, external_id, product_url, title, image_url FROM collectible_products WHERE image_url IN (%s)',
+            implode(', ', array_map(static fn (string $name): string => ':' . $name, array_keys($parameters))),
+        ));
+        $this->bindSearchParameters($statement, $parameters);
+        $statement->execute();
+        $sets = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $mapping = CollectibleListingClassifier::classify(
+                $catalogMappings,
+                (string) $row['source_key'],
+                (string) $row['brand'],
+                (string) $row['external_id'],
+                (string) $row['product_url'],
+                (string) $row['title'],
+            );
+            $sets[(string) $row['image_url']][self::listingGroup($mapping, (string) $row['brand'])] = true;
+        }
+        return array_map(static fn (): bool => true, array_filter($sets, static fn (array $groups): bool => count($groups) > 1));
     }
 
     private function bindSearchParameters(\PDOStatement $statement, array $parameters): void

@@ -148,6 +148,28 @@ $twoSets = $repository->search(null, null, 'name-asc', 1000, 0, [], [$someSet, '
 $assertSame($expectedIds(static fn (array $listing): bool => in_array($listing['group'], [$someSet, 'unclassified:skullpanda:large'], true)), $ids($twoSets), 'two sets return both, in sort order');
 $assertSame([$someSet, 'unclassified:skullpanda:large'], $twoSets['series'], 'chosen sets are echoed once each');
 
+// A picture that listings of different sets share is store chrome (Pop Mart's
+// site-wide promo banner on pages without their own picture), not box art;
+// one shared inside a set stays.
+$byGroup = [];
+foreach ($expected as $id => $listing) $byGroup[$listing['group']][] = (string) $id;
+$sameSet = array_values(array_filter($byGroup, static fn (array $members): bool => count($members) > 1))[0];
+$otherSets = array_values(array_filter($byGroup, static fn (array $members): bool => $members !== $sameSet));
+[$bannerA, $bannerB] = [$otherSets[0][0], $otherSets[1][0]];
+$setImage = $pdo->prepare('UPDATE collectible_products SET image_url = ? WHERE id IN (?, ?)');
+$setImage->execute(['https://prod-global-biz.popmart.com/globalAdmin/banner.jpg', $bannerA, $bannerB]);
+$setImage->execute(['https://prod-america-res.popmart.com/default/set-box.jpg', $sameSet[0], $sameSet[1]]);
+$images = array_column($repository->search(null, null, 'name-asc', 1000, 0)['items'], 'image_url', 'id');
+$assertSame([null, null], [$images[$bannerA], $images[$bannerB]], 'a picture listings of different sets share is dropped');
+$assertSame(
+    ['https://prod-america-res.popmart.com/default/set-box.jpg', 'https://prod-america-res.popmart.com/default/set-box.jpg'],
+    [$images[$sameSet[0]], $images[$sameSet[1]]],
+    'a picture shared inside one set stays',
+);
+$alone = $repository->search(null, null, 'name-asc', 1000, 0, [], [$expected[$bannerA]['group']]);
+$aloneImages = array_column($alone['items'], 'image_url', 'id');
+$assertSame([true, null], [array_key_exists($bannerA, $aloneImages), $aloneImages[$bannerA] ?? null], 'the banner is dropped even when the other set is not in the results');
+
 if ($failures !== []) {
     fwrite(STDERR, implode("\n", $failures) . "\n");
     exit(1);

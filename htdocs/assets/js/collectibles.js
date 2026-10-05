@@ -699,9 +699,24 @@ const {
         const header = createElement('div', 'collectible-card-header');
         const mediaWrapper = createElement('div', 'collectible-card-media');
         mediaWrapper.dataset.imageWrapper = 'true';
-        const productImage = createImage(safeProduct.image_url, `${title} (${label}) box art`, 'collectible-card-image');
-        if (productImage !== null) mediaWrapper.append(productImage);
-        else mediaWrapper.classList.add('is-missing');
+        // Without box art of its own, the listing's first figure picture stands in.
+        const standIn = isSafeImageUrl(safeProduct.image_url) ? null
+            : variants.find((variant) => variant && typeof variant === 'object' && isSafeImageUrl(variant.image_url)) ?? null;
+        const productImage = standIn === null
+            ? createImage(safeProduct.image_url, `${title} (${label}) box art`, 'collectible-card-image')
+            : createImage(standIn.image_url, `${titleWithoutBrand(String(standIn.name ?? ''), brandKey) || 'A figure'} from ${title}`, 'collectible-card-image');
+        if (productImage !== null) {
+            // A wide banner gets a wide frame instead of a square crop of its middle.
+            productImage.addEventListener('load', () => {
+                if (productImage.naturalWidth > productImage.naturalHeight * 1.2) {
+                    mediaWrapper.classList.add('is-wide');
+                    header.classList.add('has-wide-media');
+                }
+            });
+            mediaWrapper.append(productImage);
+        } else {
+            mediaWrapper.classList.add('is-missing');
+        }
         header.append(mediaWrapper);
 
         const summary = createElement('div', 'collectible-card-summary');

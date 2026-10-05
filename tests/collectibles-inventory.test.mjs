@@ -724,7 +724,7 @@ class MemoryStorage {
       listing_kind: 'series',
       sku: 'PM-CITY-ALT',
       barcode: '6941848212345',
-      variants: [{ name: 'Dawn', sku: 'PM-CITY-DAWN', barcode: 'not-a-code' }],
+      variants: [{ name: 'Dawn', sku: 'PM-CITY-DAWN', barcode: 'not-a-code', image_url: '/assets/images/collectibles/skullpanda/city-of-night/dawn.webp' }],
     },
     {
       id: 'nommi-unmapped',
@@ -959,6 +959,12 @@ class MemoryStorage {
   const cityAltBlock = blockBySeries('skullpanda:city-alt');
   assert.equal(cityAltBlock.querySelector('.collectible-card-summary').querySelector('.collectible-identifiers').textContent, 'SKU PM-CITY-ALT · Barcode 6941848212345');
   assert.equal(cityAltBlock.querySelector('.collectible-inventory-name').querySelector('.collectible-identifiers').textContent, 'SKU PM-CITY-DAWN');
+  // A set card without box art of its own shows its first figure's picture.
+  const standIn = cityAltBlock.querySelector('.collectible-card-media').querySelector('.collectible-card-image');
+  assert.equal(standIn.src, '/assets/images/collectibles/skullpanda/city-of-night/dawn.webp');
+  assert.equal(standIn.alt, 'Dawn from City of Night Second Edition');
+  assert.equal(blockBySeries('nommi:dream-a').querySelector('.collectible-card-media').classList.contains('is-missing'), true,
+    'With no picture at all, the card keeps its empty frame.');
   assert.equal(blockBySeries('nommi:dream-a').querySelectorAll('.collectible-card').length, 2, 'Nommi listings split across API pages must render in one canonical series group.');
 
   openPicker(seriesInput);

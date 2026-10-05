@@ -887,12 +887,22 @@
     var(--glass-tint);
 }
 
+/* Pictures show whole: a crop would cut off heads that sit off-center. */
 .collectible-card-image,
 .collectible-variant-image {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+}
+
+/* Some sets use a wide banner as box art; it gets a wide frame. */
+.collectible-card-header.has-wide-media {
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+}
+
+.collectible-card-media.is-wide {
+  aspect-ratio: 12 / 5;
 }
 
 .collectible-card[data-brand="sonny-angel"] :is(.collectible-card-image, .collectible-variant-image) {
@@ -1109,7 +1119,7 @@
 .collectible-thumbnail-toggle .collectible-variant-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .collectible-card[data-brand="sonny-angel"] .collectible-thumbnail-toggle .collectible-variant-image {
@@ -1523,6 +1533,10 @@
   .collectible-card-header {
     grid-template-columns: 3.25rem minmax(0, 1fr);
     gap: 0.6rem;
+  }
+
+  .collectible-card-header.has-wide-media {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
   }
 
   .collectible-inventory-table {
