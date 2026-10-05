@@ -364,12 +364,13 @@ class MemoryStorage {
   assert.deepEqual(['', ' from 2026', ' from 2025 and 2026', ' from 2024, 2025, and 2026', ' with no known release year', ' from 2026 or with no known release year'],
     [[], ['2026'], ['2026', '2025'], ['2026', '2024', '2025'], ['unknown'], ['2026', 'unknown']].map(describeYears));
   const yearFacets = { years: [{ year: 2024, series: 3, listings: 5 }, { year: null, series: 2, listings: 4 }, { year: 2025, series: 1, listings: 1 }] };
-  assert.deepEqual(yearChoicesFromFacets(yearFacets, ['2026']).map((choice) => [choice.value, choice.label, choice.detail]), [
-    ['2026', '2026', 'none'], ['2025', '2025', '1 series'], ['2024', '2024', '3 series'], ['unknown', 'Year unknown', '2 series'],
-  ], 'A chosen year with no listings stays listed, newest first, undated last.');
-  assert.deepEqual(yearChoicesFromFacets({}, ['2026']).map((choice) => [choice.label, choice.detail]), [['2026', '']], 'Before facets arrive the default year is shown plainly.');
-  assert.deepEqual(matchChoices(yearChoicesFromFacets(yearFacets, []), '202').map((choice) => choice.value), ['2025', '2024']);
-  assert.deepEqual(matchChoices(yearChoicesFromFacets(yearFacets, []), 'UNK').map((choice) => choice.value), ['unknown']);
+  assert.deepEqual(yearChoicesFromFacets(yearFacets).map((choice) => [choice.value, choice.label, choice.detail]), [
+    ['2025', '2025', '1 series'], ['2024', '2024', '3 series'], ['unknown', 'Year unknown', '2 series'],
+  ], 'Only years with matches are offered, newest first and undated last.');
+  assert.deepEqual(yearChoicesFromFacets({ years: [{ year: 2026, series: 0, listings: 0 }, { year: null, series: 0, listings: 0 }] }), [], 'Empty year facets are hidden.');
+  assert.deepEqual(yearChoicesFromFacets({}), [], 'No year choices are shown before facets arrive.');
+  assert.deepEqual(matchChoices(yearChoicesFromFacets(yearFacets), '202').map((choice) => choice.value), ['2025', '2024']);
+  assert.deepEqual(matchChoices(yearChoicesFromFacets(yearFacets), 'UNK').map((choice) => choice.value), ['unknown']);
   assert.deepEqual(matchChoices([{ value: 'a', label: 'City of Night', detail: 'SKULLPANDA' }, { value: 'b', label: 'Dream', detail: 'Nommi' }], 'skull').map((choice) => choice.value), ['a'], 'Typing matches the brand too.');
   assert.equal(newestFacetYear(yearFacets), '2025');
   assert.equal(newestFacetYear({ years: [{ year: null, series: 1, listings: 1 }] }), '');
@@ -834,8 +835,8 @@ class MemoryStorage {
   assert.equal(cityCards[0].dataset.productKey, 'skull-retail-c', 'The set card must lead its series block.');
   assert.equal(cityBlock.querySelector('.collectible-listings-heading').textContent, 'Store listings (1)');
   assert.equal(cityCards[1].querySelector('.collectible-listing-kind').textContent, 'Series accessory');
-  assert.deepEqual(cityBlock.querySelectorAll('.collectible-variants-toggle').map((toggle) => toggle.getAttribute('aria-expanded')), ['true', 'false'],
-    'The set card starts open; store listings beside it start collapsed.');
+  assert.deepEqual(cityBlock.querySelectorAll('.collectible-variants-toggle').map((toggle) => toggle.getAttribute('aria-expanded')), ['false', 'false'],
+    'Figure rosters start collapsed so the catalog remains easy to scan.');
   assert.equal(blockBySeries('nommi:known-empty').querySelectorAll('.collectible-variants-toggle').length, 0, 'A listing with no figures shows no figure list.');
   assert.equal(results.querySelectorAll('.collectible-brand').length, 0, 'Cards do not repeat the brand their line heading names.');
   const figureLines = results.querySelectorAll('.collectible-line').filter((section) => section.dataset.line === 'figures');
@@ -909,10 +910,10 @@ class MemoryStorage {
 
   const disclosure = sonnyBlock.querySelector('.collectible-variants-toggle');
   const disclosurePanel = document.getElementById(disclosure.getAttribute('aria-controls'));
-  assert.equal(disclosure.getAttribute('aria-expanded'), 'true');
-  disclosure.dispatchEvent({ type: 'click' });
   assert.equal(disclosure.getAttribute('aria-expanded'), 'false');
-  assert.equal(disclosurePanel.hidden, true, 'Grouped disclosure controls must continue to collapse their own retail listing.');
+  disclosure.dispatchEvent({ type: 'click' });
+  assert.equal(disclosure.getAttribute('aria-expanded'), 'true');
+  assert.equal(disclosurePanel.hidden, false, 'Grouped disclosure controls must continue to open their own figure roster.');
 
   inventoryInputs.forEach((input) => { input.checked = input.value === 'owned'; });
   inventoryInputs.find((input) => input.value === 'owned').dispatchEvent({ type: 'change' });

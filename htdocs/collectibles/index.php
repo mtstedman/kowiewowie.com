@@ -64,7 +64,7 @@ $pageStyles = ['/assets/css/collectibles.css'];
                         <label for="collectibles-series-input">Series</label>
                         <div class="collectibles-picker-field">
                             <span class="collectibles-picker-chips" id="collectibles-series-chips"></span>
-                            <input id="collectibles-series-input" class="collectibles-picker-input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="collectibles-series-options" aria-describedby="collectibles-picker-help" autocomplete="off" spellcheck="false" placeholder="All series — type to find">
+                            <input id="collectibles-series-input" class="collectibles-picker-input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="collectibles-series-options" aria-describedby="collectibles-picker-help" autocomplete="off" spellcheck="false" placeholder="All series">
                         </div>
                         <ul id="collectibles-series-options" class="collectibles-picker-options" role="listbox" aria-multiselectable="true" aria-label="Series choices" hidden></ul>
                     </div>

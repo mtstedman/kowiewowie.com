@@ -249,23 +249,17 @@ const facetList = (facets, key) => (facets && typeof facets === 'object' && Arra
     .filter((entry) => entry && typeof entry === 'object');
 
 // Year choices from the API's year facets (which ignore the year filter):
-// newest first, then undated listings. Chosen years stay listed even when the
-// current brand or search has nothing in them.
-export const yearChoicesFromFacets = (facets, selectedYears = []) => {
+// newest first, then undated listings. Empty years are never offered. A stale
+// selected year remains visible as a removable chip in the picker itself, but
+// does not masquerade as an available choice.
+export const yearChoicesFromFacets = (facets) => {
     const years = facetList(facets, 'years');
-    const loaded = years.length > 0;
     const choices = years
-        .filter((entry) => Number.isInteger(entry.year))
+        .filter((entry) => Number.isInteger(entry.year) && Number(entry.listings) > 0)
         .map((entry) => ({ value: String(entry.year), label: String(entry.year), detail: `${Number(entry.series) || 0} series` }));
-    (Array.isArray(selectedYears) ? selectedYears : []).forEach((year) => {
-        if (/^[0-9]{4}$/.test(year) && !choices.some((choice) => choice.value === year)) {
-            choices.push({ value: year, label: year, detail: loaded ? 'none' : '' });
-        }
-    });
     choices.sort((left, right) => Number(right.value) - Number(left.value));
-    const undated = years.find((entry) => entry.year === null);
+    const undated = years.find((entry) => entry.year === null && Number(entry.listings) > 0);
     if (undated) choices.push({ value: 'unknown', label: 'Year unknown', detail: `${Number(undated.series) || 0} series` });
-    else if ((selectedYears ?? []).includes('unknown')) choices.push({ value: 'unknown', label: 'Year unknown', detail: loaded ? 'none' : '' });
     return choices;
 };
 

@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=adcf471780c3';
+import * as inventoryModule from './collectibles-inventory.js?v=00bb11ba507f';
 
 const {
     INVENTORY_STORAGE_KEY,
@@ -764,18 +764,27 @@ const {
             .sort((left, right) => (LISTING_KIND_ORDER[left.product.listing_kind] ?? 6) - (LISTING_KIND_ORDER[right.product.listing_kind] ?? 6)
                 || left.index - right.index)
             .map(({ product }) => product);
-        const hasSetCard = ordered.some((product) => product.listing_kind === 'series');
-        let listingsHeadingAdded = false;
-        ordered.forEach((product) => {
-            if (hasSetCard && product.listing_kind !== 'series' && !listingsHeadingAdded) {
-                const listingCount = ordered.filter((item) => item.listing_kind !== 'series').length;
-                products.append(createElement('p', 'collectible-listings-heading', `Store listings (${listingCount})`));
-                listingsHeadingAdded = true;
-            }
-            const card = renderProduct(product, hasSetCard && product.listing_kind !== 'series');
-            if (product.listing_kind === 'series') card.classList.add('is-set-card');
+        const primaryIndex = Math.max(0, ordered.findIndex((product) => product.listing_kind === 'series'));
+        const primary = ordered[primaryIndex];
+        const supplemental = ordered.filter((product, index) => index !== primaryIndex);
+        if (primary) {
+            // Keep the shelf scan-friendly. Figure rosters open on demand
+            // instead of turning every series summary into a tall table.
+            const card = renderProduct(primary, true);
+            if (primary.listing_kind === 'series') card.classList.add('is-set-card');
             products.append(card);
-        });
+        }
+        if (supplemental.length > 0) {
+            const listingDetails = document.createElement('details');
+            listingDetails.className = 'collectible-store-listings';
+            listingDetails.append(createElement(
+                'summary',
+                'collectible-listings-heading',
+                `Store listings (${supplemental.length})`
+            ));
+            supplemental.forEach((product) => listingDetails.append(renderProduct(product, true)));
+            products.append(listingDetails);
+        }
         releaseBlock.append(products);
         return releaseBlock;
     };
@@ -844,7 +853,7 @@ const {
         if (state.releaseIds.length > 0) {
             return { text: 'No listings in the chosen series match these catalog controls.', tone: 'empty' };
         }
-        const elsewhere = yearChoicesFromFacets(state.facets, [])
+        const elsewhere = yearChoicesFromFacets(state.facets)
             .filter((choice) => !state.requestYears.includes(choice.value))
             .map((choice) => (choice.value === 'unknown' ? 'undated listings' : choice.value));
         const hint = state.requestYears.length > 0 && elsewhere.length > 0
@@ -932,7 +941,7 @@ const {
                 fragment.append(chip);
             });
             chips.replaceChildren(fragment);
-            input.placeholder = getSelected().length === 0 ? emptyLabel : 'Add more…';
+            input.placeholder = getSelected().length === 0 ? emptyLabel : 'Add…';
         };
         input.addEventListener('focus', () => {
             renderOptions();
@@ -990,7 +999,7 @@ const {
         options: yearOptions,
         chips: yearChips,
         emptyLabel: 'All years',
-        getChoices: () => yearChoicesFromFacets(state.facets, state.requestYears),
+        getChoices: () => yearChoicesFromFacets(state.facets),
         getSelected: () => state.requestYears,
         onChange: (years) => {
             cancelDebounce();
@@ -1005,7 +1014,7 @@ const {
         input: seriesInput,
         options: seriesOptions,
         chips: seriesChips,
-        emptyLabel: 'All series — type to find',
+        emptyLabel: 'All series',
         getChoices: seriesPickerChoices,
         getSelected: () => state.releaseIds,
         onChange: (ids) => {

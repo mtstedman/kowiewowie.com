@@ -1,5 +1,18 @@
 .collectibles-library {
-  gap: 1.5rem;
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.collectibles-library::before,
+.collectibles-library::after {
+  display: none;
 }
 
 .collectibles-sr-only {
@@ -21,13 +34,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 0.85rem 1rem;
+  gap: 0.65rem 0.8rem;
   width: 100%;
-  padding: 1rem;
+  padding: 0.75rem;
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
-  box-shadow: var(--shadow-sm);
+  border-radius: 12px;
+  background: rgba(5, 18, 32, 0.76);
+  box-shadow: inset 0 1px 0 var(--surface-sheen-soft);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
@@ -54,8 +67,8 @@
 .collectibles-search input {
   width: 100%;
   min-width: 0;
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
+  min-height: 2.4rem;
+  padding: 0.4rem 0.8rem;
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   background: var(--glass-tint);
@@ -105,8 +118,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.3rem;
-  min-height: 2.75rem;
-  padding: 0.3rem 0.5rem;
+  min-height: 2.4rem;
+  padding: 0.2rem 0.4rem;
   border: 1px solid var(--glass-border);
   border-radius: 1.4rem;
   background: var(--glass-tint);
@@ -126,8 +139,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  min-height: 2rem;
-  padding: 0 0.55rem 0 0.7rem;
+  min-height: 1.8rem;
+  padding: 0 0.45rem 0 0.6rem;
   border: 1px solid var(--accent);
   border-radius: 999px;
   background: rgba(0, 245, 255, 0.14);
@@ -153,7 +166,7 @@
 .collectibles-picker-input {
   flex: 1 1 6rem;
   min-width: 5rem;
-  min-height: 2rem;
+  min-height: 1.8rem;
   padding: 0 0.4rem;
   border: 0;
   background: transparent;
@@ -242,7 +255,7 @@
 .collectibles-sort select {
   width: 100%;
   min-width: 0;
-  min-height: 2.75rem;
+  min-height: 2.4rem;
   padding: 0.45rem 2.25rem 0.45rem 0.9rem;
   font-size: 0.95rem;
   border: 1px solid var(--glass-border);
@@ -254,7 +267,8 @@
 
 .collectibles-export {
   flex: 0 0 auto;
-  min-height: 2.75rem;
+  min-height: 2.4rem;
+  padding-block: 0.35rem;
 }
 
 .collectibles-filter {
@@ -293,13 +307,13 @@
 .collectibles-filter-option span {
   display: inline-flex;
   align-items: center;
-  min-height: 2.75rem;
-  padding: 0.4rem 0.9rem;
+  min-height: 2.4rem;
+  padding: 0.3rem 0.7rem;
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   background: var(--glass-tint);
   color: var(--ink);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
   transition: border-color var(--motion-fast), background var(--motion-fast), box-shadow var(--motion-fast);
 }
@@ -323,7 +337,8 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.5rem 1rem;
+  gap: 0.35rem 1rem;
+  padding-inline: 0.15rem;
 }
 
 .collectibles-status,
@@ -340,6 +355,7 @@
 .collectibles-status {
   font-weight: 600;
   color: var(--ink);
+  font-size: 0.95rem;
 }
 
 .collectibles-status[data-tone="error"],
@@ -360,7 +376,7 @@
 .collectibles-results {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 1.25rem;
+  gap: 0.9rem;
   align-items: stretch;
 }
 
@@ -370,8 +386,18 @@
 
 .collectible-release-block {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.35rem;
   min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid rgba(0, 245, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(5, 16, 29, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.collectible-release-block:has(.collectible-card.is-expanded),
+.collectible-release-block:has(.collectible-store-listings[open]) {
+  grid-column: 1 / -1;
 }
 
 .collectible-release-heading {
@@ -379,7 +405,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.3rem 0.75rem;
-  padding-inline: 0.25rem;
+  padding-inline: 0.1rem;
 }
 
 .collectible-release-title,
@@ -389,14 +415,15 @@
 
 .collectible-release-title {
   color: var(--ink);
-  font-size: clamp(1.05rem, 1rem + 0.3vw, 1.2rem);
+  font-size: 1rem;
   line-height: 1.25;
 }
 
 .collectible-release-status {
   flex-basis: 100%;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .collectible-release-block[data-roster-status="partial"] .collectible-release-status,
@@ -407,31 +434,34 @@
 /* Brand: line sections, then release-year batches, then sets. */
 .collectible-line {
   display: grid;
-  gap: var(--space-md, 1.25rem);
+  gap: 0.75rem;
   min-width: 0;
-  padding-top: 0.75rem;
+  padding-top: 0.35rem;
 }
 
 .collectible-line + .collectible-line {
-  margin-top: 1rem;
+  margin-top: 0.6rem;
 }
 
 .collectible-line-title {
   margin: 0;
-  padding-bottom: 0.4rem;
+  padding-bottom: 0.3rem;
   border-bottom: 1px solid var(--line);
   color: var(--ink);
-  font-size: clamp(1.15rem, 1.05rem + 0.5vw, 1.4rem);
+  font-size: clamp(1.02rem, 0.98rem + 0.3vw, 1.2rem);
   line-height: 1.2;
 }
 
 .collectible-year {
   display: grid;
-  gap: 1.1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
   min-width: 0;
+  align-items: start;
 }
 
 .collectible-year-title {
+  grid-column: 1 / -1;
   margin: 0;
   color: var(--ink-soft);
   font-size: 0.85rem;
@@ -441,11 +471,37 @@
 }
 
 .collectible-listings-heading {
-  grid-column: 1 / -1;
-  margin: 0.15rem 0 -0.35rem;
-  color: var(--ink-soft);
-  font-size: 0.85rem;
+  margin: 0;
+  padding: 0.4rem 0.1rem;
+  color: var(--accent);
+  font-size: 0.8rem;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.collectible-listings-heading:hover {
+  color: var(--ink);
+}
+
+.collectible-listings-heading:focus-visible {
+  outline: 2px solid var(--accent-warm);
+  outline-offset: 2px;
+}
+
+.collectible-store-listings {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border-top: 1px solid rgba(0, 245, 255, 0.16);
+}
+
+.collectible-store-listings[open] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 0.45rem 0.75rem;
+}
+
+.collectible-store-listings[open] > .collectible-listings-heading {
+  grid-column: 1 / -1;
 }
 
 .collectible-identifiers {
@@ -472,7 +528,7 @@
 .collectible-release-products {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
-  gap: 0.75rem;
+  gap: 0.45rem;
   align-items: start;
 }
 
@@ -483,18 +539,19 @@
 .collectible-card {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.35rem;
   min-width: 0;
-  padding: 0.8rem 0.9rem;
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  background: linear-gradient(180deg, var(--glass-tint-strong), var(--glass-tint));
+  padding: 0.45rem 0 0;
+  border: 0;
+  border-top: 1px solid rgba(0, 245, 255, 0.16);
+  border-radius: 0;
+  background: transparent;
 }
 
 .collectible-card-header {
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  gap: 0.85rem;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 0.65rem;
   align-items: start;
   min-width: 0;
 }
@@ -537,7 +594,7 @@
 .collectible-title {
   margin: 0;
   color: var(--ink);
-  font-size: 1.02rem;
+  font-size: 0.92rem;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
@@ -550,6 +607,7 @@
 .collectible-price {
   margin: 0;
   color: var(--ink);
+  font-size: 0.88rem;
   font-weight: 700;
 }
 
@@ -566,15 +624,17 @@
 
 .collectible-source {
   justify-self: start;
+  min-height: auto;
+  font-size: 0.78rem;
   overflow-wrap: anywhere;
 }
 
 .collectible-variants {
   display: grid;
   gap: 0.4rem;
-  margin-top: auto;
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--glass-border);
+  margin-top: 0.1rem;
+  padding-top: 0.25rem;
+  border-top: 0;
   min-width: 0;
 }
 
@@ -587,14 +647,14 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  min-height: 2.75rem;
-  padding: 0 0.25rem;
+  min-height: 2rem;
+  padding: 0 0.1rem;
   border: 0;
   border-radius: 6px;
   background: none;
   color: var(--accent);
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -842,18 +902,45 @@
   cursor: progress;
 }
 
+@media (max-width: 860px) {
+  .collectible-year {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .collectible-year-title {
+    grid-column: 1;
+  }
+}
+
 @media (max-width: 720px) {
+  .hero.hero-compact {
+    gap: 0.4rem;
+    padding-block: 0.4rem 0.6rem;
+  }
+
+  .hero.hero-compact h1 {
+    font-size: clamp(1.75rem, 8vw, 2.05rem);
+    line-height: 1.04;
+  }
+
+  .hero.hero-compact .lede {
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
   .collectibles-controls {
-    padding: 0.85rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    padding: 0.65rem;
   }
 
   .collectibles-controls > * {
-    flex: 1 1 100%;
+    min-width: 0;
   }
 
-  /* Paired selects keep the filter bar short on phones. */
-  .collectibles-controls > :is(.collectibles-sort, .collectibles-export) {
-    flex: 1 1 calc(50% - 0.5rem);
+  .collectibles-controls > :is(.collectibles-search, .collectibles-filter) {
+    grid-column: 1 / -1;
   }
 
   .collectible-inventory-owned,
@@ -862,14 +949,54 @@
   }
 
   .collectibles-filter-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    padding: 0.1rem 0.1rem 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    overscroll-behavior-inline: contain;
   }
 
   .collectibles-filter-option span {
     justify-content: center;
+    width: auto;
+    min-height: 2.25rem;
+    padding: 0.3rem 0.7rem;
+    white-space: nowrap;
+  }
+
+  .collectibles-filter-option {
+    flex: 0 0 auto;
+  }
+
+  .collectibles-series-picker .collectibles-picker-input {
+    width: 2rem;
+    min-width: 2rem;
+  }
+
+  .collectibles-year-picker .collectibles-picker-input {
+    width: 2rem;
+    min-width: 2rem;
+  }
+
+  .collectibles-picker-field {
     width: 100%;
-    padding: 0.6rem 0.5rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .collectibles-picker-options {
+    width: min(20rem, calc(100vw - 3rem));
+  }
+
+  .collectibles-series-picker .collectibles-picker-options {
+    right: 0;
+    left: auto;
+  }
+
+  .collectible-release-block {
+    padding: 0.6rem;
   }
 
   .collectibles-more .button {
@@ -974,6 +1101,11 @@
     display: block !important;
   }
 
+  .collectible-store-listings,
+  .collectible-store-listings > .collectible-card {
+    display: block !important;
+  }
+
   .collectible-variants-toggle {
     min-height: 0;
     padding: 0;
@@ -1044,12 +1176,12 @@
 
 @media (max-width: 420px) {
   .collectible-card {
-    padding: 0.9rem;
+    padding: 0.45rem 0 0;
   }
 
   .collectible-card-header {
-    grid-template-columns: 4.75rem minmax(0, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: 3.25rem minmax(0, 1fr);
+    gap: 0.6rem;
   }
 
   .collectible-inventory-table {
