@@ -23,6 +23,7 @@ import {
   newestFacetYear,
   seriesChoicesFromFacets,
   applyInventoryVisibility,
+  describeOwnership,
   catalogRequestParams,
   appendCatalogPage,
   isReleaseExpanded,
@@ -116,6 +117,12 @@ for (const [brand, title, expected] of [
   assert.equal(toCsv([['-1', '+1', '@a', 'plain', 'a\nb']]), "\ufeff'-1,'+1,'@a,plain,\"a\nb\"\r\n");
   assert.equal(exportFilename('my-collectibles', new Date(2026, 0, 5)), 'my-collectibles-2026-01-05.csv');
 }
+
+// The summary's ownership line: distinct figures owned, then every copy.
+assert.equal(describeOwnership([]), '', 'No figures, no ownership line.');
+assert.equal(describeOwnership([0, 0]), 'You own 0 of 2 figures here.');
+assert.equal(describeOwnership([1]), 'You own 1 of 1 figure here, 1 copy in all.');
+assert.equal(describeOwnership([2, 0, 3]), 'You own 2 of 3 figures here, 5 copies in all.');
 
 const pageSource = await readFile(new URL('../htdocs/collectibles/index.php', import.meta.url), 'utf8');
 const applicationSource = await readFile(new URL('../htdocs/assets/js/collectibles.js', import.meta.url), 'utf8');
@@ -890,7 +897,7 @@ class MemoryStorage {
   assert.deepEqual(chipValues(yearChips), ['2023'], 'The year shows as a removable chip.');
   assert.ok(blockBySeries('skullpanda:city-alt'));
   assert.equal(results.querySelectorAll('.collectible-year-title').length, 0, 'One requested year needs no year labels.');
-  assert.match(status.textContent, /from 2023/);
+  assert.match(status.textContent, /from 2023\. You own 0 of 1 figure here\.$/, 'The summary counts the owned figures in view.');
   assert.doesNotMatch(location.search, /year=/, 'An automatic year is not written to the URL.');
   openPicker(yearInput);
   assert.equal(yearOptions.hidden, false);
@@ -903,6 +910,7 @@ class MemoryStorage {
   // Removing the last year chip means every year.
   yearChips.children[0].dispatchEvent({ type: 'click' });
   await waitFor(() => settled() && allBlocks().length === 6, 'All years should load every matching set.');
+  assert.match(status.textContent, / You own 1 of 9 figures here, 2 copies in all\.$/, 'Duplicates count as copies, not figures.');
   assert.match(location.search, /year=all/);
   assert.equal(requests.at(-1).get('year'), 'all');
   assert.deepEqual(chipValues(yearChips), []);
@@ -1019,6 +1027,8 @@ class MemoryStorage {
   elephantQuantity.dispatchEvent({ type: 'change' });
   assert.deepEqual(allBlocks().filter((block) => !block.hidden).map((block) => block.dataset.releaseId), ['sonny-angel:animal-1']);
   assert.equal(JSON.parse(storage.getItem(INVENTORY_STORAGE_KEY)).quantities[inventoryKey('sonny-retail-b', 'Elephant')], 3);
+  assert.equal(status.textContent, 'Showing 1 owned figure across 1 series. You own 1 of 9 figures here, 3 copies in all.',
+    'Ownership counts the whole search, not just the Owned view, and follows quantity edits.');
 
   // Spreadsheet exports: what the shelf shows (here, owned figures only), and
   // every owned figure across the whole catalog.

@@ -296,6 +296,24 @@ export const seriesChoicesFromFacets = (facets) => {
         || left.id.localeCompare(right.id));
 };
 
+// A series block belongs to the chosen sets (any, when none are chosen); an
+// older link may name one of its listings instead.
+export const blockMatchesReleases = (block, releaseIds) => !Array.isArray(releaseIds)
+    || releaseIds.length === 0
+    || releaseIds.includes(block.dataset.releaseId)
+    || releaseIds.includes(block.dataset.legacyReleaseId);
+
+// "You own 12 of 139 figures here, 17 copies in all.": distinct figures owned,
+// then every copy, over each figure row's quantity.
+export const describeOwnership = (quantities) => {
+    const list = Array.isArray(quantities) ? quantities : [];
+    if (list.length === 0) return '';
+    const owned = list.filter(isOwnedQuantity);
+    const copies = owned.reduce((total, quantity) => total + quantity, 0);
+    const figures = `You own ${owned.length} of ${list.length} ${list.length === 1 ? 'figure' : 'figures'} here`;
+    return owned.length === 0 ? `${figures}.` : `${figures}, ${copies} ${copies === 1 ? 'copy' : 'copies'} in all.`;
+};
+
 export const applyInventoryVisibility = (resultsElement, state, HTMLElementClass) => {
     Array.from(resultsElement.querySelectorAll('.collectible-inventory-row')).forEach((row) => {
         if (!(row instanceof HTMLElementClass)) return;
@@ -306,10 +324,7 @@ export const applyInventoryVisibility = (resultsElement, state, HTMLElementClass
         if (!(block instanceof HTMLElementClass)) return;
         const rows = Array.from(block.querySelectorAll('.collectible-inventory-row'))
             .filter((row) => row instanceof HTMLElementClass);
-        const releaseIds = Array.isArray(state.releaseIds) ? state.releaseIds : [];
-        const releaseMatches = releaseIds.length === 0
-            || releaseIds.includes(block.dataset.releaseId)
-            || releaseIds.includes(block.dataset.legacyReleaseId);
+        const releaseMatches = blockMatchesReleases(block, state.releaseIds);
         const inventoryMatches = state.inventoryFilter === 'all'
             || (rows.length > 0 && rows.some((row) => !row.hidden));
         block.hidden = !releaseMatches || !inventoryMatches;

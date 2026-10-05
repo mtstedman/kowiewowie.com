@@ -409,6 +409,13 @@
   font-weight: 600;
 }
 
+.collectibles-status-detail {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
 .collectibles-status[data-tone="error"],
 .collectibles-storage-status[data-saved="false"] {
   color: var(--accent-warm);

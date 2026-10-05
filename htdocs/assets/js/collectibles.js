@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=9fc4aec0d9fc';
+import * as inventoryModule from './collectibles-inventory.js?v=726613662eea';
 
 const {
     INVENTORY_STORAGE_KEY,
@@ -31,6 +31,8 @@ const {
     newestFacetYear,
     seriesChoicesFromFacets,
     applyInventoryVisibility,
+    blockMatchesReleases,
+    describeOwnership,
     catalogRequestParams,
     appendCatalogPage,
     isReleaseExpanded,
@@ -259,8 +261,10 @@ const {
         return image;
     };
 
-    const setStatus = (message, tone) => {
-        statusElement.textContent = message;
+    // The summary, with an optional second line inside the same live region.
+    const setStatus = (message, tone, detail = '') => {
+        statusElement.replaceChildren(message);
+        if (detail !== '') statusElement.append(' ', createElement('span', 'collectibles-status-detail', detail));
         statusElement.dataset.tone = tone || 'info';
     };
 
@@ -395,11 +399,18 @@ const {
         return `Showing ${counts.series} series across ${state.loaded} of ${state.total} ${listingWord}${yearPhrase}.`;
     };
 
+    // Ownership counts every figure in this search, whatever the Owned / Not
+    // owned view hides.
+    const ownershipSummary = () => describeOwnership(Array.from(resultsElement.querySelectorAll('.collectible-release-block'))
+        .filter((block) => block instanceof HTMLElement && blockMatchesReleases(block, state.releaseIds))
+        .flatMap((block) => Array.from(block.querySelectorAll('.collectible-inventory-row')))
+        .map((row) => (row instanceof HTMLElement ? Number(row.dataset.quantity || '0') : 0)));
+
     const refreshInventoryVisibility = () => {
         applyInventoryVisibility(resultsElement, state, HTMLElement);
         if (!state.loading) {
             const counts = visibleInventoryCounts();
-            setStatus(describeResults(), counts.series === 0 ? 'empty' : 'success');
+            setStatus(describeResults(), counts.series === 0 ? 'empty' : 'success', ownershipSummary());
         }
     };
 
