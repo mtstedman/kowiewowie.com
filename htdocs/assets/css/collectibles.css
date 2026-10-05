@@ -775,6 +775,13 @@
   align-items: stretch;
 }
 
+/* A set left alone at the end of its year spans the row rather than leaving
+   an empty slot beside it. Only visible sets count, so this holds under the
+   Owned and Not owned views. */
+.collectible-year > .collectible-release-block:nth-child(odd of .collectible-release-block:not([hidden])):nth-last-child(1 of .collectible-release-block:not([hidden])) {
+  grid-column: 1 / -1;
+}
+
 .collectible-year-title {
   grid-column: 1 / -1;
   margin: 0;
