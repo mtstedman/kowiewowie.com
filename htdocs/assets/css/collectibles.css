@@ -652,6 +652,7 @@
 
 .collectible-release-block {
   display: grid;
+  align-content: start;
   gap: 0.35rem;
   min-width: 0;
   padding: 0.7rem;
@@ -678,6 +679,41 @@
   color: var(--ink);
   font-size: 1rem;
   line-height: 1.25;
+}
+
+/* How much of the set you own: a count on the title row, then a bar in the
+   line's color once you own one. */
+.collectible-release-owned {
+  flex: none;
+  margin: 0 0 0 auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.collectible-release-owned.is-started {
+  color: var(--ink);
+}
+
+.collectible-release-owned.is-complete {
+  font-weight: 750;
+}
+
+.collectible-release-meter {
+  flex-basis: 100%;
+  height: 3px;
+  margin-top: 0.2rem;
+  border-radius: 2px;
+  background:
+    linear-gradient(var(--line-brand, var(--accent)), var(--line-brand, var(--accent))) left / calc(var(--owned, 0) * 100%) 100% no-repeat,
+    var(--glass-border);
+}
+
+.collectible-release-owned[hidden],
+.collectible-release-meter[hidden] {
+  display: none;
 }
 
 .collectible-release-status {
@@ -730,12 +766,13 @@
   background: var(--line-brand);
 }
 
+/* Sets in a row share one height, so the rows stay even. */
 .collectible-year {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.65rem;
   min-width: 0;
-  align-items: start;
+  align-items: stretch;
 }
 
 .collectible-year-title {

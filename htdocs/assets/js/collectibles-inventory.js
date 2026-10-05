@@ -303,15 +303,28 @@ export const blockMatchesReleases = (block, releaseIds) => !Array.isArray(releas
     || releaseIds.includes(block.dataset.releaseId)
     || releaseIds.includes(block.dataset.legacyReleaseId);
 
-// "You own 12 of 139 figures here, 17 copies in all.": distinct figures owned,
-// then every copy, over each figure row's quantity.
-export const describeOwnership = (quantities) => {
+// Over each figure row's quantity: the figures, the distinct ones owned, and
+// every copy. A set lists each figure once (no set repeats a figure across
+// its listings), so rows are figures.
+export const countOwnership = (quantities) => {
     const list = Array.isArray(quantities) ? quantities : [];
-    if (list.length === 0) return '';
     const owned = list.filter(isOwnedQuantity);
-    const copies = owned.reduce((total, quantity) => total + quantity, 0);
-    const figures = `You own ${owned.length} of ${list.length} ${list.length === 1 ? 'figure' : 'figures'} here`;
-    return owned.length === 0 ? `${figures}.` : `${figures}, ${copies} ${copies === 1 ? 'copy' : 'copies'} in all.`;
+    return { figures: list.length, owned: owned.length, copies: owned.reduce((total, quantity) => total + quantity, 0) };
+};
+
+// The summary: "You own 12 of 139 figures here, 17 copies in all."
+export const describeOwnership = (quantities) => {
+    const { figures, owned, copies } = countOwnership(quantities);
+    if (figures === 0) return '';
+    const text = `You own ${owned} of ${figures} ${figures === 1 ? 'figure' : 'figures'} here`;
+    return owned === 0 ? `${text}.` : `${text}, ${copies} ${copies === 1 ? 'copy' : 'copies'} in all.`;
+};
+
+// One set: "5 of 13 owned", and its copies when duplicates add more.
+export const describeSetOwnership = (quantities) => {
+    const { figures, owned, copies } = countOwnership(quantities);
+    if (figures === 0) return '';
+    return `${owned} of ${figures} owned${copies > owned ? `, ${copies} copies` : ''}`;
 };
 
 export const applyInventoryVisibility = (resultsElement, state, HTMLElementClass) => {

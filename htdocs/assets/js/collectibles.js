@@ -6,7 +6,7 @@
 // resolve a query-string specifier, so the namespace is cast to the unversioned
 // module's type below.
 // @ts-ignore
-import * as inventoryModule from './collectibles-inventory.js?v=726613662eea';
+import * as inventoryModule from './collectibles-inventory.js?v=96a1851077b0';
 
 const {
     INVENTORY_STORAGE_KEY,
@@ -32,7 +32,9 @@ const {
     seriesChoicesFromFacets,
     applyInventoryVisibility,
     blockMatchesReleases,
+    countOwnership,
     describeOwnership,
+    describeSetOwnership,
     catalogRequestParams,
     appendCatalogPage,
     isReleaseExpanded,
@@ -399,15 +401,34 @@ const {
         return `Showing ${counts.series} series across ${state.loaded} of ${state.total} ${listingWord}${yearPhrase}.`;
     };
 
-    // Ownership counts every figure in this search, whatever the Owned / Not
-    // owned view hides.
+    // Ownership counts every figure, whatever the Owned / Not owned view hides.
+    const rowQuantities = (container) => Array.from(container.querySelectorAll('.collectible-inventory-row'))
+        .map((row) => (row instanceof HTMLElement ? Number(row.dataset.quantity || '0') : 0));
+
     const ownershipSummary = () => describeOwnership(Array.from(resultsElement.querySelectorAll('.collectible-release-block'))
         .filter((block) => block instanceof HTMLElement && blockMatchesReleases(block, state.releaseIds))
-        .flatMap((block) => Array.from(block.querySelectorAll('.collectible-inventory-row')))
-        .map((row) => (row instanceof HTMLElement ? Number(row.dataset.quantity || '0') : 0)));
+        .flatMap((block) => rowQuantities(block)));
+
+    // Each set's count beside its title, and a completion bar once one is owned.
+    const refreshSetOwnership = () => {
+        Array.from(resultsElement.querySelectorAll('.collectible-release-block')).forEach((block) => {
+            const count = block.querySelector('.collectible-release-owned');
+            const meter = block.querySelector('.collectible-release-meter');
+            if (!(count instanceof HTMLElement) || !(meter instanceof HTMLElement)) return;
+            const quantities = rowQuantities(block);
+            const { figures, owned } = countOwnership(quantities);
+            count.textContent = describeSetOwnership(quantities);
+            count.hidden = figures === 0;
+            count.classList.toggle('is-started', owned > 0);
+            count.classList.toggle('is-complete', figures > 0 && owned === figures);
+            meter.hidden = owned === 0;
+            meter.style.setProperty('--owned', String(figures === 0 ? 0 : owned / figures));
+        });
+    };
 
     const refreshInventoryVisibility = () => {
         applyInventoryVisibility(resultsElement, state, HTMLElement);
+        refreshSetOwnership();
         if (!state.loading) {
             const counts = visibleInventoryCounts();
             setStatus(describeResults(), counts.series === 0 ? 'empty' : 'success', ownershipSummary());
@@ -812,8 +833,12 @@ const {
         const releaseHeading = createElement('header', 'collectible-release-heading');
         const releaseTitle = createElement('h3', 'collectible-release-title', group.title);
         releaseTitle.id = releaseHeadingId;
-        releaseHeading.append(releaseTitle);
-        releaseHeading.append(createElement('p', 'collectible-release-status', seriesRosterText(group)));
+        // refreshSetOwnership fills the count and the bar.
+        const ownedCount = createElement('p', 'collectible-release-owned');
+        const ownedMeter = createElement('span', 'collectible-release-meter');
+        ownedMeter.setAttribute('aria-hidden', 'true');
+        releaseHeading.append(releaseTitle, ownedCount);
+        releaseHeading.append(createElement('p', 'collectible-release-status', seriesRosterText(group)), ownedMeter);
         releaseBlock.append(releaseHeading);
         const products = createElement('div', 'collectible-release-products');
         const { primary, supplemental } = orderedListings(group);

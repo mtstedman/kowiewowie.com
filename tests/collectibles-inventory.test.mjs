@@ -24,6 +24,7 @@ import {
   seriesChoicesFromFacets,
   applyInventoryVisibility,
   describeOwnership,
+  describeSetOwnership,
   catalogRequestParams,
   appendCatalogPage,
   isReleaseExpanded,
@@ -123,6 +124,11 @@ assert.equal(describeOwnership([]), '', 'No figures, no ownership line.');
 assert.equal(describeOwnership([0, 0]), 'You own 0 of 2 figures here.');
 assert.equal(describeOwnership([1]), 'You own 1 of 1 figure here, 1 copy in all.');
 assert.equal(describeOwnership([2, 0, 3]), 'You own 2 of 3 figures here, 5 copies in all.');
+// Each set's own count: copies show only when duplicates add more.
+assert.equal(describeSetOwnership([]), '', 'A set with no figures has no count.');
+assert.equal(describeSetOwnership([0, 0, 0]), '0 of 3 owned');
+assert.equal(describeSetOwnership([1, 1, 0]), '2 of 3 owned');
+assert.equal(describeSetOwnership([2, 0, 3]), '2 of 3 owned, 5 copies');
 
 const pageSource = await readFile(new URL('../htdocs/collectibles/index.php', import.meta.url), 'utf8');
 const applicationSource = await readFile(new URL('../htdocs/assets/js/collectibles.js', import.meta.url), 'utf8');
@@ -162,6 +168,10 @@ class HTMLElement {
     this.type = '';
     this.attributes = new Map();
     this.listeners = new Map();
+    this.style = {
+      properties: new Map(),
+      setProperty(name, value) { this.properties.set(name, String(value)); },
+    };
     this._id = '';
     this._textContent = '';
     this.classList = {
@@ -911,6 +921,15 @@ class MemoryStorage {
   yearChips.children[0].dispatchEvent({ type: 'click' });
   await waitFor(() => settled() && allBlocks().length === 6, 'All years should load every matching set.');
   assert.match(status.textContent, / You own 1 of 9 figures here, 2 copies in all\.$/, 'Duplicates count as copies, not figures.');
+  // Each set counts its own figures across its listings, with a bar once one is owned.
+  const setCount = (seriesId) => blockBySeries(seriesId).querySelector('.collectible-release-owned');
+  const setMeter = (seriesId) => blockBySeries(seriesId).querySelector('.collectible-release-meter');
+  assert.equal(setCount('sonny-angel:animal-1').textContent, '1 of 2 owned, 2 copies');
+  assert.equal(setMeter('sonny-angel:animal-1').hidden, false);
+  assert.equal(setMeter('sonny-angel:animal-1').style.properties.get('--owned'), '0.5');
+  assert.equal(setCount('skullpanda:city').textContent, '0 of 3 owned');
+  assert.equal(setMeter('skullpanda:city').hidden, true, 'No bar until a figure in the set is owned.');
+  assert.equal(setCount('nommi:known-empty').hidden, true, 'A set with no figures shows no count.');
   assert.match(location.search, /year=all/);
   assert.equal(requests.at(-1).get('year'), 'all');
   assert.deepEqual(chipValues(yearChips), []);
@@ -1029,6 +1048,7 @@ class MemoryStorage {
   assert.equal(JSON.parse(storage.getItem(INVENTORY_STORAGE_KEY)).quantities[inventoryKey('sonny-retail-b', 'Elephant')], 3);
   assert.equal(status.textContent, 'Showing 1 owned figure across 1 series. You own 1 of 9 figures here, 3 copies in all.',
     'Ownership counts the whole search, not just the Owned view, and follows quantity edits.');
+  assert.equal(setCount('sonny-angel:animal-1').textContent, '1 of 2 owned, 3 copies', 'A set\'s count follows quantity edits.');
 
   // Spreadsheet exports: what the shelf shows (here, owned figures only), and
   // every owned figure across the whole catalog.
