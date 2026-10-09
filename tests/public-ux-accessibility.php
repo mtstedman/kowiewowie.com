@@ -180,6 +180,35 @@ foreach ($focusedHeaderPages as $scriptPath => $routeExpectation) {
     }
 }
 
+$palworldHtml = render_public_page($root, 'htdocs/palworld/index.php', '/palworld/');
+$palworldTargetPosition = strpos($palworldHtml, 'id="palworld-target-title"');
+$palworldTraitsPosition = strpos($palworldHtml, 'id="palworld-traits-title"');
+$palworldOwnedPosition = strpos($palworldHtml, 'id="palworld-owned-title"');
+$palworldActionPosition = strpos($palworldHtml, 'id="palworld-find-route"');
+public_ux_assert(
+    $palworldTargetPosition !== false
+        && $palworldTraitsPosition !== false
+        && $palworldOwnedPosition !== false
+        && $palworldActionPosition !== false
+        && $palworldTargetPosition < $palworldTraitsPosition
+        && $palworldTraitsPosition < $palworldOwnedPosition
+        && $palworldOwnedPosition < $palworldActionPosition,
+    'Palworld setup must present target, desired passives, owned Pals, and the route action in order.'
+);
+public_ux_assert(
+    (bool) preg_match('/<section class="palworld-panel palworld-results"[^>]*aria-labelledby="palworld-results-title"[^>]*hidden>/', $palworldHtml),
+    'Palworld results must start hidden and use an accessible visible heading.'
+);
+public_ux_assert(
+    strpos($palworldHtml, '<h2 id="palworld-results-title" tabindex="-1">Breeding route result</h2>') !== false,
+    'Palworld results must provide a focusable visible result heading.'
+);
+public_ux_assert(
+    strpos($palworldHtml, 'id="palworld-excluded-title"') !== false
+        && strpos($palworldHtml, 'class="palworld-exclusions" aria-labelledby="palworld-excluded-title" hidden') !== false,
+    'Palworld helper controls must remain hidden until a route is available.'
+);
+
 foreach ($currentSectionRequestUriCases as $case) {
     $html = render_public_page($root, 'htdocs/index.php', $case['requestUri']);
     assert_primary_nav_current($html, $case['currentSection'], $case['label']);

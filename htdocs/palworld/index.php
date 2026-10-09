@@ -83,51 +83,52 @@ $palworldMapCopyright = $palworldMapField('copyright', 'Copyright (c) 2026 Ryexh
 
             <div class="palworld-layout">
                 <form id="palworld-form" class="palworld-panel palworld-bar" aria-labelledby="palworld-plan-title" data-palworld-revision="<?= htmlspecialchars($palworldDataRevision, ENT_QUOTES, 'UTF-8') ?>" data-palworld-cache-format="<?= htmlspecialchars((string) $palworldCacheFormat, ENT_QUOTES, 'UTF-8') ?>" data-palworld-data-bytes="<?= htmlspecialchars((string) $palworldDataBytes, ENT_QUOTES, 'UTF-8') ?>" data-palworld-map-version="<?= htmlspecialchars($palworldMapVersion, ENT_QUOTES, 'UTF-8') ?>" novalidate>
-                    <h2 id="palworld-plan-title" class="palworld-bar-title">Build your plan</h2>
+                    <h2 id="palworld-plan-title" class="palworld-bar-title">Build your breeding plan</h2>
+                    <p class="palworld-help palworld-plan-intro">Work through the setup in order, then find a route. You can revise any choice without losing your last successful route.</p>
                     <fieldset id="palworld-controls" class="palworld-controls" disabled>
                         <legend class="public-visually-hidden">Breeding plan inputs</legend>
-                        <section class="palworld-bar-target" aria-labelledby="palworld-target-title">
-                            <h3 id="palworld-target-title" class="palworld-visually-hidden">Pick your target</h3>
+                        <section class="palworld-setup-step palworld-bar-target" aria-labelledby="palworld-target-title">
+                            <h3 id="palworld-target-title"><span class="palworld-step-number" aria-hidden="true">1</span> Choose your target Pal</h3>
+                            <p class="palworld-help">Search for the Pal you want to breed.</p>
                             <div id="palworld-target-picker"></div>
                         </section>
 
-                        <div id="palworld-addons" class="palworld-addons">
-                            <span id="palworld-addons-caption" class="palworld-addons-caption">Add-ons (optional)</span>
-                            <button id="palworld-addons-toggle" class="palworld-addons-toggle" type="button" aria-expanded="false" aria-controls="palworld-addons-panel" aria-labelledby="palworld-addons-caption palworld-addons-summary">
-                                <span id="palworld-addons-summary" class="palworld-addons-summary">No traits</span>
-                            </button>
-                            <div id="palworld-addons-panel" class="palworld-addons-panel" role="group" aria-labelledby="palworld-addons-caption" hidden>
-                                <section aria-labelledby="palworld-traits-title">
-                                    <h3 id="palworld-traits-title">Choose your wanted traits</h3>
-                                    <p id="palworld-traits-help" class="palworld-help">Traits are optional. Select 0 to 4 different passive traits from the dropdowns and leave unused slots on “No trait”.</p>
-                                    <div class="palworld-trait-fields">
-                                        <label for="palworld-trait-1">Trait 1 (optional)<select id="palworld-trait-1" name="trait-1" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
-                                        <label for="palworld-trait-2">Trait 2 (optional)<select id="palworld-trait-2" name="trait-2" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
-                                        <label for="palworld-trait-3">Trait 3 (optional)<select id="palworld-trait-3" name="trait-3" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
-                                        <label for="palworld-trait-4">Trait 4 (optional)<select id="palworld-trait-4" name="trait-4" aria-describedby="palworld-traits-help"><option value="">No trait</option></select></label>
-                                    </div>
-                                </section>
+                        <section id="palworld-addons" class="palworld-setup-step palworld-addons" aria-labelledby="palworld-traits-title">
+                            <h3 id="palworld-traits-title"><span class="palworld-step-number" aria-hidden="true">2</span> Choose desired passives <span class="palworld-optional">(optional)</span></h3>
+                            <p id="palworld-traits-help" class="palworld-help">Select up to four passive traits. Each selected passive becomes a checkbox on every owned Pal, so you can mark exactly which desired traits that Pal already carries.</p>
+                            <p id="palworld-addons-summary" class="palworld-addons-summary" aria-live="polite">No desired passives selected.</p>
+                            <div id="palworld-addons-panel" class="palworld-addons-panel" role="group" aria-labelledby="palworld-traits-title">
+                                <div class="palworld-trait-fields">
+                                    <label for="palworld-trait-1">Passive 1 (optional)<select id="palworld-trait-1" name="trait-1" aria-describedby="palworld-traits-help"><option value="">No passive</option></select></label>
+                                    <label for="palworld-trait-2">Passive 2 (optional)<select id="palworld-trait-2" name="trait-2" aria-describedby="palworld-traits-help"><option value="">No passive</option></select></label>
+                                    <label for="palworld-trait-3">Passive 3 (optional)<select id="palworld-trait-3" name="trait-3" aria-describedby="palworld-traits-help"><option value="">No passive</option></select></label>
+                                    <label for="palworld-trait-4">Passive 4 (optional)<select id="palworld-trait-4" name="trait-4" aria-describedby="palworld-traits-help"><option value="">No passive</option></select></label>
+                                </div>
                             </div>
-                        </div>
-
-                        <button id="palworld-find-route" class="palworld-primary" type="submit">Find breeding route</button>
-
-                        <section class="palworld-owned" aria-labelledby="palworld-owned-title">
-                            <h3 id="palworld-owned-title">Add the pals you own</h3>
-                            <p class="palworld-help">Choose each pal's species and the wanted traits it carries. Add separate rows for separate pals, even of the same species.</p>
-                            <div id="palworld-sources" class="palworld-sources"></div>
-                            <button id="palworld-add-source" type="button">Add owned pal</button>
                         </section>
+
+                        <section class="palworld-setup-step palworld-owned" aria-labelledby="palworld-owned-title">
+                            <h3 id="palworld-owned-title"><span class="palworld-step-number" aria-hidden="true">3</span> Add the Pals you own</h3>
+                            <p class="palworld-help">Choose each Pal's species, then check the desired passives it carries. Add separate rows for separate Pals, even when they are the same species.</p>
+                            <div id="palworld-sources" class="palworld-sources"></div>
+                            <button id="palworld-add-source" type="button">Add another owned Pal</button>
+                        </section>
+
+                        <div class="palworld-actions">
+                            <p>Setup complete? Find the best route from your current choices.</p>
+                            <button id="palworld-find-route" class="palworld-primary" type="submit">Find route</button>
+                        </div>
                     </fieldset>
                 </form>
 
-                <section class="palworld-panel palworld-results" aria-label="Your breeding tree" aria-busy="false">
-                    <p id="palworld-route-status" class="palworld-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+                <section class="palworld-panel palworld-results" aria-labelledby="palworld-results-title" aria-busy="false" data-route-state="empty" hidden>
+                    <h2 id="palworld-results-title" tabindex="-1">Breeding route result</h2>
+                    <p id="palworld-route-status" role="status" aria-live="polite" aria-atomic="true"></p>
                     <div id="palworld-route-tree"></div>
                     <footer id="palworld-route-summary" class="palworld-route-summary" hidden></footer>
-                    <section class="palworld-exclusions" aria-labelledby="palworld-excluded-title">
+                    <section class="palworld-exclusions" aria-labelledby="palworld-excluded-title" hidden>
                         <h3 id="palworld-excluded-title">Unavailable helpers</h3>
-                        <p class="palworld-help">Helpers are pals with none of your wanted traits that you can catch or already own. Choose “Don't have” on a helper to find another route.</p>
+                        <p class="palworld-help">Helpers are Pals with none of your desired passives that you can catch or already own. Choose “Don't have” on a helper to find another route.</p>
                         <p id="palworld-excluded-empty">No helpers excluded.</p>
                         <ul id="palworld-excluded-list"></ul>
                     </section>

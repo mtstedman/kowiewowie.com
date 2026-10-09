@@ -14,16 +14,15 @@
     const controls = /** @type {HTMLFieldSetElement} */ (document.getElementById('palworld-controls'));
     const loadStatus = /** @type {HTMLElement} */ (document.getElementById('palworld-load-status'));
     const routeStatus = /** @type {HTMLElement} */ (document.getElementById('palworld-route-status'));
+    const routeHeading = /** @type {HTMLElement} */ (document.getElementById('palworld-results-title'));
     const tree = /** @type {HTMLElement} */ (document.getElementById('palworld-route-tree'));
     const summary = /** @type {HTMLElement} */ (document.getElementById('palworld-route-summary'));
     const results = /** @type {HTMLElement} */ (document.querySelector('.palworld-results'));
+    const exclusions = /** @type {HTMLElement} */ (document.querySelector('.palworld-exclusions'));
     const sourceList = /** @type {HTMLElement} */ (document.getElementById('palworld-sources'));
     const addSourceButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-add-source'));
     const submitButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-find-route'));
     const excludedList = /** @type {HTMLElement} */ (document.getElementById('palworld-excluded-list'));
-    const addons = /** @type {HTMLElement} */ (document.getElementById('palworld-addons'));
-    const addonsToggle = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-addons-toggle'));
-    const addonsPanel = /** @type {HTMLElement} */ (document.getElementById('palworld-addons-panel'));
     const addonsSummary = /** @type {HTMLElement} */ (document.getElementById('palworld-addons-summary'));
     const traitInputs = Array.from(/** @type {NodeListOf<HTMLSelectElement>} */ (document.querySelectorAll('.palworld-trait-fields select')));
     const sources = [];
@@ -36,6 +35,7 @@
     let nextSourceId = 0;
     let routeGeneration = 0;
     let attempted = false;
+    let hasSuccessfulRoute = false;
     let palSearchIndex = null;
     let treeResizeObserver = null;
 
@@ -453,19 +453,35 @@
         stage.style.setProperty('height', (naturalHeight * scale) + 'px');
     }
 
-    // The closed add-ons trigger reads like a select: it names what is currently set.
-    // The panel holds only the wanted traits, so the summary counts the chosen traits.
     function updateAddonsSummary() {
         const traitCount = traitInputs.filter(function (input) { return input.value.trim(); }).length;
-        addonsSummary.textContent = traitCount ? traitCount + (traitCount === 1 ? ' trait' : ' traits') : 'No traits';
+        addonsSummary.textContent = traitCount
+            ? traitCount + (traitCount === 1 ? ' desired passive selected.' : ' desired passives selected.')
+            : 'No desired passives selected.';
     }
 
-    // restoreFocus hands focus back to the trigger when it would otherwise be left
-    // on a control inside the panel that is about to be hidden.
-    function setAddonsOpen(open, restoreFocus) {
-        if (!open && restoreFocus && addonsPanel.contains(document.activeElement)) addonsToggle.focus();
-        addonsPanel.hidden = !open;
-        addonsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    function setSubmitMode(update) {
+        submitButton.textContent = update ? 'Update route' : 'Find route';
+    }
+
+    function revealResults(focusOutcome) {
+        results.hidden = false;
+        if (!focusOutcome) return;
+        routeHeading.focus({ preventScroll: true });
+        if (typeof results.scrollIntoView !== 'function') return;
+        const reduceMotion = typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+
+    function markRouteStale() {
+        results.dataset.routeState = 'stale';
+        routeHeading.textContent = 'Breeding route result — update needed';
+        tree.setAttribute('inert', '');
+        tree.setAttribute('aria-disabled', 'true');
+        exclusions.hidden = true;
+        routeStatus.textContent = 'Route out of date. Update it to use your current setup.';
+        setSubmitMode(true);
     }
 
     function invalidate() {
@@ -474,9 +490,16 @@
         results.setAttribute('aria-busy', 'false');
         submitButton.disabled = false;
         if (!attempted) return;
+        if (hasSuccessfulRoute) {
+            markRouteStale();
+            return;
+        }
+        attempted = false;
         clearRoute();
-        routeStatus.classList.remove('palworld-visually-hidden');
-        routeStatus.textContent = 'Inputs changed. Find a breeding route with your updated plan.';
+        results.hidden = true;
+        results.dataset.routeState = 'empty';
+        routeStatus.textContent = '';
+        setSubmitMode(false);
     }
 
     // Search text for every pal, built once on first use. It holds strings only;
@@ -514,7 +537,7 @@
         matches.setAttribute('aria-label', labelText + ' matches');
         matches.hidden = true;
         const selected = element('div', 'palworld-picker-selected');
-        const picker = { key: '', input: input };
+        const picker = { key: '', input: input, label: label, matches: matches };
         const moreItem = element('li', 'palworld-picker-more');
         let found = [];
         let choices = [];
@@ -671,36 +694,51 @@
             checkbox.addEventListener('change', function () {
                 if (checkbox.checked) source.traitSlots.add(index);
                 else source.traitSlots.delete(index);
+                invalidate();
             });
             label.append(checkbox, element('span', '', trait));
             source.traitChoices.append(label);
         });
-        if (!count) source.traitChoices.append(element('p', 'palworld-help', 'Choose your wanted traits under “Add-ons (optional)” to mark the ones this pal carries.'));
+        if (!count) source.traitChoices.append(element('p', 'palworld-help', 'Choose desired passives in step 2 to add checkboxes here.'));
+    }
+
+    function updateSourceLabels() {
+        sources.forEach(function (source, index) {
+            const number = index + 1;
+            source.legend.textContent = 'Owned Pal ' + number;
+            source.picker.label.textContent = 'Species for owned Pal ' + number;
+            source.picker.matches.setAttribute('aria-label', 'Species for owned Pal ' + number + ' matches');
+            source.remove.textContent = 'Remove owned Pal ' + number;
+            source.remove.setAttribute('aria-label', 'Remove owned Pal ' + number);
+        });
     }
 
     function addSource(focus) {
-        const number = ++nextSourceId;
-        const id = 'palworld-source-' + number;
+        const id = 'palworld-source-' + (++nextSourceId);
         const row = element('fieldset', 'palworld-source');
-        row.append(element('legend', '', 'Owned pal ' + number));
-        const picker = createPicker(row, id + '-species', 'Species for owned pal ' + number);
+        const legend = element('legend');
+        row.append(legend);
+        const picker = createPicker(row, id + '-species', 'Owned Pal species');
         const traits = element('fieldset', 'palworld-source-traits');
-        traits.append(element('legend', '', 'Wanted traits carried'));
+        traits.append(element('legend', '', 'Desired passives carried'));
         const traitChoices = element('div', 'palworld-trait-choices');
         traits.append(traitChoices);
-        const source = { id: id, row: row, picker: picker, traitChoices: traitChoices, traitSlots: new Set() };
-        const remove = button('Remove owned pal ' + number, function () {
+        const source = { id: id, row: row, legend: legend, picker: picker, traitChoices: traitChoices, traitSlots: new Set(), remove: null };
+        const remove = button('Remove owned Pal', function () {
             const index = sources.indexOf(source);
             sources.splice(index, 1);
             row.remove();
+            updateSourceLabels();
             invalidate();
             const next = sources[index] || sources[index - 1];
             if (next) next.picker.input.focus();
             else addSourceButton.focus();
         }, 'palworld-remove');
+        source.remove = remove;
         row.append(traits, remove);
         sources.push(source);
         sourceList.append(row);
+        updateSourceLabels();
         refreshSourceTraits(source);
         invalidate();
         if (focus) picker.input.focus();
@@ -715,7 +753,7 @@
             const restore = button('Restore ' + name, function () {
                 excluded.delete(key);
                 renderExcluded();
-                runRoute();
+                runRoute(false);
                 routeStatus.focus();
             });
             item.append(palIdentity(key), locationLink(key), restore);
@@ -745,7 +783,7 @@
             const excludeButton = button("Don't have", function () {
                 excluded.add(node.pal);
                 renderExcluded();
-                runRoute();
+                runRoute(false);
                 routeStatus.focus();
             });
             excludeButton.setAttribute('aria-label', "Don't have " + palFor(node.pal).name + ' as a helper');
@@ -761,7 +799,7 @@
         return item;
     }
 
-    function runRoute() {
+    function runRoute(focusOutcome) {
         if (!dataset) return;
         attempted = true;
         const generation = ++routeGeneration;
@@ -781,11 +819,17 @@
             }),
             excluded: Array.from(excluded)
         };
-        clearRoute();
-        routeStatus.classList.remove('palworld-visually-hidden');
-        routeStatus.textContent = 'Finding a breeding route…';
+        const updating = hasSuccessfulRoute;
+        if (!updating) clearRoute();
+        results.dataset.routeState = 'computing';
+        routeHeading.textContent = updating ? 'Updating breeding route' : 'Breeding route result';
+        tree.setAttribute('inert', '');
+        tree.setAttribute('aria-disabled', 'true');
+        exclusions.hidden = true;
+        routeStatus.textContent = updating ? 'Updating the breeding route…' : 'Finding a breeding route…';
         results.setAttribute('aria-busy', 'true');
         submitButton.disabled = true;
+        revealResults(focusOutcome !== false);
         // Give the busy state a chance to paint before the synchronous engine runs.
         window.requestAnimationFrame(function () {
             window.setTimeout(function () {
@@ -793,9 +837,15 @@
                 try {
                     const result = (/** @type {typeof globalThis & { PalworldBreeding: PalworldBreedingUiEngine }} */ (globalThis)).PalworldBreeding.findRoute(dataset, request);
                     if (!result.ok) {
+                        clearRoute();
+                        hasSuccessfulRoute = false;
+                        results.dataset.routeState = 'outcome';
+                        routeHeading.textContent = 'Breeding route result';
                         routeStatus.textContent = result.message;
+                        setSubmitMode(false);
                         return;
                     }
+                    clearRoute();
                     const stage = element('div', 'palworld-tree-stage');
                     const root = element('ol', 'palworld-tree');
                     root.setAttribute('aria-label', 'Breeding route: the target first, then each pal followed by the two parents bred together to make it');
@@ -807,13 +857,25 @@
                         element('span', '', result.stepCount + (result.stepCount === 1 ? ' breeding step' : ' breeding steps'))
                     );
                     summary.hidden = false;
+                    hasSuccessfulRoute = true;
+                    results.dataset.routeState = 'current';
+                    routeHeading.textContent = 'Breeding route result';
+                    tree.removeAttribute('inert');
+                    tree.removeAttribute('aria-disabled');
+                    exclusions.hidden = false;
+                    renderExcluded();
+                    setSubmitMode(false);
                     fitRoute();
-                    routeStatus.classList.add('palworld-visually-hidden');
                     routeStatus.textContent = 'Breeding route ready.';
                 } catch (error) {
                     clearRoute();
+                    hasSuccessfulRoute = false;
+                    results.dataset.routeState = 'outcome';
+                    routeHeading.textContent = 'Breeding route result';
                     routeStatus.textContent = 'Unable to find a route: ' + (error instanceof Error ? error.message : 'Please try again.');
+                    setSubmitMode(false);
                 } finally {
+                    if (generation !== routeGeneration) return;
                     results.setAttribute('aria-busy', 'false');
                     submitButton.disabled = false;
                 }
@@ -1187,39 +1249,13 @@
     }
     form.addEventListener('submit', function (event) {
         event.preventDefault();
-        // The open add-ons panel would cover the route it just asked for.
-        setAddonsOpen(false, true);
-        runRoute();
+        runRoute(true);
     });
     form.addEventListener('input', invalidate);
-    addonsToggle.addEventListener('click', function () {
-        setAddonsOpen(addonsPanel.hidden, false);
-    });
-    // Capture phase: decide before a picker inside the panel closes its own match list,
-    // so Escape closes an open list first and the panel only on the next press.
-    addons.addEventListener('keydown', function (event) {
-        if (event.key !== 'Escape' || addonsPanel.hidden) return;
-        if (addonsPanel.querySelector('.palworld-picker-matches:not([hidden])')) return;
-        setAddonsOpen(false, true);
-    }, true);
-    // Close when focus moves to a control outside the add-ons. A missing relatedTarget
-    // (a removed row, a click on plain text) is not a move away, so the panel stays open.
-    addons.addEventListener('focusout', function (event) {
-        if (addonsPanel.hidden || !event.relatedTarget || addons.contains(/** @type {Node} */ (event.relatedTarget))) return;
-        setAddonsOpen(false, false);
-    });
-    // Close on a press outside. The composed path still includes the add-ons for
-    // controls that remove themselves from the page while handling the press.
-    document.addEventListener('pointerdown', function (event) {
-        if (addonsPanel.hidden) return;
-        const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
-        if (path.includes(addons) || addons.contains(/** @type {Node | null} */ (event.target))) return;
-        setAddonsOpen(false, false);
-    });
     traitInputs.forEach(function (input, index) {
         let previous = input.value;
         input.addEventListener('change', function () {
-            // A different trait in this slot must not inherit the old trait's checkmarks.
+            // A different passive in this slot must not inherit the old passive's checkmarks.
             if (input.value !== previous) {
                 sources.forEach(function (source) { source.traitSlots.delete(index); });
                 previous = input.value;

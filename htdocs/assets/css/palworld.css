@@ -743,11 +743,8 @@
     pointer-events: none;
 }
 
-/* Top control bar: the form sits above the map as one compact row of controls.
-   Its dropdowns (target matches, add-ons panel) overlay the map below. */
-.palworld-visually-hidden,
-#palworld-target-picker .palworld-help,
-#palworld-target-picker .palworld-picker-count {
+/* The planner is one continuous setup flow; every step remains visible while it is edited. */
+.palworld-visually-hidden {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -760,148 +757,173 @@
 }
 
 .palworld-bar {
-    position: relative;
-    z-index: 5;
+    width: min(64rem, 100%);
+    box-sizing: border-box;
+    margin-inline: auto;
 }
 
 .palworld-panel .palworld-bar-title {
-    margin: 0 0 var(--space-sm);
-    font-size: var(--step-1);
+    margin-bottom: var(--space-xs);
 }
 
-.palworld-bar-target {
+.palworld-plan-intro {
+    max-width: 62ch;
+    margin-bottom: var(--space-lg);
+}
+
+.palworld-controls {
+    gap: 0;
+}
+
+.palworld-setup-step {
     min-width: 0;
+    padding-block: var(--space-lg);
+    border-top: 1px solid var(--palworld-border);
 }
 
-/* The picker is a small grid so the match list can anchor to the input's row
-   and the selected identity never pushes the list away from the input. */
+.palworld-setup-step:first-of-type {
+    padding-top: var(--space-md);
+}
+
+.palworld-setup-step h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.palworld-step-number {
+    display: inline-grid;
+    flex: 0 0 2rem;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--paper);
+    font-size: var(--step-0);
+}
+
+.palworld-optional {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+    font-weight: 400;
+}
+
+#palworld-target-picker {
+    max-width: 36rem;
+}
+
 #palworld-target-picker .palworld-picker {
     position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-        "label"
-        "input"
-        "selected";
-}
-
-#palworld-target-picker .palworld-picker > label {
-    grid-area: label;
-}
-
-#palworld-target-picker .palworld-picker > input {
-    grid-area: input;
-}
-
-#palworld-target-picker .palworld-picker-selected {
-    grid-area: selected;
-    min-width: 0;
 }
 
 #palworld-target-picker .palworld-picker-matches {
     position: absolute;
     z-index: 30;
-    grid-area: input;
-    top: 100%;
-    left: 0;
     right: 0;
-    max-width: calc(100vw - 2rem);
+    left: 0;
+    max-width: min(36rem, calc(100vw - 2rem));
     box-sizing: border-box;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
 #palworld-target-picker .palworld-picker-matches:empty::before {
-    content: "No matching pals. Try another name.";
+    content: "No matching Pals. Try another name.";
     padding: var(--space-xs);
     color: var(--ink-soft);
     font-size: var(--step--1);
 }
 
-/* Add-ons: one select-like trigger whose panel holds the optional wanted traits. */
 .palworld-addons {
-    position: relative;
-    display: grid;
-    gap: var(--space-xs);
-    min-width: 0;
+    display: block;
 }
 
-.palworld-addons-caption {
-    color: var(--ink);
+.palworld-addons-summary {
+    margin: 0 0 var(--space-sm);
+    color: var(--accent);
     font-size: var(--step--1);
     font-weight: 700;
 }
 
-.palworld-shell .palworld-addons-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-    width: 100%;
-    border-color: var(--palworld-border);
-    background: var(--paper-strong);
-    font-size: var(--step-0);
-    font-weight: 400;
-    text-align: left;
-}
-
-.palworld-addons-toggle::after {
-    content: "";
-    flex: 0 0 auto;
-    width: 0.5em;
-    height: 0.5em;
-    margin-top: -0.25em;
-    border-right: 2px solid currentColor;
-    border-bottom: 2px solid currentColor;
-    transform: rotate(45deg);
-}
-
-.palworld-addons-toggle[aria-expanded="true"]::after {
-    margin-top: 0.25em;
-    transform: rotate(225deg);
-}
-
-.palworld-shell .palworld-addons-toggle[aria-expanded="true"] {
-    border-color: var(--accent);
-}
-
-.palworld-addons-summary {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .palworld-addons-panel {
-    position: absolute;
-    z-index: 20;
-    top: calc(100% + var(--space-xs));
-    left: 0;
-    right: 0;
-    display: grid;
-    gap: var(--space-lg);
-    box-sizing: border-box;
-    max-width: calc(100vw - 2rem);
-    max-height: min(70vh, 44rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: var(--space-md);
-    border: 1px solid var(--accent);
-    border-radius: var(--palworld-radius);
-    background: var(--panel-solid);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    position: static;
+    display: block;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
-.palworld-addons-panel > section {
-    min-width: 0;
-}
-
-/* Owned pals stay in normal flow below the bar so they are always visible. */
 .palworld-owned {
-    padding-top: var(--space-md);
-    border-top: 1px solid var(--palworld-border);
+    padding-top: var(--space-lg);
 }
 
-@media (min-width: 1000px) {
+.palworld-sources {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+}
+
+.palworld-source {
+    align-content: start;
+    background: var(--paper);
+}
+
+.palworld-remove {
+    justify-self: end;
+    margin-top: auto;
+}
+
+.palworld-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-sm) var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 2px solid var(--accent);
+}
+
+.palworld-actions p {
+    flex: 1 1 20rem;
+    margin: 0;
+    color: var(--ink-soft);
+}
+
+.palworld-shell .palworld-actions .palworld-primary {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 10rem;
+    padding-inline: var(--space-lg);
+}
+
+.palworld-results {
+    scroll-margin-top: var(--space-lg);
+}
+
+.palworld-results > h2 {
+    margin-bottom: var(--space-sm);
+}
+
+#palworld-route-status:not(:empty) {
+    margin: 0 0 var(--space-md);
+    padding: var(--space-sm);
+    border-left: 3px solid var(--accent);
+    background: var(--paper);
+    line-height: 1.5;
+}
+
+.palworld-results:is([data-route-state="stale"], [data-route-state="computing"]) #palworld-route-tree {
+    opacity: 0.58;
+}
+
+.palworld-results[data-route-state="stale"] #palworld-route-status {
+    border: 2px solid var(--accent);
+    font-weight: 700;
+}
+
+@media (min-width: 800px) {
     .page-shell.palworld-shell {
         width: min(1360px, calc(100% - 40px));
     }
@@ -910,105 +932,28 @@
         padding: var(--space-lg);
     }
 
-    /* One row, pushed to the right: target picker, add-ons, submit. The owned
-       pals wrap onto their own full-width row underneath. */
-    .palworld-panel.palworld-bar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        justify-content: flex-end;
-        gap: var(--space-md);
-        padding-block: var(--space-md);
-    }
-
-    .palworld-panel .palworld-bar-title {
-        flex: 1 1 0;
-        align-self: center;
-        min-width: 0;
-        margin: 0;
-    }
-
-    /* The fieldset keeps disabling its controls but adds no box, so its children
-       join the bar row directly and the owned pals can span the whole form. */
-    .palworld-bar .palworld-controls {
-        display: contents;
-    }
-
-    .palworld-bar .palworld-controls > legend {
-        position: absolute;
-    }
-
-    .palworld-bar .palworld-owned {
-        flex: 1 0 100%;
-    }
-
-    .palworld-bar-target {
-        flex: 0 1 auto;
-    }
-
-    /* The selected identity sits beside the search box, inside a reserved row
-       height, so choosing a pal never changes the height of the bar. */
-    #palworld-target-picker .palworld-picker {
-        grid-template-columns: minmax(0, auto) 16rem;
-        grid-template-areas:
-            "selected label"
-            "selected input";
-        align-content: end;
-        min-height: 4.75rem;
-    }
-
-    #palworld-target-picker .palworld-picker-selected {
-        align-self: end;
-        max-width: 18rem;
-        margin: 0 var(--space-sm) 0 0;
-    }
-
-    #palworld-target-picker .palworld-picker-matches {
-        left: auto;
-        width: max(100%, 24rem);
-    }
-
-    .palworld-addons {
-        flex: 0 0 15rem;
-    }
-
-    .palworld-addons-panel {
-        left: auto;
-        width: min(36rem, calc(100vw - 4rem));
-    }
-
-    .palworld-shell .palworld-bar .palworld-primary {
-        flex: 0 0 auto;
-        width: auto;
-        white-space: nowrap;
-    }
-}
-
-/* Between 1000px and 1280px the row has no spare room for the visible title. */
-@media (min-width: 1000px) and (max-width: 1279.98px) {
-    .palworld-panel .palworld-bar-title {
-        position: absolute;
-        flex: none;
-        width: 1px;
-        height: 1px;
-        margin: -1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-    }
-}
-
-@media (max-width: 420px) {
     .palworld-trait-fields {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .palworld-panel {
-        padding: var(--space-sm);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 600px) {
+    .palworld-panel {
+        padding: var(--space-sm);
+    }
+
+    .palworld-trait-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .palworld-actions {
+        align-items: stretch;
+    }
+
+    .palworld-shell .palworld-actions .palworld-primary {
+        width: 100%;
+    }
+
     #palworld-route-tree {
         --palworld-link: 1.5rem;
         --palworld-card: 11rem;
@@ -1021,5 +966,11 @@
 
     .palworld-node-target {
         width: calc(var(--palworld-card) + 1rem);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .palworld-results {
+        scroll-behavior: auto;
     }
 }
