@@ -48,7 +48,7 @@
 
 .risk-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(292px, 368px);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
     gap: 1rem;
     align-items: start;
 }
@@ -393,6 +393,11 @@
     --owner-ink: #1b1607;
 }
 
+.risk-marker-art {
+    filter: drop-shadow(0 2px 2px rgba(3, 10, 15, 0.7));
+    pointer-events: none;
+}
+
 .risk-marker-shape {
     fill: var(--owner-fill);
     stroke: #071923;
@@ -400,10 +405,18 @@
     transition: fill 160ms ease;
 }
 
+.risk-marker.has-art:not(.is-art-missing) .risk-marker-shape {
+    display: none;
+}
+
 .risk-marker-count {
-    fill: var(--owner-ink);
+    fill: #ffffff;
     font-size: 12.5px;
     font-weight: 900;
+    paint-order: stroke;
+    stroke: rgba(3, 10, 15, 0.95);
+    stroke-linejoin: round;
+    stroke-width: 3px;
     pointer-events: none;
 }
 
@@ -449,6 +462,13 @@
     stroke: #f9f871;
     stroke-dasharray: 5 3;
     animation: risk-ring-pulse 1.4s ease-in-out infinite;
+}
+
+.risk-marker.is-candidate .risk-marker-ring {
+    stroke: #38bdf8;
+    stroke-width: 4;
+    stroke-dasharray: none;
+    filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.85));
 }
 
 .risk-marker.is-source .risk-marker-ring {
@@ -734,6 +754,104 @@
     gap: 1rem;
 }
 
+.risk-phase-stepper {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.risk-phase-step {
+    position: relative;
+    min-width: 0;
+    padding: 1.55rem 0.2rem 0.35rem;
+    border-top: 3px solid var(--surface-edge-strong);
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 750;
+    line-height: 1.15;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.risk-phase-step::before {
+    position: absolute;
+    top: 0.2rem;
+    left: 50%;
+    width: 1.1rem;
+    height: 1.1rem;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--surface-edge-strong);
+    border-radius: 50%;
+    background: #071923;
+    content: "";
+    transform: translateX(-50%);
+}
+
+.risk-phase-step.is-active {
+    border-top-color: var(--risk-human);
+    color: var(--ink);
+    font-weight: 950;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.22rem;
+}
+
+.risk-phase-step.is-active::before {
+    border-color: var(--risk-human);
+    box-shadow: 0 0 0 3px rgba(var(--risk-human-rgb), 0.18);
+}
+
+.risk-phase-step.is-done {
+    border-top-color: var(--risk-human);
+    color: var(--ink-soft);
+}
+
+.risk-phase-step.is-done::before {
+    border-color: var(--risk-human);
+    background: var(--risk-human);
+    color: #052014;
+    content: "\2713";
+    font-size: 0.8rem;
+    font-weight: 950;
+}
+
+.risk-turn-guidance {
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border-left: 4px solid var(--risk-human);
+    border-radius: 6px;
+    background: rgba(var(--risk-human-rgb), 0.1);
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1.45;
+}
+
+.risk-primary-actions {
+    display: grid;
+}
+
+.risk-primary-actions .risk-button-primary {
+    min-height: 60px;
+    font-size: 1rem;
+}
+
+.risk-command-panel[data-phase="attack"] .risk-turn-guidance,
+.risk-command-panel[data-phase="conquer"] .risk-turn-guidance {
+    border-left-color: #ef4444;
+}
+
+.risk-command-panel[data-phase="fortify"] .risk-turn-guidance {
+    border-left-color: #38bdf8;
+}
+
+[data-risk-phase-panel][hidden] {
+    display: none;
+}
+
 .risk-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -781,8 +899,12 @@
 }
 
 .risk-button-primary {
+    width: 100%;
+    min-height: 54px;
     border-color: var(--risk-human);
-    background: linear-gradient(135deg, rgba(74, 222, 128, 0.24), rgba(248, 209, 108, 0.16));
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.34), rgba(248, 209, 108, 0.2));
+    font-size: 0.95rem;
+    box-shadow: 0 10px 24px -18px rgba(var(--risk-human-rgb), 0.95);
 }
 
 .risk-button-attack {
@@ -1374,9 +1496,13 @@
     line-height: 1.5;
 }
 
-/* In the command column the dice tray sits beside the attack and defense controls. */
-.risk-command-panel > .risk-dice-tray {
-    margin-top: 0;
+@media (min-width: 941px) {
+    .risk-command-panel {
+        position: sticky;
+        top: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+    }
 }
 
 @media (max-width: 940px) {
@@ -1384,22 +1510,18 @@
         grid-template-columns: minmax(0, 1fr);
     }
 
-    /* Stacked: the objective and actions follow the map directly; secondary panels come after. */
+    /* Keep the turn flow full-width; selection and the log can share the secondary row. */
     .risk-command-panel {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         align-items: start;
     }
 
-    .risk-command-panel > .risk-panel-heading {
-        margin-bottom: 0;
-    }
-
-    .risk-command-panel > .risk-panel-heading,
-    .risk-command-panel > .risk-actions,
-    .risk-command-panel > .risk-setup-settings,
-    .risk-command-panel > .risk-subpanel-alert,
-    .risk-command-panel > .risk-check,
-    .risk-command-panel > .risk-dice-tray {
+    .risk-command-panel > .risk-subpanel:first-child,
+    .risk-command-panel > .risk-objective,
+    .risk-command-panel > .risk-phase-stepper,
+    .risk-command-panel > .risk-turn-guidance,
+    .risk-command-panel > .risk-primary-actions,
+    .risk-command-panel > [data-risk-phase-panel] {
         grid-column: 1 / -1;
     }
 }

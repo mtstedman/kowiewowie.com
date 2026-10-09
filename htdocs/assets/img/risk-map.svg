@@ -13,9 +13,24 @@
     <filter id="risk-land-shadow" x="-10%" y="-10%" width="120%" height="120%">
       <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.35"/>
     </filter>
+    <filter id="risk-paper-grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="3" seed="17" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0.82  0 0 0 0 0.68  0 0 0 0 0.42  0 0 0 0.16 0"/>
+    </filter>
+    <radialGradient id="risk-parchment-vignette" cx="50%" cy="46%" r="72%">
+      <stop offset="0" stop-color="#e8c985" stop-opacity="0.08"/>
+      <stop offset="0.66" stop-color="#6e4d28" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#02090d" stop-opacity="0.42"/>
+    </radialGradient>
+    <pattern id="risk-latitude-lines" width="1000" height="70" patternUnits="userSpaceOnUse">
+      <path d="M0 69.5H1000" fill="none" stroke="#f4ddb0" stroke-opacity="0.1" stroke-width="1"/>
+    </pattern>
   </defs>
   <rect width="1000" height="700" fill="url(#risk-ocean-fill)"/>
   <rect width="1000" height="700" fill="url(#risk-grid)"/>
+  <rect width="1000" height="700" fill="#cda963" opacity="0.11" filter="url(#risk-paper-grain)" aria-hidden="true"/>
+  <rect width="1000" height="700" fill="url(#risk-latitude-lines)" aria-hidden="true"/>
+  <rect width="1000" height="700" fill="url(#risk-parchment-vignette)" aria-hidden="true"/>
 
   <g class="risk-sea-links" aria-hidden="true" fill="none" stroke="#f8d16c" stroke-opacity="0.75" stroke-width="2.5" stroke-dasharray="6 6" stroke-linecap="round">
     <path data-link="alaska kamchatka" d="M50 72C120-8 860-8 930 52"/>
