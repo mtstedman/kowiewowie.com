@@ -24,7 +24,15 @@
     const submitButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-find-route'));
     const excludedList = /** @type {HTMLElement} */ (document.getElementById('palworld-excluded-list'));
     const addonsSummary = /** @type {HTMLElement} */ (document.getElementById('palworld-addons-summary'));
+    const layout = /** @type {HTMLElement} */ (document.querySelector('.palworld-layout'));
+    const setupViewButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-view-setup'));
+    const routeViewButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-view-route'));
+    const showRouteButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-show-route'));
+    const editSetupButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-edit-setup'));
+    const targetSummary = /** @type {HTMLElement} */ (document.getElementById('palworld-target-summary'));
+    const ownedSummary = /** @type {HTMLElement} */ (document.getElementById('palworld-owned-summary'));
     const traitInputs = Array.from(/** @type {NodeListOf<HTMLSelectElement>} */ (document.querySelectorAll('.palworld-trait-fields select')));
+    const mobileWorkspace = window.matchMedia('(max-width: 799px)');
     const sources = [];
     const excluded = new Set();
     const eggFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
@@ -38,6 +46,7 @@
     let hasSuccessfulRoute = false;
     let palSearchIndex = null;
     let treeResizeObserver = null;
+    let workspaceView = 'setup';
 
     const PICKER_BATCH = 30;
     const DATA_PATH = '/assets/data/palworld/';
@@ -430,6 +439,49 @@
         return wrapper;
     }
 
+    function syncWorkspaceView() {
+        layout.dataset.mobileView = workspaceView;
+        setupViewButton.setAttribute('aria-selected', String(workspaceView === 'setup'));
+        routeViewButton.setAttribute('aria-selected', String(workspaceView === 'route'));
+        setupViewButton.tabIndex = workspaceView === 'setup' ? 0 : -1;
+        routeViewButton.tabIndex = workspaceView === 'route' ? 0 : -1;
+        if (!mobileWorkspace.matches) {
+            form.removeAttribute('inert');
+            results.removeAttribute('inert');
+            return;
+        }
+        if (workspaceView === 'route' && !results.hidden) {
+            form.setAttribute('inert', '');
+            results.removeAttribute('inert');
+        } else {
+            workspaceView = 'setup';
+            layout.dataset.mobileView = workspaceView;
+            setupViewButton.setAttribute('aria-selected', 'true');
+            routeViewButton.setAttribute('aria-selected', 'false');
+            setupViewButton.tabIndex = 0;
+            routeViewButton.tabIndex = -1;
+            form.removeAttribute('inert');
+            results.setAttribute('inert', '');
+        }
+    }
+
+    function setWorkspaceView(view, focus) {
+        if (view === 'route' && results.hidden) return;
+        workspaceView = view;
+        syncWorkspaceView();
+        if (!focus) return;
+        if (view === 'route') routeHeading.focus({ preventScroll: true });
+        else if (targetPicker) targetPicker.input.focus({ preventScroll: true });
+        else setupViewButton.focus();
+    }
+
+    function updateSetupSummaries() {
+        const traitCount = traitInputs.filter(function (input) { return input.value.trim(); }).length;
+        targetSummary.textContent = targetPicker && targetPicker.key ? targetPicker.input.value : 'Not selected';
+        addonsSummary.textContent = traitCount ? traitCount + (traitCount === 1 ? ' passive' : ' passives') : 'None selected';
+        ownedSummary.textContent = sources.length + (sources.length === 1 ? ' row' : ' rows');
+    }
+
     function clearRoute() {
         tree.replaceChildren();
         tree.scrollLeft = 0;
@@ -454,10 +506,7 @@
     }
 
     function updateAddonsSummary() {
-        const traitCount = traitInputs.filter(function (input) { return input.value.trim(); }).length;
-        addonsSummary.textContent = traitCount
-            ? traitCount + (traitCount === 1 ? ' desired passive selected.' : ' desired passives selected.')
-            : 'No desired passives selected.';
+        updateSetupSummaries();
     }
 
     function setSubmitMode(update) {
@@ -466,12 +515,13 @@
 
     function revealResults(focusOutcome) {
         results.hidden = false;
-        if (!focusOutcome) return;
-        routeHeading.focus({ preventScroll: true });
-        if (typeof results.scrollIntoView !== 'function') return;
+        routeViewButton.disabled = false;
+        showRouteButton.disabled = false;
+        setWorkspaceView('route', focusOutcome !== false);
+        if (!focusOutcome || mobileWorkspace.matches || typeof results.scrollIntoView !== 'function') return;
         const reduceMotion = typeof window.matchMedia === 'function'
             && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
     }
 
     function markRouteStale() {
@@ -527,6 +577,7 @@
         input.autocomplete = 'off';
         input.placeholder = 'Search by name or Paldeck number';
         input.setAttribute('aria-controls', id + '-matches');
+        input.setAttribute('aria-expanded', 'false');
         const hint = element('p', 'palworld-help', 'Type to filter, then choose a pal. Use Tab or Arrow Down to reach matches.');
         hint.id = id + '-help';
         input.setAttribute('aria-describedby', hint.id);
@@ -543,9 +594,27 @@
         let choices = [];
         let generation = 0;
 
+        function placeMatches() {
+            if (matches.hidden) return;
+            const rect = input.getBoundingClientRect();
+            const edge = 8;
+            const gap = 6;
+            const below = window.innerHeight - rect.bottom - gap - edge;
+            const above = rect.top - gap - edge;
+            const openAbove = below < 180 && above > below;
+            const maxHeight = Math.max(120, Math.min(288, openAbove ? above : below));
+            const width = Math.min(Math.max(260, rect.width), window.innerWidth - (edge * 2));
+            const left = Math.max(edge, Math.min(rect.left, window.innerWidth - width - edge));
+            matches.style.left = left + 'px';
+            matches.style.width = width + 'px';
+            matches.style.maxHeight = maxHeight + 'px';
+            matches.style.top = (openAbove ? Math.max(edge, rect.top - gap - maxHeight) : rect.bottom + gap) + 'px';
+        }
+
         function close() {
             generation += 1;
             matches.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
             matches.replaceChildren();
             found = [];
             choices = [];
@@ -618,6 +687,8 @@
             matches.replaceChildren();
             matches.scrollTop = 0;
             matches.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+            placeMatches();
             renderBatch();
             if (!found.length) count.textContent = 'No matching pals. Try another name.';
             else count.textContent = found.length + ' matching pals.' + (choices.length < found.length ? ' More load as you scroll or arrow down.' : '');
@@ -635,6 +706,7 @@
                 filter();
                 if (choices.length) choices[0].focus();
             } else if (event.key === 'Escape') {
+                event.preventDefault();
                 close();
             }
         });
@@ -672,6 +744,8 @@
         wrapper.addEventListener('focusout', function (event) {
             if (!wrapper.contains(/** @type {Node | null} */ (event.relatedTarget))) close();
         });
+        window.addEventListener('resize', placeMatches);
+        window.addEventListener('scroll', placeMatches, true);
         wrapper.append(label, input, hint, count, matches, selected);
         host.append(wrapper);
         return picker;
@@ -711,6 +785,7 @@
             source.remove.textContent = 'Remove owned Pal ' + number;
             source.remove.setAttribute('aria-label', 'Remove owned Pal ' + number);
         });
+        updateSetupSummaries();
     }
 
     function addSource(focus) {
@@ -1251,6 +1326,23 @@
         event.preventDefault();
         runRoute(true);
     });
+    setupViewButton.addEventListener('click', function () { setWorkspaceView('setup', true); });
+    routeViewButton.addEventListener('click', function () { setWorkspaceView('route', true); });
+    showRouteButton.addEventListener('click', function () { setWorkspaceView('route', true); });
+    editSetupButton.addEventListener('click', function () { setWorkspaceView('setup', true); });
+    [setupViewButton, routeViewButton].forEach(function (viewButton, index, buttons) {
+        viewButton.addEventListener('keydown', function (event) {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            const next = buttons[(index + (event.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length];
+            if (!next.disabled) {
+                setWorkspaceView(next === routeViewButton ? 'route' : 'setup', false);
+                next.focus();
+            }
+        });
+    });
+    mobileWorkspace.addEventListener('change', syncWorkspaceView);
+    syncWorkspaceView();
     form.addEventListener('input', invalidate);
     traitInputs.forEach(function (input, index) {
         let previous = input.value;

@@ -974,3 +974,260 @@
         scroll-behavior: auto;
     }
 }
+
+/* Compact setup/results workspace. */
+.palworld-view-switch {
+    display: none;
+}
+
+.palworld-panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.palworld-panel-heading .eyebrow,
+.palworld-panel-heading h2 {
+    margin-bottom: var(--space-xs);
+}
+
+.palworld-view-link,
+.palworld-view-switch button,
+.palworld-shell button,
+.palworld-shell input,
+.palworld-shell select {
+    min-height: 44px;
+}
+
+.palworld-view-link {
+    flex: 0 0 auto;
+}
+
+.palworld-setup-step {
+    padding-block: 0;
+    border-top: 1px solid var(--palworld-border);
+}
+
+.palworld-setup-step:first-of-type {
+    padding-top: 0;
+}
+
+.palworld-setup-step > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    min-height: 52px;
+    padding-block: var(--space-sm);
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.palworld-setup-step > summary:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.palworld-setup-step > summary::before {
+    content: '▸';
+    flex: 0 0 auto;
+    color: var(--accent);
+}
+
+.palworld-setup-step[open] > summary::before {
+    content: '▾';
+}
+
+.palworld-setup-step > summary > span:first-child {
+    flex: 1 1 auto;
+}
+
+.palworld-step-summary {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-align: right;
+}
+
+.palworld-step-body {
+    padding: 0 0 var(--space-md);
+}
+
+.palworld-step-body > .palworld-help:first-child {
+    margin-top: 0;
+}
+
+.palworld-plan-intro {
+    margin-bottom: var(--space-sm);
+}
+
+.palworld-source-collection {
+    min-width: 0;
+    padding: var(--space-sm);
+    border: 1px solid var(--palworld-border);
+    border-radius: var(--palworld-radius);
+    background: var(--paper);
+}
+
+.palworld-collection-label {
+    margin: 0 0 var(--space-xs);
+    font-weight: 700;
+}
+
+.palworld-source-scroller {
+    max-height: min(22rem, 44vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px var(--space-xs) var(--space-xs) 2px;
+    scrollbar-gutter: stable;
+}
+
+.palworld-sources {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
+    margin-bottom: 0;
+}
+
+.palworld-source {
+    gap: var(--space-xs);
+    padding: var(--space-sm);
+}
+
+.palworld-source-collection > #palworld-add-source {
+    margin-top: var(--space-sm);
+}
+
+.palworld-actions {
+    position: relative;
+    z-index: 2;
+    gap: var(--space-sm);
+    padding-top: var(--space-md);
+    background: var(--panel);
+}
+
+.palworld-picker-matches,
+#palworld-target-picker .palworld-picker-matches {
+    position: fixed;
+    z-index: 100;
+    right: auto;
+    box-sizing: border-box;
+    margin: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.palworld-picker-matches[hidden] {
+    display: none;
+}
+
+.palworld-picker-count {
+    min-height: 3em;
+}
+
+.palworld-picker-count:empty {
+    display: block;
+}
+
+.palworld-results {
+    min-width: 0;
+}
+
+#palworld-route-tree {
+    max-height: min(36rem, 68vh);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+@media (min-width: 800px) {
+    .palworld-layout {
+        grid-template-columns: minmax(22rem, 0.8fr) minmax(0, 1.2fr);
+        gap: var(--space-md);
+    }
+
+    .palworld-bar {
+        width: auto;
+        margin-inline: 0;
+    }
+
+    .palworld-results:not([hidden]) {
+        display: block;
+    }
+
+    .palworld-trait-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 799px) {
+    .palworld-view-switch {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-xs);
+        margin-block: var(--space-sm);
+        padding: var(--space-xs);
+        border: 1px solid var(--palworld-border);
+        border-radius: var(--palworld-radius);
+        background: var(--panel);
+    }
+
+    .palworld-view-switch button[aria-selected="true"] {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: var(--paper);
+        font-weight: 700;
+    }
+
+    .palworld-layout {
+        margin-top: var(--space-sm);
+    }
+
+    .palworld-layout[data-mobile-view="setup"] .palworld-results:not([hidden]),
+    .palworld-layout[data-mobile-view="route"] .palworld-bar {
+        display: none;
+    }
+
+    .palworld-layout[data-mobile-view="route"] .palworld-results:not([hidden]) {
+        display: block;
+    }
+
+    .palworld-source-scroller {
+        max-height: min(20rem, 42vh);
+    }
+
+    .palworld-actions p {
+        flex-basis: 100%;
+    }
+
+    #palworld-route-tree {
+        max-height: 62vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .palworld-panel-heading {
+        align-items: stretch;
+    }
+
+    .palworld-panel-heading .palworld-view-link {
+        align-self: flex-start;
+    }
+
+    .palworld-setup-step > summary {
+        align-items: flex-start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .palworld-source-scroller,
+    #palworld-route-tree,
+    .palworld-picker-matches {
+        scroll-behavior: auto;
+    }
+}
