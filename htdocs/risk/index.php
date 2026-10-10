@@ -35,6 +35,11 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
             </section>
 
             <section class="risk-layout" aria-label="Playable Risk game">
+                <nav class="risk-table-nav" aria-label="Risk table navigation">
+                    <a href="#risk-board-title">Board</a>
+                    <a href="#risk-objective-title">Current decision</a>
+                </nav>
+
                 <section class="risk-panel risk-board-panel" aria-labelledby="risk-board-title">
                     <div class="risk-panel-heading">
                         <div>
@@ -65,10 +70,10 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     <p id="risk-announcer" class="risk-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
                 </section>
 
-                <aside class="risk-panel risk-command-panel" aria-labelledby="risk-command-title" data-phase="setup">
-                    <section class="risk-subpanel" aria-labelledby="risk-command-title">
-                        <p class="eyebrow">Command</p>
-                        <h2 id="risk-command-title">Game</h2>
+                <aside id="risk-command-panel" class="risk-panel risk-command-panel" aria-labelledby="risk-command-title" data-phase="setup">
+                    <section class="risk-subpanel risk-game-tools" aria-labelledby="risk-command-title">
+                        <p class="eyebrow">Table controls</p>
+                        <h2 id="risk-command-title">Game setup &amp; lobby</h2>
                         <div class="risk-actions" aria-label="Risk game controls">
                             <label class="risk-opponent-field" for="risk-opponent-count">
                                 <span>Opponents</span>
@@ -126,27 +131,35 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         </section>
                     </section>
 
-                    <section class="risk-objective" aria-labelledby="risk-objective-label">
-                        <p id="risk-objective-label" class="risk-objective-label">Current objective</p>
-                        <h3 id="risk-objective-title">Ready to play</h3>
-                        <p id="risk-objective-text" class="risk-objective-text">Choose your Game setup above, then press New game to deal the world.</p>
-                        <p id="risk-objective-blocker" class="risk-objective-blocker" hidden></p>
-                        <p id="risk-feedback" class="risk-feedback"></p>
-                    </section>
+                    <section class="risk-turn-console" aria-label="Current turn">
+                        <div class="risk-current-decision">
+                            <section class="risk-objective" aria-labelledby="risk-objective-title">
+                                <p id="risk-objective-label" class="risk-objective-label">Current decision</p>
+                                <div class="risk-decision-layout">
+                                    <div class="risk-decision-copy">
+                                        <h3 id="risk-objective-title">Ready to play</h3>
+                                        <p id="risk-objective-text" class="risk-objective-text">Choose your Game setup above, then press New game to deal the world.</p>
+                                        <p id="risk-objective-blocker" class="risk-objective-blocker" hidden></p>
+                                    </div>
+                                    <div class="risk-primary-actions">
+                                        <p class="risk-next-action-label">Next action</p>
+                                        <button class="risk-button risk-button-primary" type="button" id="risk-end-button" disabled>End phase</button>
+                                    </div>
+                                </div>
+                                <p id="risk-turn-guidance" class="risk-turn-guidance" aria-live="polite">Choose your game setup and start a new game.</p>
+                                <p id="risk-feedback" class="risk-feedback"></p>
+                            </section>
 
-                    <ol id="risk-phase-stepper" class="risk-phase-stepper" aria-label="Turn phases">
-                        <li class="risk-phase-step is-active" data-phase="setup" aria-current="step">Setup</li>
-                        <li class="risk-phase-step" data-phase="reinforce">Reinforce</li>
-                        <li class="risk-phase-step" data-phase="attack">Attack</li>
-                        <li class="risk-phase-step" data-phase="fortify">Fortify</li>
-                    </ol>
+                            <ol id="risk-phase-stepper" class="risk-phase-stepper" aria-label="Turn phases">
+                                <li class="risk-phase-step is-active" data-phase="setup" aria-current="step">Setup</li>
+                                <li class="risk-phase-step" data-phase="reinforce">Reinforce</li>
+                                <li class="risk-phase-step" data-phase="attack">Attack</li>
+                                <li class="risk-phase-step" data-phase="fortify">Fortify</li>
+                            </ol>
+                        </div>
 
-                    <p id="risk-turn-guidance" class="risk-turn-guidance" aria-live="polite">Choose your game setup and start a new game.</p>
-                    <div class="risk-primary-actions">
-                        <button class="risk-button risk-button-primary" type="button" id="risk-end-button" disabled>End phase</button>
-                    </div>
-
-                    <section class="risk-subpanel risk-cards-panel" aria-labelledby="risk-cards-title" data-risk-phase-panel="reinforce,setup">
+                        <section class="risk-phase-controls" aria-label="Current phase controls">
+                            <section class="risk-subpanel risk-cards-panel" aria-labelledby="risk-cards-title" data-risk-phase-panel="reinforce,setup">
                         <h3 id="risk-cards-title">Reinforce</h3>
                         <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
                         <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
@@ -201,29 +214,39 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         </section>
                     </section>
 
-                    <section class="risk-subpanel" aria-labelledby="risk-fortify-title" data-risk-phase-panel="fortify">
-                        <h3 id="risk-fortify-title">Fortify</h3>
-                        <div class="risk-inline-field">
-                            <label for="risk-fortify-count">Armies to move</label>
-                            <input id="risk-fortify-count" type="number" inputmode="numeric" min="1" max="1" step="1" value="1" disabled>
-                            <button class="risk-button" type="button" id="risk-fortify-button" disabled>Fortify</button>
-                        </div>
+                            <section class="risk-subpanel" aria-labelledby="risk-fortify-title" data-risk-phase-panel="fortify">
+                                <h3 id="risk-fortify-title">Fortify</h3>
+                                <div class="risk-inline-field">
+                                    <label for="risk-fortify-count">Armies to move</label>
+                                    <input id="risk-fortify-count" type="number" inputmode="numeric" min="1" max="1" step="1" value="1" disabled>
+                                    <button class="risk-button" type="button" id="risk-fortify-button" disabled>Fortify</button>
+                                </div>
+                            </section>
+                        </section>
                     </section>
 
-                    <section class="risk-territory-card" aria-labelledby="risk-selection-title">
-                        <h3 id="risk-selection-title">Selection</h3>
-                        <figure id="risk-selection-figure" class="risk-selection-figure">
-                            <img id="risk-selection-art" src="/assets/img/risk-selection-art.png" alt="" aria-hidden="true" decoding="async" loading="lazy">
-                            <svg id="risk-selection-shape" class="risk-selection-shape" viewBox="0 0 40 40" aria-hidden="true" focusable="false"></svg>
-                            <figcaption id="risk-selection-caption">Select a territory</figcaption>
-                        </figure>
-                        <div id="risk-territory-card">No territory selected.</div>
-                    </section>
+                    <section class="risk-secondary-details" aria-label="Board details">
+                        <details class="risk-territory-card risk-detail-disclosure">
+                            <summary>
+                                <span id="risk-selection-title" class="risk-detail-title">Selection details</span>
+                                <span class="risk-detail-summary">Owner, armies and neighbours</span>
+                            </summary>
+                            <figure id="risk-selection-figure" class="risk-selection-figure">
+                                <img id="risk-selection-art" src="/assets/img/risk-selection-art.png" alt="" aria-hidden="true" decoding="async" loading="lazy">
+                                <svg id="risk-selection-shape" class="risk-selection-shape" viewBox="0 0 40 40" aria-hidden="true" focusable="false"></svg>
+                                <figcaption id="risk-selection-caption">Select a territory</figcaption>
+                            </figure>
+                            <div id="risk-territory-card">No territory selected.</div>
+                        </details>
 
-                    <details class="risk-log-panel" open>
-                        <summary><h3 id="risk-log-title">Battle log</h3></summary>
-                        <ol id="risk-log" class="risk-log"></ol>
-                    </details>
+                        <details class="risk-log-panel risk-detail-disclosure">
+                            <summary>
+                                <span id="risk-log-title" class="risk-detail-title">Battle history</span>
+                                <span class="risk-detail-summary">Recent rolls and losses</span>
+                            </summary>
+                            <ol id="risk-log" class="risk-log"></ol>
+                        </details>
+                    </section>
                 </aside>
             </section>
 

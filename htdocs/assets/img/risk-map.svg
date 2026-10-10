@@ -25,53 +25,18 @@
     <pattern id="risk-latitude-lines" width="1000" height="70" patternUnits="userSpaceOnUse">
       <path d="M0 69.5H1000" fill="none" stroke="#f4ddb0" stroke-opacity="0.1" stroke-width="1"/>
     </pattern>
+    <clipPath id="risk-land-clip">
+      <use href="#risk-land-geometry"/>
+    </clipPath>
   </defs>
   <rect width="1000" height="700" fill="url(#risk-ocean-fill)"/>
+  <image class="risk-board-art risk-board-backdrop" href="/assets/img/risk-board-backdrop.png" x="0" y="0" width="1000" height="700" preserveAspectRatio="xMidYMid slice" aria-hidden="true" pointer-events="none"/>
   <rect width="1000" height="700" fill="url(#risk-grid)"/>
   <rect width="1000" height="700" fill="#cda963" opacity="0.11" filter="url(#risk-paper-grain)" aria-hidden="true"/>
   <rect width="1000" height="700" fill="url(#risk-latitude-lines)" aria-hidden="true"/>
   <rect width="1000" height="700" fill="url(#risk-parchment-vignette)" aria-hidden="true"/>
 
-  <g class="risk-sea-links" aria-hidden="true" fill="none" stroke="#f8d16c" stroke-opacity="0.75" stroke-width="2.5" stroke-dasharray="6 6" stroke-linecap="round">
-    <path data-link="alaska kamchatka" d="M50 72C120-8 860-8 930 52"/>
-    <path data-link="northwest-territory greenland" d="M250 64L284 68"/>
-    <path data-link="ontario greenland" d="M234 144L292 98"/>
-    <path data-link="quebec greenland" d="M290 124L312 116"/>
-    <path data-link="greenland iceland" d="M366 80L398 96"/>
-    <path data-link="iceland great-britain" d="M414 110L432 134"/>
-    <path data-link="iceland scandinavia" d="M436 96L482 96"/>
-    <path data-link="great-britain scandinavia" d="M450 148L496 138"/>
-    <path data-link="great-britain northern-europe" d="M450 176L474 192"/>
-    <path data-link="great-britain western-europe" d="M436 198L452 216"/>
-    <path data-link="western-europe north-africa" d="M450 288L446 304"/>
-    <path data-link="southern-europe north-africa" d="M500 286L490 302"/>
-    <path data-link="southern-europe egypt" d="M532 276L538 306"/>
-    <path data-link="brazil north-africa" d="M342 428L414 360"/>
-    <path data-link="east-africa middle-east" d="M604 390L612 352"/>
-    <path data-link="east-africa madagascar" d="M600 446L600 490"/>
-    <path data-link="south-africa madagascar" d="M566 520L588 520"/>
-    <path data-link="kamchatka japan" d="M936 150L930 174"/>
-    <path data-link="mongolia japan" d="M880 206L914 206"/>
-    <path data-link="siam indonesia" d="M796 410L818 438"/>
-    <path data-link="indonesia new-guinea" d="M860 454L892 446"/>
-    <path data-link="indonesia western-australia" d="M836 476L852 512"/>
-    <path data-link="new-guinea western-australia" d="M906 460L884 500"/>
-    <path data-link="new-guinea eastern-australia" d="M930 464L926 496"/>
-  </g>
-
-  <g class="risk-continent-labels" aria-hidden="true" fill="#f7fbff" fill-opacity="0.78" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">
-    <text x="500" y="28" text-anchor="middle" fill="#f8d16c" font-size="10">ALASKA ⇄ KAMCHATKA SEA ROUTE</text>
-    <text x="24" y="372">NORTH AMERICA</text>
-    <text x="24" y="387" font-size="10">+5 ARMIES</text>
-    <text x="228" y="600" text-anchor="end">SOUTH AMERICA</text>
-    <text x="228" y="615" text-anchor="end" font-size="10">+2 ARMIES</text>
-    <text x="446" y="50" text-anchor="middle">EUROPE +5</text>
-    <text x="442" y="470" text-anchor="middle">AFRICA +3</text>
-    <text x="986" y="292" text-anchor="end">ASIA +7</text>
-    <text x="900" y="660" text-anchor="middle">AUSTRALIA +2</text>
-  </g>
-
-  <g class="risk-lands" aria-hidden="true" stroke="#08161f" stroke-width="1.6" stroke-linejoin="round" filter="url(#risk-land-shadow)">
+  <g id="risk-land-geometry" class="risk-lands" aria-hidden="true" stroke="#08161f" stroke-width="1.6" stroke-linejoin="round" filter="url(#risk-land-shadow)">
     <g data-continent="north-america" fill="#d9aa4f">
       <path id="risk-land-alaska" data-territory="alaska" d="M22 80L96 66L100 142L84 160L62 156L34 178L42 142L20 118Z"/>
       <path id="risk-land-northwest-territory" data-territory="northwest-territory" d="M96 66L152 54L206 46L252 60L242 104L236 142L170 142L100 142Z"/>
@@ -126,5 +91,45 @@
       <path id="risk-land-western-australia" data-territory="western-australia" d="M840 520L880 500L900 510L904 580L870 600L838 590L824 556Z"/>
       <path id="risk-land-eastern-australia" data-territory="eastern-australia" d="M880 500L920 494L948 510L966 546L958 590L930 620L904 606L904 580L900 510Z"/>
     </g>
+  </g>
+  <image class="risk-board-art risk-terrain-texture" href="/assets/img/risk-terrain-texture.png" x="0" y="0" width="1000" height="700" preserveAspectRatio="xMidYMid slice" clip-path="url(#risk-land-clip)" aria-hidden="true" pointer-events="none"/>
+
+  <g class="risk-sea-links" aria-hidden="true" pointer-events="none" fill="none" stroke="#f8d16c" stroke-opacity="0.75" stroke-width="2.5" stroke-dasharray="6 6" stroke-linecap="round">
+    <path data-link="alaska kamchatka" d="M50 72C120-8 860-8 930 52"/>
+    <path data-link="northwest-territory greenland" d="M250 64L284 68"/>
+    <path data-link="ontario greenland" d="M234 144L292 98"/>
+    <path data-link="quebec greenland" d="M290 124L312 116"/>
+    <path data-link="greenland iceland" d="M366 80L398 96"/>
+    <path data-link="iceland great-britain" d="M414 110L432 134"/>
+    <path data-link="iceland scandinavia" d="M436 96L482 96"/>
+    <path data-link="great-britain scandinavia" d="M450 148L496 138"/>
+    <path data-link="great-britain northern-europe" d="M450 176L474 192"/>
+    <path data-link="great-britain western-europe" d="M436 198L452 216"/>
+    <path data-link="western-europe north-africa" d="M450 288L446 304"/>
+    <path data-link="southern-europe north-africa" d="M500 286L490 302"/>
+    <path data-link="southern-europe egypt" d="M532 276L538 306"/>
+    <path data-link="brazil north-africa" d="M342 428L414 360"/>
+    <path data-link="east-africa middle-east" d="M604 390L612 352"/>
+    <path data-link="east-africa madagascar" d="M600 446L600 490"/>
+    <path data-link="south-africa madagascar" d="M566 520L588 520"/>
+    <path data-link="kamchatka japan" d="M936 150L930 174"/>
+    <path data-link="mongolia japan" d="M880 206L914 206"/>
+    <path data-link="siam indonesia" d="M796 410L818 438"/>
+    <path data-link="indonesia new-guinea" d="M860 454L892 446"/>
+    <path data-link="indonesia western-australia" d="M836 476L852 512"/>
+    <path data-link="new-guinea western-australia" d="M906 460L884 500"/>
+    <path data-link="new-guinea eastern-australia" d="M930 464L926 496"/>
+  </g>
+
+  <g class="risk-continent-labels" aria-hidden="true" pointer-events="none" fill="#f7fbff" fill-opacity="0.78" font-family="system-ui, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5">
+    <text x="500" y="28" text-anchor="middle" fill="#f8d16c" font-size="10">ALASKA ⇄ KAMCHATKA SEA ROUTE</text>
+    <text x="24" y="372">NORTH AMERICA</text>
+    <text x="24" y="387" font-size="10">+5 ARMIES</text>
+    <text x="228" y="600" text-anchor="end">SOUTH AMERICA</text>
+    <text x="228" y="615" text-anchor="end" font-size="10">+2 ARMIES</text>
+    <text x="446" y="50" text-anchor="middle">EUROPE +5</text>
+    <text x="442" y="470" text-anchor="middle">AFRICA +3</text>
+    <text x="986" y="292" text-anchor="end">ASIA +7</text>
+    <text x="900" y="660" text-anchor="middle">AUSTRALIA +2</text>
   </g>
 </svg>

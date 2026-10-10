@@ -388,7 +388,8 @@ import * as riskApi from './risk-api.js';
         /** @type {string|null} */
         phaseAdvanceConfirmation: null,
         /** @type {HTMLElement|null} */
-        decisionReturn: null
+        decisionReturn: null,
+        setupGameActive: false
     };
 
     /* ------------------------------------------------------------------
@@ -3374,11 +3375,17 @@ import * as riskApi from './risk-api.js';
     const renderSetupInfo = () => {
         const next = readSetupConfig();
         const current = state.config;
+        const setupPanel = /** @type {HTMLDetailsElement|null} */ (uxElements.setupPanel);
         const changed = state.active && Boolean(current) && (
             next.botCount !== current.botCount
             || next.placement !== current.placement
             || next.cardMode !== current.cardMode
         );
+
+        if (setupPanel && runtime.setupGameActive !== state.active) {
+            setupPanel.open = !state.active;
+            runtime.setupGameActive = state.active;
+        }
 
         setText(uxElements.setupSummary, describeConfig(next));
         setText(uxElements.setupNote, !state.active
@@ -3534,10 +3541,9 @@ import * as riskApi from './risk-api.js';
             const hasOpenDecision = (panel.contains(elements.defensePanel) && !elements.defensePanel.hidden)
                 || (panel.contains(elements.conquestPanel) && !elements.conquestPanel.hidden);
             const isBattlePanel = panel.contains(elements.diceTray);
-            const shouldShow = !state.active
-                || phasesForPanel.includes(state.phase)
+            const shouldShow = (state.active && isLocalTurn() && phasesForPanel.includes(state.phase))
                 || hasOpenDecision
-                || (!isLocalTurn() && isBattlePanel);
+                || (state.active && !isLocalTurn() && isBattlePanel);
 
             if (!shouldShow && panel.contains(document.activeElement)) {
                 if (!asButton(elements.endButton).disabled) {
