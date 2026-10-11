@@ -181,9 +181,9 @@ foreach ($focusedHeaderPages as $scriptPath => $routeExpectation) {
 }
 
 $palworldHtml = render_public_page($root, 'htdocs/palworld/index.php', '/palworld/');
-$palworldTargetPosition = strpos($palworldHtml, 'id="palworld-target-title"');
-$palworldTraitsPosition = strpos($palworldHtml, 'id="palworld-traits-title"');
-$palworldOwnedPosition = strpos($palworldHtml, 'id="palworld-owned-title"');
+$palworldTargetPosition = strpos($palworldHtml, 'class="palworld-setup-step palworld-bar-target"');
+$palworldTraitsPosition = strpos($palworldHtml, 'id="palworld-addons"');
+$palworldOwnedPosition = strpos($palworldHtml, 'class="palworld-setup-step palworld-owned"');
 $palworldActionPosition = strpos($palworldHtml, 'id="palworld-find-route"');
 public_ux_assert(
     $palworldTargetPosition !== false
@@ -196,7 +196,7 @@ public_ux_assert(
     'Palworld setup must present target, desired passives, owned Pals, and the route action in order.'
 );
 public_ux_assert(
-    (bool) preg_match('/<section class="palworld-panel palworld-results"[^>]*aria-labelledby="palworld-results-title"[^>]*hidden>/', $palworldHtml),
+    (bool) preg_match('/<section\b(?=[^>]*class="palworld-panel palworld-results")(?=[^>]*aria-labelledby="palworld-results-title")(?=[^>]*\bhidden\b)[^>]*>/', $palworldHtml),
     'Palworld results must start hidden and use an accessible visible heading.'
 );
 public_ux_assert(
