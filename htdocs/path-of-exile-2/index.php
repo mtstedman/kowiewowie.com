@@ -26,9 +26,10 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
 
             <section class="poe2-workspace" aria-label="Passive-tree planner">
                 <aside class="poe2-panel poe2-controls" aria-labelledby="poe2-build-title">
-                    <h2 id="poe2-build-title" class="poe2-panel-title">Build</h2>
+                    <p class="eyebrow">Step 1</p>
+                    <h2 id="poe2-build-title" class="poe2-panel-title">Set up your build</h2>
 
-                    <fieldset id="poe2-build-controls" disabled>
+                    <fieldset id="poe2-build-controls" disabled aria-describedby="poe2-build-reset-help">
                         <legend class="public-visually-hidden">Class and ascendancy</legend>
                         <label for="poe2-class">Class
                             <select id="poe2-class"></select>
@@ -36,6 +37,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         <label for="poe2-ascendancy">Ascendancy
                             <select id="poe2-ascendancy"></select>
                         </label>
+                        <p id="poe2-build-reset-help" class="poe2-help poe2-reset-help">Changing class or ascendancy resets allocations, marked nodes, considered nodes, and the current route.</p>
                     </fieldset>
 
                     <form id="poe2-search" class="poe2-search" role="search">
@@ -57,9 +59,11 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                     </details>
 
                     <section class="poe2-must-haves" aria-labelledby="poe2-must-have-title">
-                        <h3 id="poe2-must-have-title">Must-have passives</h3>
+                        <p class="eyebrow">Step 3</p>
+                        <h3 id="poe2-must-have-title">Compute your route</h3>
                         <p id="poe2-must-have-empty" class="poe2-must-have-empty">Select a node and choose <strong>Mark must-have</strong>, or <strong>Consider</strong> to keep it for later. Must-haves glow pink on the tree; considered passives get a teal ring.</p>
-                        <button id="poe2-find-route" type="button" disabled>Find shortest route</button>
+                        <button id="poe2-find-route" class="poe2-primary-action" type="button" disabled>Find route</button>
+                        <p id="poe2-route-status" class="poe2-route-status" role="status" aria-live="polite" aria-atomic="true"></p>
                         <details id="poe2-must-have-details" class="poe2-must-have-details" hidden>
                             <summary>Marked passives (<span id="poe2-must-have-count">0</span>)</summary>
                             <ul id="poe2-must-have-list" class="poe2-must-have-list" aria-label="Marked must-have passives"></ul>
@@ -124,7 +128,11 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         <button id="poe2-zoom-in" type="button" aria-label="Zoom in" disabled>+</button>
                         <button id="poe2-fit" type="button" disabled>Fit tree</button>
                     </div>
-                    <svg id="poe2-tree" class="poe2-tree" role="application" aria-label="Interactive Path of Exile 2 passive tree" tabindex="0">
+                    <div id="poe2-tree-guidance" class="poe2-tree-guidance">
+                        <strong>Choose and mark nodes.</strong> Click or tap a node to select it; with an existing allocation, activation auto-connects a legal path. Activating an allocated node removes it and any nodes left disconnected. Drag to pan and use the wheel or controls to zoom.
+                        <span>Keyboard: focus a node and press Enter or Space to activate it. On the tree, use arrow keys to pan, +/− to zoom, and 0 to fit.</span>
+                    </div>
+                    <svg id="poe2-tree" class="poe2-tree" role="application" aria-label="Interactive Path of Exile 2 passive tree" aria-describedby="poe2-tree-guidance" tabindex="0">
                         <defs id="poe2-art-defs"></defs>
                         <g id="poe2-viewport">
                             <g id="poe2-backdrop"></g>
@@ -133,10 +141,19 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         </g>
                     </svg>
                     <div id="poe2-tooltip" class="poe2-tooltip" aria-hidden="true" hidden></div>
+                    <section class="poe2-compact-actions" aria-labelledby="poe2-compact-title">
+                        <p class="eyebrow">Selected node</p>
+                        <h2 id="poe2-compact-title">Select a node</h2>
+                        <div class="poe2-detail-actions">
+                            <button id="poe2-compact-toggle-node" type="button" disabled>Allocate</button>
+                            <button id="poe2-compact-toggle-must-have" type="button" aria-pressed="false" disabled>Must-have</button>
+                            <button id="poe2-compact-toggle-considered" type="button" aria-pressed="false" disabled>Consider</button>
+                        </div>
+                    </section>
                 </section>
 
                 <aside class="poe2-panel poe2-details" aria-labelledby="poe2-details-title">
-                    <p class="eyebrow">Node details</p>
+                    <p class="eyebrow">Step 2 · Node details</p>
                     <h2 id="poe2-details-title">Select a node</h2>
                     <p id="poe2-node-meta" class="poe2-node-meta">Choose any visible node to see its stats and allocation state.</p>
                     <ul id="poe2-node-stats" class="poe2-node-stats"></ul>

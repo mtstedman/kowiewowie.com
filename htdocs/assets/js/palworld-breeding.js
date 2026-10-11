@@ -30,6 +30,7 @@
     const showRouteButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-show-route'));
     const editSetupButton = /** @type {HTMLButtonElement} */ (document.getElementById('palworld-edit-setup'));
     const targetSummary = /** @type {HTMLElement} */ (document.getElementById('palworld-target-summary'));
+    const targetError = /** @type {HTMLElement} */ (document.getElementById('palworld-target-error'));
     const ownedSummary = /** @type {HTMLElement} */ (document.getElementById('palworld-owned-summary'));
     const traitInputs = Array.from(/** @type {NodeListOf<HTMLSelectElement>} */ (document.querySelectorAll('.palworld-trait-fields select')));
     const mobileWorkspace = window.matchMedia('(max-width: 799px)');
@@ -447,12 +448,16 @@
         routeViewButton.tabIndex = workspaceView === 'route' ? 0 : -1;
         if (!mobileWorkspace.matches) {
             form.removeAttribute('inert');
+            form.removeAttribute('aria-hidden');
             results.removeAttribute('inert');
+            results.removeAttribute('aria-hidden');
             return;
         }
         if (workspaceView === 'route' && !results.hidden) {
             form.setAttribute('inert', '');
+            form.setAttribute('aria-hidden', 'true');
             results.removeAttribute('inert');
+            results.removeAttribute('aria-hidden');
         } else {
             workspaceView = 'setup';
             layout.dataset.mobileView = workspaceView;
@@ -461,7 +466,9 @@
             setupViewButton.tabIndex = 0;
             routeViewButton.tabIndex = -1;
             form.removeAttribute('inert');
+            form.removeAttribute('aria-hidden');
             results.setAttribute('inert', '');
+            results.setAttribute('aria-hidden', 'true');
         }
     }
 
@@ -473,6 +480,21 @@
         if (view === 'route') routeHeading.focus({ preventScroll: true });
         else if (targetPicker) targetPicker.input.focus({ preventScroll: true });
         else setupViewButton.focus();
+    }
+
+    function clearTargetError() {
+        targetError.hidden = true;
+        if (!targetPicker) return;
+        targetPicker.input.removeAttribute('aria-invalid');
+        targetPicker.input.setAttribute('aria-describedby', targetPicker.input.dataset.defaultDescription || '');
+    }
+
+    function showTargetError() {
+        setWorkspaceView('setup', false);
+        targetError.hidden = false;
+        targetPicker.input.setAttribute('aria-invalid', 'true');
+        targetPicker.input.setAttribute('aria-describedby', targetPicker.input.dataset.defaultDescription + ' ' + targetError.id);
+        targetPicker.input.focus();
     }
 
     function updateSetupSummaries() {
@@ -510,12 +532,14 @@
     }
 
     function setSubmitMode(update) {
+        submitButton.removeAttribute('data-busy');
         submitButton.textContent = update ? 'Update route' : 'Find route';
     }
 
     function revealResults(focusOutcome) {
         results.hidden = false;
         routeViewButton.disabled = false;
+        routeViewButton.setAttribute('aria-disabled', 'false');
         showRouteButton.disabled = false;
         setWorkspaceView('route', focusOutcome !== false);
         if (!focusOutcome || mobileWorkspace.matches || typeof results.scrollIntoView !== 'function') return;
@@ -580,6 +604,7 @@
         input.setAttribute('aria-expanded', 'false');
         const hint = element('p', 'palworld-help', 'Type to filter, then choose a pal. Use Tab or Arrow Down to reach matches.');
         hint.id = id + '-help';
+        input.dataset.defaultDescription = hint.id;
         input.setAttribute('aria-describedby', hint.id);
         const count = element('p', 'palworld-picker-count');
         count.setAttribute('role', 'status');
@@ -623,6 +648,7 @@
         function choose(pal) {
             picker.key = pal.key;
             input.value = pal.name;
+            if (id === 'palworld-target') clearTargetError();
             selected.replaceChildren(palIdentity(pal.key), locationLink(pal.key));
             input.focus();
             close();
@@ -697,6 +723,7 @@
         input.addEventListener('focus', filter);
         input.addEventListener('input', function () {
             picker.key = '';
+            if (id === 'palworld-target') clearTargetError();
             selected.replaceChildren();
             filter();
         });
@@ -876,6 +903,11 @@
 
     function runRoute(focusOutcome) {
         if (!dataset) return;
+        if (!targetPicker.key) {
+            showTargetError();
+            return;
+        }
+        clearTargetError();
         attempted = true;
         const generation = ++routeGeneration;
         const labels = traitInputs.map(function (input) { return input.value.trim(); });
@@ -903,6 +935,8 @@
         exclusions.hidden = true;
         routeStatus.textContent = updating ? 'Updating the breeding route…' : 'Finding a breeding route…';
         results.setAttribute('aria-busy', 'true');
+        submitButton.dataset.busy = 'true';
+        submitButton.textContent = updating ? 'Updating route…' : 'Finding route…';
         submitButton.disabled = true;
         revealResults(focusOutcome !== false);
         // Give the busy state a chance to paint before the synchronous engine runs.
@@ -953,6 +987,7 @@
                     if (generation !== routeGeneration) return;
                     results.setAttribute('aria-busy', 'false');
                     submitButton.disabled = false;
+                    setSubmitMode(false);
                 }
             }, 0);
         });
@@ -1289,19 +1324,13 @@
                 : { bytes: 0, measure: 'no-request' };
             form.dataset.palworldTransferredBytes = String(transfer.bytes);
             form.dataset.palworldTransferMeasure = transfer.measure;
-            const readyText = 'Ready. ' + dataset.pals.length + ' pals available.';
-            if (!downloaded) {
-                loadStatus.textContent = readyText + ' Loaded from data saved in this browser.';
-                return;
-            }
+            const readyText = 'Planner ready.';
             loadStatus.textContent = readyText;
-            if (!cache) return;
+            if (!downloaded || !cache) return;
             // Only a fully downloaded and validated set is saved, and only after the controls are usable.
             window.setTimeout(function () {
-                writeCache(cache, downloaded).then(function () {
-                    loadStatus.textContent = readyText + ' Saved in this browser, so the next visit skips the download.';
-                }, function () {
-                    loadStatus.textContent = readyText + ' This browser could not save the data, so the next visit downloads it again.';
+                writeCache(cache, downloaded).catch(function () {
+                    // Caching is optional; the ready planner does not need another status announcement.
                 });
             }, 0);
         } catch (error) {
@@ -1332,13 +1361,16 @@
     editSetupButton.addEventListener('click', function () { setWorkspaceView('setup', true); });
     [setupViewButton, routeViewButton].forEach(function (viewButton, index, buttons) {
         viewButton.addEventListener('keydown', function (event) {
-            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
             event.preventDefault();
-            const next = buttons[(index + (event.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length];
-            if (!next.disabled) {
-                setWorkspaceView(next === routeViewButton ? 'route' : 'setup', false);
-                next.focus();
-            }
+            let nextIndex = index;
+            if (event.key === 'Home') nextIndex = 0;
+            else if (event.key === 'End') nextIndex = buttons.length - 1;
+            else nextIndex = (index + (event.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length;
+            const next = buttons[nextIndex];
+            if (next.disabled) return;
+            setWorkspaceView(next === routeViewButton ? 'route' : 'setup', false);
+            next.focus();
         });
     });
     mobileWorkspace.addEventListener('change', syncWorkspaceView);

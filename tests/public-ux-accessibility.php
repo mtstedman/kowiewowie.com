@@ -196,12 +196,23 @@ public_ux_assert(
     'Palworld setup must present target, desired passives, owned Pals, and the route action in order.'
 );
 public_ux_assert(
-    (bool) preg_match('/<section\b(?=[^>]*class="palworld-panel palworld-results")(?=[^>]*aria-labelledby="palworld-results-title")(?=[^>]*\bhidden\b)[^>]*>/', $palworldHtml),
-    'Palworld results must start hidden and use an accessible visible heading.'
+    (bool) preg_match('/<section\b(?=[^>]*class="palworld-panel palworld-results")(?=[^>]*role="tabpanel")(?=[^>]*aria-labelledby="palworld-view-route palworld-results-title")(?=[^>]*\bhidden\b)[^>]*>/', $palworldHtml),
+    'Palworld results must start hidden as a labelled tab panel with an accessible visible heading.'
 );
 public_ux_assert(
     strpos($palworldHtml, '<h2 id="palworld-results-title" tabindex="-1">Breeding route result</h2>') !== false,
     'Palworld results must provide a focusable visible result heading.'
+);
+public_ux_assert(
+    strpos($palworldHtml, 'class="palworld-view-switch" role="tablist" aria-label="Breeding planner view"') !== false
+        && strpos($palworldHtml, 'id="palworld-view-setup" type="button" role="tab" aria-selected="true" aria-controls="palworld-form"') !== false
+        && strpos($palworldHtml, 'id="palworld-view-route" type="button" role="tab" aria-selected="false" aria-controls="palworld-results" aria-disabled="true" disabled') !== false
+        && strpos($palworldHtml, 'id="palworld-form" class="palworld-panel palworld-bar" role="tabpanel" aria-labelledby="palworld-view-setup palworld-plan-title"') !== false,
+    'Palworld mobile Setup and Route navigation must expose a complete initial tab and panel relationship.'
+);
+public_ux_assert(
+    strpos($palworldHtml, 'id="palworld-target-error" class="palworld-field-error" role="alert" hidden') !== false,
+    'Palworld target validation must provide an initially hidden inline alert associated by the UI script.'
 );
 public_ux_assert(
     strpos($palworldHtml, 'id="palworld-excluded-title"') !== false

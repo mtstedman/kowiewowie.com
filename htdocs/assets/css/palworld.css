@@ -1231,3 +1231,84 @@
         scroll-behavior: auto;
     }
 }
+
+
+/* Breeding planner workspace and state clarity. */
+.palworld-shell,
+.palworld-layout,
+.palworld-panel,
+.palworld-source-scroller {
+    min-width: 0;
+}
+
+.palworld-field-error {
+    margin: var(--space-xs) 0 0;
+    color: #9f2f1f;
+    font-weight: 700;
+}
+
+.palworld-picker input[aria-invalid="true"] {
+    border-color: #9f2f1f;
+    box-shadow: 0 0 0 2px rgb(159 47 31 / 18%);
+}
+
+.palworld-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid rgb(155 61 22 / 24%);
+    border-radius: 0.75rem;
+    background: rgb(155 61 22 / 7%);
+}
+
+.palworld-actions p {
+    margin: 0;
+    font-weight: 700;
+}
+
+.palworld-primary[data-busy="true"] {
+    cursor: wait;
+    opacity: 0.82;
+}
+
+.palworld-view-switch [role="tab"][disabled],
+.palworld-view-link[disabled] {
+    cursor: not-allowed;
+    opacity: 0.52;
+}
+
+@media (min-width: 800px) {
+    .palworld-layout:has(.palworld-results[hidden]) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 799px) {
+    .palworld-shell {
+        overflow-x: clip;
+    }
+
+    .palworld-layout[data-mobile-view="setup"] > .palworld-results,
+    .palworld-layout[data-mobile-view="route"] > .palworld-bar {
+        display: none;
+    }
+
+    .palworld-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .palworld-actions .palworld-primary {
+        width: 100%;
+    }
+}
+
+.palworld-shell :disabled {
+    cursor: not-allowed;
+}
+
+.palworld-shell .palworld-primary[data-busy="true"] {
+    cursor: wait;
+}

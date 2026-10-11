@@ -78,16 +78,16 @@ $palworldMapCopyright = $palworldMapField('copyright', 'Copyright (c) 2026 Ryexh
                 <p class="lede">Pick a pal, choose the passives you want, and trace a breeding route from the pals you already own.</p>
             </section>
 
-            <p id="palworld-load-status" class="palworld-notice" role="status" aria-live="polite">Preparing the breeding planner. The first visit downloads <?= htmlspecialchars($palworldDataSizeLabel, ENT_QUOTES, 'UTF-8') ?> of breeding data; later visits load the copy saved in this browser.</p>
+            <p id="palworld-load-status" class="palworld-notice" role="status" aria-live="polite">Loading the breeding planner (<?= htmlspecialchars($palworldDataSizeLabel, ENT_QUOTES, 'UTF-8') ?> on the first visit)…</p>
             <noscript><p class="palworld-notice">Enable JavaScript to load the breeding data and use this planner.</p></noscript>
 
             <div class="palworld-view-switch" role="tablist" aria-label="Breeding planner view">
                 <button id="palworld-view-setup" type="button" role="tab" aria-selected="true" aria-controls="palworld-form">Setup</button>
-                <button id="palworld-view-route" type="button" role="tab" aria-selected="false" aria-controls="palworld-results" disabled>Route</button>
+                <button id="palworld-view-route" type="button" role="tab" aria-selected="false" aria-controls="palworld-results" aria-disabled="true" disabled>Route</button>
             </div>
 
             <div class="palworld-layout" data-mobile-view="setup">
-                <form id="palworld-form" class="palworld-panel palworld-bar" aria-labelledby="palworld-plan-title" data-palworld-revision="<?= htmlspecialchars($palworldDataRevision, ENT_QUOTES, 'UTF-8') ?>" data-palworld-cache-format="<?= htmlspecialchars((string) $palworldCacheFormat, ENT_QUOTES, 'UTF-8') ?>" data-palworld-data-bytes="<?= htmlspecialchars((string) $palworldDataBytes, ENT_QUOTES, 'UTF-8') ?>" data-palworld-map-version="<?= htmlspecialchars($palworldMapVersion, ENT_QUOTES, 'UTF-8') ?>" novalidate>
+                <form id="palworld-form" class="palworld-panel palworld-bar" role="tabpanel" aria-labelledby="palworld-view-setup palworld-plan-title" data-palworld-revision="<?= htmlspecialchars($palworldDataRevision, ENT_QUOTES, 'UTF-8') ?>" data-palworld-cache-format="<?= htmlspecialchars((string) $palworldCacheFormat, ENT_QUOTES, 'UTF-8') ?>" data-palworld-data-bytes="<?= htmlspecialchars((string) $palworldDataBytes, ENT_QUOTES, 'UTF-8') ?>" data-palworld-map-version="<?= htmlspecialchars($palworldMapVersion, ENT_QUOTES, 'UTF-8') ?>" novalidate>
                     <div class="palworld-panel-heading">
                         <div>
                             <p class="eyebrow">Setup</p>
@@ -103,6 +103,7 @@ $palworldMapCopyright = $palworldMapField('copyright', 'Copyright (c) 2026 Ryexh
                             <div class="palworld-step-body">
                                 <p class="palworld-help">Search for the Pal you want to breed.</p>
                                 <div id="palworld-target-picker"></div>
+                                <p id="palworld-target-error" class="palworld-field-error" role="alert" hidden>Choose a target Pal before finding a route.</p>
                             </div>
                         </details>
 
@@ -140,7 +141,7 @@ $palworldMapCopyright = $palworldMapField('copyright', 'Copyright (c) 2026 Ryexh
                     </fieldset>
                 </form>
 
-                <section id="palworld-results" class="palworld-panel palworld-results" aria-labelledby="palworld-results-title" aria-busy="false" data-route-state="empty" hidden>
+                <section id="palworld-results" class="palworld-panel palworld-results" role="tabpanel" aria-labelledby="palworld-view-route palworld-results-title" aria-busy="false" data-route-state="empty" hidden>
                     <div class="palworld-panel-heading palworld-results-heading">
                         <div>
                             <p class="eyebrow">Route</p>

@@ -59,6 +59,18 @@
     font-size: 1.15rem;
 }
 
+.poe2-controls > .eyebrow,
+.poe2-must-haves > .eyebrow {
+    margin: 0;
+}
+
+.poe2-reset-help {
+    margin: 0;
+    padding-left: 0.7rem;
+    border-left: 3px solid var(--poe2-gold);
+    text-transform: none;
+}
+
 .poe2-more summary,
 .poe2-section > summary {
     cursor: pointer;
@@ -215,6 +227,36 @@
     min-height: 0;
     padding: 0;
     overflow: hidden;
+}
+
+.poe2-tree-guidance {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 1;
+    display: grid;
+    max-width: min(34rem, calc(100% - 13rem));
+    gap: 0.2rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 6px;
+    background: rgba(5, 11, 22, 0.9);
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    pointer-events: none;
+}
+
+.poe2-tree-guidance strong {
+    color: var(--poe2-gold);
+}
+
+.poe2-tree-guidance span {
+    color: var(--muted);
+}
+
+.poe2-compact-actions {
+    display: none;
 }
 
 /* Positioned by planner.js inside the tree panel; never intercepts the pointer. */
@@ -460,7 +502,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .poe2-node-halo {
+    .poe2-node-halo,
+    .poe2-must-haves[aria-busy="true"] .poe2-primary-action::after {
         animation: none;
     }
 }
@@ -525,6 +568,45 @@
 .poe2-must-haves h3 {
     color: var(--ink);
     font-size: 1rem;
+}
+
+.poe2-panel .poe2-primary-action {
+    border-color: var(--poe2-gold);
+    background: linear-gradient(135deg, #8b5e19, #5f3b0d);
+    box-shadow: 0 8px 22px -14px rgba(231, 189, 104, 0.9);
+    color: #fff7e0;
+    font-size: 1rem;
+}
+
+.poe2-panel .poe2-primary-action:not(:disabled):hover,
+.poe2-panel .poe2-primary-action:not(:disabled):focus-visible {
+    background: linear-gradient(135deg, #a87422, #704812);
+}
+
+.poe2-route-status {
+    min-height: 1.25rem;
+    color: var(--ink-soft);
+    font-size: 0.86rem;
+}
+
+.poe2-route-status.is-error {
+    color: #fb7185;
+}
+
+.poe2-must-haves[aria-busy="true"] .poe2-primary-action::after {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-left: 0.55rem;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: poe2-route-spin 0.8s linear infinite;
+    content: "";
+}
+
+@keyframes poe2-route-spin {
+    to { transform: rotate(360deg); }
 }
 
 .poe2-must-have-details > summary {
@@ -669,6 +751,53 @@
 
     .poe2-tree-panel {
         height: min(75vh, 640px);
+        min-height: 30rem;
+    }
+
+    .poe2-tree-guidance {
+        max-width: calc(100% - 1.5rem);
+        padding-right: 8.5rem;
+    }
+
+    .poe2-compact-actions {
+        position: absolute;
+        right: 0.5rem;
+        bottom: 0.5rem;
+        left: 0.5rem;
+        z-index: 2;
+        display: grid;
+        min-width: 0;
+        gap: 0.45rem;
+        padding: 0.65rem;
+        border: 1px solid var(--surface-edge-strong);
+        border-radius: 7px;
+        background: rgba(5, 11, 22, 0.95);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(7px);
+    }
+
+    .poe2-compact-actions .eyebrow,
+    .poe2-compact-actions h2 {
+        min-width: 0;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .poe2-compact-actions h2 {
+        color: var(--ink);
+        font-size: 1rem;
+    }
+
+    .poe2-compact-actions .poe2-detail-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .poe2-panel .poe2-compact-actions button {
+        min-width: 0;
+        padding-inline: 0.35rem;
+        font-size: 0.8rem;
     }
 
     .poe2-details {
@@ -741,6 +870,12 @@
 @media (max-width: 480px) {
     .poe2-bonus-list {
         padding-left: 1rem;
+    }
+
+    .poe2-tree-guidance {
+        top: 4rem;
+        padding-right: 0.7rem;
+        font-size: 0.72rem;
     }
 }
 

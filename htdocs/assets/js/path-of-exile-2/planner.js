@@ -94,6 +94,10 @@ const elements = {
   toggleNode: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-node')),
   toggleMustHave: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-must-have')),
   toggleConsidered: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-toggle-considered')),
+  compactTitle: /** @type {HTMLHeadingElement} */ (document.querySelector('#poe2-compact-title')),
+  compactToggleNode: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-compact-toggle-node')),
+  compactToggleMustHave: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-compact-toggle-must-have')),
+  compactToggleConsidered: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-compact-toggle-considered')),
   consideredDetails: /** @type {HTMLDetailsElement} */ (document.querySelector('#poe2-considered-details')),
   consideredCount: /** @type {HTMLElement} */ (document.querySelector('#poe2-considered-count')),
   consideredList: /** @type {HTMLUListElement} */ (document.querySelector('#poe2-considered-list')),
@@ -108,6 +112,8 @@ const elements = {
   mustHaveDetails: /** @type {HTMLDetailsElement} */ (document.querySelector('#poe2-must-have-details')),
   mustHaveCount: /** @type {HTMLElement} */ (document.querySelector('#poe2-must-have-count')),
   findRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-find-route')),
+  routeControls: /** @type {HTMLElement} */ (document.querySelector('.poe2-must-haves')),
+  routeStatus: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-route-status')),
   clearMustHaves: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-must-haves')),
   clearRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-route')),
   routeSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-route-summary')),
@@ -168,6 +174,11 @@ elements.tree.style.setProperty('--poe2-tile', `url("${TREE_ART.images.backgroun
 function setStatus(message, error = false) {
   elements.status.textContent = message;
   elements.status.classList.toggle('poe2-notice--error', error);
+}
+
+function setRouteStatus(message, error = false) {
+  elements.routeStatus.textContent = message;
+  elements.routeStatus.classList.toggle('is-error', error);
 }
 
 function setEnabled(enabled) {
@@ -621,6 +632,8 @@ function renderMustHaves() {
   elements.mustHaveCount.textContent = state.mustHaves.size.toLocaleString();
   elements.mustHaveEmpty.hidden = !empty;
   elements.findRoute.disabled = !usable || empty;
+  elements.findRoute.textContent = state.computing ? 'Computing…' : state.route?.stale ? 'Update route' : 'Find route';
+  elements.routeControls.setAttribute('aria-busy', String(state.computing));
   elements.clearMustHaves.disabled = !usable || empty;
   renderConsidered();
   syncClearRoute();
@@ -693,7 +706,7 @@ function renderRouteSummary() {
   if (route.stale) {
     const note = document.createElement('p');
     note.className = 'poe2-route-summary__note';
-    note.textContent = 'Must-haves or allocations changed since this route was computed. Find the route again to update it.';
+    note.textContent = 'Must-haves or allocations changed since this route was computed. Update the route to use the current choices.';
     elements.routeSummary.append(note);
   }
 }
@@ -756,6 +769,8 @@ function invalidateRoute() {
   if (!state.route || state.route.stale) return;
   state.route.stale = true;
   renderRouteSummary();
+  renderMustHaves();
+  setRouteStatus('Route is out of date. Update it to use the current choices.');
 }
 
 function setMustHave(nodeId, marked) {
@@ -830,6 +845,7 @@ function clearRoute() {
   state.route = null;
   renderRouteSummary();
   updateGraphState();
+  setRouteStatus('Route cleared. Must-have passives are still marked.');
   setStatus('Route cleared. Allocations reset; must-have passives are kept.');
 }
 
@@ -846,7 +862,9 @@ async function computeRoute() {
   state.computing = true;
   renderMustHaves();
   updateDetails();
-  setStatus(`Computing a route through ${plural(mustHaves.length, 'must-have passive')}…`);
+  const computingMessage = `Computing a route through ${plural(mustHaves.length, 'must-have passive')}…`;
+  setRouteStatus(computingMessage);
+  setStatus(computingMessage);
   try {
     await nextPaint();
     // The build may have changed while the status painted.
@@ -855,7 +873,9 @@ async function computeRoute() {
     if (!result.ok) {
       state.route = null;
       renderRouteSummary();
-      setStatus(result.reason || 'No route could be found for these must-have passives.', true);
+      const message = result.reason || 'No route could be found for these must-have passives.';
+      setRouteStatus(message, true);
+      setStatus(message, true);
       return;
     }
     setAllocation(new Set(result.nodeIds));
@@ -870,9 +890,17 @@ async function computeRoute() {
       stale: false,
     };
     renderRouteSummary();
-    setStatus(exact
+    const message = exact
       ? `Shortest route found: ${plural(result.nodeIds.length, 'node')} allocated.`
-      : `Route found, but not proven shortest: ${plural(result.nodeIds.length, 'node')} allocated.`);
+      : `Route found, but not proven shortest: ${plural(result.nodeIds.length, 'node')} allocated.`;
+    setRouteStatus(message);
+    setStatus(message);
+  } catch (error) {
+    state.route = null;
+    renderRouteSummary();
+    const message = error instanceof Error ? error.message : 'No route could be computed.';
+    setRouteStatus(message, true);
+    setStatus(message, true);
   } finally {
     state.computing = false;
     renderMustHaves();
@@ -1403,6 +1431,15 @@ function updateDetails() {
     elements.toggleMustHave.disabled = true;
     elements.toggleConsidered.textContent = 'Consider';
     elements.toggleConsidered.disabled = true;
+    elements.compactTitle.textContent = 'Select a node';
+    elements.compactToggleNode.textContent = 'Allocate';
+    elements.compactToggleNode.disabled = true;
+    elements.compactToggleMustHave.textContent = 'Must-have';
+    elements.compactToggleMustHave.setAttribute('aria-pressed', 'false');
+    elements.compactToggleMustHave.disabled = true;
+    elements.compactToggleConsidered.textContent = 'Consider';
+    elements.compactToggleConsidered.setAttribute('aria-pressed', 'false');
+    elements.compactToggleConsidered.disabled = true;
     return;
   }
 
@@ -1423,7 +1460,7 @@ function updateDetails() {
     elements.nodeStats.append(item);
   }
   elements.toggleNode.textContent = isRoot ? 'Starting node' : isAllocated ? 'Remove node' : 'Allocate node';
-  elements.toggleNode.disabled = isRoot;
+  elements.toggleNode.disabled = isRoot || !state.enabled || state.computing;
   const isMustHave = state.mustHaves.has(node.id);
   elements.toggleMustHave.textContent = isRoot ? 'Start node' : isMustHave ? 'Unmark must-have' : 'Mark must-have';
   elements.toggleMustHave.setAttribute('aria-pressed', String(isMustHave));
@@ -1432,6 +1469,16 @@ function updateDetails() {
   elements.toggleConsidered.textContent = isRoot ? 'Start node' : isConsidered ? 'Remove from considered' : 'Consider';
   elements.toggleConsidered.setAttribute('aria-pressed', String(isConsidered));
   elements.toggleConsidered.disabled = isRoot || !state.enabled || state.computing;
+
+  elements.compactTitle.textContent = node.name || `Node ${node.id}`;
+  elements.compactToggleNode.textContent = isRoot ? 'Start node' : isAllocated ? 'Remove' : 'Allocate';
+  elements.compactToggleNode.disabled = elements.toggleNode.disabled;
+  elements.compactToggleMustHave.textContent = isMustHave ? 'Unmark' : 'Must-have';
+  elements.compactToggleMustHave.setAttribute('aria-pressed', String(isMustHave));
+  elements.compactToggleMustHave.disabled = elements.toggleMustHave.disabled;
+  elements.compactToggleConsidered.textContent = isConsidered ? 'Unconsider' : 'Consider';
+  elements.compactToggleConsidered.setAttribute('aria-pressed', String(isConsidered));
+  elements.compactToggleConsidered.disabled = elements.toggleConsidered.disabled;
 }
 
 function nodeStateLabel(nodeId) {
@@ -1623,6 +1670,7 @@ function rebuildModel(classId, ascendancyId, announce = true) {
   state.considered = new Set();
   state.route = null;
   renderRouteSummary();
+  setRouteStatus('Choose and mark must-have nodes, then find a route.');
   state.selectedId = nextModel.rootIds[0] || null;
   setEnabled(true);
   elements.retryButton.hidden = true;
@@ -1724,11 +1772,20 @@ elements.searchForm.addEventListener('submit', (event) => {
 });
 
 elements.toggleNode.addEventListener('click', tryAllocationChange);
+elements.compactToggleNode.addEventListener('click', tryAllocationChange);
 elements.toggleMustHave.addEventListener('click', () => {
   if (state.computing || !state.selectedId) return;
   setMustHave(state.selectedId, !state.mustHaves.has(state.selectedId));
 });
+elements.compactToggleMustHave.addEventListener('click', () => {
+  if (state.computing || !state.selectedId) return;
+  setMustHave(state.selectedId, !state.mustHaves.has(state.selectedId));
+});
 elements.toggleConsidered.addEventListener('click', () => {
+  if (state.computing || !state.selectedId) return;
+  setConsidered(state.selectedId, !state.considered.has(state.selectedId));
+});
+elements.compactToggleConsidered.addEventListener('click', () => {
   if (state.computing || !state.selectedId) return;
   setConsidered(state.selectedId, !state.considered.has(state.selectedId));
 });
@@ -1757,6 +1814,7 @@ elements.resetButton.addEventListener('click', () => {
   state.route = null;
   renderRouteSummary();
   updateGraphState();
+  setRouteStatus('Allocations reset. Mark must-have nodes to find another route.');
   setStatus('All allocated nodes reset. Starting nodes remain implicit and free.');
 });
 

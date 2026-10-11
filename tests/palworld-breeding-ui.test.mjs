@@ -30,10 +30,10 @@ async function planner(viewport = { width: 1280, height: 800 }) {
             <p id="palworld-load-status" class="palworld-notice"></p>
             <div class="palworld-view-switch" role="tablist" aria-label="Breeding planner view">
                 <button id="palworld-view-setup" type="button" role="tab" aria-selected="true" aria-controls="palworld-form">Setup</button>
-                <button id="palworld-view-route" type="button" role="tab" aria-selected="false" aria-controls="palworld-results" disabled>Route</button>
+                <button id="palworld-view-route" type="button" role="tab" aria-selected="false" aria-controls="palworld-results" aria-disabled="true" disabled>Route</button>
             </div>
             <div class="palworld-layout" data-mobile-view="setup">
-                <form id="palworld-form" class="palworld-panel palworld-bar" data-palworld-cache-format="1" data-palworld-data-bytes="1">
+                <form id="palworld-form" class="palworld-panel palworld-bar" role="tabpanel" aria-labelledby="palworld-view-setup palworld-plan-title" data-palworld-cache-format="1" data-palworld-data-bytes="1">
                     <div class="palworld-panel-heading">
                         <div><p class="eyebrow">Setup</p><h2 id="palworld-plan-title">Build your breeding plan</h2></div>
                         <button id="palworld-show-route" type="button" disabled>Return to route</button>
@@ -42,7 +42,7 @@ async function planner(viewport = { width: 1280, height: 800 }) {
                         <legend class="public-visually-hidden">Breeding plan inputs</legend>
                         <details class="palworld-setup-step" open>
                             <summary><span>1 Target Pal</span><span id="palworld-target-summary" class="palworld-step-summary">Not selected</span></summary>
-                            <div class="palworld-step-body"><div id="palworld-target-picker"></div></div>
+                            <div class="palworld-step-body"><div id="palworld-target-picker"></div><p id="palworld-target-error" class="palworld-field-error" role="alert" hidden>Choose a target Pal before finding a route.</p></div>
                         </details>
                         <details id="palworld-addons" class="palworld-setup-step" open>
                             <summary><span>2 Desired passives</span><span id="palworld-addons-summary" class="palworld-step-summary">None selected</span></summary>
@@ -65,7 +65,7 @@ async function planner(viewport = { width: 1280, height: 800 }) {
                         <div class="palworld-actions"><p>Ready with these choices?</p><button id="palworld-find-route" class="palworld-primary" type="submit">Find route</button></div>
                     </fieldset>
                 </form>
-                <section id="palworld-results" class="palworld-panel palworld-results" data-route-state="empty" aria-busy="false" hidden>
+                <section id="palworld-results" class="palworld-panel palworld-results" role="tabpanel" aria-labelledby="palworld-view-route palworld-results-title" data-route-state="empty" aria-busy="false" hidden>
                     <div class="palworld-panel-heading"><div><p class="eyebrow">Route</p><h2 id="palworld-results-title" tabindex="-1">Breeding route result</h2></div><button id="palworld-edit-setup" type="button">Edit setup</button></div>
                     <p id="palworld-route-status"></p>
                     <div id="palworld-route-tree"></div>
@@ -118,6 +118,11 @@ async function submitAndWait(page, text = 'Breeding route ready.') {
     await page.waitForFunction((expected) => document.getElementById('palworld-route-status').textContent === expected, text);
 }
 
+async function selectTarget(page, name = 'Lamball') {
+    await page.locator('#palworld-target').fill(name);
+    await page.locator('#palworld-target-matches button').first().click();
+}
+
 test('results reveal, become stale without losing the route, and update from current setup', async (t) => {
     const { browser, page } = await planner();
     t.after(() => browser.close());
@@ -126,6 +131,7 @@ test('results reveal, become stale without losing the route, and update from cur
     assert.equal(await results.isHidden(), true);
     assert.equal(await page.locator('#palworld-find-route').textContent(), 'Find route');
 
+    await selectTarget(page);
     await queue(page, success());
     await submitAndWait(page);
     assert.equal(await results.isVisible(), true);
@@ -141,6 +147,7 @@ test('results reveal, become stale without losing the route, and update from cur
     assert.equal(await page.locator('#palworld-route-tree').getAttribute('inert'), '');
     assert.equal(await page.evaluate(() => document.activeElement.id), 'palworld-target');
 
+    await selectTarget(page, 'Cattiva');
     await queue(page, success({ type: 'source', pal: 'cattiva', traits: [] }));
     await submitAndWait(page);
     assert.equal(await results.getAttribute('data-route-state'), 'current');
@@ -152,6 +159,7 @@ test('cancelled work cannot reveal an obsolete result and a failed attempt can b
     const { browser, page } = await planner();
     t.after(() => browser.close());
 
+    await selectTarget(page);
     await queue(page, success());
     await page.evaluate(() => {
         document.getElementById('palworld-form').requestSubmit();
@@ -164,6 +172,7 @@ test('cancelled work cannot reveal an obsolete result and a failed attempt can b
     assert.equal(await page.evaluate(() => window.__requests.length), 0);
     await page.evaluate(() => { window.__routeResults = []; });
 
+    await selectTarget(page, 'Cattiva');
     await queue(page, { kind: 'throw', message: 'test failure' });
     await submitAndWait(page, 'Unable to find a route: test failure');
     assert.equal(await page.locator('#palworld-find-route').isEnabled(), true);
@@ -231,6 +240,17 @@ test('desktop workspace keeps setup beside the route and bounds a large owned co
     assert.ok(collection.scrollHeight > collection.clientHeight);
     assert.ok(action.y >= collection.bottom);
 
+    const initialGeometry = await page.evaluate(() => {
+        const layout = document.querySelector('.palworld-layout').getBoundingClientRect();
+        const setup = document.getElementById('palworld-form').getBoundingClientRect();
+        return {
+            setupUsesWorkspace: Math.abs(layout.width - setup.width) < 2,
+            noDocumentOverflow: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        };
+    });
+    assert.deepEqual(initialGeometry, { setupUsesWorkspace: true, noDocumentOverflow: true });
+
+    await selectTarget(page);
     await queue(page, success());
     await submitAndWait(page);
     const geometry = await page.evaluate(() => {
@@ -287,7 +307,19 @@ test('mobile submission opens Route and setup navigation preserves a stale route
     await submitAndWait(page);
     assert.equal(await page.locator('.palworld-layout').getAttribute('data-mobile-view'), 'route');
     assert.equal(await page.locator('#palworld-form').isVisible(), false);
+    assert.equal(await page.locator('#palworld-form').getAttribute('aria-hidden'), 'true');
+    assert.equal(await page.locator('#palworld-form').getAttribute('inert'), '');
     assert.equal(await page.locator('#palworld-results').isVisible(), true);
+    assert.equal(await page.locator('#palworld-results').getAttribute('role'), 'tabpanel');
+    assert.equal(await page.locator('#palworld-view-route').getAttribute('aria-selected'), 'true');
+
+    await page.locator('#palworld-view-route').focus();
+    await page.locator('#palworld-view-route').press('Home');
+    assert.equal(await page.locator('.palworld-layout').getAttribute('data-mobile-view'), 'setup');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'palworld-view-setup');
+    await page.locator('#palworld-view-setup').press('End');
+    assert.equal(await page.locator('.palworld-layout').getAttribute('data-mobile-view'), 'route');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'palworld-view-route');
 
     await page.locator('#palworld-edit-setup').click();
     assert.equal(await page.locator('.palworld-layout').getAttribute('data-mobile-view'), 'setup');
@@ -311,4 +343,51 @@ test('mobile submission opens Route and setup navigation preserves a stale route
     assert.equal(await page.locator('.palworld-layout').getAttribute('data-mobile-view'), 'route');
     assert.equal(await page.locator('#palworld-results').getAttribute('data-route-state'), 'current');
     assert.match(await page.locator('#palworld-route-tree').textContent(), /Cattiva/);
+});
+
+
+test('missing target stays in setup and busy state is reserved for route work', async (t) => {
+    const { browser, page } = await planner({ width: 390, height: 844 });
+    t.after(() => browser.close());
+
+    const routeTab = page.locator('#palworld-view-route');
+    assert.equal(await routeTab.isDisabled(), true);
+    assert.equal(await routeTab.getAttribute('aria-disabled'), 'true');
+    assert.equal(await routeTab.evaluate((node) => getComputedStyle(node).cursor), 'not-allowed');
+    assert.equal(await page.locator('#palworld-results').getAttribute('aria-busy'), 'false');
+
+    await page.locator('#palworld-find-route').click();
+    const target = page.locator('#palworld-target');
+    const targetError = page.locator('#palworld-target-error');
+    assert.equal(await page.evaluate(() => window.__requests.length), 0);
+    assert.equal(await page.locator('.palworld-layout').getAttribute('data-mobile-view'), 'setup');
+    assert.equal(await targetError.isVisible(), true);
+    assert.equal(await target.getAttribute('aria-invalid'), 'true');
+    assert.match(await target.getAttribute('aria-describedby'), /palworld-target-error/);
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'palworld-target');
+
+    await selectTarget(page);
+    assert.equal(await targetError.isHidden(), true);
+    assert.equal(await target.getAttribute('aria-invalid'), null);
+    await queue(page, success());
+    await page.evaluate(() => {
+        window.requestAnimationFrame = (callback) => {
+            window.__pendingRouteFrame = callback;
+            return 1;
+        };
+        document.getElementById('palworld-form').requestSubmit();
+    });
+    assert.equal(await page.locator('#palworld-results').getAttribute('aria-busy'), 'true');
+    assert.equal(await page.locator('#palworld-find-route').isDisabled(), true);
+    assert.equal(await page.locator('#palworld-find-route').getAttribute('data-busy'), 'true');
+    assert.equal(await page.locator('#palworld-find-route').textContent(), 'Finding route…');
+    assert.equal(await page.locator('#palworld-find-route').evaluate((node) => getComputedStyle(node).cursor), 'wait');
+    assert.equal(await routeTab.isEnabled(), true);
+    assert.equal(await routeTab.getAttribute('aria-disabled'), 'false');
+
+    await page.evaluate(() => window.__pendingRouteFrame());
+    await page.waitForFunction(() => document.getElementById('palworld-route-status').textContent === 'Breeding route ready.');
+    assert.equal(await page.locator('#palworld-results').getAttribute('aria-busy'), 'false');
+    assert.equal(await page.locator('#palworld-find-route').isEnabled(), true);
+    assert.equal(await page.locator('#palworld-find-route').getAttribute('data-busy'), null);
 });
