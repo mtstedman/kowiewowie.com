@@ -22,17 +22,27 @@ import {
 /** @typedef {{sourceId: string, targetId: string, probability: number, value: number}} Campaign */
 /** @typedef {{state: ModelState, probability: number}} Branch */
 /** @typedef {{[seat: string]: number}} Scores */
+/** @typedef {{value: number, flag: 'exact'|'lower'|'upper', best: string, depth: number}} TableEntry */
 /**
- * @typedef {{deadline: number, root: string, depth: number, rng: () => number,
- *   battles: Map<string, BattleLeaf[]>, evaluations: Map<string, Scores>,
- *   campaigns: Map<string, Campaign[]>}} Search
+ * @typedef {{deadline: number, root: string, depth: number, rng: () => number, nodes: number,
+ *   battles: Map<string, BattleLeaf[]>, evaluations: Map<string, Scores>, campaigns: Map<string, Campaign[]>,
+ *   table: Map<string, TableEntry>, ordering: Map<string, number>, bestMoves: Map<string, string>,
+ *   tableLimit: number}} Search
  */
 
+const SCORE_MIN = -1000000;
+const SCORE_MAX = 1000000;
+const HARD_DEPTH = 8;
+const fallbackRng = () => 0.5;
 const now = () => typeof performance === 'undefined' ? Date.now() : performance.now();
 const expired = Symbol('Risk search deadline');
-/** @param {Search} search */
-const checkDeadline = (search) => {
-    if (now() >= search.deadline) {
+/** Deadline reads are amortized: expensive loops call this frequently, while the
+ * clock is sampled once per small node batch. Force is used at iteration commits.
+ * @param {Search} search @param {boolean} [force]
+ */
+const checkDeadline = (search, force = false) => {
+    search.nodes += 1;
+    if ((force || (search.nodes & 15) === 0) && now() >= search.deadline) {
         throw expired;
     }
 };
@@ -89,22 +99,46 @@ const enemiesOf = (territory, board) => territory.neighbors
     .map((id) => board.get(id))
     .filter((other) => other && other.owner !== territory.owner);
 
-/** Canonical, per-search keys include every rule field, including card order in the
- * draw pile. Territory and hand order do not distinguish equivalent positions.
+/** Compact canonical keys retain every rule field while avoiding JSON's repeated
+ * property names and punctuation. Territory and hand order do not distinguish
+ * equivalent positions; draw and discard order remain significant.
  * @param {ModelState} state
  */
-const stateKey = (state) => JSON.stringify([
-    Object.entries(state.config).sort(([a], [b]) => a.localeCompare(b)),
-    state.players, state.eliminated.slice().sort(), state.current, state.phase,
-    state.territories.map((territory) => [territory.id, territory.owner, territory.armies,
-        territory.continent, territory.neighbors.slice().sort()])
-        .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
-    Object.keys(state.hands).sort().map((seat) => [seat,
-        state.hands[seat].slice().sort((a, b) => a.id.localeCompare(b.id))]),
-    state.deck, state.discard, state.setsTraded, state.reinforcementRemaining,
-    state.pictureBonusUsed, state.conqueredThisTurn, state.fortifiedThisTurn,
-    state.pendingConquest, state.winner
-]);
+const stateKey = (state) => {
+    const card = (value) => `${value.id},${value.type},${value.territoryId || ''}`;
+    const config = Object.entries(state.config).sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}=${String(value)}`).join(',');
+    const territories = state.territories.map((territory) => `${territory.id},${territory.owner},${territory.armies},${territory.continent},${territory.neighbors.slice().sort().join('.')}`)
+        .sort().join(';');
+    const hands = Object.keys(state.hands).sort().map((seat) => `${seat}:${state.hands[seat].slice()
+        .sort((a, b) => a.id.localeCompare(b.id)).map(card).join('.')}`).join(';');
+    const pending = state.pendingConquest
+        ? `${state.pendingConquest.sourceId},${state.pendingConquest.targetId},${state.pendingConquest.min},${state.pendingConquest.max}` : '';
+    return [config, state.players.join(','), state.eliminated.slice().sort().join(','), state.current, state.phase,
+        territories, hands, state.deck.map(card).join('.'), state.discard.map(card).join('.'), state.setsTraded,
+        state.reinforcementRemaining, +state.pictureBonusUsed, +state.conqueredThisTurn, +state.fortifiedThisTurn,
+        pending, state.winner || ''].join('|');
+};
+
+/** @param {Action} action */
+const actionKey = (action) => Object.keys(action).sort().map((key) => `${key}:${Array.isArray(action[key])
+    ? action[key].join(',') : String(action[key])}`).join('/');
+
+/** @param {Search} search @param {string} key @param {TableEntry} entry */
+const storeTable = (search, key, entry) => {
+    if (!search.table.has(key) && search.table.size >= search.tableLimit) {
+        const trim = Math.max(1, Math.floor(search.tableLimit / 8));
+        const keys = search.table.keys();
+        for (let index = 0; index < trim; index += 1) {
+            const oldest = keys.next();
+            if (oldest.done) {
+                break;
+            }
+            search.table.delete(oldest.value);
+        }
+    }
+    search.table.set(key, entry);
+};
 
 /** Project one reinforcement pool per opponent, never one pool per adjacent stack.
  * The optional-trade likelihood is a tunable positional estimate.
@@ -385,9 +419,10 @@ const evaluate = (state, search) => {
         } else {
             const rivals = state.players.filter((other) => other !== seat && position[other] > 0)
                 .map((other) => position[other]);
-            scores[seat] = position[seat] - (rivals.length
+            const raw = position[seat] - (rivals.length
                 ? Math.max(...rivals) * 0.55 + rivals.reduce((sum, value) => sum + value, 0) * 0.45 / rivals.length
                 : 0);
+            scores[seat] = Math.max(SCORE_MIN + 1, Math.min(SCORE_MAX - 1, raw));
         }
     }
     checkDeadline(search);
@@ -538,21 +573,25 @@ const candidates = (state, actions, width, campaigns, search) => {
     const board = new Map(state.territories.map((territory) => [territory.id, territory]));
     const income = projectedIncome(state);
     const plans = state.phase === 'attack' && campaigns > 0 ? campaignPlans(state, state.current, search) : [];
+    const positionKey = stateKey(state);
+    const hintedAction = search.bestMoves.get(`${positionKey}|${state.current}`);
     /** @type {Move[]} */
     const moves = [];
     /** @type {Move|null} */
     let pass = null;
     /** @type {Move|null} */
     let bestBreak = null;
+    /** @type {Map<number, Move>} */
+    const placementLeaders = new Map();
     let breakValue = -Infinity;
     for (let index = 0; index < actions.length; index += 1) {
         checkDeadline(search);
         const action = actions[index];
         let order = 0;
-        let protectedMove = false;
+        let protectedMove = actionKey(action) === hintedAction;
         if (action.type === 'end-attack' || action.type === 'end-turn') {
             pass = { action, reserve: 1, order: state.phase === 'fortify'
-                ? evaluate(state, search)[state.current] : 0 };
+                ? evaluate(state, search)[state.current] : 0, protected: protectedMove };
             continue;
         }
         if (action.type === 'attack') {
@@ -561,14 +600,27 @@ const candidates = (state, actions, width, campaigns, search) => {
             }
             const source = territoryAt(state, action.sourceId);
             const target = territoryAt(state, action.targetId);
-            if (action.dice !== Math.min(3, source.armies - 1)) {
+            const maxDice = Math.min(3, source.armies - 1);
+            const threat = Math.max(0, ...incomingForce(source, board, income).values());
+            const reserve = Math.min(source.armies - 1, Math.max(1, Math.ceil(threat * 0.65)));
+            // Smaller opening rolls are retained when a threatened source needs a
+            // reserve or a one-army target can be taken without risking three dice.
+            if (action.dice !== maxDice && reserve <= 1 && target.armies > 1) {
                 continue;
             }
-            const win = conquestProbability(source.armies - 1, target.armies, search);
+            const win = conquestProbability(Math.max(0, source.armies - reserve), target.armies, search);
             const plan = plans.find((candidate) => candidate.sourceId === source.id && candidate.targetId === target.id);
-            order = win * targetValue(state, target, state.current)
-                - Math.min(source.armies - 1, target.armies) * 0.85 + Math.max(0, plan?.value || 0);
-            protectedMove = !!plans[0] && plans[0].sourceId === source.id && plans[0].targetId === target.id;
+            const defenderTerritories = state.territories.filter((territory) => territory.owner === target.owner).length;
+            const elimination = target.owner !== NEUTRAL_ID && defenderTerritories > 0 && defenderTerritories <= 6;
+            const capture = elimination ? (state.hands[target.owner] || []).length * nextCardValue(state, state.current) / 3 : 0;
+            order = win * (targetValue(state, target, state.current) + capture)
+                - Math.min(source.armies - reserve, target.armies) * 0.85
+                + Math.max(0, plan?.value || 0) - (maxDice - action.dice) * 0.18;
+            if (win < 0.18) {
+                order -= (0.18 - win) * 40;
+            }
+            protectedMove = protectedMove || (!!plans[0] && plans[0].sourceId === source.id
+                && plans[0].targetId === target.id) || (elimination && win >= 0.75);
             const members = state.territories.filter((territory) => territory.continent === target.continent);
             if (target.owner !== NEUTRAL_ID && members.every((territory) => territory.owner === target.owner)) {
                 const bonus = continentDefinitions.find((continent) => continent.id === target.continent)?.bonus || 0;
@@ -578,37 +630,63 @@ const candidates = (state, actions, width, campaigns, search) => {
                     bestBreak = { action, reserve: 1, order, protected: true };
                 }
             }
-            const threat = Math.max(0, ...incomingForce(source, board, income).values());
-            const reserve = Math.min(source.armies - 1, Math.max(1, Math.ceil(threat * 0.65)));
             if (reserve > 1) {
-                moves.push({ action, reserve, order: order - 0.1 });
+                moves.push({ action, reserve, order: order + Math.min(2, threat * 0.08), protected: protectedMove });
             }
         } else if (action.type === 'place') {
-            const total = state.reinforcementRemaining;
-            if (action.count !== total && action.count !== Math.ceil(total / 2)) {
-                continue;
-            }
+            // legalActions supplies representative 25/50/100-style slices. Keep
+            // every slice and finish partial plans by concentrating the remainder.
             order = placementValue(state, territoryAt(state, action.territoryId), action.count, board, search, income);
+            const leader = placementLeaders.get(action.count);
+            if (!leader || order > leader.order) {
+                placementLeaders.set(action.count, { action, reserve: 1, order });
+            }
         } else if (action.type === 'trade') {
-            const child = applyAction(cloneState(state), action, () => 0.5);
+            const child = applyAction(cloneState(state), action, fallbackRng);
             finishPlacement(child, action, search);
-            // The held hand retains its nextCardValue, including incremental
-            // escalation. Compare that position with actually investing this trade.
             order = evaluate(child, search)[state.current] - evaluate(state, search)[state.current];
         } else if (action.type === 'occupy') {
             const pending = state.pendingConquest;
-            if (!pending || (action.count !== pending.min && action.count !== pending.max
-                && action.count !== Math.round((pending.min + pending.max) / 2))) {
+            if (!pending) {
                 continue;
             }
-            order = evaluate(applyAction(cloneState(state), action, () => 0.5), search)[state.current];
+            const source = territoryAt(state, pending.sourceId);
+            const target = territoryAt(state, pending.targetId);
+            const desired = new Set([pending.min, pending.max, Math.round((pending.min + pending.max) / 2)]);
+            for (const origin of [source, target]) {
+                const need = Math.max(0, ...enemiesOf(origin, board).map((enemy) => (enemy?.armies || 0) + 2));
+                desired.add(Math.max(pending.min, Math.min(pending.max, need)));
+            }
+            if (!desired.has(action.count)) {
+                continue;
+            }
+            const child = applyAction(cloneState(state), action, fallbackRng);
+            const movedTarget = territoryAt(child, pending.targetId);
+            const chain = Math.max(0, ...enemiesOf(movedTarget, new Map(child.territories.map((territory) => [territory.id, territory])))
+                .map((enemy) => conquestProbability(movedTarget.armies - 1, enemy?.armies || 0, search)));
+            order = evaluate(child, search)[state.current] + chain * 6;
+            protectedMove = protectedMove || chain >= 0.75;
         } else if (action.type === 'fortify') {
-            order = evaluate(applyAction(cloneState(state), action, () => 0.5), search)[state.current];
+            order = evaluate(applyAction(cloneState(state), action, fallbackRng), search)[state.current];
         }
         moves.push({ action, reserve: 1, order, protected: protectedMove });
     }
-    moves.sort((first, second) => second.order - first.order);
-    // Retain both sides of optional trade timing, plus strategic attack entries.
+    for (const leader of placementLeaders.values()) {
+        leader.protected = true;
+        const match = moves.find((move) => move.action === leader.action);
+        if (match) {
+            match.protected = true;
+        }
+    }
+    moves.sort((first, second) => {
+        const firstPrior = search.ordering.get(`${positionKey}>${actionKey(first.action)}`);
+        const secondPrior = search.ordering.get(`${positionKey}>${actionKey(second.action)}`);
+        if (firstPrior !== undefined || secondPrior !== undefined) {
+            const direction = state.current === search.root ? 1 : -1;
+            return direction * ((secondPrior ?? second.order) - (firstPrior ?? first.order));
+        }
+        return second.order - first.order;
+    });
     const bestTrade = moves.find((move) => move.action.type === 'trade');
     const bestHold = moves.find((move) => move.action.type === 'place');
     if (bestTrade) {
@@ -630,7 +708,7 @@ const candidates = (state, actions, width, campaigns, search) => {
             selected.push(move);
         }
     }
-    if (pass) {
+    if (pass && !selected.some((move) => move.action === pass.action)) {
         selected.push(pass);
     }
     checkDeadline(search);
@@ -749,71 +827,130 @@ const rankMoves = (state, moves, search) => {
         }
         return { move, outcomes, scores };
     });
-    ranked.sort((first, second) => second.scores[state.current] - first.scores[state.current]);
+    ranked.sort((first, second) => state.current === search.root
+        ? second.scores[search.root] - first.scores[search.root]
+        : first.scores[search.root] - second.scores[search.root]);
     return ranked;
 };
 
-/** A full turn horizon includes the acting seat and each surviving opponent.
- * Beam width and campaigns per turn grow with each iteration. At chance nodes,
- * low-ranked probability branches have a static horizon; their exact probability
- * mass is STILL included. More probable branches receive the deeper turn search.
- * This selective expectimax avoids exponential dice trees without random sampling
- * or renormalizing away unfavourable outcomes.
- * @param {ModelState} state @param {Set<string>} remainingSeats
- * @param {number} campaigns @param {Search} search @returns {Scores}
+/** A full-round paranoid tree treats every opponent as minimizing the root seat.
+ * The bounded table is shared by siblings and every completed iterative-deepening
+ * pass. Progressive widening grows both decision beams and chance continuations.
+ * @param {ModelState} state @param {Set<string>} remainingSeats @param {number} campaigns
+ * @param {Search} search @param {number} remainingDepth @param {number} alpha
+ * @param {number} beta @returns {number}
  */
-const searchPosition = (state, remainingSeats, campaigns, search) => {
+const searchPosition = (state, remainingSeats, campaigns, search, remainingDepth, alpha, beta) => {
     checkDeadline(search);
-    if (state.winner || !remainingSeats.has(state.current)) {
-        return evaluate(state, search);
+    if (state.winner || !remainingSeats.has(state.current) || remainingDepth <= 0) {
+        return evaluate(state, search)[search.root];
+    }
+    const positionKey = stateKey(state);
+    const context = `${Array.from(remainingSeats).sort().join(',')}:${Math.max(0, campaigns)}`;
+    const tableKey = `${positionKey}|${state.current}|${context}`;
+    const cached = search.table.get(tableKey);
+    const alphaStart = alpha;
+    const betaStart = beta;
+    if (cached && cached.depth >= remainingDepth) {
+        if (cached.flag === 'exact') {
+            return cached.value;
+        }
+        if (cached.flag === 'lower') {
+            alpha = Math.max(alpha, cached.value);
+        } else {
+            beta = Math.min(beta, cached.value);
+        }
+        if (alpha >= beta) {
+            return cached.value;
+        }
     }
     const legal = legalActions(state);
-    const moves = candidates(state, legal, Math.min(5, search.depth + 1), campaigns, search);
+    const width = Math.min(12, 2 + search.depth * 2);
+    const moves = candidates(state, legal, width, campaigns, search);
     if (!moves.length) {
-        return evaluate(state, search);
+        return evaluate(state, search)[search.root];
     }
     const ranked = rankMoves(state, moves, search);
-    // A narrow principal variation establishes a complete reply round first.
-    // Later iterations widen max^n decision nodes as well as chance continuations.
-    const beam = ranked.slice(0, Math.min(3, search.depth));
+    const beam = ranked.slice(0, Math.min(ranked.length, 1 + search.depth * 2));
     for (const entry of ranked) {
-        if (entry.move.protected && !beam.includes(entry)) {
+        if ((entry.move.protected || actionKey(entry.move.action) === cached?.best) && !beam.includes(entry)) {
             beam.push(entry);
         }
     }
-    /** @type {Scores|null} */
-    let best = null;
+    const maximizing = state.current === search.root;
+    let best = maximizing ? SCORE_MIN : SCORE_MAX;
+    let bestAction = actionKey(beam[0].move.action);
     for (const entry of beam) {
-        const value = searchMove(state, entry, remainingSeats, campaigns, search);
-        if (!best || value[state.current] > best[state.current]) {
+        const value = searchMove(state, entry, remainingSeats, campaigns, search, remainingDepth, alpha, beta);
+        const moveKey = actionKey(entry.move.action);
+        search.ordering.set(`${positionKey}>${moveKey}`, value);
+        if ((maximizing && value > best) || (!maximizing && value < best)) {
             best = value;
+            bestAction = moveKey;
+        }
+        if (maximizing) {
+            alpha = Math.max(alpha, best);
+        } else {
+            beta = Math.min(beta, best);
+        }
+        if (alpha >= beta) {
+            break;
         }
     }
-    return best || evaluate(state, search);
+    const flag = best <= alphaStart ? 'upper' : best >= betaStart ? 'lower' : 'exact';
+    if (!cached || remainingDepth >= cached.depth) {
+        storeTable(search, tableKey, { value: best, flag, best: bestAction, depth: remainingDepth });
+    }
+    search.bestMoves.set(`${positionKey}|${state.current}`, bestAction);
+    return best;
 };
 
-/** @param {ModelState} state @param {RankedMove} entry @param {Set<string>} remainingSeats
- * @param {number} campaigns @param {Search} search @returns {Scores}
+/** Star-style chance pruning uses the known utility range to prove that the
+ * unfinished probability mass cannot cross the parent's alpha/beta window.
+ * @param {ModelState} state @param {RankedMove} entry @param {Set<string>} remainingSeats
+ * @param {number} campaigns @param {Search} search @param {number} remainingDepth
+ * @param {number} alpha @param {number} beta @returns {number}
  */
-const searchMove = (state, entry, remainingSeats, campaigns, search) => {
+const searchMove = (state, entry, remainingSeats, campaigns, search, remainingDepth, alpha, beta) => {
     const action = entry.move.action;
     const nextSeats = new Set(remainingSeats);
     if (action.type === 'end-turn') {
         nextSeats.delete(state.current);
     }
     const nextCampaigns = action.type === 'end-turn' ? search.depth
-        : campaigns - (action.type === 'attack' ? 1 : 0);
+        : Math.max(0, campaigns - (action.type === 'attack' ? 1 : 0));
     const outcomes = entry.outcomes.slice().sort((first, second) => second.probability - first.probability);
-    const value = zeroScores(state);
+    const deepBranches = Math.min(outcomes.length, 2 + search.depth * 2);
+    let value = 0;
+    let consumed = 0;
     for (let index = 0; index < outcomes.length; index += 1) {
         checkDeadline(search);
         const outcome = outcomes[index];
-        const scores = index < search.depth
-            ? searchPosition(outcome.state, nextSeats, nextCampaigns, search)
-            : horizon(outcome.state, search);
-        addScores(value, scores, outcome.probability);
+        const remainingAfter = Math.max(0, 1 - consumed - outcome.probability);
+        let score;
+        if (index < deepBranches) {
+            const childAlpha = Math.max(SCORE_MIN, Math.min(SCORE_MAX,
+                (alpha - value - remainingAfter * SCORE_MAX) / outcome.probability));
+            const childBeta = Math.max(SCORE_MIN, Math.min(SCORE_MAX,
+                (beta - value - remainingAfter * SCORE_MIN) / outcome.probability));
+            score = searchPosition(outcome.state, nextSeats, nextCampaigns, search,
+                remainingDepth - 1, childAlpha, childBeta);
+        } else {
+            score = horizon(outcome.state, search)[search.root];
+        }
+        value += outcome.probability * score;
+        consumed += outcome.probability;
+        const remaining = Math.max(0, 1 - consumed);
+        const lower = value + remaining * SCORE_MIN;
+        const upper = value + remaining * SCORE_MAX;
+        if (upper <= alpha) {
+            return upper;
+        }
+        if (lower >= beta) {
+            return lower;
+        }
     }
-    return value;
+    return Math.max(SCORE_MIN, Math.min(SCORE_MAX, value));
 };
 
 /** Choose one legal action without changing the caller's state. maxDepth bounds
@@ -837,25 +974,22 @@ export const chooseBotAction = (state, seat, options = {}) => {
     const budget = options.timeBudgetMs === Infinity ? Infinity
         : Number.isFinite(options.timeBudgetMs) ? Math.max(0, Number(options.timeBudgetMs)) : 250;
     const maxDepth = Number.isFinite(options.maxDepth) ? Math.max(0, Math.floor(Number(options.maxDepth))) : 4;
-    const rng = options.rng || Math.random;
+    const iterationLimit = maxDepth === 0 ? 0 : budget === Infinity
+        ? Math.min(HARD_DEPTH, maxDepth) : HARD_DEPTH;
+    const rng = options.rng || fallbackRng;
     /** @type {Search} */
-    const search = { deadline: started + budget, root: seat, depth: 1, rng,
-        battles: new Map(), evaluations: new Map(), campaigns: new Map() };
+    const search = { deadline: started + budget, root: seat, depth: 1, rng, nodes: 0,
+        battles: new Map(), evaluations: new Map(), campaigns: new Map(), table: new Map(),
+        ordering: new Map(), bestMoves: new Map(), tableLimit: 12000 };
     let best = legal.find((action) => action.type === 'end-attack' || action.type === 'end-turn') || legal[0];
     if (legal.length === 1) {
         return best;
     }
     try {
-        const moves = candidates(state, legal, 10, Math.max(1, maxDepth), search);
-        if (state.phase === 'fortify') {
-            // Every legal transfer was evaluated after moving both stacks; compare
-            // with keeping the current board, before another seat receives income.
-            moves.sort((a, b) => b.order - a.order);
-            return moves[0].action;
-        }
+        checkDeadline(search, true);
+        const moves = candidates(state, legal, Math.min(18, 6 + Math.max(1, maxDepth) * 2),
+            Math.max(1, iterationLimit), search);
         if (state.phase === 'attack') {
-            // A completed tactical ordering is the depth-zero fallback. It already
-            // includes exact conquest odds and complete chained campaign odds.
             best = moves.reduce((chosen, move) => move.order > chosen.order ? move : chosen).action;
         }
         const trade = moves.find((move) => move.action.type === 'trade');
@@ -863,26 +997,27 @@ export const chooseBotAction = (state, seat, options = {}) => {
         const ordered = trade && hold ? [trade, hold, ...moves.filter((move) => move !== trade && move !== hold)] : moves;
         /** @type {RankedMove[]} */
         const ranked = [];
-        // Complete successively wider depth-zero iterations. A short budget can
-        // keep a fully evaluated narrow beam; optional trading first compares both
-        // trading and holding. An interrupted widening never replaces that result.
-        const widths = Array.from(new Set([trade && hold ? 2 : 1, Math.min(3, ordered.length), ordered.length]));
+        // Complete successively wider static passes before publishing deeper work.
+        const widths = Array.from(new Set([trade && hold ? 2 : 1, Math.min(3, ordered.length),
+            Math.min(6, ordered.length), ordered.length]));
         for (const width of widths) {
             while (ranked.length < width) {
                 ranked.push(rankMoves(state, [ordered[ranked.length]], search)[0]);
             }
-            checkDeadline(search);
+            checkDeadline(search, true);
             best = ranked.reduce((chosen, entry) => entry.scores[seat] > chosen.scores[seat] ? entry : chosen).move.action;
         }
         ranked.sort((a, b) => b.scores[seat] - a.scores[seat]);
         const previousValues = new Map(ranked.map((entry) => [entry, entry.scores[seat]]));
         const remainingSeats = new Set(state.players.filter((player) => !state.eliminated.includes(player)));
-        for (let depth = 1; depth <= maxDepth; depth += 1) {
+        const rootKey = stateKey(state);
+        for (let depth = 1; depth <= iterationLimit; depth += 1) {
             search.depth = depth;
             let iterationBest = best;
-            let bestValue = -Infinity;
+            let bestValue = SCORE_MIN;
+            let alpha = SCORE_MIN;
             let ties = 0;
-            const rootBeam = ranked.slice(0, 3 + depth * 2);
+            const rootBeam = ranked.slice(0, Math.min(ranked.length, 2 + depth * 2));
             for (const entry of ranked) {
                 if ((entry.move.protected || entry.move.action.type === 'end-attack'
                     || entry.move.action.type === 'end-turn') && !rootBeam.includes(entry)) {
@@ -891,8 +1026,11 @@ export const chooseBotAction = (state, seat, options = {}) => {
             }
             const iterationValues = new Map(previousValues);
             for (const entry of rootBeam) {
-                const value = searchMove(state, entry, remainingSeats, depth, search)[seat];
+                const remainingDepth = depth * 4 + remainingSeats.size * 3;
+                const value = searchMove(state, entry, remainingSeats, depth, search,
+                    remainingDepth, alpha, SCORE_MAX);
                 iterationValues.set(entry, value);
+                search.ordering.set(`${rootKey}>${actionKey(entry.move.action)}`, value);
                 if (value > bestValue + 1e-9) {
                     bestValue = value;
                     iterationBest = entry.move.action;
@@ -903,14 +1041,17 @@ export const chooseBotAction = (state, seat, options = {}) => {
                         iterationBest = entry.move.action;
                     }
                 }
+                alpha = Math.max(alpha, bestValue);
             }
-            checkDeadline(search);
-            // Publish actions AND ordering only after the complete iteration.
+            checkDeadline(search, true);
+            // Publish only a fully completed iteration. The shared table and history
+            // remain available to every wider/deeper pass, including depths 5-8.
             best = iterationBest;
+            search.bestMoves.set(`${rootKey}|${seat}`, actionKey(best));
             for (const [entry, value] of iterationValues) {
                 previousValues.set(entry, value);
             }
-            ranked.sort((a, b) => (previousValues.get(b) ?? -Infinity) - (previousValues.get(a) ?? -Infinity));
+            ranked.sort((a, b) => (previousValues.get(b) ?? SCORE_MIN) - (previousValues.get(a) ?? SCORE_MIN));
         }
     } catch (error) {
         if (error !== expired) {
@@ -926,7 +1067,7 @@ export const chooseBotAction = (state, seat, options = {}) => {
  * @param {Territory[]} territories @param {string} seat @param {'own'|'neutral'} target
  * @param {Config} config @param {() => number} [rng] @returns {string}
  */
-export const chooseSetupPlacement = (territories, seat, target, config, rng = Math.random) => {
+export const chooseSetupPlacement = (territories, seat, target, config, rng = fallbackRng) => {
     const owner = target === 'neutral' ? NEUTRAL_ID : seat;
     const owned = territories.filter((territory) => territory.owner === owner);
     const underCap = owned.filter((territory) => territory.armies < SETUP_ARMY_CAP);
@@ -942,8 +1083,9 @@ export const chooseSetupPlacement = (territories, seat, target, config, rng = Ma
         reinforcementRemaining: 0, pictureBonusUsed: false, conqueredThisTurn: false,
         fortifiedThisTurn: false, pendingConquest: null, winner: null };
     /** @type {Search} */
-    const search = { deadline: now() + 250, root: seat, depth: 1, rng,
-        battles: new Map(), evaluations: new Map(), campaigns: new Map() };
+    const search = { deadline: now() + 250, root: seat, depth: 1, rng, nodes: 0,
+        battles: new Map(), evaluations: new Map(), campaigns: new Map(), table: new Map(),
+        ordering: new Map(), bestMoves: new Map(), tableLimit: 512 };
     const board = new Map(territories.map((territory) => [territory.id, territory]));
     const income = projectedIncome(state);
     let best = choices[0].id;

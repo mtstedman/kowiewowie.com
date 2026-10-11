@@ -83,7 +83,9 @@ import * as riskApi from './risk-api.js';
 
     const FIXED_VALUE_TABLE = `Fixed values: 3 ${cardTypeLabels[cardTypes[0]]} 4, 3 ${cardTypeLabels[cardTypes[1]]} 6, 3 ${cardTypeLabels[cardTypes[2]]} 8, one of each 10; wilds count as the best.`;
     const AI_ATTACK_LIMIT = 80;
-    const AI_TIME_BUDGET_MS = 250;
+    const AI_WORKER_TIME_BUDGET_MS = 1500;
+    const AI_FALLBACK_TIME_BUDGET_MS = 250;
+    const AI_WORKER_TIMEOUT_MS = AI_WORKER_TIME_BUDGET_MS + 2000;
 
     /* ------------------------------------------------------------------
      * DOM contract.
@@ -402,6 +404,12 @@ import * as riskApi from './risk-api.js';
     const runtime = {
         token: 0,
         timers: /** @type {Set<number>} */ (new Set()),
+        /** @type {Worker|null} */
+        botWorker: null,
+        botWorkerUnavailable: false,
+        /** @type {{id: number, seat: number, state: object, phase: string, token: number, timeout: number}|null} */
+        botRequest: null,
+        botRequestSerial: 0,
         // Seat controlled by this browser (1 in local games).
         localSeat: 1,
         // Continuation of a battle that is waiting for the local defense choice.
@@ -542,6 +550,14 @@ import * as riskApi from './risk-api.js';
 
     const cancelPending = () => {
         runtime.token += 1;
+        if (runtime.botRequest) {
+            window.clearTimeout(runtime.botRequest.timeout);
+            runtime.botRequest = null;
+        }
+        if (runtime.botWorker) {
+            runtime.botWorker.terminate();
+            runtime.botWorker = null;
+        }
         runtime.timers.forEach((timerId) => window.clearTimeout(timerId));
         runtime.timers.clear();
         runtime.defenseDone = null;
@@ -1932,9 +1948,132 @@ import * as riskApi from './risk-api.js';
         scheduleAiStep(seat, action.type === 'occupy' ? 600 : 350);
     };
 
+    const canFinishBotRequest = (request) => runtime.botRequest === request
+        && runtime.token === request.token
+        && state === request.state
+        && state.phase === request.phase
+        && state.active
+        && state.current_seat === request.seat
+        && !state.busy
+        && !state.pendingDefense
+        && canDriveSeat(request.seat);
+
+    const fallbackBotAction = (seat) => {
+        try {
+            const action = chooseBotAction(botSnapshot(), modelIdOf(seat), {
+                timeBudgetMs: AI_FALLBACK_TIME_BUDGET_MS
+            });
+            applyBotAction(seat, action);
+        } catch (error) {
+            console.error('Risk bot fallback failed:', error);
+            rejectBotAction(seat);
+        }
+    };
+
+    const finishBotRequest = (request, action, error = null) => {
+        const current = canFinishBotRequest(request);
+        window.clearTimeout(request.timeout);
+        if (runtime.botRequest === request) {
+            runtime.botRequest = null;
+        }
+        if (!current) {
+            return;
+        }
+        if (error || !action || typeof action.type !== 'string') {
+            console.error('Risk bot worker failed:', error || 'invalid action');
+            fallbackBotAction(request.seat);
+            return;
+        }
+        try {
+            applyBotAction(request.seat, action);
+        } catch (applyError) {
+            console.error('Risk bot action failed:', applyError);
+            rejectBotAction(request.seat);
+        }
+    };
+
+    const failBotWorker = (error) => {
+        const request = runtime.botRequest;
+        runtime.botWorkerUnavailable = true;
+        if (runtime.botWorker) {
+            runtime.botWorker.terminate();
+            runtime.botWorker = null;
+        }
+        if (request) {
+            finishBotRequest(request, null, error);
+        } else {
+            console.error('Risk bot worker failed:', error);
+        }
+    };
+
+    const requestBotAction = (seat) => {
+        if (typeof Worker === 'undefined' || runtime.botWorkerUnavailable) {
+            fallbackBotAction(seat);
+            return;
+        }
+
+        if (!runtime.botWorker) {
+            try {
+                const worker = new Worker(new URL('./risk-bot-worker.js', import.meta.url), { type: 'module' });
+                worker.onmessage = ({ data }) => {
+                    if (runtime.botWorker !== worker || !runtime.botRequest || data?.id !== runtime.botRequest.id) {
+                        return;
+                    }
+                    if (data.error) {
+                        failBotWorker(data.error);
+                        return;
+                    }
+                    finishBotRequest(runtime.botRequest, data.action);
+                };
+                worker.onerror = (event) => {
+                    if (runtime.botWorker === worker) {
+                        failBotWorker(event.message || 'worker error');
+                    }
+                };
+                worker.onmessageerror = () => {
+                    if (runtime.botWorker === worker) {
+                        failBotWorker('worker message error');
+                    }
+                };
+                runtime.botWorker = worker;
+            } catch (error) {
+                runtime.botWorkerUnavailable = true;
+                console.error('Risk bot worker could not start:', error);
+                fallbackBotAction(seat);
+                return;
+            }
+        }
+
+        const request = {
+            id: ++runtime.botRequestSerial,
+            seat,
+            state,
+            phase: state.phase,
+            token: runtime.token,
+            timeout: 0
+        };
+        runtime.botRequest = request;
+        request.timeout = window.setTimeout(() => {
+            if (runtime.botRequest === request) {
+                failBotWorker('worker timed out');
+            }
+        }, AI_WORKER_TIMEOUT_MS);
+        try {
+            runtime.botWorker.postMessage({
+                id: request.id,
+                state: botSnapshot(),
+                seat: modelIdOf(seat),
+                options: { timeBudgetMs: AI_WORKER_TIME_BUDGET_MS }
+            });
+        } catch (error) {
+            failBotWorker(error);
+        }
+    };
+
     const aiStep = (seat) => {
         // Only the bot driver ever steps a bot seat; other browsers wait for its posted state.
-        if (!state.active || state.current_seat !== seat || state.busy || state.pendingDefense || !canDriveSeat(seat)) {
+        if (!state.active || state.current_seat !== seat || state.busy || state.pendingDefense
+            || !canDriveSeat(seat) || runtime.botRequest) {
             return;
         }
 
@@ -1954,19 +2093,7 @@ import * as riskApi from './risk-api.js';
 
         state.message = `${ownerLabel(seat)} is thinking…`;
         render();
-
-        schedule(() => {
-            if (!state.active || state.current_seat !== seat || state.busy || state.pendingDefense || !canDriveSeat(seat)) {
-                return;
-            }
-
-            try {
-                const action = chooseBotAction(botSnapshot(), modelIdOf(seat), { timeBudgetMs: AI_TIME_BUDGET_MS });
-                applyBotAction(seat, action);
-            } catch (error) {
-                rejectBotAction(seat);
-            }
-        }, pace(80));
+        requestBotAction(seat);
     };
 
     /* ------------------------------------------------------------------

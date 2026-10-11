@@ -38,6 +38,11 @@ final class ChessBot
     private const ORDER_KILLER = 90000;
     private const ORDER_HISTORY_MAX = 80000;
 
+    private const ASPIRATION_WINDOW = 40;
+    private const TIME_CHECK_NODES = 256;
+    private const FUTILITY_MARGIN = [1 => 120, 2 => 300];
+    private const DELTA_MARGIN = 120;
+
     /**
      * The source lists K = 20000; both kings are always on the board, so the king's
      * material term cancels and is kept at 0 here.
@@ -156,7 +161,7 @@ final class ChessBot
     /** @var array<string, array<string, int>> 'K' / 'k' => square => end-game king score. */
     private static array $kingEndgameScores = [];
 
-    /** @var array<string, array{0: int, 1: int, 2: int, 3: ?string}> depth, score, bound, best move */
+    /** @var array<string, array{0: int, 1: int, 2: int, 3: ?string, 4: string}> */
     private array $table = [];
 
     /** @var array<int, array{0: ?string, 1: ?string}> */
@@ -165,14 +170,22 @@ final class ChessBot
     /** @var array<string, int> */
     private array $history = [];
 
-    /** @var array<string, true> Position keys on the path from the root to the current node. */
+    /** @var array<string, true> Collision-safe position identities on the current line. */
     private array $path = [];
+
+    /** @var array<string, array<string, array{0: int, 1: int}>> */
+    private static array $zobrist = [];
 
     private int|float|null $deadline = null;
 
     private bool $deadlineActive = false;
 
     private bool $aborted = false;
+
+    private int $nodes = 0;
+
+    /** Last fully completed iterative-deepening depth; useful for diagnostics. */
+    private int $completedDepth = 0;
 
     /**
      * @param int $timeBudgetMs Search clock in milliseconds; zero or less disables the clock
@@ -185,6 +198,7 @@ final class ChessBot
         private readonly int $maxDepth = 6,
     ) {
         self::initialiseSquareScores();
+        self::initialiseZobrist();
     }
 
     public function chooseMove(string $fen): ?string
@@ -211,27 +225,61 @@ final class ChessBot
         $this->history = [];
         $this->path = [];
         $this->aborted = false;
+        $this->nodes = 0;
+        $this->completedDepth = 0;
         $this->deadline = $this->timeBudgetMs > 0 ? $startedAt + $this->timeBudgetMs * 1000000 : null;
 
         $bestUci = null;
-        $maxDepth = max(1, $this->maxDepth);
+        $previousScore = null;
+        $previousIterationNs = null;
+        // A clocked default search is pruning-limited rather than artificially capped at depth six.
+        $maxDepth = $this->timeBudgetMs > 0 ? max(12, $this->maxDepth) : max(1, $this->maxDepth);
 
         try {
             for ($depth = 1; $depth <= $maxDepth; $depth++) {
-                // Depth 1 always completes; deeper iterations are bound by the clock.
+                if ($this->deadline !== null && $previousIterationNs !== null && $depth > 2) {
+                    $remaining = $this->deadline - hrtime(true);
+                    if ($remaining <= (int) ($previousIterationNs * 1.35)) {
+                        break;
+                    }
+                }
+
+                // Depth one establishes a legal fallback; later iterations obey the clock.
                 $this->deadlineActive = $depth > 1 && $this->deadline !== null;
+                $iterationStartedAt = hrtime(true);
+                $window = self::ASPIRATION_WINDOW;
+                $alpha = $previousScore === null || abs($previousScore) > self::MATE_BOUND
+                    ? -self::INFINITY
+                    : max(-self::INFINITY, $previousScore - $window);
+                $beta = $previousScore === null || abs($previousScore) > self::MATE_BOUND
+                    ? self::INFINITY
+                    : min(self::INFINITY, $previousScore + $window);
 
-                $result = $this->searchRoot($board, $moves, $depth, $bestUci);
-                if ($result === null) {
-                    // Interrupted by the deadline: discard the partial iteration.
+                while (true) {
+                    $result = $this->searchRoot($board, $moves, $depth, $bestUci, $alpha, $beta);
+                    if ($result === null) {
+                        break 2;
+                    }
+
+                    [$candidateUci, $candidateScore] = $result;
+                    if ($candidateScore <= $alpha && $alpha > -self::INFINITY) {
+                        $window *= 2;
+                        $alpha = $window >= 2048 ? -self::INFINITY : max(-self::INFINITY, $candidateScore - $window);
+                        continue;
+                    }
+                    if ($candidateScore >= $beta && $beta < self::INFINITY) {
+                        $window *= 2;
+                        $beta = $window >= 2048 ? self::INFINITY : min(self::INFINITY, $candidateScore + $window);
+                        continue;
+                    }
+
+                    $bestUci = $candidateUci;
+                    $previousScore = $candidateScore;
+                    $this->completedDepth = $depth;
+                    $previousIterationNs = max(1, hrtime(true) - $iterationStartedAt);
                     break;
                 }
 
-                [$bestUci, $bestScore] = $result;
-                if ($bestScore > self::MATE_BOUND) {
-                    // A forced mate is already proven; deeper iterations cannot improve on it.
-                    break;
-                }
             }
         } catch (\Throwable) {
             // Keep the move from the last completed iteration.
@@ -246,64 +294,136 @@ final class ChessBot
      * @param list<array<string, mixed>> $moves
      * @return array{0: string, 1: int}|null Best move and score, or null when interrupted.
      */
-    private function searchRoot(Board $board, array $moves, int $depth, ?string $pvUci): ?array
-    {
-        $key = $this->positionKey($board);
+    private function searchRoot(
+        Board $board,
+        array $moves,
+        int $depth,
+        ?string $pvUci,
+        int $alpha,
+        int $beta,
+    ): ?array {
+        [$key, $lock] = $this->positionIdentity($board);
+        $pathKey = $key . ':' . $lock;
         $ordered = $this->orderMoves($board, $moves, $pvUci, 0, false);
-
         $bestUci = null;
         $bestScore = -self::INFINITY;
+        $moveIndex = 0;
 
-        $this->path[$key] = true;
+        $this->path[$pathKey] = true;
         foreach ($ordered as $move) {
-            // A window opened one point below the best score keeps equal-scoring moves exact,
-            // so the lowest-UCI tie-break does not depend on the search order.
-            $alpha = $bestUci === null ? -self::INFINITY : $bestScore - 1;
-            $score = -$this->negamax($move['afterBoard'], $depth - 1, -self::INFINITY, -$alpha, 1);
-            if ($this->aborted) {
-                unset($this->path[$key]);
+            if ($this->timeUp(true)) {
+                unset($this->path[$pathKey]);
 
                 return null;
             }
 
+            $scoreExact = true;
+            if ($moveIndex === 0) {
+                $score = -$this->negamax($move['afterBoard'], $depth - 1, -$beta, -$alpha, 1);
+            } else {
+                $scoreExact = false;
+                $score = -$this->negamax($move['afterBoard'], $depth - 1, -$alpha - 1, -$alpha, 1);
+                if (!$this->aborted && $score < $beta && $score >= $alpha) {
+                    if ($score === $alpha && $alpha === self::MATE - 1) {
+                        // Mate-distance pruning may return alpha as a bound. At the maximum
+                        // root score, prove an equal mate directly before using the UCI tie-break.
+                        $child = $move['afterBoard'];
+                        $scoreExact = $child->isInCheck($child->sideToMove())
+                            && $this->engine->searchMoves($child) === [];
+                    } else {
+                        $score = -$this->negamax($move['afterBoard'], $depth - 1, -$beta, -$alpha, 1);
+                        $scoreExact = true;
+                    }
+                }
+            }
+            if ($this->aborted) {
+                unset($this->path[$pathKey]);
+
+                return null;
+            }
+            $moveIndex++;
+
             if (
                 $bestUci === null
                 || $score > $bestScore
-                || ($score === $bestScore && strcmp($move['uci'], $bestUci) < 0)
+                || ($scoreExact && $score === $bestScore && strcmp($move['uci'], $bestUci) < 0)
             ) {
                 $bestScore = $score;
                 $bestUci = $move['uci'];
             }
+            if ($score > $alpha) {
+                $alpha = $score;
+                if ($alpha >= $beta) {
+                    break;
+                }
+            }
         }
-        unset($this->path[$key]);
+        unset($this->path[$pathKey]);
 
         return $bestUci === null ? null : [$bestUci, $bestScore];
     }
 
     /** Fail-soft negamax alpha-beta. The score is from the side to move's point of view. */
-    private function negamax(Board $board, int $depth, int $alpha, int $beta, int $ply): int
-    {
+    private function negamax(
+        Board $board,
+        int $depth,
+        int $alpha,
+        int $beta,
+        int $ply,
+        bool $allowNull = true,
+    ): int {
+        $this->nodes++;
         if ($this->timeUp()) {
-            return 0;
-        }
-
-        $key = $this->positionKey($board);
-        if (isset($this->path[$key])) {
-            // Position repeated inside the current search path.
             return 0;
         }
         if ($ply >= self::MAX_PLY) {
             return $this->evaluate($board);
         }
+
+        $inCheck = $board->isInCheck($board->sideToMove());
+        if ($inCheck) {
+            // The checking move and this evasion do not consume search depth.
+            $depth++;
+        }
         if ($depth <= 0) {
             return $this->quiescence($board, $alpha, $beta, $ply, 0);
         }
 
-        // The table key has no halfmove clock, so stay away from it near the fifty-move rule.
+        // Mate-distance pruning prevents searching scores that cannot improve the line.
+        $alpha = max($alpha, -self::MATE + $ply);
+        $beta = min($beta, self::MATE - $ply - 1);
+        if ($alpha >= $beta) {
+            return $alpha;
+        }
+
+        [$key, $lock] = $this->positionIdentity($board);
+        $pathKey = $key . ':' . $lock;
+        if (isset($this->path[$pathKey])) {
+            return 0;
+        }
+
+        $moves = $this->engine->searchMoves($board);
+        if ($moves === []) {
+            return $inCheck ? -(self::MATE - $ply) : 0;
+        }
+        if ($board->halfmoveClock() >= 100 || $this->isInsufficientMaterial($board)) {
+            return 0;
+        }
+
+        $legalUcis = [];
+        foreach ($moves as $move) {
+            $legalUcis[(string) $move['uci']] = true;
+        }
+
+        // The key omits the halfmove clock; avoid table cutoffs near the fifty-move boundary.
         $tableUsable = $board->halfmoveClock() + $depth < 100;
         $tableMove = null;
         $entry = $this->table[$key] ?? null;
-        if ($entry !== null) {
+        if (
+            $entry !== null
+            && $entry[4] === $lock
+            && ($entry[3] === null || isset($legalUcis[$entry[3]]))
+        ) {
             $tableMove = $entry[3];
             if ($tableUsable && $entry[0] >= $depth) {
                 $tableScore = $entry[1];
@@ -323,36 +443,122 @@ final class ChessBot
             }
         }
 
-        $moves = $this->engine->searchMoves($board);
-        if ($moves === []) {
-            // Checkmate is worse the sooner it happens; stalemate is a draw.
-            return $board->isInCheck($board->sideToMove()) ? -(self::MATE - $ply) : 0;
-        }
-        if ($board->halfmoveClock() >= 100 || $this->isInsufficientMaterial($board)) {
-            return 0;
+        $originalAlpha = $alpha;
+        $this->path[$pathKey] = true;
+
+        if (
+            $allowNull
+            && !$inCheck
+            && $depth >= 3
+            && abs($beta) < self::MATE_BOUND
+            && $this->canUseNullMove($board)
+        ) {
+            $nullBoard = $this->makeNullMove($board);
+            $reduction = $depth >= 6 ? 3 : 2;
+            $nullScore = -$this->negamax(
+                $nullBoard,
+                $depth - $reduction - 1,
+                -$beta,
+                -$beta + 1,
+                $ply + 1,
+                false,
+            );
+            if ($this->aborted) {
+                unset($this->path[$pathKey]);
+
+                return 0;
+            }
+            if ($nullScore >= $beta) {
+                unset($this->path[$pathKey]);
+
+                return $nullScore;
+            }
         }
 
         $ordered = $this->orderMoves($board, $moves, $tableMove, $ply, false);
         $sideKey = $board->sideToMove() === Board::WHITE ? 'w' : 'b';
-        $originalAlpha = $alpha;
+        $killers = $this->killers[$ply] ?? [null, null];
+        $staticScore = null;
+        $futilityMargin = !$inCheck && isset(self::FUTILITY_MARGIN[$depth]) && abs($alpha) < self::MATE_BOUND
+            ? self::FUTILITY_MARGIN[$depth]
+            : null;
         $bestScore = -self::INFINITY;
         $bestUci = null;
+        $searchedMoves = 0;
 
-        $this->path[$key] = true;
-        foreach ($ordered as $move) {
-            $score = -$this->negamax($move['afterBoard'], $depth - 1, -$beta, -$alpha, $ply + 1);
+        foreach ($ordered as $moveIndex => $move) {
+            $uci = (string) $move['uci'];
+            $givesCheck = $move['afterBoard']->isInCheck($move['afterBoard']->sideToMove());
+            $isKiller = $uci === $killers[0] || $uci === $killers[1];
+            if (
+                $futilityMargin !== null
+                && $searchedMoves > 0
+                && $move['quiet']
+                && !$givesCheck
+                && !$isKiller
+                && $uci !== $tableMove
+            ) {
+                $staticScore ??= $this->evaluate($board);
+                if ($staticScore + $futilityMargin <= $alpha) {
+                    continue;
+                }
+            }
+
+            $childDepth = $depth - 1;
+            $lateQuiet = $depth >= 3
+                && $moveIndex >= 3
+                && $move['quiet']
+                && !$inCheck
+                && !$givesCheck
+                && !$isKiller
+                && $uci !== $tableMove;
+
+            if ($lateQuiet) {
+                $reduction = $depth >= 6 && $moveIndex >= 6 ? 2 : 1;
+                $score = -$this->negamax(
+                    $move['afterBoard'],
+                    max(0, $childDepth - $reduction),
+                    -$alpha - 1,
+                    -$alpha,
+                    $ply + 1,
+                );
+                if (!$this->aborted && $score > $alpha) {
+                    $score = -$this->negamax(
+                        $move['afterBoard'],
+                        $childDepth,
+                        -$alpha - 1,
+                        -$alpha,
+                        $ply + 1,
+                    );
+                    if (!$this->aborted && $score > $alpha && $score < $beta) {
+                        $score = -$this->negamax(
+                            $move['afterBoard'],
+                            $childDepth,
+                            -$beta,
+                            -$alpha,
+                            $ply + 1,
+                        );
+                    }
+                }
+            } elseif ($searchedMoves === 0) {
+                $score = -$this->negamax($move['afterBoard'], $childDepth, -$beta, -$alpha, $ply + 1);
+            } else {
+                $score = -$this->negamax($move['afterBoard'], $childDepth, -$alpha - 1, -$alpha, $ply + 1);
+                if (!$this->aborted && $score > $alpha && $score < $beta) {
+                    $score = -$this->negamax($move['afterBoard'], $childDepth, -$beta, -$alpha, $ply + 1);
+                }
+            }
             if ($this->aborted) {
-                unset($this->path[$key]);
+                unset($this->path[$pathKey]);
 
                 return 0;
             }
+            $searchedMoves++;
 
-            if ($score <= $bestScore) {
-                continue;
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestUci = $uci;
             }
-
-            $bestScore = $score;
-            $bestUci = $move['uci'];
             if ($score <= $alpha) {
                 continue;
             }
@@ -365,7 +571,7 @@ final class ChessBot
                 break;
             }
         }
-        unset($this->path[$key]);
+        unset($this->path[$pathKey]);
 
         if ($tableUsable) {
             $bound = self::BOUND_EXACT;
@@ -374,7 +580,7 @@ final class ChessBot
             } elseif ($bestScore >= $beta) {
                 $bound = self::BOUND_LOWER;
             }
-            $this->storeEntry($key, $depth, $bestScore, $bound, $bestUci, $ply);
+            $this->storeEntry($key, $lock, $depth, $bestScore, $bound, $bestUci, $ply);
         }
 
         return $bestScore;
@@ -386,6 +592,7 @@ final class ChessBot
      */
     private function quiescence(Board $board, int $alpha, int $beta, int $ply, int $quiescencePly): int
     {
+        $this->nodes++;
         if ($this->timeUp()) {
             return 0;
         }
@@ -393,11 +600,17 @@ final class ChessBot
             return $this->evaluate($board);
         }
 
+        $alpha = max($alpha, -self::MATE + $ply);
+        $beta = min($beta, self::MATE - $ply - 1);
+        if ($alpha >= $beta) {
+            return $alpha;
+        }
+
         $inCheck = $board->isInCheck($board->sideToMove());
         $bestScore = -self::INFINITY;
+        $standPat = null;
 
         if (!$inCheck) {
-            // Not in check, so these are draws whether or not a legal move exists.
             if ($board->halfmoveClock() >= 100 || $this->isInsufficientMaterial($board)) {
                 return 0;
             }
@@ -421,6 +634,16 @@ final class ChessBot
         }
 
         foreach ($this->orderMoves($board, $moves, null, $ply, !$inCheck) as $move) {
+            $givesCheck = $move['afterBoard']->isInCheck($move['afterBoard']->sideToMove());
+            if (
+                !$inCheck
+                && !$givesCheck
+                && $standPat !== null
+                && $standPat + $move['tacticalGain'] + self::DELTA_MARGIN < $alpha
+            ) {
+                continue;
+            }
+
             $score = -$this->quiescence($move['afterBoard'], -$beta, -$alpha, $ply + 1, $quiescencePly + 1);
             if ($this->aborted) {
                 return 0;
@@ -490,6 +713,8 @@ final class ChessBot
 
             $move['order'] = $order;
             $move['quiet'] = !$tactical;
+            $move['tacticalGain'] = ($victim !== null ? self::PIECE_VALUES[$victim] : 0)
+                + ($promotion !== null ? max(0, (self::PIECE_VALUES[$promotion] ?? 0) - self::PIECE_VALUES['p']) : 0);
             $ordered[] = $move;
         }
 
@@ -514,14 +739,21 @@ final class ChessBot
         $this->history[$historyKey] = ($this->history[$historyKey] ?? 0) + $depth * $depth;
     }
 
-    private function storeEntry(string $key, int $depth, int $score, int $bound, ?string $bestUci, int $ply): void
-    {
+    private function storeEntry(
+        string $key,
+        string $lock,
+        int $depth,
+        int $score,
+        int $bound,
+        ?string $bestUci,
+        int $ply,
+    ): void {
         $existing = $this->table[$key] ?? null;
         if ($existing === null) {
             if (count($this->table) >= self::TABLE_MAX_ENTRIES) {
                 return;
             }
-        } elseif ($existing[0] > $depth) {
+        } elseif ($existing[4] === $lock && $existing[0] > $depth) {
             return;
         }
 
@@ -532,32 +764,113 @@ final class ChessBot
             $score -= $ply;
         }
 
-        $this->table[$key] = [$depth, $score, $bound, $bestUci];
+        $this->table[$key] = [$depth, $score, $bound, $bestUci, $lock];
     }
 
-    /** Checks the clock; called on entry to every searched node. */
-    private function timeUp(): bool
+    /** Check the monotonic clock only once per node batch, plus explicit root boundaries. */
+    private function timeUp(bool $force = false): bool
     {
-        if (!$this->aborted && $this->deadlineActive && hrtime(true) >= $this->deadline) {
+        if (
+            !$this->aborted
+            && $this->deadlineActive
+            && ($force || $this->nodes % self::TIME_CHECK_NODES === 0)
+            && hrtime(true) >= $this->deadline
+        ) {
             $this->aborted = true;
         }
 
         return $this->aborted;
     }
 
-    /** Piece placement + side to move + castling rights + en-passant target. */
-    private function positionKey(Board $board): string
+    /**
+     * @return array{0: string, 1: string} 64-bit Zobrist key and exact collision lock.
+     */
+    private function positionIdentity(Board $board): array
     {
-        $placement = str_repeat('.', 64);
-        foreach ($board->pieces() as $square => $piece) {
-            $square = (string) $square;
-            $placement[(ord($square[0]) - 97) + 8 * ((int) $square[1] - 1)] = $piece->fenSymbol();
+        $hashA = 0;
+        $hashB = 0;
+        $pieces = $board->pieces();
+        ksort($pieces, SORT_STRING);
+        $lock = '';
+
+        foreach ($pieces as $square => $piece) {
+            $symbol = $piece->fenSymbol();
+            [$pieceA, $pieceB] = self::$zobrist[$symbol][(string) $square];
+            $hashA ^= $pieceA;
+            $hashB ^= $pieceB;
+            $lock .= $square . $symbol;
         }
 
-        return $placement
-            . ($board->sideToMove() === Board::WHITE ? 'w' : 'b')
+        $state = ($board->sideToMove() === Board::WHITE ? 'w' : 'b')
             . $board->castlingRightsString()
             . ($board->enPassantTarget() ?? '-');
+        [$stateA, $stateB] = self::zobristPair('state:' . $state);
+        $hashA ^= $stateA;
+        $hashB ^= $stateB;
+
+        return [
+            sprintf('%08x%08x', $hashA & 0xffffffff, $hashB & 0xffffffff),
+            $lock . '|' . $state,
+        ];
+    }
+
+    private function canUseNullMove(Board $board): bool
+    {
+        $ownHasNonPawn = false;
+        $nonPawnPieces = 0;
+        $hasHeavyPiece = false;
+        $side = $board->sideToMove();
+
+        foreach ($board->pieces() as $piece) {
+            $letter = $piece->fenLetter();
+            if ($letter === 'k' || $letter === 'p') {
+                continue;
+            }
+            $nonPawnPieces++;
+            $hasHeavyPiece = $hasHeavyPiece || $letter === 'r' || $letter === 'q';
+            if ($piece->color() === $side) {
+                $ownHasNonPawn = true;
+            }
+        }
+
+        // Pawn-only sides and sparse minor-piece endings are common zugzwang territory.
+        return $ownHasNonPawn && ($hasHeavyPiece || $nonPawnPieces >= 4);
+    }
+
+    private function makeNullMove(Board $board): Board
+    {
+        $nullBoard = $board->copy();
+        $side = $board->sideToMove();
+        $nullBoard->setSideToMove(Board::otherColor($side));
+        $nullBoard->setEnPassantTarget(null);
+        $nullBoard->setHalfmoveClock($board->halfmoveClock() + 1);
+        if ($side === Board::BLACK) {
+            $nullBoard->setFullmoveNumber($board->fullmoveNumber() + 1);
+        }
+
+        return $nullBoard;
+    }
+
+    private static function initialiseZobrist(): void
+    {
+        if (self::$zobrist !== []) {
+            return;
+        }
+
+        foreach (['P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k'] as $symbol) {
+            for ($rank = 1; $rank <= 8; $rank++) {
+                for ($file = 0; $file < 8; $file++) {
+                    $square = chr(97 + $file) . $rank;
+                    self::$zobrist[$symbol][$square] = self::zobristPair($symbol . $square);
+                }
+            }
+        }
+    }
+
+    /** @return array{0: int, 1: int} */
+    private static function zobristPair(string $token): array
+    {
+        return [crc32("chess-a:$token"), crc32("chess-b:$token")];
     }
 
     /**
