@@ -57,9 +57,22 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         <span class="risk-reserve"><strong id="risk-reinforcements-value">0</strong> <small id="risk-reinforcements-owner" class="risk-reserve-owner">Armies to place</small></span>
                     </div>
 
+                    <div id="risk-map-zoom" class="risk-map-zoom" role="group" aria-label="Map zoom">
+                        <button id="risk-zoom-out" class="risk-button" type="button" aria-label="Zoom map out">−</button>
+                        <button id="risk-zoom-fit" class="risk-button" type="button">Fit</button>
+                        <button id="risk-zoom-in" class="risk-button" type="button" aria-label="Zoom map in">+</button>
+                    </div>
                     <p id="risk-map-hint" class="risk-map-hint" hidden><span aria-hidden="true">&#8644;</span> The map is wider than the screen: scroll it sideways to see every territory.</p>
                     <div id="risk-map" class="risk-map"><?= $riskMapSvg ?></div>
                     <p id="risk-status-message" class="risk-status-message">Start a new game to deal the world.</p>
+                    <section id="risk-result-banner" class="risk-result-banner" hidden role="dialog" aria-labelledby="risk-result-title">
+                        <h3 id="risk-result-title" tabindex="-1">Game over</h3>
+                        <p id="risk-result-text"></p>
+                        <div class="risk-result-actions">
+                            <button class="risk-button risk-button-primary" type="button" id="risk-result-restart">Play again</button>
+                            <button class="risk-button" type="button" id="risk-result-close">Close</button>
+                        </div>
+                    </section>
                     <p class="risk-map-legend">
                         <span id="risk-legend-owners" class="risk-legend-owners"></span>
                         <span><strong>FROM</strong> / <strong>TO</strong> mark source and target</span>
@@ -83,6 +96,14 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                                     <option value="3">3</option>
                                     <option value="4">4</option>
                                     <option value="5">5</option>
+                                </select>
+                            </label>
+                            <label class="risk-opponent-field" for="risk-speed">
+                                <span>Speed</span>
+                                <select id="risk-speed" class="risk-opponent-select">
+                                    <option value="normal">Normal</option>
+                                    <option value="fast">Fast</option>
+                                    <option value="instant">Instant</option>
                                 </select>
                             </label>
                             <button class="risk-button risk-button-primary" type="button" id="risk-start-button" aria-describedby="risk-start-note">New game</button>
@@ -161,6 +182,13 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         <section class="risk-phase-controls" aria-label="Current phase controls">
                             <section class="risk-subpanel risk-cards-panel" aria-labelledby="risk-cards-title" data-risk-phase-panel="reinforce,setup">
                         <h3 id="risk-cards-title">Reinforce</h3>
+                        <fieldset id="risk-place-amount-options" class="risk-dice-choice">
+                            <legend>Armies per click</legend>
+                            <label><input type="radio" name="risk-place-amount" value="1" checked> 1</label>
+                            <label><input type="radio" name="risk-place-amount" value="3"> 3</label>
+                            <label><input type="radio" name="risk-place-amount" value="5"> 5</label>
+                            <label><input type="radio" name="risk-place-amount" value="all"> All</label>
+                        </fieldset>
                         <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
                         <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
                         <p id="risk-trade-value" class="risk-trade-value">Next set: 4 armies</p>
@@ -178,6 +206,7 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                             <label><input type="radio" name="risk-attack-dice" value="3" checked> 3</label>
                         </fieldset>
                         <button class="risk-button risk-button-attack" type="button" id="risk-attack-button" disabled>Roll attack</button>
+                        <button class="risk-button risk-button-attack" type="button" id="risk-blitz-button" disabled>Blitz (roll until decided)</button>
 
                         <section id="risk-conquest-panel" class="risk-subpanel risk-subpanel-alert" aria-labelledby="risk-conquest-title" hidden>
                             <h3 id="risk-conquest-title">Territory conquered</h3>

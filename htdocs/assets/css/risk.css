@@ -266,6 +266,7 @@
 /* Board */
 
 .risk-map {
+    --risk-map-scale: 100%;
     position: relative;
     overflow-x: auto;
     overflow-y: hidden;
@@ -277,8 +278,27 @@
     -webkit-overflow-scrolling: touch;
 }
 
+.risk-map-zoom {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    margin: 0 0 0.5rem;
+}
+
+.risk-map-zoom .risk-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.55rem 0.8rem;
+}
+
+#risk-zoom-fit[aria-pressed="true"] {
+    border-color: var(--accent-warm);
+    background: rgba(248, 209, 108, 0.16);
+}
+
 /* Shown by the game script only while the board is wider than its frame. */
 .risk-map-hint {
+    min-height: 44px;
     display: flex;
     gap: 0.45rem;
     align-items: center;
@@ -310,9 +330,11 @@
 
 .risk-board-svg {
     display: block;
-    width: 100%;
-    min-width: 760px;
+    width: var(--risk-map-scale);
+    min-width: 0;
+    max-width: none;
     height: auto;
+    margin-inline: auto;
     font-family: inherit;
     user-select: none;
 }
@@ -461,10 +483,16 @@
     pointer-events: none;
 }
 
+.risk-marker-hit {
+    fill: transparent;
+    pointer-events: all;
+}
+
 .risk-marker-ring {
     fill: none;
     stroke: transparent;
     stroke-width: 3;
+    pointer-events: none;
 }
 
 .risk-marker:hover .risk-marker-ring {
@@ -569,6 +597,43 @@
 .risk-selection-help {
     min-height: 0;
     margin-top: 0.75rem;
+}
+
+.risk-result-banner {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+    padding: 1rem;
+    border: 2px solid var(--accent-warm);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(248, 209, 108, 0.2), rgba(5, 14, 28, 0.95)),
+        var(--risk-panel);
+    box-shadow: 0 16px 35px -24px rgba(0, 0, 0, 0.95);
+}
+
+.risk-result-banner[hidden] {
+    display: none;
+}
+
+.risk-result-banner h3,
+.risk-result-banner p {
+    margin: 0;
+}
+
+.risk-result-banner h3:focus-visible {
+    outline: 3px solid #7dd3fc;
+    outline-offset: 3px;
+}
+
+.risk-result-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.risk-result-actions .risk-button {
+    flex: 1 1 9rem;
 }
 
 /* Dice tray */
@@ -963,6 +1028,13 @@
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.28), rgba(10, 32, 44, 0.9));
 }
 
+.risk-button-attack.is-running {
+    border-color: var(--accent-warm);
+    background: linear-gradient(135deg, rgba(248, 209, 108, 0.32), rgba(239, 68, 68, 0.2));
+    color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(248, 209, 108, 0.16);
+}
+
 .risk-button:hover:not(:disabled),
 .risk-button:focus-visible:not(:disabled) {
     border-color: var(--accent-warm);
@@ -1081,6 +1153,11 @@
 .risk-dice-choice label:has(input:disabled) {
     opacity: 0.45;
     cursor: not-allowed;
+}
+
+#risk-place-amount-options label {
+    min-width: 56px;
+    min-height: 44px;
 }
 
 .risk-inline-field {
@@ -1559,6 +1636,22 @@
     color: var(--accent-warm);
 }
 
+.risk-log li.is-new {
+    animation: risk-log-new 1.4s ease-out;
+}
+
+@keyframes risk-log-new {
+    from {
+        background: rgba(248, 209, 108, 0.3);
+        color: #ffffff;
+    }
+
+    to {
+        background: transparent;
+        color: var(--ink-soft);
+    }
+}
+
 /* Rules */
 
 .risk-rules h2 {
@@ -1641,8 +1734,12 @@
         display: grid;
     }
 
-    .risk-board-svg {
-        min-width: 680px;
+    .risk-map.is-fit-or-smaller .risk-marker-count {
+        font-size: 14px;
+    }
+
+    .risk-map.is-fit-or-smaller .risk-marker-name {
+        font-size: 11px;
     }
 
     .risk-command-panel,
@@ -1656,10 +1753,6 @@
 }
 
 @media (max-width: 430px) {
-    .risk-board-svg {
-        min-width: 620px;
-    }
-
     .risk-actions,
     .risk-decision-layout {
         grid-template-columns: 1fr;
@@ -1781,12 +1874,17 @@
 }
 
 .risk-feedback.is-set,
-.risk-feedback.is-conquer {
+.risk-feedback.is-conquer,
+.risk-feedback.is-place {
     color: var(--risk-human);
 }
 
 .risk-feedback.is-set::before {
     content: "\2713";
+}
+
+.risk-feedback.is-place::before {
+    content: "+";
 }
 
 .risk-feedback.is-conquer::before {
@@ -1916,7 +2014,8 @@
     .risk-feedback[class*="is-"],
     .risk-scoreboard strong.is-fx-tick,
     .risk-card.is-dealt,
-    .risk-card.is-fx-pick {
+    .risk-card.is-fx-pick,
+    .risk-log li.is-new {
         animation: none;
     }
 
@@ -1948,12 +2047,11 @@
     }
 }
 
-/* Opponent-count selector beside the New game button. Seat colours and glyph shapes for the
-   six seats are the owner-* classes above; seat 1 is owner-human, seats 2-6 are owner-ai..ai5. */
+/* Setup selectors above the New game button. Seat colours and glyph shapes for the six seats
+   are the owner-* classes above; seat 1 is owner-human, seats 2-6 are owner-ai..ai5. */
 .risk-opponent-field {
     display: flex;
     flex: 1 1 100%;
-    grid-column: 1 / -1;
     align-items: center;
     justify-content: space-between;
     gap: 0.6rem;

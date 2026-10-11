@@ -174,7 +174,19 @@ import * as riskApi from './risk-api.js';
         setupSummary: byElementId('risk-setup-summary'),
         setupNote: byElementId('risk-setup-note'),
         startNote: byElementId('risk-start-note'),
-        mapHint: byElementId('risk-map-hint')
+        mapHint: byElementId('risk-map-hint'),
+        mapZoom: byElementId('risk-map-zoom'),
+        zoomOut: byElementId('risk-zoom-out'),
+        zoomFit: byElementId('risk-zoom-fit'),
+        zoomIn: byElementId('risk-zoom-in'),
+        placeAmountOptions: byElementId('risk-place-amount-options'),
+        blitzButton: byElementId('risk-blitz-button'),
+        speed: byElementId('risk-speed'),
+        resultBanner: byElementId('risk-result-banner'),
+        resultTitle: byElementId('risk-result-title'),
+        resultText: byElementId('risk-result-text'),
+        resultRestart: byElementId('risk-result-restart'),
+        resultClose: byElementId('risk-result-close')
     };
     const feedbackBox = byElementId('risk-feedback');
 
@@ -185,6 +197,9 @@ import * as riskApi from './risk-api.js';
     const attackDiceInputs = Array.from(elements.attackDiceGroup.querySelectorAll('input[name="risk-attack-dice"]')).map(asInput);
     const placementInputs = Array.from(elements.placementGroup.querySelectorAll('input[name="risk-placement"]')).map(asInput);
     const cardModeInputs = Array.from(elements.cardModeGroup.querySelectorAll('input[name="risk-card-mode"]')).map(asInput);
+    const placeAmountInputs = uxElements.placeAmountOptions
+        ? Array.from(uxElements.placeAmountOptions.querySelectorAll('input[name="risk-place-amount"]')).map(asInput)
+        : [];
     const opponentSelect = /** @type {HTMLSelectElement} */ (elements.opponentCount);
     const checkedValue = (inputs) => inputs.find((input) => input.checked)?.value;
 
@@ -350,6 +365,40 @@ import * as riskApi from './risk-api.js';
 
     let state = createState();
 
+    const SPEED_STORAGE_KEY = 'risk.speed';
+    const MAP_ZOOM_STORAGE_KEY = 'risk.mapZoom';
+    const MAP_ZOOM_MIN = 0.6;
+    const MAP_ZOOM_MAX = 2;
+    const MAP_ZOOM_STEP = 0.2;
+    const MAP_ZOOM_FIT = 1;
+    const validSpeeds = new Set(['normal', 'fast', 'instant']);
+    const readStoredSpeed = () => {
+        try {
+            const stored = window.localStorage.getItem(SPEED_STORAGE_KEY);
+            return validSpeeds.has(stored) ? stored : 'normal';
+        } catch {
+            return 'normal';
+        }
+    };
+    const normalizeMapZoom = (value) => {
+        const numeric = Number(value);
+
+        if (!Number.isFinite(numeric)) {
+            return MAP_ZOOM_FIT;
+        }
+
+        const stepped = Math.round(numeric / MAP_ZOOM_STEP) * MAP_ZOOM_STEP;
+        return Math.min(MAP_ZOOM_MAX, Math.max(MAP_ZOOM_MIN, Number(stepped.toFixed(1))));
+    };
+    const readStoredMapZoom = () => {
+        try {
+            const stored = window.localStorage.getItem(MAP_ZOOM_STORAGE_KEY);
+            return stored === null ? MAP_ZOOM_FIT : normalizeMapZoom(stored);
+        } catch {
+            return MAP_ZOOM_FIT;
+        }
+    };
+
     const runtime = {
         token: 0,
         timers: /** @type {Set<number>} */ (new Set()),
@@ -387,9 +436,21 @@ import * as riskApi from './risk-api.js';
         guidanceOverride: null,
         /** @type {string|null} */
         phaseAdvanceConfirmation: null,
+        restartConfirmation: false,
+        restartConfirmationTimer: 0,
+        speed: readStoredSpeed(),
+        mapZoom: readStoredMapZoom(),
+        markerDecisionScrollKey: '',
+        logSerial: 0,
+        /** @type {{text: string, node: HTMLLIElement}[]} */
+        renderedLog: [],
         /** @type {HTMLElement|null} */
         decisionReturn: null,
-        setupGameActive: false
+        setupGameActive: false,
+        // Attack automation is local UI state and is never serialized with the shared game state.
+        blitzing: false,
+        // Per-browser placement preference; never serialized with the shared game state.
+        placeAmount: checkedValue(placeAmountInputs) || '1'
     };
 
     /* ------------------------------------------------------------------
@@ -484,8 +545,14 @@ import * as riskApi from './risk-api.js';
         runtime.timers.forEach((timerId) => window.clearTimeout(timerId));
         runtime.timers.clear();
         runtime.defenseDone = null;
+        runtime.blitzing = false;
         runtime.guidanceOverride = null;
         runtime.phaseAdvanceConfirmation = null;
+        runtime.restartConfirmation = false;
+        if (runtime.restartConfirmationTimer) {
+            window.clearTimeout(runtime.restartConfirmationTimer);
+            runtime.restartConfirmationTimer = 0;
+        }
         stopRollingFaces();
         clearEffects();
     };
@@ -495,7 +562,17 @@ import * as riskApi from './risk-api.js';
         && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     );
 
-    const pace = (milliseconds) => (reducedMotion() ? Math.min(milliseconds, 160) : milliseconds);
+    const pace = (milliseconds) => {
+        if (reducedMotion()) {
+            return Math.min(milliseconds, 160);
+        }
+
+        if (runtime.speed === 'instant') {
+            return 60;
+        }
+
+        return runtime.speed === 'fast' ? Math.max(16, Math.round(milliseconds * 0.4)) : milliseconds;
+    };
 
     /* ------------------------------------------------------------------
      * Event feedback. Effects are started only by game events, expire on
@@ -1236,10 +1313,37 @@ import * as riskApi from './risk-api.js';
             : `all ${state.territories.length} territories dealt to ${joinList(owners.map((owner, index) => `${ownerLabel(owner)} (${counts[index]})`))}`;
     };
 
+    const hideResultBanner = () => {
+        if (uxElements.resultBanner) {
+            uxElements.resultBanner.hidden = true;
+        }
+    };
+
+    const showResultBanner = (winner) => {
+        if (!uxElements.resultBanner || !uxElements.resultTitle || !uxElements.resultText) {
+            return;
+        }
+
+        const victory = winner === runtime.localSeat;
+        const territoryCount = winner === null ? 0 : ownedBy(winner).length;
+        const winnerName = winner === null ? 'No winner' : ownerLabel(winner);
+
+        setText(uxElements.resultTitle, victory ? 'Victory' : 'Defeat');
+        setText(
+            uxElements.resultText,
+            winner === null
+                ? `No winner was declared after ${state.turn} turns.`
+                : `${winnerName} wins after ${state.turn} turns with ${territoryCount} ${territoryCount === 1 ? 'territory' : 'territories'}.`
+        );
+        uxElements.resultBanner.hidden = false;
+        uxElements.resultTitle.focus();
+    };
+
     // roster: [{seat: 1..6, kind: 'human'|'bot', name}] in turn order. Local games pass seat 1 as
     // the human and seats 2..N+1 as bots.
     const startGame = (roster) => {
         cancelPending();
+        hideResultBanner();
 
         const preferences = {
             attackDice: state.attackDice,
@@ -1288,6 +1392,14 @@ import * as riskApi from './risk-api.js';
      * Turn flow.
      * ------------------------------------------------------------------ */
 
+    const reinforcementClickCount = () => runtime.placeAmount === 'all'
+        ? state.reinforcementRemaining
+        : Math.min(Math.max(1, Number(runtime.placeAmount) || 1), state.reinforcementRemaining);
+
+    const placementAmountDescription = () => runtime.placeAmount === 'all'
+        ? 'all remaining armies'
+        : `${runtime.placeAmount} ${Number(runtime.placeAmount) === 1 ? 'army' : 'armies'} per click`;
+
     const humanReinforcePrompt = () => {
         const handSize = state.hands[runtime.localSeat].length;
 
@@ -1296,7 +1408,7 @@ import * as riskApi from './risk-api.js';
         }
 
         if (state.reinforcementRemaining > 0) {
-            return `Place ${pluralArmy(state.reinforcementRemaining)}: click your territories to add one at a time, or select one and use Place all here.`;
+            return `Place ${pluralArmy(state.reinforcementRemaining)}: click your territories to place ${placementAmountDescription()} (capped by your reserve), or select one and use Place all here.`;
         }
 
         return 'All armies placed. Trade another set or press Begin attacks.';
@@ -1417,6 +1529,7 @@ import * as riskApi from './risk-api.js';
         }
 
         render();
+        showResultBanner(winner);
     };
 
     // The player is out. Only a genuine last active seat is recorded as the winner.
@@ -1463,7 +1576,7 @@ import * as riskApi from './risk-api.js';
             elements.diceTray.querySelectorAll('.risk-die.is-rolling').forEach((die) => {
                 die.setAttribute('data-value', String(rollDie()));
             });
-        }, 90);
+        }, pace(90));
     };
 
     const commitBattle = (onComplete) => {
@@ -1595,8 +1708,12 @@ import * as riskApi from './risk-api.js';
         state.message = `${ownerLabel(player)} rolls ${diceLabel(attackDice)} from ${source.name} against ${diceLabel(defendDice)} on ${target.name}…`;
         render();
         startRollingFaces();
-        // With several bots, battles that do not involve the player resolve faster.
-        schedule(() => commitBattle(onComplete), reducedMotion() ? 120 : isSpectatorBattle(state.battle) ? 600 : 1100);
+        // Blitz keeps repeated human battles brisk; spectator-only battles retain their existing pace.
+        const commitDelay = runtime.blitzing
+            ? reducedMotion() ? 120 : 350
+            : reducedMotion() ? 120 : isSpectatorBattle(state.battle) ? 600 : 1100;
+
+        schedule(() => commitBattle(onComplete), pace(commitDelay));
     };
 
     const launchBattle = (player, source, target, attackDice, onComplete) => {
@@ -1920,7 +2037,8 @@ import * as riskApi from './risk-api.js';
     };
 
     const handleReinforceClick = (territory) => {
-        const error = placeReinforcement(runtime.localSeat, territory, 1);
+        const count = reinforcementClickCount();
+        const error = placeReinforcement(runtime.localSeat, territory, count);
 
         if (error) {
             setGuidanceReason(error);
@@ -1932,6 +2050,7 @@ import * as riskApi from './risk-api.js';
         state.sourceId = territory.id;
         flashTerritory(territory.id, 'place');
         pulseElement(elements.reinforcements, 'is-fx-tick', 600);
+        showFeedback('place', `+${count} ${count === 1 ? 'army' : 'armies'} on ${territory.name}.`);
         afterHumanPlacement();
     };
 
@@ -1959,6 +2078,11 @@ import * as riskApi from './risk-api.js';
             }
 
             clearGuidanceReason();
+
+            if (state.sourceId !== territory.id) {
+                state.attackDice = maxAttackDice(territory);
+            }
+
             state.sourceId = territory.id;
             state.targetId = null;
             state.message = `${territory.name} selected. Choose one of ${targets.length} highlighted targets.`;
@@ -1979,7 +2103,7 @@ import * as riskApi from './risk-api.js';
 
         clearGuidanceReason();
         state.targetId = territory.id;
-        state.message = `${source.name} → ${territory.name} (${ownerLabel(territory.owner)}, ${pluralArmy(territory.armies)}). Choose attack dice and press Roll attack.`;
+        state.message = `${source.name} → ${territory.name} (${ownerLabel(territory.owner)}, ${pluralArmy(territory.armies)}). Choose attack dice, then click the target again or press Roll attack / Blitz.`;
     };
 
     const handleFortifySelection = (territory) => {
@@ -2029,6 +2153,7 @@ import * as riskApi from './risk-api.js';
 
         cancelPhaseAdvanceConfirmation();
         state.detailId = territory.id;
+        window.requestAnimationFrame(() => scrollTerritoryIntoView(territory.id));
 
         if (!state.active) {
             state.message = state.phase === 'gameover'
@@ -2063,6 +2188,11 @@ import * as riskApi from './risk-api.js';
         }
 
         if (state.phase === 'attack') {
+            if (territory.id === state.targetId) {
+                humanAttack();
+                return;
+            }
+
             handleAttackSelection(territory);
         } else if (state.phase === 'conquer') {
             setGuidanceReason('Choose how many armies move into the conquered territory before selecting another territory.');
@@ -2075,8 +2205,55 @@ import * as riskApi from './risk-api.js';
 
     const effectiveAttackDice = (source) => Math.min(state.attackDice, maxAttackDice(source));
 
+    const continueBlitz = () => {
+        if (!runtime.blitzing) {
+            return;
+        }
+
+        if (
+            state.current_seat !== runtime.localSeat
+            || state.phase !== 'attack'
+            || state.busy
+            || state.pendingConquest
+        ) {
+            runtime.blitzing = false;
+            render();
+            return;
+        }
+
+        // Do not collapse multiple completed battles into one queued online snapshot.
+        if (isOnline() && (online.posting || online.queued)) {
+            schedule(continueBlitz, 50);
+            return;
+        }
+
+        const source = byId(state.sourceId);
+        const target = byId(state.targetId);
+        const attackDice = Math.max(1, maxAttackDice(source));
+        const error = attackError(runtime.localSeat, source, target, attackDice);
+
+        if (error) {
+            runtime.blitzing = false;
+            state.targetId = null;
+            state.message = error;
+            render();
+            return;
+        }
+
+        state.attackDice = attackDice;
+        const launchError = launchBattle(runtime.localSeat, source, target, attackDice, afterHumanBattle);
+
+        if (launchError) {
+            runtime.blitzing = false;
+            state.message = launchError;
+            render();
+        }
+    };
+
     const afterHumanBattle = () => {
         if (state.phase !== 'attack') {
+            runtime.blitzing = false;
+            render();
             return;
         }
 
@@ -2084,14 +2261,22 @@ import * as riskApi from './risk-api.js';
         const target = byId(state.targetId);
 
         if (!source || !target || attackError(runtime.localSeat, source, target, Math.max(1, maxAttackDice(source)))) {
+            runtime.blitzing = false;
             state.targetId = null;
+            render();
+            return;
+        }
+
+        if (runtime.blitzing) {
+            continueBlitz();
+            return;
         }
 
         render();
     };
 
     const humanAttack = () => {
-        if (state.current_seat !== runtime.localSeat || state.busy) {
+        if (state.current_seat !== runtime.localSeat || state.busy || runtime.blitzing) {
             return;
         }
 
@@ -2103,6 +2288,21 @@ import * as riskApi from './risk-api.js';
             state.message = error;
             render();
         }
+    };
+
+    const toggleBlitz = () => {
+        if (runtime.blitzing) {
+            runtime.blitzing = false;
+            render();
+            return;
+        }
+
+        if (state.current_seat !== runtime.localSeat || state.phase !== 'attack' || state.busy) {
+            return;
+        }
+
+        runtime.blitzing = true;
+        continueBlitz();
     };
 
     const confirmConquest = () => {
@@ -2152,7 +2352,8 @@ import * as riskApi from './risk-api.js';
         }
 
         const territory = byId(state.sourceId);
-        const error = placeReinforcement(runtime.localSeat, territory, state.reinforcementRemaining);
+        const count = state.reinforcementRemaining;
+        const error = placeReinforcement(runtime.localSeat, territory, count);
 
         if (error) {
             state.message = error;
@@ -2162,6 +2363,7 @@ import * as riskApi from './risk-api.js';
 
         flashTerritory(territory.id, 'place');
         pulseElement(elements.reinforcements, 'is-fx-tick', 600);
+        showFeedback('place', `+${count} ${count === 1 ? 'army' : 'armies'} on ${territory.name}.`);
         afterHumanPlacement();
     };
 
@@ -2339,6 +2541,7 @@ import * as riskApi from './risk-api.js';
             role: 'button',
             'data-territory': territory.id
         });
+        const hit = createSvg('circle', { class: 'risk-marker-hit', r: 28 });
         const ring = createSvg('circle', { class: 'risk-marker-ring', r: 20 });
         const art = createSvg('image', {
             class: 'risk-marker-art',
@@ -2356,7 +2559,7 @@ import * as riskApi from './risk-api.js';
         name.textContent = territory.short;
         art.addEventListener('load', () => group.classList.remove('is-art-missing'));
         art.addEventListener('error', () => group.classList.add('is-art-missing'));
-        group.append(ring, art, shape, count, badge, name);
+        group.append(hit, ring, art, shape, count, badge, name);
         group.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
@@ -2364,7 +2567,7 @@ import * as riskApi from './risk-api.js';
             }
         });
         markerLayer.append(group);
-        markers.set(territory.id, { group, art, shape, count, badge });
+        markers.set(territory.id, { group, hit, art, shape, count, badge });
     });
 
     boardSvg.append(markerLayer);
@@ -2375,6 +2578,46 @@ import * as riskApi from './risk-api.js';
             selectTerritory(hit.getAttribute('data-territory'));
         }
     });
+
+    const updateMarkerHitAreas = () => {
+        const viewBoxWidth = boardSvg.viewBox.baseVal.width || 1000;
+        const renderedWidth = boardSvg.getBoundingClientRect().width;
+
+        if (renderedWidth <= 0) {
+            return;
+        }
+
+        const radius = (28 * viewBoxWidth) / renderedWidth;
+        markers.forEach((marker) => marker.hit.setAttribute('r', String(radius)));
+    };
+
+    const scrollTerritoryIntoView = (territoryId) => {
+        const marker = markers.get(territoryId);
+        const scrollable = elements.map.scrollWidth - elements.map.clientWidth > 2;
+
+        if (!marker || !scrollable || typeof marker.group.scrollIntoView !== 'function') {
+            return;
+        }
+
+        marker.group.scrollIntoView({
+            block: 'nearest',
+            inline: 'center',
+            behavior: reducedMotion() ? 'auto' : 'smooth'
+        });
+    };
+
+    const syncPendingTerritoryScroll = () => {
+        const pending = state.pendingDefense || state.pendingConquest;
+        const key = pending ? `${state.pendingDefense ? 'defense' : 'conquest'}:${pending.sourceId}:${pending.targetId}` : '';
+
+        if (!key || key === runtime.markerDecisionScrollKey) {
+            runtime.markerDecisionScrollKey = key;
+            return;
+        }
+
+        runtime.markerDecisionScrollKey = key;
+        window.requestAnimationFrame(() => scrollTerritoryIntoView(pending.targetId));
+    };
 
     /* ------------------------------------------------------------------
      * Rendering.
@@ -2895,7 +3138,12 @@ import * as riskApi from './risk-api.js';
         // While an online lobby or game is open, the start button leaves it for a local game against bots.
         const onlineOpen = Boolean(online.gameId);
 
-        setText(elements.startButton, onlineOpen ? 'New local game' : state.active ? 'Restart game' : 'New game');
+        setText(
+            elements.startButton,
+            runtime.restartConfirmation
+                ? 'Confirm restart'
+                : onlineOpen ? 'New local game' : state.active ? 'Restart game' : 'New game'
+        );
         elements.startButton.classList.toggle('risk-button-primary', !state.active && !onlineOpen);
         elements.startButton.classList.toggle('risk-button-restart', state.active || onlineOpen);
         asButton(elements.inviteButton).disabled = online.requesting;
@@ -2906,14 +3154,35 @@ import * as riskApi from './risk-api.js';
             && !autoSetupActive()
             && (!isOnline() || (isLocalTurn() && !online.resyncing && (state.setupPool[runtime.localSeat] || 0) > 0))
         );
-        asButton(elements.reinforceButton).disabled = !(
-            humanTurn
+        const canPlaceReinforcements = humanTurn
             && state.phase === 'reinforce'
             && state.reinforcementRemaining > 0
-            && handSize < 5
-            && source
-            && source.owner === runtime.localSeat
-        );
+            && handSize < 5;
+        const hasSelectedReinforcementTerritory = source && source.owner === runtime.localSeat;
+        asButton(elements.reinforceButton).disabled = !(canPlaceReinforcements && hasSelectedReinforcementTerritory);
+
+        if (canPlaceReinforcements && !hasSelectedReinforcementTerritory) {
+            elements.reinforceButton.title = 'Select one of your territories first';
+        } else {
+            elements.reinforceButton.removeAttribute('title');
+        }
+
+        placeAmountInputs.forEach((input) => {
+            input.disabled = !canPlaceReinforcements;
+        });
+
+        if (uxElements.placeAmountOptions) {
+            const placeAmountOptions = /** @type {HTMLFieldSetElement} */ (uxElements.placeAmountOptions);
+            placeAmountOptions.disabled = !canPlaceReinforcements;
+
+            if (state.active && state.phase === 'setup' && isLocalTurn()) {
+                placeAmountOptions.title = 'Setup places exactly one army per click.';
+            } else if (!canPlaceReinforcements) {
+                placeAmountOptions.title = 'Available during your reinforce phase.';
+            } else {
+                placeAmountOptions.removeAttribute('title');
+            }
+        }
 
         const endLabels = {
             reinforce: 'Begin attacks',
@@ -2973,8 +3242,28 @@ import * as riskApi from './risk-api.js';
                 label?.removeAttribute('title');
             }
         });
-        asButton(elements.attackButton).disabled = !attackPhase
-            || Boolean(attackError(runtime.localSeat, source, target, effectiveAttackDice(source)));
+
+        const canStopBlitz = runtime.blitzing
+            && state.active
+            && isLocalTurn()
+            && !online.resyncing
+            && state.phase === 'attack'
+            && !pendingConquest;
+        const attackDisabled = !canStopBlitz && (
+            !attackPhase
+            || Boolean(attackError(runtime.localSeat, source, target, effectiveAttackDice(source)))
+        );
+
+        asButton(elements.attackButton).disabled = attackDisabled;
+
+        if (uxElements.blitzButton) {
+            const blitzButton = asButton(uxElements.blitzButton);
+
+            blitzButton.disabled = attackDisabled;
+            setText(blitzButton, runtime.blitzing ? 'Stop' : 'Blitz (roll until decided)');
+            blitzButton.classList.toggle('is-running', runtime.blitzing);
+            blitzButton.setAttribute('aria-pressed', runtime.blitzing ? 'true' : 'false');
+        }
 
         const fortifyInput = asInput(elements.fortifyCount);
         const fortifyReady = humanTurn
@@ -3156,11 +3445,70 @@ import * as riskApi from './risk-api.js';
 
     const renderLog = () => {
         if (state.log.length === 0) {
-            elements.log.replaceChildren(createText('li', '', 'No battles yet.'));
+            if (elements.log.dataset.empty !== 'true') {
+                elements.log.replaceChildren(createText('li', '', 'No battles yet.'));
+                elements.log.dataset.empty = 'true';
+                runtime.renderedLog = [];
+            }
             return;
         }
 
-        elements.log.replaceChildren(...state.log.map((entry) => createText('li', '', entry)));
+        const unchanged = runtime.renderedLog.length === state.log.length
+            && state.log.every((entry, index) => runtime.renderedLog[index]?.text === entry);
+
+        if (unchanged) {
+            return;
+        }
+
+        const previousScrollTop = elements.log.scrollTop;
+        let newEntryCount = state.log.length;
+
+        for (let index = 0; index <= state.log.length; index += 1) {
+            const retainedCount = state.log.length - index;
+
+            if (retainedCount <= runtime.renderedLog.length
+                && state.log.slice(index).every((entry, oldIndex) => runtime.renderedLog[oldIndex]?.text === entry)) {
+                newEntryCount = index;
+                break;
+            }
+        }
+
+        const retained = runtime.renderedLog.slice(0, state.log.length - newEntryCount);
+        const scrollAnchor = retained[0]?.node || null;
+        const previousAnchorOffset = scrollAnchor?.offsetTop || 0;
+        const retainedNodes = new Set(retained.map((entry) => entry.node));
+
+        runtime.renderedLog.forEach((entry) => {
+            entry.node.classList.remove('is-new');
+            if (!retainedNodes.has(entry.node)) {
+                entry.node.remove();
+            }
+        });
+
+        if (elements.log.dataset.empty === 'true') {
+            elements.log.replaceChildren();
+            delete elements.log.dataset.empty;
+        }
+
+        const added = state.log.slice(0, newEntryCount).map((text) => {
+            const node = /** @type {HTMLLIElement} */ (createText('li', '', text));
+            runtime.logSerial += 1;
+            node.dataset.logId = String(runtime.logSerial);
+            return { text, node };
+        });
+
+        if (added.length > 0) {
+            added[0].node.classList.add('is-new');
+            const fragment = document.createDocumentFragment();
+            added.forEach(({ node }) => fragment.append(node));
+            elements.log.prepend(fragment);
+        }
+
+        runtime.renderedLog = [...added, ...retained];
+
+        if (previousScrollTop > 1 && scrollAnchor?.isConnected) {
+            elements.log.scrollTop = previousScrollTop + (scrollAnchor.offsetTop - previousAnchorOffset);
+        }
     };
 
     // The current objective plus, when the next relevant action is unavailable, the reason why.
@@ -3470,7 +3818,7 @@ import * as riskApi from './risk-api.js';
                 return `You hold ${handSize} cards — trade a set before placing.`;
             }
 
-            return `Reinforce: click your territories to place ${state.reinforcementRemaining} remaining ${state.reinforcementRemaining === 1 ? 'army' : 'armies'}, or use Place all here.`;
+            return `Reinforce: ${state.reinforcementRemaining} ${state.reinforcementRemaining === 1 ? 'army remains' : 'armies remain'}; each territory click places ${placementAmountDescription()} (capped by your reserve), or use Place all here.`;
         }
 
         if (state.phase === 'attack') {
@@ -3483,7 +3831,7 @@ import * as riskApi from './risk-api.js';
             }
 
             return target
-                ? `Attack: choose dice, then roll ${source.name} against ${target.name}.`
+                ? `Attack: choose dice, then click ${target.name} again or press Roll attack / Blitz.`
                 : `Attack: pick a highlighted enemy neighbour of ${source.name}, or End attacks.`;
         }
 
@@ -3674,6 +4022,7 @@ import * as riskApi from './risk-api.js';
         renderSetupInfo();
         renderObjective();
         renderMap();
+        syncPendingTerritoryScroll();
         renderSelection();
         renderHand();
         renderDice();
@@ -4039,6 +4388,11 @@ import * as riskApi from './risk-api.js';
         }
 
         render();
+        if (state.phase === 'gameover') {
+            showResultBanner(state.winner);
+        } else {
+            hideResultBanner();
+        }
         resumeOnlineTurn();
         return true;
     };
@@ -4709,6 +5063,45 @@ import * as riskApi from './risk-api.js';
         renderLobbyRoster(game);
     };
 
+    const cancelRestartConfirmation = () => {
+        const hadConfirmation = runtime.restartConfirmation;
+
+        runtime.restartConfirmation = false;
+        if (runtime.restartConfirmationTimer) {
+            window.clearTimeout(runtime.restartConfirmationTimer);
+            runtime.restartConfirmationTimer = 0;
+        }
+
+        if (hadConfirmation) {
+            renderControls();
+        }
+    };
+
+    const startLocalGame = () => {
+        cancelRestartConfirmation();
+        leaveOnlineGame();
+        runtime.localSeat = 1;
+        startGame(localRoster(readSetupConfig().botCount));
+    };
+
+    const requestLocalGameStart = () => {
+        if (state.active && state.phase !== 'gameover' && !runtime.restartConfirmation) {
+            runtime.restartConfirmation = true;
+            setText(elements.startButton, 'Confirm restart');
+            if (uxElements.announcer) {
+                setText(uxElements.announcer, 'Press Confirm restart within five seconds to start a new game.');
+            }
+            runtime.restartConfirmationTimer = window.setTimeout(cancelRestartConfirmation, 5000);
+            return;
+        }
+
+        startLocalGame();
+    };
+
+    if (uxElements.speed instanceof HTMLSelectElement) {
+        uxElements.speed.value = runtime.speed;
+    }
+
     /* ------------------------------------------------------------------
      * Wiring.
      * ------------------------------------------------------------------ */
@@ -4728,20 +5121,34 @@ import * as riskApi from './risk-api.js';
         if (runtime.phaseAdvanceConfirmation && !target?.closest('#risk-end-button')) {
             cancelPhaseAdvanceConfirmation();
         }
+        if (runtime.restartConfirmation && !target?.closest('#risk-start-button')) {
+            cancelRestartConfirmation();
+        }
     }, true);
     root.addEventListener('change', () => {
         if (runtime.phaseAdvanceConfirmation) {
             cancelPhaseAdvanceConfirmation();
         }
+        if (runtime.restartConfirmation) {
+            cancelRestartConfirmation();
+        }
     }, true);
 
     // Local game: seat 1 is the human at this browser, every other seat is a bot. Starting one leaves
     // any online lobby or game, stops polling and forgets the remembered online game.
-    elements.startButton.addEventListener('click', () => {
-        leaveOnlineGame();
-        runtime.localSeat = 1;
-        startGame(localRoster(readSetupConfig().botCount));
+    elements.startButton.addEventListener('click', requestLocalGameStart);
+    uxElements.speed?.addEventListener('change', () => {
+        const speed = /** @type {HTMLSelectElement} */ (uxElements.speed).value;
+        runtime.speed = validSpeeds.has(speed) ? speed : 'normal';
+
+        try {
+            window.localStorage.setItem(SPEED_STORAGE_KEY, runtime.speed);
+        } catch {
+            // The runtime preference still applies when storage is unavailable.
+        }
     });
+    uxElements.resultRestart?.addEventListener('click', startLocalGame);
+    uxElements.resultClose?.addEventListener('click', hideResultBanner);
     elements.inviteButton.addEventListener('click', () => {
         createOnlineGame();
     });
@@ -4771,8 +5178,17 @@ import * as riskApi from './risk-api.js';
     });
     elements.endButton.addEventListener('click', advancePhase);
     elements.reinforceButton.addEventListener('click', placeAllReinforcements);
+    placeAmountInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+            if (input.checked) {
+                runtime.placeAmount = input.value;
+                render();
+            }
+        });
+    });
     elements.autoSetupButton.addEventListener('click', enableAutoSetup);
     elements.attackButton.addEventListener('click', humanAttack);
+    uxElements.blitzButton?.addEventListener('click', toggleBlitz);
     elements.conquestButton.addEventListener('click', confirmConquest);
     elements.fortifyButton.addEventListener('click', humanFortify);
     elements.tradeButton.addEventListener('click', humanTrade);
@@ -4824,25 +5240,63 @@ import * as riskApi from './risk-api.js';
 
     // The scroll hint appears only while the board is wider than its frame.
     const updateMapHint = () => {
-        const hint = uxElements.mapHint;
-
-        if (!hint) {
-            return;
-        }
-
         const scrollable = elements.map.scrollWidth - elements.map.clientWidth > 2;
 
-        hint.hidden = !scrollable;
+        if (uxElements.mapHint) {
+            uxElements.mapHint.hidden = !scrollable;
+        }
+
         elements.map.classList.toggle('is-scrollable', scrollable);
     };
 
-    if (typeof ResizeObserver === 'function') {
-        new ResizeObserver(updateMapHint).observe(elements.map);
-    } else {
-        window.addEventListener('resize', updateMapHint);
+    const applyMapZoom = (level, persist = false) => {
+        runtime.mapZoom = normalizeMapZoom(level);
+        elements.map.style.setProperty('--risk-map-scale', `${runtime.mapZoom * 100}%`);
+        elements.map.classList.toggle('is-fit-or-smaller', runtime.mapZoom <= MAP_ZOOM_FIT);
+
+        if (uxElements.zoomOut) {
+            asButton(uxElements.zoomOut).disabled = runtime.mapZoom <= MAP_ZOOM_MIN;
+        }
+        if (uxElements.zoomFit) {
+            uxElements.zoomFit.setAttribute('aria-pressed', runtime.mapZoom === MAP_ZOOM_FIT ? 'true' : 'false');
+        }
+        if (uxElements.zoomIn) {
+            asButton(uxElements.zoomIn).disabled = runtime.mapZoom >= MAP_ZOOM_MAX;
+        }
+
+        if (persist) {
+            try {
+                window.localStorage.setItem(MAP_ZOOM_STORAGE_KEY, String(runtime.mapZoom));
+            } catch {
+                // The runtime preference still applies when storage is unavailable.
+            }
+        }
+
+        window.requestAnimationFrame(() => {
+            updateMarkerHitAreas();
+            updateMapHint();
+        });
+    };
+
+    const updateMapLayout = () => {
+        updateMarkerHitAreas();
+        updateMapHint();
+    };
+
+    if (uxElements.mapZoom) {
+        uxElements.zoomOut?.addEventListener('click', () => applyMapZoom(runtime.mapZoom - MAP_ZOOM_STEP, true));
+        uxElements.zoomFit?.addEventListener('click', () => applyMapZoom(MAP_ZOOM_FIT, true));
+        uxElements.zoomIn?.addEventListener('click', () => applyMapZoom(runtime.mapZoom + MAP_ZOOM_STEP, true));
+        applyMapZoom(runtime.mapZoom);
     }
 
-    window.requestAnimationFrame(updateMapHint);
+    if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(updateMapLayout).observe(elements.map);
+    } else {
+        window.addEventListener('resize', updateMapLayout);
+    }
+
+    window.requestAnimationFrame(updateMapLayout);
 
     state.territories = blankTerritories();
 
