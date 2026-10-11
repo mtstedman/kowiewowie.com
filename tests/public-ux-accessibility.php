@@ -244,6 +244,16 @@ public_ux_assert(
     (bool) preg_match('/<section class="risk-turn-console" aria-label="Current turn">.*?<section class="risk-objective" aria-labelledby="risk-objective-title">.*?Current decision.*?<div class="risk-primary-actions">.*?Next action.*?id="risk-end-button".*?id="risk-turn-guidance" class="risk-turn-guidance" aria-live="polite"/s', $riskHtml),
     'Risk must group the current decision, next action, and live turn guidance in one turn console.'
 );
+public_ux_assert(
+    strpos($riskHtml, 'id="risk-objective-blocker" class="risk-objective-blocker" role="status" aria-live="polite" aria-atomic="true"') !== false,
+    'Risk disabled-control reasons must have one visible polite status surface.'
+);
+public_ux_assert(
+    strpos($riskHtml, '<h3 id="risk-cards-title">Setup placement</h3>') !== false
+        && strpos($riskHtml, 'id="risk-place-amount-options" class="risk-dice-choice" hidden') !== false
+        && strpos($riskHtml, 'id="risk-setup-placement-note" class="risk-setting-note">Setup places exactly one army per territory click.</p>') !== false,
+    'Risk setup must name its placement panel and hide the reinforce-only amount chooser.'
+);
 foreach (['reinforce,setup', 'attack,conquer', 'fortify'] as $riskPhasePanel) {
     public_ux_assert(
         strpos($riskHtml, 'data-risk-phase-panel="' . $riskPhasePanel . '"') !== false,
@@ -282,6 +292,28 @@ foreach ($riskArtwork as $assetName => $expectedDimensions) {
             && $assetDimensions[0] === $expectedDimensions[0]
             && $assetDimensions[1] === $expectedDimensions[1],
         'Risk artwork dimensions changed unexpectedly: ' . $assetName . '.'
+    );
+}
+
+// Verified installed/original bytes: backdrop 1,347,057/4,587,248; terrain 392,184/2,430,720;
+// selection 992,770/4,000,417; artillery 405,616/1,809,919; cavalry 373,861/642,454;
+// infantry 357,420/409,402; wild 383,613/1,339,254. Each installed asset is below its budget.
+$riskArtworkByteBudgets = [
+    'risk-board-backdrop.png' => 1500000,
+    'risk-terrain-texture.png' => 400000,
+    'risk-selection-art.png' => 1000000,
+    'risk-cards/artillery.png' => 450000,
+    'risk-cards/cavalry.png' => 450000,
+    'risk-cards/infantry.png' => 450000,
+    'risk-cards/wild.png' => 450000,
+];
+foreach ($riskArtworkByteBudgets as $assetName => $byteBudget) {
+    $assetPath = $root . '/htdocs/assets/img/' . $assetName;
+    public_ux_assert(is_file($assetPath), 'Risk artwork is missing: ' . $assetName . '.');
+    $assetSize = filesize($assetPath);
+    public_ux_assert(
+        is_int($assetSize) && $assetSize <= $byteBudget,
+        'Risk artwork exceeds its byte-size budget: ' . $assetName . '.'
     );
 }
 
@@ -438,6 +470,17 @@ public_ux_assert(
 public_ux_assert(
     strpos($riskScript, 'announce();') !== false && strpos($riskScript, 'syncDecisionFocus();') !== false,
     'Risk must preserve live announcements and decision-focus synchronization.'
+);
+public_ux_assert(
+    strpos($riskScript, 'const phaseCopy =') !== false
+        && strpos($riskScript, 'phaseCopy(null, { kind, details }).feedback') !== false
+        && strpos($riskScript, 'setControlReason(asButton(elements.endButton), reasons.end)') !== false
+        && strpos($riskScript, "markOnlineAction('reinforce')") !== false
+        && strpos($riskScript, "markOnlineAction('trade')") !== false
+        && strpos($riskScript, "markOnlineAction('fortify')") !== false
+        && strpos($riskScript, 'runtime.selectionKey') !== false
+        && strpos($riskScript, 'runtime.scoreboardKey') !== false,
+    'Risk phase copy, visible disabled reasons, pending actions, and high-frequency detail renders must remain centralized and keyed.'
 );
 
 $css = file_get_contents($root . '/htdocs/assets/styles.css');

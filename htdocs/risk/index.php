@@ -160,7 +160,7 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                                     <div class="risk-decision-copy">
                                         <h3 id="risk-objective-title">Ready to play</h3>
                                         <p id="risk-objective-text" class="risk-objective-text">Choose your Game setup above, then press New game to deal the world.</p>
-                                        <p id="risk-objective-blocker" class="risk-objective-blocker" hidden></p>
+                                        <p id="risk-objective-blocker" class="risk-objective-blocker" role="status" aria-live="polite" aria-atomic="true" hidden></p>
                                     </div>
                                     <div class="risk-primary-actions">
                                         <p class="risk-next-action-label">Next action</p>
@@ -181,14 +181,15 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
 
                         <section class="risk-phase-controls" aria-label="Current phase controls">
                             <section class="risk-subpanel risk-cards-panel" aria-labelledby="risk-cards-title" data-risk-phase-panel="reinforce,setup">
-                        <h3 id="risk-cards-title">Reinforce</h3>
-                        <fieldset id="risk-place-amount-options" class="risk-dice-choice">
+                        <h3 id="risk-cards-title">Setup placement</h3>
+                        <fieldset id="risk-place-amount-options" class="risk-dice-choice" hidden>
                             <legend>Armies per click</legend>
                             <label><input type="radio" name="risk-place-amount" value="1" checked> 1</label>
                             <label><input type="radio" name="risk-place-amount" value="3"> 3</label>
                             <label><input type="radio" name="risk-place-amount" value="5"> 5</label>
                             <label><input type="radio" name="risk-place-amount" value="all"> All</label>
                         </fieldset>
+                        <p id="risk-setup-placement-note" class="risk-setting-note">Setup places exactly one army per territory click.</p>
                         <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
                         <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
                         <p id="risk-trade-value" class="risk-trade-value">Next set: 4 armies</p>

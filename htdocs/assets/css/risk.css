@@ -1047,6 +1047,11 @@
     cursor: not-allowed;
 }
 
+.risk-button[aria-busy="true"] {
+    border-style: dashed;
+    cursor: progress;
+}
+
 .risk-subpanel,
 .risk-territory-card,
 .risk-log-panel {
@@ -1822,6 +1827,11 @@
     font-weight: 750;
     line-height: 1.35;
     text-indent: -1.35rem;
+    white-space: pre-line;
+}
+
+.risk-objective-blocker:empty {
+    display: none;
 }
 
 .risk-objective-blocker::before {

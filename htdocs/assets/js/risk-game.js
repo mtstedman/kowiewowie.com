@@ -181,7 +181,9 @@ import * as riskApi from './risk-api.js';
         zoomOut: byElementId('risk-zoom-out'),
         zoomFit: byElementId('risk-zoom-fit'),
         zoomIn: byElementId('risk-zoom-in'),
+        cardsTitle: byElementId('risk-cards-title'),
         placeAmountOptions: byElementId('risk-place-amount-options'),
+        setupPlacementNote: byElementId('risk-setup-placement-note'),
         blitzButton: byElementId('risk-blitz-button'),
         speed: byElementId('risk-speed'),
         resultBanner: byElementId('risk-result-banner'),
@@ -419,6 +421,8 @@ import * as riskApi from './risk-api.js';
         battleCounter: 0,
         diceKey: '',
         figureKey: '',
+        selectionKey: '',
+        scoreboardKey: '',
         legendKey: '',
         // Transient, event-driven feedback. Every entry is cleared by cancelPending.
         /** @type {Map<string, {kind: string, serial: number}>} */
@@ -455,8 +459,9 @@ import * as riskApi from './risk-api.js';
         /** @type {HTMLElement|null} */
         decisionReturn: null,
         setupGameActive: false,
-        // Attack automation is local UI state and is never serialized with the shared game state.
+        // Attack automation and pending button copy are local UI state and are never serialized.
         blitzing: false,
+        pendingAction: '',
         // Per-browser placement preference; never serialized with the shared game state.
         placeAmount: checkedValue(placeAmountInputs) || '1'
     };
@@ -562,6 +567,7 @@ import * as riskApi from './risk-api.js';
         runtime.timers.clear();
         runtime.defenseDone = null;
         runtime.blitzing = false;
+        runtime.pendingAction = '';
         runtime.guidanceOverride = null;
         runtime.phaseAdvanceConfirmation = null;
         runtime.restartConfirmation = false;
@@ -658,7 +664,7 @@ import * as riskApi from './risk-api.js';
         }, fxDurations[kind] || 900);
     };
 
-    const showFeedback = (kind, text) => {
+    const showFeedback = (kind, details = {}) => {
         if (!feedbackBox) {
             return;
         }
@@ -666,7 +672,7 @@ import * as riskApi from './risk-api.js';
         runtime.feedbackSerial += 1;
         const serial = runtime.feedbackSerial;
 
-        feedbackBox.textContent = text;
+        feedbackBox.textContent = phaseCopy(null, { kind, details }).feedback;
         feedbackBox.className = 'risk-feedback';
         restartClass(feedbackBox, `is-${kind}`);
         schedule(() => {
@@ -1416,19 +1422,7 @@ import * as riskApi from './risk-api.js';
         ? 'all remaining armies'
         : `${runtime.placeAmount} ${Number(runtime.placeAmount) === 1 ? 'army' : 'armies'} per click`;
 
-    const humanReinforcePrompt = () => {
-        const handSize = state.hands[runtime.localSeat].length;
-
-        if (handSize >= 5) {
-            return `You hold ${handSize} cards: trade a set before placing armies (mandatory at five or more).`;
-        }
-
-        if (state.reinforcementRemaining > 0) {
-            return `Place ${pluralArmy(state.reinforcementRemaining)}: click your territories to place ${placementAmountDescription()} (capped by your reserve), or select one and use Place all here.`;
-        }
-
-        return 'All armies placed. Trade another set or press Begin attacks.';
-    };
+    const humanReinforcePrompt = () => phaseCopy().objective;
 
     const enterAttackPhase = (player) => {
         state.phase = 'attack';
@@ -1437,8 +1431,8 @@ import * as riskApi from './risk-api.js';
         if (player === runtime.localSeat) {
             state.sourceId = null;
             state.message = hasLegalAttack(runtime.localSeat)
-                ? 'Attack phase: select one of your territories with two or more armies, then a highlighted target.'
-                : 'Attack phase: you have no legal attacks. Press End attacks to fortify.';
+                ? 'Reinforcement complete.'
+                : 'Reinforcement complete; no legal attacks are available.';
         }
     };
 
@@ -1468,7 +1462,7 @@ import * as riskApi from './risk-api.js';
         }
 
         state.message = player === runtime.localSeat
-            ? `Your turn. ${humanReinforcePrompt()}`
+            ? `Turn ${state.turn} started with ${pluralArmy(breakdown.total)} added to your reserve.`
             : `${ownerLabel(player)} is reinforcing.`;
         render();
     };
@@ -1494,7 +1488,7 @@ import * as riskApi from './risk-api.js';
                     runtime.freshCardIds.delete(card.id);
                     runtime.cardNodes.get(card.id)?.button.classList.remove('is-dealt');
                 }, 1400);
-                showFeedback('draw', `New card: ${describeCard(card)}. It waits in your hand for a set.`);
+                showFeedback('draw', { card: describeCard(card) });
             } else {
                 addLog(`${ownerLabel(player)} earns a card for conquering this turn.`);
             }
@@ -1668,9 +1662,9 @@ import * as riskApi from './risk-api.js';
             flashTerritory(target.id, 'conquer');
 
             if (humanAttacking) {
-                showFeedback('conquer', `${target.name} conquered! You will draw a card when your turn ends.`);
+                showFeedback('conquer', { territory: target.name });
             } else if (battle.defender === runtime.localSeat) {
-                showFeedback('loss', `${ownerLabel(battle.attacker)} captured your ${target.name}.`);
+                showFeedback('loss', { captured: true, attacker: ownerLabel(battle.attacker), territory: target.name });
             }
         } else {
             addLog(summary);
@@ -1681,10 +1675,12 @@ import * as riskApi from './risk-api.js';
                 const theirLosses = humanAttacking ? outcome.defenderLosses : outcome.attackerLosses;
                 const rival = humanAttacking ? battle.defender : battle.attacker;
 
-                showFeedback(
-                    yourLosses > theirLosses ? 'loss' : 'hit',
-                    `Battle at ${target.name}: you lose ${yourLosses}, ${ownerLabel(rival)} loses ${theirLosses}.`
-                );
+                showFeedback(yourLosses > theirLosses ? 'loss' : 'hit', {
+                    territory: target.name,
+                    yourLosses,
+                    rival: ownerLabel(rival),
+                    rivalLosses: theirLosses
+                });
             }
         }
 
@@ -1782,6 +1778,7 @@ import * as riskApi from './risk-api.js';
 
         state.pendingDefense = null;
         runtime.defenseDone = null;
+        markOnlineAction('defense');
         rollBattle(pending.player, source, target, pending.attackDice, dice, onComplete);
     };
 
@@ -2053,6 +2050,9 @@ import * as riskApi from './risk-api.js';
             timeout: 0
         };
         runtime.botRequest = request;
+        renderControls();
+        renderObjective();
+        renderPhaseUi();
         request.timeout = window.setTimeout(() => {
             if (runtime.botRequest === request) {
                 failBotWorker('worker timed out');
@@ -2149,7 +2149,7 @@ import * as riskApi from './risk-api.js';
             return;
         }
 
-        state.message = setupPrompt();
+        state.message = `One army added to ${territory.name}.`;
         render();
     };
 
@@ -2157,7 +2157,7 @@ import * as riskApi from './risk-api.js';
         if (state.reinforcementRemaining === 0 && findValidSets(state.hands[runtime.localSeat]).length === 0) {
             enterAttackPhase(runtime.localSeat);
         } else {
-            state.message = humanReinforcePrompt();
+            state.message = 'Armies placed.';
         }
 
         render();
@@ -2177,7 +2177,7 @@ import * as riskApi from './risk-api.js';
         state.sourceId = territory.id;
         flashTerritory(territory.id, 'place');
         pulseElement(elements.reinforcements, 'is-fx-tick', 600);
-        showFeedback('place', `+${count} ${count === 1 ? 'army' : 'armies'} on ${territory.name}.`);
+        showFeedback('place', { count, territory: territory.name });
         afterHumanPlacement();
     };
 
@@ -2187,6 +2187,7 @@ import * as riskApi from './risk-api.js';
         if (source && territory.id === source.id) {
             state.sourceId = null;
             state.targetId = null;
+            state.message = `Attack selection cleared from ${source.name}.`;
             clearGuidanceReason();
             return;
         }
@@ -2212,7 +2213,7 @@ import * as riskApi from './risk-api.js';
 
             state.sourceId = territory.id;
             state.targetId = null;
-            state.message = `${territory.name} selected. Choose one of ${targets.length} highlighted targets.`;
+            state.message = `${territory.name} selected as the attacker.`;
             return;
         }
 
@@ -2230,7 +2231,7 @@ import * as riskApi from './risk-api.js';
 
         clearGuidanceReason();
         state.targetId = territory.id;
-        state.message = `${source.name} → ${territory.name} (${ownerLabel(territory.owner)}, ${pluralArmy(territory.armies)}). Choose attack dice, then click the target again or press Roll attack / Blitz.`;
+        state.message = `${source.name} and ${territory.name} selected for battle.`;
     };
 
     const handleFortifySelection = (territory) => {
@@ -2244,6 +2245,7 @@ import * as riskApi from './risk-api.js';
         if (source && territory.id === source.id) {
             state.sourceId = null;
             state.targetId = null;
+            state.message = `Fortify selection cleared from ${source.name}.`;
             clearGuidanceReason();
             return;
         }
@@ -2257,7 +2259,7 @@ import * as riskApi from './risk-api.js';
             clearGuidanceReason();
             state.sourceId = territory.id;
             state.targetId = null;
-            state.message = `${territory.name} selected. Highlighted territories are connected through your land.`;
+            state.message = `${territory.name} selected as the fortify source.`;
             return;
         }
 
@@ -2268,7 +2270,7 @@ import * as riskApi from './risk-api.js';
 
         clearGuidanceReason();
         state.targetId = territory.id;
-        state.message = `Choose how many armies move from ${source.name} to ${territory.name}, then press Fortify.`;
+        state.message = `${source.name} and ${territory.name} selected for fortification.`;
     };
 
     const selectTerritory = (territoryId) => {
@@ -2368,10 +2370,12 @@ import * as riskApi from './risk-api.js';
         }
 
         state.attackDice = attackDice;
+        markOnlineAction('blitz');
         const launchError = launchBattle(runtime.localSeat, source, target, attackDice, afterHumanBattle);
 
         if (launchError) {
             runtime.blitzing = false;
+            runtime.pendingAction = '';
             state.message = launchError;
             render();
         }
@@ -2395,7 +2399,8 @@ import * as riskApi from './risk-api.js';
         }
 
         if (runtime.blitzing) {
-            continueBlitz();
+            render();
+            schedule(continueBlitz, Math.max(40, pace(80)));
             return;
         }
 
@@ -2409,9 +2414,11 @@ import * as riskApi from './risk-api.js';
 
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
+        markOnlineAction('attack');
         const error = launchBattle(runtime.localSeat, source, target, effectiveAttackDice(source), afterHumanBattle);
 
         if (error) {
+            runtime.pendingAction = '';
             state.message = error;
             render();
         }
@@ -2447,11 +2454,10 @@ import * as riskApi from './risk-api.js';
             return;
         }
 
-        const source = byId(pending.sourceId);
+        markOnlineAction('conquest');
+        const conquered = byId(pending.targetId);
         state.targetId = null;
-        state.message = hasLegalAttack(runtime.localSeat)
-            ? `Armies moved. ${source.armies > 1 ? `${source.name} can keep attacking, or ` : ''}select another attacker or press End attacks.`
-            : 'Armies moved. No legal attacks remain; press End attacks to fortify.';
+        state.message = `Armies moved into ${conquered ? conquered.name : 'the conquered territory'}.`;
         render();
     };
 
@@ -2470,6 +2476,7 @@ import * as riskApi from './risk-api.js';
             return;
         }
 
+        markOnlineAction('fortify');
         endTurn(runtime.localSeat);
     };
 
@@ -2488,9 +2495,10 @@ import * as riskApi from './risk-api.js';
             return;
         }
 
+        markOnlineAction('reinforce');
         flashTerritory(territory.id, 'place');
         pulseElement(elements.reinforcements, 'is-fx-tick', 600);
-        showFeedback('place', `+${count} ${count === 1 ? 'army' : 'armies'} on ${territory.name}.`);
+        showFeedback('place', { count, territory: territory.name });
         afterHumanPlacement();
     };
 
@@ -2505,14 +2513,15 @@ import * as riskApi from './risk-api.js';
         if (error) {
             state.message = error;
         } else {
+            markOnlineAction('trade');
             state.selectedCardIds = [];
-            state.message = humanReinforcePrompt();
+            state.message = 'Card set traded.';
         }
 
         render();
 
         if (!error) {
-            showFeedback('trade', `Set traded: +${pluralArmy(state.reinforcementRemaining - before)} to deploy.`);
+            showFeedback('trade', { count: state.reinforcementRemaining - before });
             pulseElement(elements.reinforcements, 'is-fx-tick', 700);
         }
     };
@@ -2541,9 +2550,9 @@ import * as riskApi from './risk-api.js';
         if (selected.length === 3) {
             if (isValidSet(selected)) {
                 const value = tradeValue(state.setsTraded, state.config.cardMode, selected);
-                showFeedback('set', `Valid set: worth ${pluralArmy(value)}. ${state.phase === 'reinforce' ? 'Press Trade selected set.' : 'Trade it during your reinforcement phase.'}`);
+                showFeedback('set', { value, canTradeNow: state.phase === 'reinforce' });
             } else {
-                showFeedback('invalid', 'Not a set: use three of a kind, one of each type, or two cards with a wild.');
+                showFeedback('invalid');
             }
         }
     };
@@ -2557,8 +2566,9 @@ import * as riskApi from './risk-api.js';
             cancelPhaseAdvanceConfirmation();
 
             if (state.hands[runtime.localSeat].length >= 5 || state.reinforcementRemaining > 0) {
-                state.message = humanReinforcePrompt();
+                state.message = 'Reinforcement is not complete.';
             } else {
+                markOnlineAction('end');
                 enterAttackPhase(runtime.localSeat);
             }
 
@@ -2577,10 +2587,11 @@ import * as riskApi from './risk-api.js';
             }
 
             cancelPhaseAdvanceConfirmation();
+            markOnlineAction('end');
             state.phase = 'fortify';
             state.sourceId = null;
             state.targetId = null;
-            state.message = 'Fortify (optional, once): select a territory with spare armies, then a highlighted connected territory. Or press End turn.';
+            state.message = 'Attacks ended.';
             render();
             return;
         }
@@ -2594,6 +2605,7 @@ import * as riskApi from './risk-api.js';
             }
 
             cancelPhaseAdvanceConfirmation();
+            markOnlineAction('end');
             addLog(`${ownerLabel(runtime.localSeat)} ends the turn without fortifying.`);
             endTurn(runtime.localSeat);
         }
@@ -2933,46 +2945,20 @@ import * as riskApi from './risk-api.js';
         elements.selectionCaption.textContent = `${territory.name} · ${continent?.name || ''}`;
     };
 
-    const selectionHelpText = (focus) => {
-        if (!state.active) {
-            return state.phase === 'gameover' ? 'Game over. Start a new game to play again.' : 'Start a new game to deal the world.';
-        }
-
-        if (state.current_seat !== runtime.localSeat) {
-            return state.pendingDefense ? 'Choose your defense dice in the command panel.' : `${ownerLabel(state.current_seat)} is playing its turn.`;
-        }
-
-        if (state.phase === 'setup') {
-            return hasNeutral()
-                ? 'Click your territories (circles) for your two armies and a neutral territory (square) for the neutral army.'
-                : 'Click your territories (circles) to place your two armies for this step.';
-        }
-
-        if (state.phase === 'reinforce') {
-            return focus.owner === runtime.localSeat ? 'Click to add one army here, or use Place all here.' : 'Reinforcements go on your own territories.';
-        }
-
-        if (state.phase === 'attack') {
-            return state.targetId ? 'Choose attack dice and press Roll attack.' : 'Pick an attacker with two or more armies, then a highlighted target.';
-        }
-
-        if (state.phase === 'conquer') {
-            return 'Choose how many armies move into the conquered territory.';
-        }
-
-        if (state.phase === 'fortify') {
-            return state.targetId ? 'Set the number of armies and press Fortify.' : 'Pick a source with spare armies, then a highlighted connected territory.';
-        }
-
-        return '';
-    };
+    const selectionHelpText = (focus) => phaseCopy(focus).selection;
 
     const renderSelection = () => {
         const focus = byId(state.detailId) || byId(state.sourceId);
         renderSelectionFigure(focus);
 
         if (!focus) {
-            elements.selection.textContent = state.active ? 'Select a territory on the map.' : 'No territory selected.';
+            const emptyText = state.active ? 'Select a territory on the map.' : 'No territory selected.';
+            const emptyKey = `empty:${emptyText}`;
+
+            if (runtime.selectionKey !== emptyKey) {
+                runtime.selectionKey = emptyKey;
+                elements.selection.textContent = emptyText;
+            }
             return;
         }
 
@@ -2985,12 +2971,7 @@ import * as riskApi from './risk-api.js';
             : seatNumbers();
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
-        const wrapper = document.createElement('div');
-        const list = document.createElement('dl');
-        const help = document.createElement('p');
-
-        list.className = 'risk-selection-list';
-
+        const helpText = selectionHelpText(focus);
         const rows = [
             ['Territory', focus.name],
             ['Continent', `${continent.name} (+${continent.bonus} for all ${members.length})`],
@@ -3012,6 +2993,19 @@ import * as riskApi from './risk-api.js';
             rows.push(['To', `${target.name} (${ownerLabel(target.owner)}, ${pluralArmy(target.armies)})`]);
         }
 
+        const key = JSON.stringify([focus.id, rows, helpText]);
+
+        if (runtime.selectionKey === key) {
+            return;
+        }
+
+        runtime.selectionKey = key;
+
+        const wrapper = document.createElement('div');
+        const list = document.createElement('dl');
+        const help = document.createElement('p');
+
+        list.className = 'risk-selection-list';
         rows.forEach(([term, description]) => {
             const row = document.createElement('div');
             row.append(createText('dt', '', term), createText('dd', '', description));
@@ -3019,7 +3013,7 @@ import * as riskApi from './risk-api.js';
         });
 
         help.className = 'risk-selection-help';
-        help.textContent = selectionHelpText(focus);
+        help.textContent = helpText;
         wrapper.append(list, help);
         elements.selection.replaceChildren(wrapper);
     };
@@ -3251,8 +3245,54 @@ import * as riskApi from './risk-api.js';
         }
     };
 
+    const endLabels = {
+        reinforce: 'Begin attacks',
+        attack: 'End attacks',
+        conquer: 'End attacks',
+        fortify: 'End turn'
+    };
+
+    const endLabelForState = () => {
+        const confirmationPending = runtime.phaseAdvanceConfirmation === guidanceContextKey();
+        const base = state.current_seat === runtime.localSeat && endLabels[state.phase]
+            ? endLabels[state.phase]
+            : 'End phase';
+
+        if (!confirmationPending) {
+            return base;
+        }
+
+        return state.phase === 'attack' ? 'Confirm: end attacks' : 'Confirm: end turn';
+    };
+
+    const setButtonBusy = (button, busy) => {
+        if (busy) {
+            button.setAttribute('aria-busy', 'true');
+        } else {
+            button.removeAttribute('aria-busy');
+        }
+    };
+
+    const markOnlineAction = (action) => {
+        if (isOnline()) {
+            runtime.pendingAction = action;
+        }
+    };
+
+    const onlineActionPending = (action) => online.posting && runtime.pendingAction === action;
+
+    const setControlReason = (button, reason) => {
+        button.removeAttribute('title');
+
+        if (button.disabled && reason && objectiveElements.blocker) {
+            button.setAttribute('aria-describedby', objectiveElements.blocker.id);
+        } else {
+            button.removeAttribute('aria-describedby');
+        }
+    };
+
     const renderControls = () => {
-        const humanTurn = state.active && isLocalTurn() && !state.busy && !online.resyncing;
+        const humanTurn = state.active && isLocalTurn() && !state.busy && !online.resyncing && !online.posting;
         const source = byId(state.sourceId);
         const target = byId(state.targetId);
         const handSize = (state.hands[runtime.localSeat] || []).length;
@@ -3273,25 +3313,54 @@ import * as riskApi from './risk-api.js';
         );
         elements.startButton.classList.toggle('risk-button-primary', !state.active && !onlineOpen);
         elements.startButton.classList.toggle('risk-button-restart', state.active || onlineOpen);
-        asButton(elements.inviteButton).disabled = online.requesting;
 
-        asButton(elements.autoSetupButton).disabled = !(
+        const invitePending = online.requesting && runtime.pendingAction === 'invite';
+        const inviteButton = asButton(elements.inviteButton);
+
+        inviteButton.disabled = online.requesting;
+        setButtonBusy(inviteButton, invitePending);
+        setText(inviteButton, invitePending ? 'Creating game…' : 'Invite players');
+
+        const autoSetupButton = asButton(elements.autoSetupButton);
+        const autoSetupPending = autoSetupActive();
+
+        autoSetupButton.disabled = !(
             state.active
             && state.phase === 'setup'
-            && !autoSetupActive()
+            && !autoSetupPending
             && (!isOnline() || (isLocalTurn() && !online.resyncing && (state.setupPool[runtime.localSeat] || 0) > 0))
         );
+        setButtonBusy(autoSetupButton, autoSetupPending);
+        setText(autoSetupButton, autoSetupPending ? 'Auto-placing setup…' : 'Auto-place setup');
         const canPlaceReinforcements = humanTurn
             && state.phase === 'reinforce'
             && state.reinforcementRemaining > 0
             && handSize < 5;
         const hasSelectedReinforcementTerritory = source && source.owner === runtime.localSeat;
-        asButton(elements.reinforceButton).disabled = !(canPlaceReinforcements && hasSelectedReinforcementTerritory);
+        const reinforcePending = onlineActionPending('reinforce');
+        const reinforceButton = asButton(elements.reinforceButton);
+
+        reinforceButton.disabled = reinforcePending || !(canPlaceReinforcements && hasSelectedReinforcementTerritory);
+        setButtonBusy(reinforceButton, reinforcePending);
+        setText(reinforceButton, reinforcePending ? 'Saving placement…' : 'Place all here');
 
         if (canPlaceReinforcements && !hasSelectedReinforcementTerritory) {
             elements.reinforceButton.title = 'Select one of your territories first';
         } else {
             elements.reinforceButton.removeAttribute('title');
+        }
+
+        const setupPlacement = state.active && state.phase === 'setup' && isLocalTurn();
+
+        setText(uxElements.cardsTitle, setupPlacement ? 'Setup placement' : 'Reinforce & cards');
+        asButton(elements.reinforceButton).hidden = setupPlacement;
+        elements.tradeValue.hidden = setupPlacement;
+        elements.hand.hidden = setupPlacement;
+        elements.handHelp.hidden = setupPlacement;
+        asButton(elements.tradeButton).hidden = setupPlacement;
+
+        if (uxElements.setupPlacementNote) {
+            uxElements.setupPlacementNote.hidden = !setupPlacement;
         }
 
         placeAmountInputs.forEach((input) => {
@@ -3300,36 +3369,25 @@ import * as riskApi from './risk-api.js';
 
         if (uxElements.placeAmountOptions) {
             const placeAmountOptions = /** @type {HTMLFieldSetElement} */ (uxElements.placeAmountOptions);
+            placeAmountOptions.hidden = setupPlacement;
             placeAmountOptions.disabled = !canPlaceReinforcements;
-
-            if (state.active && state.phase === 'setup' && isLocalTurn()) {
-                placeAmountOptions.title = 'Setup places exactly one army per click.';
-            } else if (!canPlaceReinforcements) {
-                placeAmountOptions.title = 'Available during your reinforce phase.';
-            } else {
-                placeAmountOptions.removeAttribute('title');
-            }
+            placeAmountOptions.removeAttribute('title');
         }
 
-        const endLabels = {
-            reinforce: 'Begin attacks',
-            attack: 'End attacks',
-            conquer: 'End attacks',
-            fortify: 'End turn'
-        };
         const confirmationPending = runtime.phaseAdvanceConfirmation === guidanceContextKey();
 
         if (runtime.phaseAdvanceConfirmation && !confirmationPending) {
             runtime.phaseAdvanceConfirmation = null;
         }
 
-        const endLabel = state.current_seat === runtime.localSeat && endLabels[state.phase]
-            ? confirmationPending
-                ? state.phase === 'attack' ? 'Confirm: end attacks' : 'Confirm: end turn'
-                : endLabels[state.phase]
-            : 'End phase';
+        const endLabel = endLabelForState();
+        const endPending = onlineActionPending('end');
+        const botPending = Boolean(runtime.botRequest);
 
-        setText(elements.endButton, endLabel);
+        setText(elements.endButton, botPending
+            ? `${ownerLabel(state.current_seat)} thinking…`
+            : endPending ? 'Saving phase…' : online.resyncing ? 'Syncing game…' : endLabel);
+        setButtonBusy(asButton(elements.endButton), endPending || botPending);
         asButton(elements.endButton).disabled = !(
             humanTurn
             && ((state.phase === 'reinforce' && state.reinforcementRemaining === 0 && handSize < 5)
@@ -3337,21 +3395,6 @@ import * as riskApi from './risk-api.js';
                 || state.phase === 'fortify')
         );
 
-        const endBlockedReason = humanTurn && state.phase === 'reinforce' && handSize >= 5
-            ? 'Trade a card set before placing armies or beginning attacks.'
-            : humanTurn && state.phase === 'reinforce' && state.reinforcementRemaining > 0
-                ? `Place all ${state.reinforcementRemaining} remaining armies before beginning attacks.`
-                : humanTurn && (state.phase === 'conquer' || pendingConquest)
-                    ? 'Move armies into the conquered territory before ending attacks.'
-                    : '';
-
-        if (endBlockedReason) {
-            elements.endButton.title = endBlockedReason;
-            elements.endButton.setAttribute('aria-describedby', elements.turnGuidance.id);
-        } else {
-            elements.endButton.removeAttribute('title');
-            elements.endButton.removeAttribute('aria-describedby');
-        }
 
         const maxDice = maxAttackDice(source && source.owner === runtime.localSeat ? source : null);
         const chosenDice = maxDice > 0 ? Math.min(state.attackDice, maxDice) : state.attackDice;
@@ -3381,13 +3424,27 @@ import * as riskApi from './risk-api.js';
             || Boolean(attackError(runtime.localSeat, source, target, effectiveAttackDice(source)))
         );
 
-        asButton(elements.attackButton).disabled = attackDisabled;
+        const attackButton = asButton(elements.attackButton);
+        const rollingAttack = state.busy && state.battle?.attacker === runtime.localSeat;
+        const attackPending = onlineActionPending('attack');
+
+        attackButton.disabled = attackDisabled || rollingAttack || attackPending;
+        setText(attackButton, attackPending ? 'Saving battle…' : rollingAttack ? 'Rolling attack…' : 'Roll attack');
+        setButtonBusy(attackButton, rollingAttack || attackPending);
 
         if (uxElements.blitzButton) {
             const blitzButton = asButton(uxElements.blitzButton);
 
-            blitzButton.disabled = attackDisabled;
-            setText(blitzButton, runtime.blitzing ? 'Stop' : 'Blitz (roll until decided)');
+            const blitzPending = onlineActionPending('blitz');
+            const blitzRolling = runtime.blitzing && state.busy;
+
+            blitzButton.disabled = attackDisabled || blitzPending || blitzRolling;
+            setText(blitzButton, blitzPending
+                ? 'Saving blitz…'
+                : blitzRolling
+                    ? 'Blitz rolling…'
+                    : runtime.blitzing ? 'Stop blitz' : 'Blitz (roll until decided)');
+            setButtonBusy(blitzButton, blitzPending || blitzRolling);
             blitzButton.classList.toggle('is-running', runtime.blitzing);
             blitzButton.setAttribute('aria-pressed', runtime.blitzing ? 'true' : 'false');
         }
@@ -3405,13 +3462,23 @@ import * as riskApi from './risk-api.js';
             fortifyInput.value = String(fortifyMax);
         }
 
-        asButton(elements.fortifyButton).disabled = !fortifyReady;
-        setText(elements.fortifyButton, state.phase === 'fortify' ? 'Fortify & end turn' : 'Fortify');
+        const fortifyPending = onlineActionPending('fortify');
+        const fortifyButton = asButton(elements.fortifyButton);
+
+        fortifyButton.disabled = fortifyPending || !fortifyReady;
+        setText(fortifyButton, fortifyPending ? 'Saving fortify…' : state.phase === 'fortify' ? 'Fortify & end turn' : 'Fortify');
+        setButtonBusy(fortifyButton, fortifyPending);
 
         const conquestInput = asInput(elements.conquestCount);
         const conquestKey = pendingConquest ? `${pendingConquest.targetId}:${pendingConquest.min}:${pendingConquest.max}` : '';
+        const conquestPending = onlineActionPending('conquest');
+        const conquestButton = asButton(elements.conquestButton);
 
-        elements.conquestPanel.hidden = !pendingConquest;
+        elements.conquestPanel.hidden = !pendingConquest && !conquestPending;
+        conquestInput.disabled = conquestPending;
+        conquestButton.disabled = conquestPending;
+        setButtonBusy(conquestButton, conquestPending);
+        setText(conquestButton, conquestPending ? 'Saving move…' : 'Move armies');
 
         if (pendingConquest && conquestInput.dataset.key !== conquestKey) {
             conquestInput.dataset.key = conquestKey;
@@ -3424,24 +3491,48 @@ import * as riskApi from './risk-api.js';
         }
 
         const pendingDefense = state.pendingDefense;
-        elements.defensePanel.hidden = !pendingDefense;
+        const defensePending = onlineActionPending('defense');
+
+        elements.defensePanel.hidden = !pendingDefense && !defensePending;
+        asButton(elements.defendOneButton).disabled = defensePending;
+        asButton(elements.defendTwoButton).disabled = defensePending;
+        setButtonBusy(asButton(elements.defendOneButton), defensePending);
+        setButtonBusy(asButton(elements.defendTwoButton), defensePending);
+        setText(elements.defendOneButton, defensePending ? 'Saving defense…' : 'Defend with 1 die');
+        setText(elements.defendTwoButton, defensePending ? 'Saving defense…' : 'Defend with 2 dice');
 
         if (pendingDefense) {
             const attacker = byId(pendingDefense.sourceId);
             const defender = byId(pendingDefense.targetId);
             elements.defenseHelp.textContent = `${ownerLabel(pendingDefense.player)} rolls ${diceLabel(pendingDefense.attackDice)} from ${attacker.name} against your ${defender.name} (${pluralArmy(defender.armies)}). Ties go to you.`;
-            asButton(elements.defendTwoButton).disabled = maxDefendDice(defender) < 2;
+            asButton(elements.defendTwoButton).disabled = defensePending || maxDefendDice(defender) < 2;
         }
 
         asInput(elements.autoDefend).checked = state.autoDefend || isOnline();
         // Online defense is always automatic with the maximum dice, so the preference only applies locally.
         asInput(elements.autoDefend).disabled = isOnline();
-        asButton(elements.tradeButton).disabled = !(
+        const tradePending = onlineActionPending('trade');
+        const tradeButton = asButton(elements.tradeButton);
+
+        tradeButton.disabled = tradePending || !(
             humanTurn
             && state.phase === 'reinforce'
             && selectedCards.length === 3
             && isValidSet(selectedCards)
         );
+        setButtonBusy(tradeButton, tradePending);
+        setText(tradeButton, tradePending ? 'Saving trade…' : 'Trade selected set');
+
+        const reasons = phaseCopy().disabledReasons;
+
+        setControlReason(asButton(elements.endButton), reasons.end);
+        setControlReason(asButton(elements.reinforceButton), reasons.reinforce);
+        setControlReason(asButton(elements.attackButton), reasons.attack);
+        if (uxElements.blitzButton) {
+            setControlReason(asButton(uxElements.blitzButton), reasons.blitz);
+        }
+        setControlReason(asButton(elements.fortifyButton), reasons.fortify);
+        setControlReason(asButton(elements.tradeButton), reasons.trade);
     };
 
     const createGlyph = (owner, className) => {
@@ -3453,7 +3544,28 @@ import * as riskApi from './risk-api.js';
 
     // One scoreboard entry per seat in turn order, plus the neutral army in the one-bot game.
     const renderScoreboard = () => {
-        elements.scoreboardSeats.replaceChildren(...boardOwners().map((owner) => {
+        const owners = boardOwners();
+        const key = JSON.stringify(owners.map((owner) => {
+            const avatar = state.avatars[owner];
+
+            return [
+                owner,
+                ownedBy(owner).length,
+                state.hands[owner]?.length || 0,
+                isEliminated(owner),
+                state.active && state.current_seat === owner,
+                avatar?.name || '',
+                avatar?.text || '',
+                state.phase === 'idle'
+            ];
+        }));
+
+        if (runtime.scoreboardKey === key) {
+            return;
+        }
+
+        runtime.scoreboardKey = key;
+        elements.scoreboardSeats.replaceChildren(...owners.map((owner) => {
             const entry = document.createElement('span');
             const label = ownerLabel(owner);
             const eliminated = isEliminated(owner);
@@ -3565,7 +3677,7 @@ import * as riskApi from './risk-api.js';
             : phase);
         setText(elements.reinforcements, String(reserve.count));
         setText(uxElements.reserveOwner, reserve.label);
-        setText(elements.status, state.message);
+        setText(elements.status, phaseCopy().status);
         renderScoreboard();
         renderLegend();
     };
@@ -3639,187 +3751,320 @@ import * as riskApi from './risk-api.js';
     };
 
     // The current objective plus, when the next relevant action is unavailable, the reason why.
-    const objectiveFor = () => {
-        if (state.phase === 'gameover' && isOnline()) {
-            return state.winner === runtime.localSeat
-                ? { title: 'Victory', text: 'You are the last seat standing. Press Invite players to set up a rematch.', blocker: '' }
-                : {
-                    title: 'Defeat',
-                    text: `${state.winner ? ownerLabel(state.winner) : 'Another seat'} is the last seat standing. Press Invite players to set up a rematch.`,
-                    blocker: ''
-                };
+    const phaseCopy = (focus = null, feedbackEvent = null) => {
+        const handSize = (state.hands[runtime.localSeat] || []).length;
+        const source = byId(state.sourceId);
+        const target = byId(state.targetId);
+        const ownSource = source && source.owner === runtime.localSeat ? source : null;
+        const endLabel = endLabelForState();
+        const selectedCards = selectedHumanCards();
+        const copy = {
+            title: phaseLabels[state.phase] || 'Ready',
+            objective: '',
+            text: '',
+            guidance: '',
+            blocker: '',
+            selection: '',
+            status: '',
+            announcement: '',
+            feedback: '',
+            disabledReasons: {
+                end: '',
+                reinforce: '',
+                attack: '',
+                blitz: '',
+                fortify: '',
+                trade: ''
+            }
+        };
+
+        if (feedbackEvent) {
+            const { kind, details } = feedbackEvent;
+
+            if (kind === 'draw') {
+                copy.feedback = `New card: ${details.card}. It waits in your hand for a set.`;
+            } else if (kind === 'trade') {
+                copy.feedback = `Set traded: +${pluralArmy(details.count)} to deploy.`;
+            } else if (kind === 'place') {
+                copy.feedback = `+${details.count} ${details.count === 1 ? 'army' : 'armies'} on ${details.territory}.`;
+            } else if (kind === 'set') {
+                copy.feedback = `Valid set: worth ${pluralArmy(details.value)}. ${details.canTradeNow ? 'Press Trade selected set.' : 'Trade it during your reinforcement phase.'}`;
+            } else if (kind === 'invalid') {
+                copy.feedback = 'Not a set: use three of a kind, one of each type, or two cards with a wild.';
+            } else if (kind === 'conquer') {
+                copy.feedback = `${details.territory} conquered! You will draw a card when your turn ends.`;
+            } else if (kind === 'loss') {
+                copy.feedback = details.captured
+                    ? `${details.attacker} captured your ${details.territory}.`
+                    : `Battle at ${details.territory}: you lose ${details.yourLosses}, ${details.rival} loses ${details.rivalLosses}.`;
+            } else if (kind === 'hit') {
+                copy.feedback = `Battle at ${details.territory}: you lose ${details.yourLosses}, ${details.rival} loses ${details.rivalLosses}.`;
+            }
         }
 
-        if (state.phase === 'gameover') {
-            if (state.winner === runtime.localSeat) {
-                return { title: 'Victory', text: 'You hold the table. Adjust Game setup if you like, then press New game to play again.', blocker: '' };
+        const extraBlockers = [];
+        const finish = () => {
+            const override = runtime.guidanceOverride;
+
+            if (override && override.key === guidanceContextKey()) {
+                extraBlockers.push(override.text);
+            } else if (override) {
+                runtime.guidanceOverride = null;
             }
 
-            const botsLeft = activeSeats().filter((seat) => seat !== runtime.localSeat).length;
+            if ((online.resyncing || online.posting) && (isLocalTurn() || runtime.pendingAction)) {
+                const pendingGuidance = online.resyncing ? 'Loading the latest online game state…' : 'Saving your move online…';
+                const pendingReason = online.resyncing
+                    ? 'Controls are unavailable until the latest game state loads.'
+                    : 'Controls are unavailable until this move is saved.';
 
-            return {
-                title: 'Defeat',
-                text: state.winner
-                    ? `You were eliminated and ${ownerLabel(state.winner)} is the last seat standing. Adjust Game setup if you like, then press New game for a rematch.`
-                    : `You were eliminated with ${botsLeft} bots still in play, so no overall winner was decided. Adjust Game setup if you like, then press New game for a rematch.`,
-                blocker: ''
+                copy.guidance = pendingGuidance;
+                copy.disabledReasons.end = pendingReason;
+                if (Object.prototype.hasOwnProperty.call(copy.disabledReasons, runtime.pendingAction)) {
+                    copy.disabledReasons[runtime.pendingAction] = pendingReason;
+                }
+                if (state.phase === 'reinforce') {
+                    copy.disabledReasons.reinforce = pendingReason;
+                    copy.disabledReasons.trade = pendingReason;
+                } else if (state.phase === 'attack') {
+                    copy.disabledReasons.attack = pendingReason;
+                    copy.disabledReasons.blitz = pendingReason;
+                } else if (state.phase === 'fortify') {
+                    copy.disabledReasons.fortify = pendingReason;
+                }
+            }
+
+            const reasonButtons = {
+                end: elements.endButton,
+                reinforce: elements.reinforceButton,
+                attack: elements.attackButton,
+                blitz: uxElements.blitzButton,
+                fortify: elements.fortifyButton,
+                trade: elements.tradeButton
             };
+            const visibleReasons = Object.entries(copy.disabledReasons)
+                .filter(([key, reason]) => reason && reasonButtons[key] && asButton(reasonButtons[key]).disabled)
+                .map(([, reason]) => reason);
+
+            copy.text = copy.objective;
+            copy.status = !state.active && state.phase === 'idle'
+                ? 'No action yet.'
+                : state.battle?.rolling
+                    ? `Last action: ${ownerLabel(state.battle.attacker)} started a roll at ${state.battle.targetName}.`
+                    : state.message ? `Last action: ${state.message}` : 'No action recorded.';
+            copy.selection = focus
+                ? `${focus.name} is ${focus.id === state.sourceId ? 'the selected source' : focus.id === state.targetId ? 'the selected target' : 'open in selection details'}; ${ownerLabel(focus.owner)} has ${pluralArmy(focus.armies)} here.`
+                : '';
+            copy.blocker = [...new Set([
+                ...extraBlockers,
+                ...visibleReasons
+            ].filter(Boolean))].join('\n');
+            copy.announcement = state.battle?.rolling
+                ? `Battle rolling at ${state.battle.targetName}.`
+                : state.pendingConquest
+                    ? `Conquest move required at ${byId(state.pendingConquest.targetId)?.name || 'the captured territory'}.`
+                    : state.pendingDefense
+                        ? `Defense decision required at ${byId(state.pendingDefense.targetId)?.name || 'your territory'}.`
+                        : state.active
+                            ? `${ownerLabel(state.current_seat)} is in the ${copy.title.toLowerCase()} phase.`
+                            : `The Risk table is ${copy.title.toLowerCase()}.`;
+
+            return copy;
+        };
+
+        if (state.phase === 'gameover') {
+            copy.title = state.winner === runtime.localSeat ? 'Victory' : 'Defeat';
+            copy.objective = isOnline()
+                ? 'Use Invite players when you are ready to set up a rematch.'
+                : 'Adjust Game setup if you like, then press New game to play again.';
+            copy.guidance = state.winner
+                ? `${ownerLabel(state.winner)} is the last seat standing.`
+                : 'The game ended without an overall winner.';
+            return finish();
         }
 
         if (!state.active && online.gameId && !isOnline()) {
-            return {
-                title: 'Online lobby',
-                text: online.isHost
-                    ? 'Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. Press Start game when everyone is in; open seats become bots.'
-                    : 'You have a seat. The game begins when the host presses Start game; open seats become bots.',
-                blocker: ''
-            };
+            copy.title = 'Online lobby';
+            copy.objective = online.isHost
+                ? 'Share the invite link, then press Start game when everyone is in.'
+                : 'Wait for the host to press Start game.';
+            copy.guidance = 'Any open seat becomes a bot when the game starts.';
+            return finish();
         }
 
         if (!state.active) {
-            return {
-                title: 'Ready to play',
-                text: 'Choose your Game setup above, then press New game to deal the world.',
-                blocker: ''
-            };
+            copy.title = 'Ready to play';
+            copy.objective = 'Choose Game setup, then press New game.';
+            copy.guidance = 'Opponent count, placement, and card settings apply to the next game.';
+            copy.disabledReasons.end = 'End phase: start a game first.';
+            return finish();
         }
 
         if (state.pendingDefense) {
             const attacker = byId(state.pendingDefense.sourceId);
             const defender = byId(state.pendingDefense.targetId);
 
-            return {
-                title: 'Defend',
-                text: attacker && defender
-                    ? `${ownerLabel(attacker.owner)} attacks ${defender.name} from ${attacker.name}. Choose your defense dice.`
-                    : 'You are under attack. Choose your defense dice.',
-                blocker: 'The battle waits for your defense choice.'
-            };
+            copy.title = 'Defend';
+            copy.objective = `Choose defense dice for ${defender ? defender.name : 'your territory'}.`;
+            copy.guidance = attacker && defender
+                ? `${ownerLabel(attacker.owner)} is attacking from ${attacker.name}; ties go to the defender.`
+                : 'Use the defense buttons in the battle panel.';
+            extraBlockers.push('The battle cannot continue until you choose defense dice.');
+            copy.disabledReasons.end = 'End attacks: choose defense dice first.';
+            copy.disabledReasons.attack = 'Roll attack: choose defense dice first.';
+            copy.disabledReasons.blitz = 'Blitz: choose defense dice first.';
+            return finish();
+        }
+
+        if (!isLocalTurn()) {
+            const player = ownerLabel(state.current_seat);
+
+            copy.title = `${player}: ${phaseLabels[state.phase] || 'Turn'}`;
+            copy.objective = `Watch ${player}'s move on the board.`;
+            copy.guidance = runtime.botRequest
+                ? `${player} is thinking…`
+                : isOnline() ? 'Moves appear after the online table syncs.' : 'You will choose defense dice if you are attacked.';
+            copy.disabledReasons.end = 'Your controls unlock when your turn begins.';
+            if (state.phase === 'attack' || state.phase === 'conquer') {
+                copy.disabledReasons.attack = `Roll attack: only ${player} can act during this turn.`;
+                copy.disabledReasons.blitz = `Blitz: only ${player} can act during this turn.`;
+            }
+            return finish();
+        }
+
+        if (online.resyncing || online.posting) {
+            const pendingText = online.resyncing ? 'Loading the latest online game state…' : 'Saving your move online…';
+
+            copy.guidance = pendingText;
+            copy.disabledReasons.end = pendingText;
         }
 
         if (state.phase === 'setup') {
-            const pool = state.setupPool[runtime.localSeat];
+            const step = state.setupStep;
+            const ownLeft = step ? Math.max(0, step.ownNeeded - step.own) : 0;
+            const neutralLeft = step ? Math.max(0, step.neutralNeeded - step.neutral) : 0;
+            const remaining = state.setupPool[runtime.localSeat] || ownLeft;
 
+            copy.title = 'Setup placement';
             if (autoSetupActive()) {
-                return { title: 'Setup', text: 'Auto-place is spreading your remaining armies.', blocker: '' };
+                copy.objective = 'Auto-place is finishing your setup armies.';
+                copy.guidance = 'No input is needed while Auto-place setup runs.';
+            } else if (ownLeft > 0) {
+                copy.objective = `Place ${remaining} more ${remaining === 1 ? 'army' : 'armies'} on your territories.`;
+                copy.guidance = 'Each territory click places exactly one army; Auto-place setup can finish the rest.';
+            } else if (neutralLeft > 0) {
+                copy.objective = `Place ${neutralLeft} neutral ${neutralLeft === 1 ? 'army' : 'armies'}.`;
+                copy.guidance = 'Click a neutral territory marked with a square.';
+            } else {
+                copy.objective = 'Your setup placements are complete.';
+                copy.guidance = 'Wait for the next setup step.';
             }
-
-            return {
-                title: 'Setup: place your armies',
-                text: pool > 0
-                    ? `Click one of your territories to add an army. ${pluralArmy(pool)} left to place, or press Auto-place setup.`
-                    : 'Your armies are placed. The other seats are finishing setup.',
-                blocker: state.current_seat !== runtime.localSeat || state.busy
-                    ? `Waiting for ${ownerLabel(state.current_seat)} to place.`
-                    : ''
-            };
+            copy.disabledReasons.end = 'Setup advances automatically after all required armies are placed.';
+            return finish();
         }
-
-        if (state.current_seat !== runtime.localSeat) {
-            return {
-                title: `${ownerLabel(state.current_seat)}: ${phaseLabels[state.phase] || 'Turn'}`,
-                text: isOnline()
-                    ? 'Watch the map and dice tray. Other players\' moves appear within a few seconds, and you defend with the most dice allowed.'
-                    : 'Watch the map and dice tray. You choose defense dice if a bot attacks you.',
-                blocker: 'Your controls unlock when your turn begins.'
-            };
-        }
-
-        const source = byId(state.sourceId);
-        const target = byId(state.targetId);
-        const ownSource = source && source.owner === runtime.localSeat ? source : null;
-        const endLabel = elements.endButton.textContent;
-        const rolling = state.busy ? 'Wait for the dice to settle.' : '';
 
         if (state.phase === 'reinforce') {
-            if (state.hands[runtime.localSeat].length >= 5) {
-                return {
-                    title: 'Reinforce: trade a set',
-                    text: 'You hold five or more cards. Select three that form a set, then press Trade selected set.',
-                    blocker: 'Placing armies is locked until you trade a set.'
-                };
+            copy.title = handSize >= 5 ? 'Reinforce: trade a set' : 'Reinforce';
+
+            if (handSize >= 5) {
+                copy.objective = 'Select three cards that form a set.';
+                copy.guidance = 'Press Trade selected set; army placement unlocks after the mandatory trade.';
+            } else if (state.reinforcementRemaining > 0) {
+                copy.objective = `Deploy ${pluralArmy(state.reinforcementRemaining)}.`;
+                copy.guidance = `Each territory click places ${placementAmountDescription()} (capped by your reserve); select a territory and press Place all here to use the full reserve.`;
+            } else {
+                copy.objective = 'Reinforcement is complete.';
+                copy.guidance = `Press ${endLabel}, or trade another valid set first.`;
             }
 
-            if (state.reinforcementRemaining > 0) {
-                return {
-                    title: 'Reinforce',
-                    text: `Deploy ${pluralArmy(state.reinforcementRemaining)}: click your territories one army at a time, or select one and press Place all here.`,
-                    blocker: `${endLabel} unlocks once every army is deployed.`
-                };
+            if (handSize >= 5) {
+                copy.disabledReasons.end = `${endLabel}: trade a card set first.`;
+                copy.disabledReasons.reinforce = 'Place all here: trade a card set first.';
+            } else if (state.reinforcementRemaining > 0) {
+                copy.disabledReasons.end = `${endLabel}: deploy all ${state.reinforcementRemaining} remaining armies first.`;
+                if (!ownSource) {
+                    copy.disabledReasons.reinforce = 'Place all here: select one of your territories first.';
+                }
+            } else {
+                copy.disabledReasons.reinforce = 'Place all here: no armies remain in your reserve.';
             }
 
-            return { title: 'Reinforce', text: `All armies deployed. Press ${endLabel} to continue.`, blocker: rolling };
+            if (selectedCards.length !== 3) {
+                copy.disabledReasons.trade = 'Trade selected set: select exactly three cards.';
+            } else if (!isValidSet(selectedCards)) {
+                copy.disabledReasons.trade = 'Trade selected set: the selected cards do not form a valid set.';
+            }
+
+            return finish();
         }
 
         if (state.phase === 'conquer' && state.pendingConquest) {
             const conquered = byId(state.pendingConquest.targetId);
 
-            return {
-                title: 'Move in',
-                text: `Move ${state.pendingConquest.min} to ${state.pendingConquest.max} armies into ${conquered ? conquered.name : 'the conquered territory'}, then press Move armies.`,
-                blocker: 'Attacks resume after you move in.'
-            };
+            copy.title = 'Move in';
+            copy.objective = `Move armies into ${conquered ? conquered.name : 'the conquered territory'}.`;
+            copy.guidance = `Choose ${state.pendingConquest.min} to ${state.pendingConquest.max}, then press Move armies.`;
+            copy.disabledReasons.end = 'End attacks: move armies into the conquered territory first.';
+            copy.disabledReasons.attack = 'Roll attack: move armies into the conquered territory first.';
+            copy.disabledReasons.blitz = 'Blitz: move armies into the conquered territory first.';
+            return finish();
         }
 
         if (state.phase === 'attack') {
-            if (rolling) {
-                return { title: 'Attack', text: 'The dice are rolling.', blocker: rolling };
+            copy.title = 'Attack';
+
+            if (state.busy) {
+                copy.objective = source && target ? `Resolve the battle from ${source.name} to ${target.name}.` : 'Resolve the current battle.';
+                copy.guidance = 'The dice are rolling; battle controls return when they settle.';
+                copy.disabledReasons.end = 'End attacks: wait for the dice to settle.';
+                copy.disabledReasons.attack = 'Roll attack: wait for the current roll to finish.';
+                copy.disabledReasons.blitz = 'Blitz: wait for the current roll to finish.';
+                return finish();
             }
 
             if (!ownSource) {
-                return {
-                    title: 'Attack',
-                    text: `Select one of your territories with 2 or more armies, then a neighbouring enemy. Or press ${endLabel}.`,
-                    blocker: hasLegalAttack(runtime.localSeat)
-                        ? 'Roll attack unlocks once you pick an attacker and a target.'
-                        : `No attack is possible: none of your territories has spare armies beside an enemy. Press ${endLabel}.`
-                };
+                copy.objective = 'Choose one of your territories with at least 2 armies.';
+                copy.guidance = `Use a blue-ringed territory, then choose a dashed-ring enemy; ${endLabel} skips attacking.`;
+            } else if (!target) {
+                copy.objective = `Choose an enemy territory beside ${ownSource.name}.`;
+                copy.guidance = `Use a dashed-ring target, or press ${endLabel}.`;
+            } else {
+                copy.objective = `Attack ${target.name} from ${ownSource.name}.`;
+                copy.guidance = `Choose dice, then click ${target.name} again or press Roll attack; Blitz repeats rolls until stopped or decided.`;
             }
 
-            if (!target) {
-                return {
-                    title: 'Attack',
-                    text: `Attacking from ${ownSource.name}. Choose an enemy territory with a dashed ring.`,
-                    blocker: ownSource.armies < 2
-                        ? `${ownSource.name} needs at least 2 armies to attack.`
-                        : 'Roll attack unlocks once you choose a target.'
-                };
+            const error = attackError(runtime.localSeat, ownSource, target, effectiveAttackDice(ownSource));
+            if (error) {
+                copy.disabledReasons.attack = `Roll attack: ${error}`;
+                copy.disabledReasons.blitz = `Blitz: ${error}`;
             }
-
-            return {
-                title: 'Attack',
-                text: `${ownSource.name} against ${target.name}. Choose your dice and press Roll attack.`,
-                blocker: attackError(runtime.localSeat, ownSource, target, effectiveAttackDice(ownSource)) || ''
-            };
+            return finish();
         }
 
         if (state.phase === 'fortify') {
+            copy.title = 'Fortify';
+
             if (!ownSource) {
-                return {
-                    title: 'Fortify',
-                    text: `Optional: move armies between two connected territories of yours, or press ${endLabel}.`,
-                    blocker: 'Fortify unlocks once you pick a source and a destination.'
-                };
+                copy.objective = 'Optionally choose one of your territories with spare armies.';
+                copy.guidance = `Choose a blue-ringed source and connected destination, or press ${endLabel}.`;
+            } else if (!target) {
+                copy.objective = `Choose a connected destination for armies from ${ownSource.name}.`;
+                copy.guidance = `Use a dashed-ring territory you own, or press ${endLabel}.`;
+            } else {
+                copy.objective = `Move armies from ${ownSource.name} to ${target.name}.`;
+                copy.guidance = 'Set the amount, then press Fortify & end turn.';
             }
 
-            if (!target) {
-                return {
-                    title: 'Fortify',
-                    text: `Moving from ${ownSource.name}. Choose a connected territory of yours, or press ${endLabel}.`,
-                    blocker: ownSource.armies < 2
-                        ? `${ownSource.name} needs at least 2 armies to move any.`
-                        : 'Fortify unlocks once you choose a destination.'
-                };
+            const error = fortifyError(runtime.localSeat, ownSource, target, 1);
+            if (error) {
+                copy.disabledReasons.fortify = `Fortify & end turn: ${error}`;
             }
-
-            return {
-                title: 'Fortify',
-                text: `Set how many armies move from ${ownSource.name} to ${target.name}, then press Fortify.`,
-                blocker: fortifyError(runtime.localSeat, ownSource, target, 1) || ''
-            };
+            return finish();
         }
 
-        return { title: phaseLabels[state.phase] || 'Ready', text: state.message, blocker: rolling };
+        copy.objective = 'Follow the current decision.';
+        copy.guidance = 'Use the highlighted controls to continue.';
+        return finish();
     };
 
     const renderObjective = () => {
@@ -3829,7 +4074,7 @@ import * as riskApi from './risk-api.js';
             return;
         }
 
-        const objective = objectiveFor();
+        const objective = phaseCopy();
 
         // Text is only written when it changes, so unrelated rerenders leave the region untouched.
         if (title.textContent !== objective.title) {
@@ -3879,117 +4124,22 @@ import * as riskApi from './risk-api.js';
         }
     };
 
-    const guidanceForState = () => {
-        if (state.phase === 'gameover') {
-            return state.winner
-                ? `${ownerLabel(state.winner)} wins the game.`
-                : 'The game is over with no winner decided.';
-        }
-
-        if (!state.active || state.phase === 'idle') {
-            return 'Choose your game setup and start a new game.';
-        }
-
-        if (state.pendingDefense) {
-            const territory = byId(state.pendingDefense.targetId);
-
-            return `Choose defense dice for ${territory ? territory.name : 'your territory'}.`;
-        }
-
-        if (!isLocalTurn()) {
-            return `Waiting for ${ownerLabel(state.current_seat)}…`;
-        }
-
-        if (online.resyncing) {
-            return 'Waiting for the latest online game state…';
-        }
-
-        if (state.busy) {
-            return 'Waiting for the dice to finish rolling…';
-        }
-
-        const override = runtime.guidanceOverride;
-
-        if (override && override.key === guidanceContextKey()) {
-            return override.text;
-        }
-
-        if (override) {
-            runtime.guidanceOverride = null;
-        }
-
-        const handSize = (state.hands[runtime.localSeat] || []).length;
-        const source = byId(state.sourceId);
-        const target = byId(state.targetId);
-
-        if (state.phase === 'setup') {
-            const step = state.setupStep;
-            const ownLeft = step ? Math.max(0, step.ownNeeded - step.own) : 0;
-            const neutralLeft = step ? Math.max(0, step.neutralNeeded - step.neutral) : 0;
-
-            if (ownLeft > 0) {
-                const remaining = state.setupPool[runtime.localSeat] || ownLeft;
-
-                return `Place ${remaining} more ${remaining === 1 ? 'army' : 'armies'}: click one of your territories.`;
-            }
-
-            if (neutralLeft > 0) {
-                return `Place ${neutralLeft} more neutral ${neutralLeft === 1 ? 'army' : 'armies'}: click a neutral territory.`;
-            }
-
-            return 'Your setup armies are placed; wait for the next setup step.';
-        }
-
-        if (state.phase === 'reinforce') {
-            if (handSize >= 5) {
-                return `You hold ${handSize} cards — trade a set before placing.`;
-            }
-
-            return `Reinforce: ${state.reinforcementRemaining} ${state.reinforcementRemaining === 1 ? 'army remains' : 'armies remain'}; each territory click places ${placementAmountDescription()} (capped by your reserve), or use Place all here.`;
-        }
-
-        if (state.phase === 'attack') {
-            if (source && source.owner === runtime.localSeat && source.armies < 2) {
-                return `${source.name} needs at least 2 armies to attack. Pick another highlighted territory.`;
-            }
-
-            if (!source || source.owner !== runtime.localSeat) {
-                return 'Attack: pick one of your highlighted territories, then an enemy neighbour.';
-            }
-
-            return target
-                ? `Attack: choose dice, then click ${target.name} again or press Roll attack / Blitz.`
-                : `Attack: pick a highlighted enemy neighbour of ${source.name}, or End attacks.`;
-        }
-
-        if (state.phase === 'conquer') {
-            const target = byId(state.pendingConquest?.targetId);
-
-            return `Choose how many armies move into ${target ? target.name : 'the conquered territory'}.`;
-        }
-
-        if (state.phase === 'fortify') {
-            if (!source || source.owner !== runtime.localSeat) {
-                return 'Fortify (once): pick a highlighted territory with spare armies, then a connected territory, or press End turn.';
-            }
-
-            if (source.armies < 2) {
-                return `${source.name} needs at least 2 armies to fortify. Pick another highlighted territory.`;
-            }
-
-            return target
-                ? `Fortify: choose how many armies move from ${source.name} to ${target.name}, then press Fortify & end turn.`
-                : `Fortify: pick a connected territory you own for armies from ${source.name}, or press End turn.`;
-        }
-
-        return 'Follow the current game prompt to continue.';
-    };
+    const guidanceForState = () => phaseCopy().guidance;
 
     const renderPhaseUi = () => {
         const phases = ['setup', 'reinforce', 'attack', 'fortify'];
         const activePhase = state.phase === 'conquer' ? 'attack' : state.phase;
         const activeIndex = phases.indexOf(activePhase);
         const showTurnProgress = state.active && isLocalTurn() && activeIndex !== -1;
+        const pendingControl = online.posting ? {
+            reinforce: elements.reinforceButton,
+            trade: elements.tradeButton,
+            attack: elements.attackButton,
+            blitz: uxElements.blitzButton,
+            conquest: elements.conquestButton,
+            defense: elements.defendTwoButton,
+            fortify: elements.fortifyButton
+        }[runtime.pendingAction] : null;
 
         elements.commandPanel.dataset.phase = state.phase;
 
@@ -4016,8 +4166,10 @@ import * as riskApi from './risk-api.js';
             const hasOpenDecision = (panel.contains(elements.defensePanel) && !elements.defensePanel.hidden)
                 || (panel.contains(elements.conquestPanel) && !elements.conquestPanel.hidden);
             const isBattlePanel = panel.contains(elements.diceTray);
+            const hasPendingControl = pendingControl instanceof Node && panel.contains(pendingControl);
             const shouldShow = (state.active && isLocalTurn() && phasesForPanel.includes(state.phase))
                 || hasOpenDecision
+                || hasPendingControl
                 || (state.active && !isLocalTurn() && isBattlePanel);
 
             if (!shouldShow && panel.contains(document.activeElement)) {
@@ -4035,10 +4187,11 @@ import * as riskApi from './risk-api.js';
         setText(elements.turnGuidance, guidanceForState());
     };
 
-    // One polite announcement per change: the phase line when the turn or phase changes, then the new message.
+    // The hidden live region gets one compact summary generated beside the visible phase copy.
     const announce = () => {
         const region = uxElements.announcer;
         const phaseKey = state.active ? `${state.current_seat}:${state.phase}` : state.phase;
+        const summary = phaseCopy().announcement;
 
         if (!region) {
             return;
@@ -4047,27 +4200,14 @@ import * as riskApi from './risk-api.js';
         if (runtime.announcedPhase === null) {
             // The initial page state is already on screen; nothing to announce on load.
             runtime.announcedPhase = phaseKey;
-            runtime.announcedMessage = state.message;
+            runtime.announcedMessage = summary;
             return;
         }
 
-        const parts = [];
-
-        if (phaseKey !== runtime.announcedPhase) {
+        if (phaseKey !== runtime.announcedPhase || summary !== runtime.announcedMessage) {
             runtime.announcedPhase = phaseKey;
-            parts.push(elements.phase.textContent);
-        }
-
-        if (state.message !== runtime.announcedMessage) {
-            runtime.announcedMessage = state.message;
-
-            if (state.message) {
-                parts.push(state.message);
-            }
-        }
-
-        if (parts.length > 0) {
-            region.textContent = parts.join('. ');
+            runtime.announcedMessage = summary;
+            region.textContent = summary;
         }
     };
 
@@ -4675,6 +4815,9 @@ import * as riskApi from './risk-api.js';
 
         online.queued = null;
         online.posting = true;
+        renderControls();
+        renderObjective();
+        renderPhaseUi();
 
         try {
             const game = await riskApi.postState(online.gameId, payload);
@@ -4684,6 +4827,9 @@ import * as riskApi from './risk-api.js';
             }
 
             online.posting = false;
+            if (!online.queued) {
+                runtime.pendingAction = '';
+            }
             online.version = Number.isInteger(game?.state_version) ? game.state_version : online.version + 1;
             online.lastAdvanceAt = Date.now();
 
@@ -4698,7 +4844,7 @@ import * as riskApi from './risk-api.js';
                 rememberOnlineGame('');
             }
 
-            renderLobby();
+            render();
             flushOnlinePost();
         } catch (error) {
             if (session !== online.session) {
@@ -4706,12 +4852,13 @@ import * as riskApi from './risk-api.js';
             }
 
             online.posting = false;
+            runtime.pendingAction = '';
 
             if (error && error.status === 0) {
                 // Unreachable server: keep the newest snapshot and retry on the next poll tick.
                 online.queued = online.queued || job;
                 showOnlineNotice(onlineErrorText(error), 'connection');
-                renderLobby();
+                render();
                 return;
             }
 
@@ -4889,6 +5036,7 @@ import * as riskApi from './risk-api.js';
         const session = online.session;
 
         online.requesting = true;
+        runtime.pendingAction = 'invite';
         showOnlineNotice('Creating an online game…');
         render();
 
@@ -4900,6 +5048,7 @@ import * as riskApi from './risk-api.js';
             }
 
             online.requesting = false;
+            runtime.pendingAction = '';
             showOnlineNotice('');
             setInviteUrl(game?.invite_link?.url, typeof game?.id === 'string' ? game.id : null);
             enterOnlineGame(game);
@@ -4913,6 +5062,7 @@ import * as riskApi from './risk-api.js';
             }
 
             online.requesting = false;
+            runtime.pendingAction = '';
             showOnlineNotice(onlineErrorText(error));
             render();
         }
@@ -4926,6 +5076,7 @@ import * as riskApi from './risk-api.js';
         const session = online.session;
 
         online.requesting = true;
+        runtime.pendingAction = 'lobby-start';
         showOnlineNotice('Starting the game…');
         renderLobby();
 
@@ -4937,6 +5088,7 @@ import * as riskApi from './risk-api.js';
             }
 
             online.requesting = false;
+            runtime.pendingAction = '';
             showOnlineNotice('');
             receiveGame(game);
         } catch (error) {
@@ -4945,6 +5097,7 @@ import * as riskApi from './risk-api.js';
             }
 
             online.requesting = false;
+            runtime.pendingAction = '';
             showOnlineNotice(onlineErrorText(error));
             renderLobby();
         }
@@ -5174,6 +5327,7 @@ import * as riskApi from './risk-api.js';
 
             retryButton.hidden = !(waiting && online.isHost && online.inviteUrl === '' && (online.inviteFailed || online.inviteRequesting));
             retryButton.disabled = online.inviteRequesting;
+            setButtonBusy(retryButton, online.inviteRequesting);
             setText(retryButton, online.inviteRequesting ? 'Getting invite link…' : 'Try again');
         }
 
@@ -5182,8 +5336,12 @@ import * as riskApi from './risk-api.js';
             ? 'Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press Start game, open seats become bots.'
             : 'You have a seat. When the host presses Start game, open seats become bots and the game begins.');
         elements.lobbyNote.hidden = !waiting;
+        const startPending = online.requesting && runtime.pendingAction === 'lobby-start';
+
         startButton.hidden = !(waiting && online.isHost);
         startButton.disabled = online.requesting;
+        setButtonBusy(startButton, startPending);
+        setText(startButton, startPending ? 'Starting game…' : 'Start game');
         setText(elements.lobbyLeaveButton, !online.gameId
             ? 'Close'
             : waiting ? 'Leave lobby' : 'Leave online game');
