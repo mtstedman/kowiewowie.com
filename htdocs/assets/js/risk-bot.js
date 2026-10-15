@@ -23,11 +23,12 @@ import {
 /** @typedef {{state: ModelState, probability: number}} Branch */
 /** @typedef {{[seat: string]: number}} Scores */
 /** @typedef {{value: number, flag: 'exact'|'lower'|'upper', best: string, depth: number}} TableEntry */
+/** @typedef {{value: Scores, best: string, depth: number}} VectorTableEntry */
 /**
  * @typedef {{deadline: number, root: string, depth: number, rng: () => number, nodes: number,
  *   battles: Map<string, BattleLeaf[]>, evaluations: Map<string, Scores>, campaigns: Map<string, Campaign[]>,
- *   table: Map<string, TableEntry>, ordering: Map<string, number>, bestMoves: Map<string, string>,
- *   tableLimit: number}} Search
+ *   table: Map<string, TableEntry>, vectorTable: Map<string, VectorTableEntry>, ordering: Map<string, number>,
+ *   bestMoves: Map<string, string>, tableLimit: number, maxn: boolean}} Search
  */
 
 const SCORE_MIN = -1000000;
@@ -138,6 +139,24 @@ const storeTable = (search, key, entry) => {
         }
     }
     search.table.set(key, entry);
+};
+
+/** Max-n entries are exact vectors and never share scalar alpha-beta bounds.
+ * @param {Search} search @param {string} key @param {VectorTableEntry} entry
+ */
+const storeVectorTable = (search, key, entry) => {
+    if (!search.vectorTable.has(key) && search.vectorTable.size >= search.tableLimit) {
+        const trim = Math.max(1, Math.floor(search.tableLimit / 8));
+        const keys = search.vectorTable.keys();
+        for (let index = 0; index < trim; index += 1) {
+            const oldest = keys.next();
+            if (oldest.done) {
+                break;
+            }
+            search.vectorTable.delete(oldest.value);
+        }
+    }
+    search.vectorTable.set(key, entry);
 };
 
 /** Project one reinforcement pool per opponent, never one pool per adjacent stack.
@@ -682,7 +701,7 @@ const candidates = (state, actions, width, campaigns, search) => {
         const firstPrior = search.ordering.get(`${positionKey}>${actionKey(first.action)}`);
         const secondPrior = search.ordering.get(`${positionKey}>${actionKey(second.action)}`);
         if (firstPrior !== undefined || secondPrior !== undefined) {
-            const direction = state.current === search.root ? 1 : -1;
+            const direction = search.maxn || state.current === search.root ? 1 : -1;
             return direction * ((secondPrior ?? second.order) - (firstPrior ?? first.order));
         }
         return second.order - first.order;
@@ -827,9 +846,11 @@ const rankMoves = (state, moves, search) => {
         }
         return { move, outcomes, scores };
     });
-    ranked.sort((first, second) => state.current === search.root
-        ? second.scores[search.root] - first.scores[search.root]
-        : first.scores[search.root] - second.scores[search.root]);
+    ranked.sort((first, second) => search.maxn
+        ? second.scores[state.current] - first.scores[state.current]
+        : state.current === search.root
+            ? second.scores[search.root] - first.scores[search.root]
+            : first.scores[search.root] - second.scores[search.root]);
     return ranked;
 };
 
@@ -953,6 +974,86 @@ const searchMove = (state, entry, remainingSeats, campaigns, search, remainingDe
     return Math.max(SCORE_MIN, Math.min(SCORE_MAX, value));
 };
 
+/** A Max-n decision returns the selected continuation's complete utility vector.
+ * Every actor chooses its own component; there are no scalar alpha-beta bounds.
+ * @param {ModelState} state @param {Set<string>} remainingSeats @param {number} campaigns
+ * @param {Search} search @param {number} remainingDepth @returns {Scores}
+ */
+const searchVectorPosition = (state, remainingSeats, campaigns, search, remainingDepth) => {
+    checkDeadline(search);
+    if (state.winner || !remainingSeats.has(state.current) || remainingDepth <= 0) {
+        return evaluate(state, search);
+    }
+    const positionKey = stateKey(state);
+    const context = `${Array.from(remainingSeats).sort().join(',')}:${Math.max(0, campaigns)}`;
+    const tableKey = `${positionKey}|${state.current}|${context}`;
+    const cached = search.vectorTable.get(tableKey);
+    if (cached && cached.depth >= remainingDepth) {
+        return cached.value;
+    }
+    const legal = legalActions(state);
+    const width = Math.min(12, 2 + search.depth * 2);
+    const moves = candidates(state, legal, width, campaigns, search);
+    if (!moves.length) {
+        return evaluate(state, search);
+    }
+    const ranked = rankMoves(state, moves, search);
+    const beam = ranked.slice(0, Math.min(ranked.length, 1 + search.depth * 2));
+    for (const entry of ranked) {
+        if ((entry.move.protected || actionKey(entry.move.action) === cached?.best) && !beam.includes(entry)) {
+            beam.push(entry);
+        }
+    }
+    let best = ranked[0].scores;
+    let bestValue = SCORE_MIN;
+    let bestAction = actionKey(beam[0].move.action);
+    for (const entry of beam) {
+        const value = searchVectorMove(state, entry, remainingSeats, campaigns, search, remainingDepth);
+        const actorValue = value[state.current];
+        const moveKey = actionKey(entry.move.action);
+        search.ordering.set(`${positionKey}>${moveKey}`, actorValue);
+        if (actorValue > bestValue) {
+            best = value;
+            bestValue = actorValue;
+            bestAction = moveKey;
+        }
+    }
+    if (!cached || remainingDepth >= cached.depth) {
+        storeVectorTable(search, tableKey, { value: best, best: bestAction, depth: remainingDepth });
+    }
+    search.bestMoves.set(`${positionKey}|${state.current}`, bestAction);
+    return best;
+};
+
+/** Probability-weight every seat's utility across the existing exact outcomes.
+ * @param {ModelState} state @param {RankedMove} entry @param {Set<string>} remainingSeats
+ * @param {number} campaigns @param {Search} search @param {number} remainingDepth @returns {Scores}
+ */
+const searchVectorMove = (state, entry, remainingSeats, campaigns, search, remainingDepth) => {
+    const action = entry.move.action;
+    const nextSeats = new Set(remainingSeats);
+    if (action.type === 'end-turn') {
+        nextSeats.delete(state.current);
+    }
+    const nextCampaigns = action.type === 'end-turn' ? search.depth
+        : Math.max(0, campaigns - (action.type === 'attack' ? 1 : 0));
+    const outcomes = entry.outcomes.slice().sort((first, second) => second.probability - first.probability);
+    const deepBranches = Math.min(outcomes.length, 2 + search.depth * 2);
+    const value = zeroScores(state);
+    for (let index = 0; index < outcomes.length; index += 1) {
+        checkDeadline(search);
+        const outcome = outcomes[index];
+        const scores = index < deepBranches
+            ? searchVectorPosition(outcome.state, nextSeats, nextCampaigns, search, remainingDepth - 1)
+            : horizon(outcome.state, search);
+        addScores(value, scores, outcome.probability);
+    }
+    for (const seat of Object.keys(value)) {
+        value[seat] = Math.max(SCORE_MIN, Math.min(SCORE_MAX, value[seat]));
+    }
+    return value;
+};
+
 /** Choose one legal action without changing the caller's state. maxDepth bounds
  * campaigns per turn and beam widening, not individual dice rolls. Use a finite
  * maxDepth with timeBudgetMs: Infinity for reproducible, purely depth-bound play.
@@ -977,10 +1078,12 @@ export const chooseBotAction = (state, seat, options = {}) => {
     const iterationLimit = maxDepth === 0 ? 0 : budget === Infinity
         ? Math.min(HARD_DEPTH, maxDepth) : HARD_DEPTH;
     const rng = options.rng || fallbackRng;
+    const remainingSeats = new Set(state.players.filter((player) => !state.eliminated.includes(player)));
     /** @type {Search} */
     const search = { deadline: started + budget, root: seat, depth: 1, rng, nodes: 0,
         battles: new Map(), evaluations: new Map(), campaigns: new Map(), table: new Map(),
-        ordering: new Map(), bestMoves: new Map(), tableLimit: 12000 };
+        vectorTable: new Map(), ordering: new Map(), bestMoves: new Map(), tableLimit: 12000,
+        maxn: remainingSeats.size > 2 };
     let best = legal.find((action) => action.type === 'end-attack' || action.type === 'end-turn') || legal[0];
     if (legal.length === 1) {
         return best;
@@ -1009,7 +1112,6 @@ export const chooseBotAction = (state, seat, options = {}) => {
         }
         ranked.sort((a, b) => b.scores[seat] - a.scores[seat]);
         const previousValues = new Map(ranked.map((entry) => [entry, entry.scores[seat]]));
-        const remainingSeats = new Set(state.players.filter((player) => !state.eliminated.includes(player)));
         const rootKey = stateKey(state);
         for (let depth = 1; depth <= iterationLimit; depth += 1) {
             search.depth = depth;
@@ -1027,8 +1129,10 @@ export const chooseBotAction = (state, seat, options = {}) => {
             const iterationValues = new Map(previousValues);
             for (const entry of rootBeam) {
                 const remainingDepth = depth * 4 + remainingSeats.size * 3;
-                const value = searchMove(state, entry, remainingSeats, depth, search,
-                    remainingDepth, alpha, SCORE_MAX);
+                const value = search.maxn
+                    ? searchVectorMove(state, entry, remainingSeats, depth, search, remainingDepth)[seat]
+                    : searchMove(state, entry, remainingSeats, depth, search,
+                        remainingDepth, alpha, SCORE_MAX);
                 iterationValues.set(entry, value);
                 search.ordering.set(`${rootKey}>${actionKey(entry.move.action)}`, value);
                 if (value > bestValue + 1e-9) {
@@ -1041,7 +1145,9 @@ export const chooseBotAction = (state, seat, options = {}) => {
                         iterationBest = entry.move.action;
                     }
                 }
-                alpha = Math.max(alpha, bestValue);
+                if (!search.maxn) {
+                    alpha = Math.max(alpha, bestValue);
+                }
             }
             checkDeadline(search, true);
             // Publish only a fully completed iteration. The shared table and history
@@ -1085,7 +1191,7 @@ export const chooseSetupPlacement = (territories, seat, target, config, rng = fa
     /** @type {Search} */
     const search = { deadline: now() + 250, root: seat, depth: 1, rng, nodes: 0,
         battles: new Map(), evaluations: new Map(), campaigns: new Map(), table: new Map(),
-        ordering: new Map(), bestMoves: new Map(), tableLimit: 512 };
+        vectorTable: new Map(), ordering: new Map(), bestMoves: new Map(), tableLimit: 512, maxn: false };
     const board = new Map(territories.map((territory) => [territory.id, territory]));
     const income = projectedIncome(state);
     let best = choices[0].id;

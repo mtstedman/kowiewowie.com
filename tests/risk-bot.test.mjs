@@ -23,14 +23,15 @@ const territory = (id, owner, armies, neighbors, continent = 'test') => ({
     card: 'infantry',
 });
 
-const stateOf = ({ phase, territories, reinforcementRemaining = 0, hands = {}, pendingConquest = null }) => ({
+const stateOf = ({ phase, territories, reinforcementRemaining = 0, hands = {}, pendingConquest = null,
+    players = ['ai', 'human'], eliminated = [], current = 'ai' }) => ({
     config: { botCount: 1, placement: 'random', cardMode: 'incremental' },
-    players: ['ai', 'human'],
-    eliminated: [],
-    current: 'ai',
+    players,
+    eliminated,
+    current,
     phase,
     territories,
-    hands: { ai: [], human: [], ...hands },
+    hands: { ...Object.fromEntries(players.map((seat) => [seat, []])), ...hands },
     deck: [],
     discard: [],
     setsTraded: 0,
@@ -158,5 +159,77 @@ const deterministicOptions = { timeBudgetMs: Infinity, maxDepth: 1 };
 const first = chooseBotAction(cloneState(hopeless), 'ai', { ...deterministicOptions, rng: seededRng(777) });
 const second = chooseBotAction(cloneState(hopeless), 'ai', { ...deterministicOptions, rng: seededRng(777) });
 assert.deepEqual(first, second, 'same state and seeded rng must select the same action');
+
+// AI can spend its reserve fortifying the one-army gate against Red. A
+// paranoid reply assumes Red attacks that gate solely to hurt AI; Max-n predicts
+// Red's much stronger self-interested capture of Blue's one-army prize, so AI
+// keeps the reserve in place and ends its turn instead of making that fortification.
+const strategicThreePlayer = stateOf({
+    phase: 'fortify',
+    players: ['ai', 'red', 'blue'],
+    territories: [
+        territory('ai-red-gate', 'ai', 1, ['ai-reserve', 'red-army']),
+        territory('ai-reserve', 'ai', 7, ['ai-red-gate']),
+        territory('red-army', 'red', 8, ['ai-red-gate', 'blue-prize']),
+        territory('blue-prize', 'blue', 1, ['red-army', 'blue-home']),
+        territory('blue-home', 'blue', 8, ['blue-prize']),
+    ],
+});
+const strategicSnapshot = structuredClone(strategicThreePlayer);
+const strategicAction = chooseLegal(strategicThreePlayer, 501, { timeBudgetMs: Infinity, maxDepth: 1 });
+assert.equal(strategicAction.type, 'end-turn',
+    'Max-n should decline a fortification aimed at an opponent who benefits more by attacking a rival');
+assert.deepEqual(strategicThreePlayer, strategicSnapshot, 'multiplayer search must not mutate its input state');
+
+// The exact combat distribution should favor the high-probability capture, not
+// the superficially larger but very unlikely battle on the other frontier.
+const stochasticThreePlayer = stateOf({
+    phase: 'attack',
+    players: ['ai', 'red', 'blue'],
+    territories: [
+        territory('army', 'ai', 10, ['red-outpost', 'blue-fortress']),
+        territory('red-outpost', 'red', 2, ['army']),
+        territory('blue-fortress', 'blue', 9, ['army']),
+    ],
+});
+const stochasticAction = chooseLegal(stochasticThreePlayer, 502,
+    { timeBudgetMs: Infinity, maxDepth: 1 });
+assert.equal(stochasticAction.type, 'attack', 'expected utility should retain the favorable stochastic attack');
+assert.equal(stochasticAction.targetId, 'red-outpost');
+
+// Every winning combat leaf eliminates Red before occupation and continuation.
+// Max-n must keep Red's terminal utility in the vector while Blue remains active.
+const multiplayerElimination = stateOf({
+    phase: 'attack',
+    players: ['ai', 'red', 'blue'],
+    hands: { red: [{ id: 'red-card', territoryId: null, type: 'wild' }] },
+    territories: [
+        territory('eliminator', 'ai', 15, ['red-last']),
+        territory('red-last', 'red', 1, ['eliminator', 'blue-home']),
+        territory('blue-home', 'blue', 7, ['red-last']),
+    ],
+});
+const eliminationSnapshot = structuredClone(multiplayerElimination);
+const multiplayerEliminationAction = chooseLegal(multiplayerElimination, 503,
+    { timeBudgetMs: Infinity, maxDepth: 1 });
+assert.equal(multiplayerEliminationAction.type, 'attack', 'Max-n should search through an elimination continuation');
+assert.equal(multiplayerEliminationAction.targetId, 'red-last');
+assert.deepEqual(multiplayerElimination, eliminationSnapshot, 'elimination search must leave the supplied state unchanged');
+
+const multiplayerDeterministicOptions = { timeBudgetMs: Infinity, maxDepth: 1 };
+const multiplayerFirst = chooseBotAction(cloneState(stochasticThreePlayer), 'ai',
+    { ...multiplayerDeterministicOptions, rng: seededRng(9001) });
+const multiplayerSecond = chooseBotAction(cloneState(stochasticThreePlayer), 'ai',
+    { ...multiplayerDeterministicOptions, rng: seededRng(9001) });
+assert.deepEqual(multiplayerFirst, multiplayerSecond,
+    'depth-bounded Max-n must be deterministic with the same seeded rng');
+
+const deadlineAction = chooseBotAction(cloneState(strategicThreePlayer), 'ai', {
+    timeBudgetMs: 0,
+    maxDepth: 8,
+    rng: seededRng(504),
+});
+assert.ok(containsAction(legalActions(strategicThreePlayer), deadlineAction),
+    'an expired multiplayer search must return its legal fallback');
 
 console.log('Risk bot regressions passed.');

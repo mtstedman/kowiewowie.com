@@ -178,6 +178,9 @@ final class ChessBot
 
     private int|float|null $deadline = null;
 
+    /** @var null|\Closure(): int Monotonic clock override used by deterministic search controls. */
+    private ?\Closure $clock = null;
+
     private bool $deadlineActive = false;
 
     private bool $aborted = false;
@@ -203,7 +206,7 @@ final class ChessBot
 
     public function chooseMove(string $fen): ?string
     {
-        $startedAt = hrtime(true);
+        $startedAt = $this->now();
 
         try {
             $board = Board::fromFen($fen);
@@ -238,15 +241,14 @@ final class ChessBot
         try {
             for ($depth = 1; $depth <= $maxDepth; $depth++) {
                 if ($this->deadline !== null && $previousIterationNs !== null && $depth > 2) {
-                    $remaining = $this->deadline - hrtime(true);
+                    $remaining = $this->deadline - $this->now();
                     if ($remaining <= (int) ($previousIterationNs * 1.35)) {
                         break;
                     }
                 }
 
-                // Depth one establishes a legal fallback; later iterations obey the clock.
-                $this->deadlineActive = $depth > 1 && $this->deadline !== null;
-                $iterationStartedAt = hrtime(true);
+                $this->deadlineActive = $this->deadline !== null;
+                $iterationStartedAt = $this->now();
                 $window = self::ASPIRATION_WINDOW;
                 $alpha = $previousScore === null || abs($previousScore) > self::MATE_BOUND
                     ? -self::INFINITY
@@ -276,7 +278,7 @@ final class ChessBot
                     $bestUci = $candidateUci;
                     $previousScore = $candidateScore;
                     $this->completedDepth = $depth;
-                    $previousIterationNs = max(1, hrtime(true) - $iterationStartedAt);
+                    $previousIterationNs = max(1, $this->now() - $iterationStartedAt);
                     break;
                 }
 
@@ -587,10 +589,17 @@ final class ChessBot
     }
 
     /**
-     * Quiescence search: stand pat, then captures and promotions only. In check there is no
-     * stand-pat and every evasion is searched.
+     * Quiescence search: stand pat, then tactical moves and at most one elective quiet check
+     * per path. In check there is no stand-pat and every evasion is searched.
      */
-    private function quiescence(Board $board, int $alpha, int $beta, int $ply, int $quiescencePly): int
+    private function quiescence(
+        Board $board,
+        int $alpha,
+        int $beta,
+        int $ply,
+        int $quiescencePly,
+        bool $quietCheckAvailable = true,
+    ): int
     {
         $this->nodes++;
         if ($this->timeUp()) {
@@ -633,8 +642,12 @@ final class ChessBot
             return 0;
         }
 
-        foreach ($this->orderMoves($board, $moves, null, $ply, !$inCheck) as $move) {
+        foreach ($this->orderMoves($board, $moves, null, $ply, false) as $move) {
             $givesCheck = $move['afterBoard']->isInCheck($move['afterBoard']->sideToMove());
+            $electiveQuietCheck = !$inCheck && $move['quiet'] && $givesCheck;
+            if (!$inCheck && $move['quiet'] && (!$givesCheck || !$quietCheckAvailable)) {
+                continue;
+            }
             if (
                 !$inCheck
                 && !$givesCheck
@@ -644,7 +657,14 @@ final class ChessBot
                 continue;
             }
 
-            $score = -$this->quiescence($move['afterBoard'], -$beta, -$alpha, $ply + 1, $quiescencePly + 1);
+            $score = -$this->quiescence(
+                $move['afterBoard'],
+                -$beta,
+                -$alpha,
+                $ply + 1,
+                $quiescencePly + 1,
+                $quietCheckAvailable && !$electiveQuietCheck,
+            );
             if ($this->aborted) {
                 return 0;
             }
@@ -767,6 +787,11 @@ final class ChessBot
         $this->table[$key] = [$depth, $score, $bound, $bestUci, $lock];
     }
 
+    private function now(): int
+    {
+        return $this->clock === null ? hrtime(true) : ($this->clock)();
+    }
+
     /** Check the monotonic clock only once per node batch, plus explicit root boundaries. */
     private function timeUp(bool $force = false): bool
     {
@@ -774,7 +799,7 @@ final class ChessBot
             !$this->aborted
             && $this->deadlineActive
             && ($force || $this->nodes % self::TIME_CHECK_NODES === 0)
-            && hrtime(true) >= $this->deadline
+            && $this->now() >= $this->deadline
         ) {
             $this->aborted = true;
         }

@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use Wowie\Api\Chess\Board;
 use Wowie\Api\Chess\ChessBot;
 use Wowie\Api\Chess\ChessEngine;
 
@@ -63,6 +64,47 @@ function moveForcesMateInTwo(ChessEngine $engine, string $fen, string $uci): boo
     return true;
 }
 
+function moveForcesMateInTwoWithQuietFinish(ChessEngine $engine, string $fen, string $uci): bool
+{
+    $first = applyMove($engine, $fen, $uci);
+    if (($first['state']['status'] ?? null) !== 'ongoing') {
+        return false;
+    }
+
+    $replies = legalMoves($engine, (string) $first['fen']);
+    if ($replies === []) {
+        return false;
+    }
+
+    foreach ($replies as $reply) {
+        $afterReply = applyMove($engine, (string) $first['fen'], (string) $reply['uci']);
+        $hasQuietMate = false;
+        $hasTacticalMate = false;
+        foreach (legalMoves($engine, (string) $afterReply['fen']) as $mate) {
+            $san = (string) $mate['san'];
+            if (substr($san, -1) !== '#') {
+                continue;
+            }
+
+            $afterMate = applyMove($engine, (string) $afterReply['fen'], (string) $mate['uci']);
+            if (($afterMate['state']['status'] ?? null) !== 'checkmate') {
+                continue;
+            }
+
+            if ($mate['promotion'] === null && !str_contains($san, 'x')) {
+                $hasQuietMate = true;
+            } else {
+                $hasTacticalMate = true;
+            }
+        }
+        if (!$hasQuietMate || $hasTacticalMate) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 $engine = new ChessEngine();
 
 $mateInOneFen = '7k/8/5KQ1/8/8/8/8/8 w - - 0 1';
@@ -78,6 +120,49 @@ assertTrue(
     moveForcesMateInTwo($engine, $mateInTwoFen, $mateInTwo),
     'bot did not choose a move forcing mate in two: ' . $mateInTwo,
 );
+
+// At depth two the search reaches the nominal horizon after every legal reply. The
+// mate is visible only when quiescence admits the ensuing non-capture, non-promotion
+// check; a capture/promotion-only horizon evaluates each continuation too soon.
+$quietCheckHorizon = (new ChessBot($engine, 0, 2))->chooseMove($mateInTwoFen);
+assertTrue(
+    $quietCheckHorizon !== null
+        && moveForcesMateInTwoWithQuietFinish($engine, $mateInTwoFen, $quietCheckHorizon),
+    'depth-two decision was not established by exhaustive replies and quiet mating checks: '
+        . var_export($quietCheckHorizon, true),
+);
+
+$quiescence = new ReflectionMethod(ChessBot::class, 'quiescence');
+$nodes = new ReflectionProperty(ChessBot::class, 'nodes');
+$quietCheckFen = '7k/8/8/8/8/8/8/K2Q4 w - - 0 1';
+$quietChecks = array_values(array_filter(
+    legalMoves($engine, $quietCheckFen),
+    static fn (array $move): bool => $move['promotion'] === null
+        && !str_contains((string) $move['san'], 'x')
+        && substr((string) $move['san'], -1) === '+',
+));
+assertTrue($quietChecks !== [], 'quiet-check allowance fixture has no legal quiet check');
+$afterQuietCheck = applyMove($engine, $quietCheckFen, (string) $quietChecks[0]['uci']);
+assertTrue(
+    legalMoves($engine, (string) $afterQuietCheck['fen']) !== [],
+    'quiet-check allowance fixture needs at least one legal evasion',
+);
+
+$exhaustedBot = new ChessBot($engine, 0, 1);
+$quiescence->invoke($exhaustedBot, Board::fromFen($quietCheckFen), -1000000, 1000000, 0, 0, false);
+assertTrue((int) $nodes->getValue($exhaustedBot) === 1, 'exhausted allowance searched another elective quiet check');
+
+$evasionBot = new ChessBot($engine, 0, 1);
+$quiescence->invoke(
+    $evasionBot,
+    Board::fromFen((string) $afterQuietCheck['fen']),
+    -1000000,
+    1000000,
+    1,
+    1,
+    false,
+);
+assertTrue((int) $nodes->getValue($evasionBot) > 1, 'exhausted allowance incorrectly suppressed legal check evasions');
 
 $hangingQueenFen = '4k3/8/8/3q4/4P3/8/8/4K3 w - - 0 1';
 $hangingQueen = (new ChessBot($engine, 0, 3))->chooseMove($hangingQueenFen);
@@ -110,6 +195,41 @@ assertTrue(count($singleMoves) === 1, 'single-move fixture does not have exactly
 $singleMove = (new ChessBot($engine, 0, 8))->chooseMove($singleMoveFen);
 assertTrue($singleMove === $singleMoves[0]['uci'], 'bot did not return the only legal move');
 
+$clock = new ReflectionProperty(ChessBot::class, 'clock');
+$completedDepth = new ReflectionProperty(ChessBot::class, 'completedDepth');
+$deadlineFixtureMoves = array_column(legalMoves($engine, $hangingQueenFen), 'uci');
+sort($deadlineFixtureMoves, SORT_STRING);
+
+$beforeIterationBot = new ChessBot($engine, 100, 1);
+$clockCalls = 0;
+$clock->setValue(
+    $beforeIterationBot,
+    static function () use (&$clockCalls): int {
+        return $clockCalls++ === 0 ? 0 : 200000000;
+    },
+);
+$beforeIterationMove = $beforeIterationBot->chooseMove($hangingQueenFen);
+assertTrue(
+    $beforeIterationMove === $deadlineFixtureMoves[0],
+    'pre-iteration deadline did not preserve the sorted fallback',
+);
+assertTrue((int) $completedDepth->getValue($beforeIterationBot) === 0, 'expired first iteration was marked complete');
+
+$depthOneMove = (new ChessBot($engine, 0, 1))->chooseMove($hangingQueenFen);
+$afterIterationBot = new ChessBot($engine, 100, 1);
+$clock->setValue(
+    $afterIterationBot,
+    static function () use ($afterIterationBot, $completedDepth): int {
+        return (int) $completedDepth->getValue($afterIterationBot) >= 1 ? 200000000 : 0;
+    },
+);
+$afterIterationMove = $afterIterationBot->chooseMove($hangingQueenFen);
+assertTrue($afterIterationMove === $depthOneMove, 'interrupted later iteration replaced the completed result');
+assertTrue(
+    (int) $completedDepth->getValue($afterIterationBot) === 1,
+    'later deadline did not retain exactly one completed iteration',
+);
+
 $clockFen = 'r2q1rk1/pp2bppp/2n1pn2/2bp4/8/1PN1PN2/PBQP1PPP/R3KB1R w KQ - 2 10';
 $clockBot = new ChessBot($engine, 300, 12);
 $clockStartedAt = hrtime(true);
@@ -120,7 +240,6 @@ $clockLegalUcis = array_column(legalMoves($engine, $clockFen), 'uci');
 assertTrue(in_array($clockMove, $clockLegalUcis, true), 'clocked search returned an illegal move');
 assertTrue($clockElapsedMs <= 450, sprintf('clocked search exceeded tolerance: %.1f ms', $clockElapsedMs));
 
-$completedDepth = new ReflectionProperty(ChessBot::class, 'completedDepth');
 $clockDepth = (int) $completedDepth->getValue($clockBot);
 fwrite(STDOUT, sprintf("Clocked tactical search completed depth %d in %.1f ms.\n", $clockDepth, $clockElapsedMs));
 
