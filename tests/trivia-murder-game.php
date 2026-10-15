@@ -94,9 +94,12 @@ try {
     $pdo->exec("SET search_path TO {$quotedSchema}, public");
 
     $minted = (new SchemaVersionMinter($pdo, $projectRoot . '/docs/postgres'))->mint();
-    murderTriviaAssert($minted['from'] === 0 && $minted['to'] === 12, 'The isolated database did not migrate from version 0 to 12.');
-    $seededQuestions = seedTriviaQuestions($pdo, $projectRoot . '/database/data/trivia-questions.json');
-    murderTriviaAssert($seededQuestions === 160, 'The isolated catalog did not seed all 160 questions.');
+    $targetVersion = SchemaVersionMinter::validateDefinition($projectRoot . '/docs/postgres')['targetVersion'];
+    murderTriviaAssert($minted['from'] === 0 && $minted['to'] === $targetVersion, "The isolated database did not migrate from version 0 to {$targetVersion}.");
+    $catalogPath = $projectRoot . '/database/data/trivia-questions.json';
+    $catalog = json_decode((string) file_get_contents($catalogPath), true, 512, JSON_THROW_ON_ERROR);
+    $seededQuestions = seedTriviaQuestions($pdo, $catalogPath);
+    murderTriviaAssert($seededQuestions >= 160 && $seededQuestions === count($catalog), 'The isolated catalog did not seed every source question.');
 
     $guestStatement = $pdo->prepare(<<<'SQL'
         INSERT INTO chess_guest_profiles (cookie_token_hash, display_name)
@@ -133,9 +136,11 @@ try {
     $pdo->prepare('UPDATE trivia_rooms SET current_round_number = 10000 WHERE public_id = :public_id')
         ->execute(['public_id' => $publicId]);
     $exhaustStatement = $pdo->prepare(<<<'SQL'
-        INSERT INTO trivia_rounds (room_id, round_number, prompt_id, status, answer_window_seconds, closes_at,
+        INSERT INTO trivia_rounds (room_id, round_number, prompt_id, status, answer_window_seconds,
+                                   opened_at, closes_at, resolved_at,
                                    round_type, phase, answer_shape, image_url)
-        SELECT room.id, p.prompt_order, p.id, 'resolved', room.answer_window_seconds, now(),
+        SELECT room.id, p.prompt_order, p.id, 'resolved', room.answer_window_seconds,
+               now() - make_interval(secs => room.answer_window_seconds), now(), now(),
                'trivia', 'trivia', p.answer_shape, p.image_url
         FROM trivia_rooms room
         JOIN trivia_prompts p ON p.room_id = room.id
@@ -279,7 +284,7 @@ try {
     }
 
     // Simulate a race persisted before this request and verify its stored goal survives round advancement.
-    $persistedRaceGoal = 100;
+    $persistedRaceGoal = 60;
     $pdo->prepare('UPDATE trivia_rounds SET race_goal = :race_goal WHERE id = :id')->execute([
         'race_goal' => $persistedRaceGoal,
         'id' => $race['round']['id'],
