@@ -1,9 +1,9 @@
-<!-- schema-version: 22 -->
+<!-- schema-version: 23 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 22**. `migration-chain.json` is the ordered,
+current release pin is **version 23**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -39,11 +39,12 @@ per-file execution ledger.
 | 20 | `019_collectible_identifiers.sql` | Retail SKUs and barcodes on collectible products and figures |
 | 21 | `020_pop_bean_brand.sql` | POP BEAN joins the collectible brands |
 | 22 | `021_collectible_collections.sql` | Owned collectible figures, saved for a registered user or a long-lived guest browser cookie |
+| 23 | `022_poe2_inventory.sql` | Equipment inventory on Path of Exile 2 saved builds |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 22 inventory
+## Current version 23 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -70,7 +71,8 @@ their full basenames are already stored in production's migration ledger.
   `poe2_tree_classes`, `poe2_tree_ascendancies`, `poe2_tree_nodes`,
   `poe2_tree_edges`, `poe2_tree_node_unlock_requirements`,
   `poe2_tree_node_keystones_in_radius`, `poe2_tree_skill_overrides`,
-  `poe2_tree_class_override_pairs`, and `poe2_tree_ascendancy_override_pairs`
+  `poe2_tree_class_override_pairs`, and `poe2_tree_ascendancy_override_pairs`;
+  `poe2_saved_builds.inventory` stores each build's equipment
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -224,6 +226,10 @@ against. `allocated_node_ids`, `must_have_node_ids` and `considered_node_ids`
 store the allocated, must-have and considered passive node IDs as `jsonb`
 arrays (all default to `[]`). Considered passives are ones kept for later and
 play no part in routing.
+`inventory` stores the build's equipment as a non-null `jsonb` array, defaulting
+to `[]` for existing builds and builds without equipment. The API validates
+equipment slots, names, equipped flags, defense values, and weapon statistics
+before saving; the database also checks that the value is an array.
 `created_at` and `updated_at` default to `now()`, and the
 `poe2_saved_builds_set_updated_at` trigger refreshes `updated_at` on every
 update. The partial indexes

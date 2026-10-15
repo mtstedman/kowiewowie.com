@@ -198,6 +198,15 @@
           "sha256": "a705527c74b1a5369768cc51bdabc831b8d2f0614c0dc5a11620744732f707f5"
         }
       ]
+    },
+    {
+      "version": 23,
+      "updates": [
+        {
+          "file": "updates/022_poe2_inventory.sql",
+          "sha256": "390948c7bd533533048b8cf2034db05b6824e0f41e54cc08ebd6ed9e4648b010"
+        }
+      ]
     }
   ]
 }
