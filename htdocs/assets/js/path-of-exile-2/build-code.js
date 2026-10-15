@@ -3,6 +3,12 @@
 // needs no server. Codes come from other people, so decoding bounds the code and inflated
 // sizes and checks every field before the planner sees it.
 
+// TypeScript cannot resolve cache-version query strings, so cast the namespace to the unversioned module.
+// @ts-ignore
+import * as inventoryModule from './inventory.js?v=710599b204ac';
+
+const { InventoryError, normalizeInventory } = /** @type {typeof import('./inventory.js')} */ (inventoryModule);
+
 const PREFIX = 'poe2b1.';
 const MAX_CODE_LENGTH = 16_384;
 const MAX_JSON_BYTES = 65_536;
@@ -17,7 +23,8 @@ export class BuildCodeError extends Error {}
 /**
  * @typedef {{ class_id: string, ascendancy_id: string | null, tree_version: string,
  *   allocated_node_ids: string[], must_have_node_ids: string[], considered_node_ids: string[],
- *   character_name: string, build_name: string }} SharedBuild
+ *   character_name: string, build_name: string, inventory: ReturnType<typeof normalizeInventory> }} SharedBuild
+ * @typedef {Omit<SharedBuild, 'inventory'> & {inventory?: ReturnType<typeof normalizeInventory>}} EncodableBuild
  */
 
 /** @param {Uint8Array} bytes */
@@ -81,11 +88,24 @@ function optionalText(value, maxLength) {
   return text.length <= maxLength && !/[\u0000-\u001f\u007f]/.test(text) ? text : '';
 }
 
+/** @param {unknown} value */
+function buildInventory(value) {
+  try {
+    return normalizeInventory(value);
+  } catch (error) {
+    if (error instanceof InventoryError) {
+      throw new BuildCodeError(`That build code has invalid inventory. ${error.message}`);
+    }
+    throw error;
+  }
+}
+
 /**
- * @param {SharedBuild} build
+ * @param {EncodableBuild} build
  * @returns {Promise<string>}
  */
 export async function encodeBuildCode(build) {
+  const inventory = buildInventory(build.inventory);
   const payload = {
     v: 1,
     t: build.tree_version,
@@ -96,9 +116,13 @@ export async function encodeBuildCode(build) {
     k: build.considered_node_ids,
     cn: build.character_name || undefined,
     bn: build.build_name || undefined,
+    i: inventory.length === 0 ? undefined : inventory,
   };
   const json = new TextEncoder().encode(JSON.stringify(payload));
-  return PREFIX + toBase64Url(await pipe(json, new CompressionStream('deflate-raw')));
+  if (json.byteLength > MAX_JSON_BYTES) throw new BuildCodeError('That build is too large to share.');
+  const code = PREFIX + toBase64Url(await pipe(json, new CompressionStream('deflate-raw')));
+  if (code.length > MAX_CODE_LENGTH) throw new BuildCodeError('That build is too large to share.');
+  return code;
 }
 
 /**
@@ -151,5 +175,6 @@ export async function decodeBuildCode(text) {
     considered_node_ids: nodeIdList(payload.k, 'considered').filter((id) => !mustHaves.includes(id)),
     character_name: optionalText(payload.cn, MAX_CHARACTER_NAME),
     build_name: optionalText(payload.bn, MAX_BUILD_NAME),
+    inventory: buildInventory(payload.i),
   };
 }

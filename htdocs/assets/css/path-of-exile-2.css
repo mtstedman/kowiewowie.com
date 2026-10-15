@@ -1009,3 +1009,225 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+.poe2-inventory,
+.poe2-comparison,
+.poe2-inventory-slots,
+.poe2-inventory-form,
+.poe2-inventory-sources,
+.poe2-comparison-group {
+    display: grid;
+    min-width: 0;
+    gap: 0.65rem;
+}
+
+.poe2-inventory,
+.poe2-comparison {
+    padding-top: 1rem;
+    border-top: 1px solid var(--surface-edge);
+}
+
+.poe2-inventory h3,
+.poe2-inventory h4,
+.poe2-inventory p,
+.poe2-comparison h3,
+.poe2-comparison h4,
+.poe2-comparison p {
+    margin: 0;
+}
+
+.poe2-inventory h3,
+.poe2-comparison h3 {
+    color: var(--ink);
+    font-size: 1rem;
+}
+
+.poe2-inventory-slot {
+    display: grid;
+    min-width: 0;
+    gap: 0.55rem;
+    padding: 0.7rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.poe2-inventory-slot h4,
+.poe2-comparison-group h4,
+.poe2-inventory-sources h4 {
+    color: var(--poe2-gold);
+    font-size: 0.86rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.poe2-inventory-empty,
+.poe2-inventory-equipped,
+.poe2-inventory-status {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.poe2-inventory-empty {
+    font-style: italic;
+}
+
+.poe2-inventory-equipped {
+    color: var(--ink-soft);
+    font-weight: 750;
+}
+
+.poe2-inventory-status {
+    min-height: 1.2rem;
+}
+
+.poe2-inventory-status.is-error {
+    color: #fb7185;
+}
+
+.poe2-inventory-form label,
+.poe2-inventory-values label {
+    display: grid;
+    min-width: 0;
+    gap: 0.3rem;
+    color: var(--ink-soft);
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.poe2-inventory-form input[type="text"],
+.poe2-inventory-form input[type="number"] {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0.55rem 0.6rem;
+    border: 1px solid var(--surface-edge-strong);
+    border-radius: 6px;
+    background: rgba(4, 12, 24, 0.92);
+    color: var(--ink);
+    font: inherit;
+}
+
+.poe2-inventory-form input:focus-visible {
+    outline: 3px solid rgba(109, 214, 255, 0.55);
+    outline-offset: 2px;
+    border-color: var(--poe2-blue);
+}
+
+.poe2-inventory-values {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0.55rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 6px;
+}
+
+.poe2-inventory-values legend {
+    padding-inline: 0.25rem;
+    color: var(--muted);
+    font-size: 0.74rem;
+}
+
+.poe2-inventory-values:disabled {
+    opacity: 0.55;
+}
+
+.poe2-inventory-form .poe2-inventory-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    text-transform: none;
+}
+
+.poe2-inventory-check input {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex: 0 0 auto;
+}
+
+.poe2-inventory-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+}
+
+.poe2-panel .poe2-inventory-remove {
+    color: #fb7185;
+}
+
+#poe2-inventory-comparison,
+.poe2-inventory-sources section {
+    display: grid;
+    min-width: 0;
+    gap: 0.45rem;
+}
+
+.poe2-comparison-group table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+}
+
+.poe2-comparison-group th,
+.poe2-comparison-group td {
+    padding: 0.4rem 0.25rem;
+    border-bottom: 1px solid var(--surface-edge);
+    overflow-wrap: anywhere;
+    text-align: right;
+    vertical-align: top;
+}
+
+.poe2-comparison-group th:first-child {
+    width: 28%;
+    text-align: left;
+}
+
+.poe2-comparison-group thead th {
+    color: var(--muted);
+    font-weight: 750;
+}
+
+.poe2-comparison-group td.is-positive {
+    color: #86efac;
+}
+
+.poe2-comparison-group td.is-negative {
+    color: #fda4af;
+}
+
+.poe2-inventory-sources ul {
+    display: grid;
+    min-width: 0;
+    gap: 0.35rem;
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+}
+
+.poe2-inventory-sources li {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 1120px) and (min-width: 761px) {
+    .poe2-inventory-slots {
+        grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .poe2-inventory-values {
+        grid-template-columns: 1fr;
+    }
+
+    .poe2-comparison-group table {
+        font-size: 0.68rem;
+    }
+}

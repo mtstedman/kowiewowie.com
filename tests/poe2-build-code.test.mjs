@@ -2,6 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { BuildCodeError, decodeBuildCode, encodeBuildCode, extractBuildCode } from '../htdocs/assets/js/path-of-exile-2/build-code.js';
 
+const INVENTORY = Object.freeze([
+  Object.freeze({
+    slot: 'main_hand', name: 'Ashen Staff', equipped: true, armour: 0, evasion: 0, energy_shield: 12,
+    weapon: Object.freeze({ physical_min: 18, physical_max: 31, attacks_per_second: 1.25 }),
+  }),
+  Object.freeze({
+    slot: 'body_armour', name: 'Spare Robe', equipped: false, armour: 7, evasion: 11, energy_shield: 43,
+    weapon: null,
+  }),
+]);
+
 const BUILD = Object.freeze({
   class_id: 'Witch',
   ascendancy_id: 'Witch1',
@@ -11,6 +22,11 @@ const BUILD = Object.freeze({
   considered_node_ids: ['55835', '4739'],
   character_name: 'Ashka',
   build_name: 'Infernal caster',
+  inventory: INVENTORY,
+});
+
+const ITEM = Object.freeze({
+  slot: 'helmet', name: 'Iron Crown', equipped: true, armour: 20, evasion: 0, energy_shield: 5, weapon: null,
 });
 
 const rejects = (promise, pattern) => assert.rejects(promise, (error) => error instanceof BuildCodeError && pattern.test(error.message));
@@ -39,11 +55,17 @@ test('a large build stays short enough to send as a link', async () => {
   assert.deepEqual((await decodeBuildCode(code)).allocated_node_ids, allocated);
 });
 
+test('empty inventories and legacy links decode with an empty inventory', async () => {
+  assert.deepEqual((await decodeBuildCode(await encodeBuildCode({ ...BUILD, inventory: [] }))).inventory, []);
+  const legacy = await codeFor({ v: 1, t: '0.5.5', c: 'Witch', n: ['1'], m: [], k: [] });
+  assert.deepEqual((await decodeBuildCode(legacy)).inventory, []);
+});
+
 test('optional fields default and names are kept only when clean', async () => {
   const decoded = await decodeBuildCode(await codeFor({ v: 1, c: 'Ranger', bn: 'x'.repeat(81), cn: 'Line\nbreak' }));
   assert.deepEqual(decoded, {
     class_id: 'Ranger', ascendancy_id: null, tree_version: '', allocated_node_ids: [], must_have_node_ids: [],
-    considered_node_ids: [], character_name: '', build_name: '',
+    considered_node_ids: [], character_name: '', build_name: '', inventory: [],
   });
 });
 
@@ -71,6 +93,28 @@ test('payloads that fail validation are refused', async () => {
   await rejects(decodeBuildCode(await codeFor({ v: 1, c: 'Witch', n: ['ok', 'bad id'] })), /invalid allocation list/);
   await rejects(decodeBuildCode(await codeFor({ v: 1, c: 'Witch', m: 'x' })), /invalid must-have list/);
   await rejects(decodeBuildCode(await codeFor({ v: 1, c: 'Witch', k: Array.from({ length: 2049 }, (_, i) => String(i)) })), /invalid considered list/);
+});
+
+test('invalid inventory payloads are refused through BuildCodeError', async () => {
+  const invalid = [
+    null,
+    Array.from({ length: 11 }, (_, index) => ({ ...ITEM, slot: index === 0 ? 'helmet' : `slot_${index}` })),
+    [{ ...ITEM, equipped: 'yes' }],
+    [{ ...ITEM, name: 'x'.repeat(81) }],
+    [{ ...ITEM, armour: -1 }],
+    [ITEM, { ...ITEM }],
+    [{ ...ITEM, slot: 'helmet', weapon: { physical_min: 1, physical_max: 2, attacks_per_second: 1 } }],
+    [{ ...ITEM, slot: 'main_hand', weapon: { physical_min: 3, physical_max: 2, attacks_per_second: 0 } }],
+  ];
+  for (const inventory of invalid) {
+    await rejects(decodeBuildCode(await codeFor({ v: 1, c: 'Witch', i: inventory })), /invalid inventory/);
+  }
+  await rejects(encodeBuildCode({ ...BUILD, inventory: [{ ...ITEM, evasion: Infinity }] }), /invalid inventory/);
+});
+
+test('encoding refuses a payload that its decoder size bound would reject', async () => {
+  const allocated = Array.from({ length: 2048 }, (_, index) => `${index.toString(36).padStart(4, '0')}${'x'.repeat(28)}`);
+  await rejects(encodeBuildCode({ ...BUILD, allocated_node_ids: allocated }), /too large/);
 });
 
 test('a code that inflates past the size limit is refused while inflating', async () => {

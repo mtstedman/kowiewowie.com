@@ -2317,11 +2317,6 @@ import * as riskApi from './risk-api.js';
         }
 
         if (state.phase === 'attack') {
-            if (territory.id === state.targetId) {
-                humanAttack();
-                return;
-            }
-
             handleAttackSelection(territory);
         } else if (state.phase === 'conquer') {
             setGuidanceReason('Choose how many armies move into the conquered territory before selecting another territory.');
@@ -4030,7 +4025,7 @@ import * as riskApi from './risk-api.js';
                 copy.guidance = `Use a dashed-ring target, or press ${endLabel}.`;
             } else {
                 copy.objective = `Attack ${target.name} from ${ownSource.name}.`;
-                copy.guidance = `Choose dice, then click ${target.name} again or press Roll attack; Blitz repeats rolls until stopped or decided.`;
+                copy.guidance = 'Choose dice, then press Roll attack; Blitz repeats rolls until stopped or decided.';
             }
 
             const error = attackError(runtime.localSeat, ownSource, target, effectiveAttackDice(ownSource));
@@ -4107,6 +4102,7 @@ import * as riskApi from './risk-api.js';
             runtime.setupGameActive = state.active;
         }
 
+        elements.commandPanel.dataset.gameActive = String(state.active);
         setText(uxElements.setupSummary, describeConfig(next));
         setText(uxElements.setupNote, !state.active
             ? 'These settings are used when you press New game.'
@@ -4114,10 +4110,10 @@ import * as riskApi from './risk-api.js';
                 ? `Changed settings apply to the next game. This game keeps ${describeConfig(current)}; press Restart game to switch now.`
                 : 'Changes apply to the next game, not the one in progress.');
         setText(uxElements.startNote, online.gameId
-            ? 'New local game leaves the online game and deals a game against bots with the setup below.'
+            ? 'New local game leaves the online game and deals a game against bots with the selected setup.'
             : state.active
-                ? 'Restart game abandons this game and deals a new one with the setup below.'
-                : 'New game deals the world with the setup below.');
+                ? 'Restart game abandons this game and deals a new one with the selected setup.'
+                : 'New game deals the world with the selected setup.');
 
         if (uxElements.setupNote) {
             uxElements.setupNote.classList.toggle('is-changed', changed);
@@ -5399,6 +5395,20 @@ import * as riskApi from './risk-api.js';
     if (artImage.complete && artImage.naturalWidth === 0 && artImage.getAttribute('src')) {
         markArtMissing();
     }
+
+    root.querySelectorAll('.risk-table-nav a[href^="#"]').forEach((link) => {
+        link.addEventListener('click', (event) => {
+            const destination = document.querySelector(link.getAttribute('href') || '');
+
+            if (!(destination instanceof HTMLElement)) {
+                return;
+            }
+
+            event.preventDefault();
+            destination.focus({ preventScroll: true });
+            destination.scrollIntoView({ block: 'start' });
+        });
+    });
 
     root.addEventListener('click', (event) => {
         const target = /** @type {Element|null} */ (event.target);

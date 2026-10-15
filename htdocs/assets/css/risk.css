@@ -845,6 +845,11 @@
     padding-top: 0.2rem;
 }
 
+/* Keep setup prominent before play while preserving turn-first reading order during a game. */
+.risk-command-panel:not([data-game-active="true"]) .risk-game-tools {
+    order: -1;
+}
+
 .risk-decision-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 0.65fr);
@@ -1695,8 +1700,12 @@
     }
 
     .risk-table-nav {
+        position: sticky;
+        top: 0.5rem;
+        z-index: 10;
         grid-column: 1 / -1;
         display: flex;
+        max-width: 100%;
         gap: 0.5rem;
     }
 
@@ -1725,7 +1734,7 @@
 
     #risk-board-title,
     #risk-objective-title {
-        scroll-margin-top: 1rem;
+        scroll-margin-top: calc(44px + 1.5rem);
     }
 
     .risk-secondary-details {

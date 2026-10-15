@@ -37,7 +37,7 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                         <label for="poe2-ascendancy">Ascendancy
                             <select id="poe2-ascendancy"></select>
                         </label>
-                        <p id="poe2-build-reset-help" class="poe2-help poe2-reset-help">Changing class or ascendancy resets allocations, marked nodes, considered nodes, and the current route.</p>
+                        <p id="poe2-build-reset-help" class="poe2-help poe2-reset-help">Changing class or ascendancy resets allocations, marked nodes, considered nodes, and the current route. Equipment is kept and recalculated.</p>
                     </fieldset>
 
                     <form id="poe2-search" class="poe2-search" role="search">
@@ -169,13 +169,30 @@ $plannerVersion = is_file($plannerPath) ? (string) filemtime($plannerPath) : '1'
                             <p class="poe2-bonus-empty">No passives allocated yet.</p>
                         </div>
                     </section>
+
+                    <section class="poe2-inventory" aria-labelledby="poe2-inventory-title">
+                        <div>
+                            <p class="eyebrow">Equipment estimate</p>
+                            <h3 id="poe2-inventory-title">Inventory manager</h3>
+                        </div>
+                        <p class="poe2-help">Enter each item's final displayed Armour, Evasion, Energy Shield, and main-hand weapon values. These values already include local item modifiers, so entering base values would apply them incorrectly.</p>
+                        <p id="poe2-inventory-status" class="poe2-inventory-status" role="status" aria-live="polite" aria-atomic="true"></p>
+                        <div id="poe2-inventory-slots" class="poe2-inventory-slots" aria-label="Equipment slots"></div>
+
+                        <section class="poe2-comparison" aria-labelledby="poe2-comparison-title">
+                            <h3 id="poe2-comparison-title">Live equipment comparison</h3>
+                            <p class="poe2-help">Equipment-based estimates only. They are not full character totals and exclude skills, enemies, conditional modifiers, weapon-specific effects, jewels, and item-granted passives.</p>
+                            <div id="poe2-inventory-comparison" aria-live="polite"></div>
+                            <div id="poe2-inventory-sources" class="poe2-inventory-sources"></div>
+                        </section>
+                    </section>
                 </aside>
             </section>
 
             <aside class="poe2-credits" aria-label="Data source and notices">
                 <p><strong>Data:</strong> Grinding Gear Games official passive-tree <span id="poe2-version">export</span>, pinned and stored in this site's database. This does not claim parity with the current live game.</p>
                 <p>Path of Exile 2, passive-tree names, stat text, and passive-tree artwork © Grinding Gear Games; the artwork is GGG's official tree export, served unmodified. This unofficial fan tool is not affiliated with or endorsed by Grinding Gear Games.</p>
-                <p>Ordinary shared allocations only. Weapon-set allocations, attribute choices, items, jewels, and item-granted passives are not modelled. Point budgets are not enforced: the estimated level is a guide based on one passive point per level gained plus up to 24 ordinary campaign-granted points, and allocations beyond that standard budget are flagged rather than blocked.</p>
+                <p>Ordinary shared allocations only. Equipment estimates model the final displayed defenses entered here and one equipped main-hand weapon; they are not a full item or character simulation. Weapon-set allocations, attribute choices, jewels, item-granted passives, skills, enemies, and conditional or weapon-specific effects are not modelled. Point budgets are not enforced: the estimated level is a guide based on one passive point per level gained plus up to 24 ordinary campaign-granted points, and allocations beyond that standard budget are flagged rather than blocked.</p>
             </aside>
         </main>
 

@@ -226,19 +226,32 @@ foreach ($currentSectionRequestUriCases as $case) {
 }
 
 $riskHtml = render_public_page($root, 'htdocs/risk/index.php', '/risk/');
+$riskTurnConsolePosition = strpos($riskHtml, '<section class="risk-turn-console" aria-label="Current turn">');
+$riskGameToolsPosition = strpos($riskHtml, '<section class="risk-subpanel risk-game-tools" aria-labelledby="risk-command-title">');
 public_ux_assert(
     strpos($riskHtml, '<nav class="risk-table-nav" aria-label="Risk table navigation">') !== false
         && strpos($riskHtml, '<a href="#risk-board-title">Board</a>') !== false
-        && strpos($riskHtml, '<a href="#risk-objective-title">Current decision</a>') !== false,
-    'Risk must provide narrow-screen navigation between the board and current decision.'
+        && strpos($riskHtml, '<a href="#risk-objective-title">Current decision</a>') !== false
+        && strpos($riskHtml, '<h2 id="risk-board-title" tabindex="-1">Territories</h2>') !== false
+        && strpos($riskHtml, '<h3 id="risk-objective-title" tabindex="-1">Ready to play</h3>') !== false,
+    'Risk must provide narrow-screen navigation with focusable board and current-decision destinations.'
+);
+public_ux_assert(
+    $riskTurnConsolePosition !== false
+        && $riskGameToolsPosition !== false
+        && $riskTurnConsolePosition < $riskGameToolsPosition,
+    'Risk must place the current turn console before setup and lobby tools in DOM reading order.'
 );
 public_ux_assert(
     strpos($riskHtml, 'id="risk-command-panel" class="risk-panel risk-command-panel" aria-labelledby="risk-command-title"') !== false,
     'Risk command controls must retain a named, directly targetable region.'
 );
 public_ux_assert(
-    (bool) preg_match('/<details id="risk-setup-panel" class="risk-subpanel risk-setup-settings" open>.*?<summary class="risk-setup-toggle">.*?Game setup.*?<\/summary>/s', $riskHtml),
-    'Risk setup must be an initially open disclosure that remains available during play.'
+    (bool) preg_match('/<details id="risk-setup-panel" class="risk-subpanel risk-setup-settings" open>.*?<summary class="risk-setup-toggle">.*?Game setup.*?<\/summary>/s', $riskHtml)
+        && strpos($riskHtml, 'Choose your Game setup, then press New game to deal the world.') !== false
+        && strpos($riskHtml, 'setup above') === false
+        && strpos($riskHtml, 'setup below') === false,
+    'Risk setup must be initially open, remain available during play, and use position-independent instructions.'
 );
 public_ux_assert(
     (bool) preg_match('/<section class="risk-turn-console" aria-label="Current turn">.*?<section class="risk-objective" aria-labelledby="risk-objective-title">.*?Current decision.*?<div class="risk-primary-actions">.*?Next action.*?id="risk-end-button".*?id="risk-turn-guidance" class="risk-turn-guidance" aria-live="polite"/s', $riskHtml),

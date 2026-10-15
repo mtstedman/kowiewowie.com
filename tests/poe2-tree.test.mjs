@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildAllocationModel, normalizeTree, summarizeRouteBonuses } from '../htdocs/assets/js/path-of-exile-2/tree-data.js';
 import { findMinimalRoute } from '../htdocs/assets/js/path-of-exile-2/optimizer.js';
+import { calculateInventoryStats, InventoryError, normalizeInventory } from '../htdocs/assets/js/path-of-exile-2/inventory.js';
 import { performance } from 'node:perf_hooks';
 
 // The pinned export is the database import source; the page loads it from the API.
@@ -14,7 +15,7 @@ test('planner imports every module under its content hash so cached modules cann
   const moduleDir = new URL('../htdocs/assets/js/path-of-exile-2/', import.meta.url);
   const planner = readFileSync(new URL('planner.js', moduleDir), 'utf8');
   const imports = [...planner.matchAll(/^import [^;]+ from '(\.\/[^'?]+)(\?v=[^']*)?';$/gm)];
-  assert.deepEqual(imports.map(([, path]) => path).sort(), ['./build-code.js', './builds-api.js', './optimizer.js', './tree-art.js', './tree-data.js']);
+  assert.deepEqual(imports.map(([, path]) => path).sort(), ['./build-code.js', './builds-api.js', './inventory.js', './optimizer.js', './tree-art.js', './tree-data.js']);
   for (const [, path, query] of imports) {
     const expected = `?v=${createHash('sha256').update(readFileSync(new URL(path, moduleDir))).digest('hex').slice(0, 12)}`;
     assert.equal(query, expected, `planner.js must import ${path}${expected}`);
@@ -689,4 +690,270 @@ test('route bonus summary includes free allocated passives and rejects unknown i
   assert.throws(() => summarizeRouteBonuses(model, ['missing']), TREE_ERROR);
   assert.throws(() => summarizeRouteBonuses(model, null), TypeError);
   assert.throws(() => summarizeRouteBonuses(model, [1]), TypeError);
+});
+
+// ---- Inventory normalization and equipment estimates --------------------
+
+const INVENTORY_SLOTS = [
+  'main_hand', 'off_hand', 'helmet', 'body_armour', 'gloves',
+  'boots', 'belt', 'amulet', 'ring_1', 'ring_2',
+];
+
+const inventoryItem = (slot, overrides = {}) => ({
+  slot,
+  name: '',
+  equipped: true,
+  armour: 0,
+  evasion: 0,
+  energy_shield: 0,
+  weapon: null,
+  ...overrides,
+});
+
+const weaponItem = (overrides = {}) => inventoryItem('main_hand', {
+  name: 'Test weapon',
+  weapon: { physical_min: 100, physical_max: 200, attacks_per_second: 2 },
+  ...overrides,
+});
+
+const metricsByKey = (comparison) => Object.fromEntries(comparison.metrics.map((metric) => [metric.key, metric]));
+const closeTo = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-12, `${actual} != ${expected}`);
+
+test('inventory normalization accepts every slot, trims names, copies values, and defaults undefined', () => {
+  assert.deepEqual(normalizeInventory(undefined), []);
+  const input = INVENTORY_SLOTS.map((slot, index) => inventoryItem(slot, {
+    name: index === 0 ? '  Wand 🪄  ' : '',
+    equipped: index % 2 === 0,
+    armour: index,
+    evasion: index + 1,
+    energy_shield: index + 2,
+    weapon: slot === 'main_hand' ? { physical_min: 10, physical_max: 20, attacks_per_second: 1.25 } : null,
+  }));
+  const before = JSON.stringify(input);
+  const normalized = normalizeInventory(input);
+  assert.equal(normalized.length, 10);
+  assert.deepEqual(normalized.map((item) => item.slot), INVENTORY_SLOTS);
+  assert.equal(normalized[0].name, 'Wand 🪄');
+  assert.notEqual(normalized, input);
+  assert.notEqual(normalized[0], input[0]);
+  assert.notEqual(normalized[0].weapon, input[0].weapon);
+  assert.equal(JSON.stringify(input), before);
+});
+
+test('inventory normalization rejects malformed containers, duplicate slots, missing fields, and unknown fields', () => {
+  for (const value of [null, {}, 'inventory', 4, true]) {
+    assert.throws(() => normalizeInventory(value), InventoryError);
+  }
+  assert.throws(() => normalizeInventory(Array(11).fill(null)), InventoryError);
+  assert.throws(() => normalizeInventory([inventoryItem('helmet'), inventoryItem('helmet')]), InventoryError);
+  assert.throws(() => normalizeInventory([[]]), InventoryError);
+
+  const fields = ['slot', 'name', 'equipped', 'armour', 'evasion', 'energy_shield', 'weapon'];
+  for (const field of fields) {
+    const item = inventoryItem('helmet');
+    delete item[field];
+    assert.throws(() => normalizeInventory([item]), InventoryError, `missing ${field}`);
+  }
+  assert.throws(() => normalizeInventory([{ ...inventoryItem('helmet'), rarity: 'rare' }]), InventoryError);
+  assert.throws(() => normalizeInventory([inventoryItem('helmet', { slot: 'hat' })]), InventoryError);
+});
+
+test('inventory normalization rejects invalid text, booleans, and bounded numeric fields', () => {
+  assert.doesNotThrow(() => normalizeInventory([inventoryItem('helmet', { name: '😀'.repeat(80) })]));
+  for (const name of ['😀'.repeat(81), 'bad\u0000name', 12]) {
+    assert.throws(() => normalizeInventory([inventoryItem('helmet', { name })]), InventoryError);
+  }
+  assert.throws(() => normalizeInventory([inventoryItem('helmet', { equipped: 1 })]), InventoryError);
+  for (const field of ['armour', 'evasion', 'energy_shield']) {
+    for (const value of ['1', NaN, Infinity, -1, 1_000_001, 1.5]) {
+      assert.throws(() => normalizeInventory([inventoryItem('helmet', { [field]: value })]), InventoryError,
+        `${field} ${String(value)}`);
+    }
+  }
+});
+
+test('inventory normalization validates weapon shape, ordering, placement, and attack speed', () => {
+  assert.deepEqual(normalizeInventory([weaponItem()])[0].weapon,
+    { physical_min: 100, physical_max: 200, attacks_per_second: 2 });
+  assert.throws(() => normalizeInventory([inventoryItem('off_hand', {
+    weapon: { physical_min: 1, physical_max: 2, attacks_per_second: 1 },
+  })]), InventoryError);
+  assert.throws(() => normalizeInventory([weaponItem({
+    weapon: { physical_min: 201, physical_max: 200, attacks_per_second: 1 },
+  })]), InventoryError);
+
+  for (const field of ['physical_min', 'physical_max', 'attacks_per_second']) {
+    const missing = { physical_min: 1, physical_max: 2, attacks_per_second: 1 };
+    delete missing[field];
+    assert.throws(() => normalizeInventory([weaponItem({ weapon: missing })]), InventoryError, `missing ${field}`);
+  }
+  assert.throws(() => normalizeInventory([weaponItem({
+    weapon: { physical_min: 1, physical_max: 2, attacks_per_second: 1, elemental_min: 4 },
+  })]), InventoryError);
+  for (const value of ['2', NaN, Infinity, -1, 0, 101]) {
+    assert.throws(() => normalizeInventory([weaponItem({
+      weapon: { physical_min: 1, physical_max: 2, attacks_per_second: value },
+    })]), InventoryError, `attacks_per_second ${String(value)}`);
+  }
+  for (const field of ['physical_min', 'physical_max']) {
+    for (const value of ['1', NaN, Infinity, -1, 1_000_001, 1.5]) {
+      const weapon = { physical_min: 1, physical_max: 2, attacks_per_second: 1 };
+      weapon[field] = value;
+      assert.throws(() => normalizeInventory([weaponItem({ weapon })]), InventoryError, `${field} ${String(value)}`);
+    }
+  }
+});
+
+test('inventory estimate uses equipped defenses and only the equipped main-hand weapon', () => {
+  const inventory = normalizeInventory([
+    weaponItem({ armour: 10 }),
+    inventoryItem('helmet', { armour: 90, evasion: 50, energy_shield: 25 }),
+    inventoryItem('body_armour', { equipped: false, armour: 900, evasion: 900, energy_shield: 900 }),
+  ]);
+  const result = calculateInventoryStats(inventory, [], []);
+  assert.deepEqual(result, {
+    metrics: [
+      { key: 'armour', baseline: 100, total: 100, delta: 0 },
+      { key: 'evasion', baseline: 50, total: 50, delta: 0 },
+      { key: 'energy_shield', baseline: 25, total: 25, delta: 0 },
+      { key: 'physical_min', baseline: 100, total: 100, delta: 0 },
+      { key: 'physical_max', baseline: 200, total: 200, delta: 0 },
+      { key: 'attacks_per_second', baseline: 2, total: 2, delta: 0 },
+      { key: 'physical_dps', baseline: 300, total: 300, delta: 0 },
+    ],
+    applied: [],
+    unsupported: [],
+  });
+
+  const absent = calculateInventoryStats(normalizeInventory([
+    weaponItem({ equipped: false }), inventoryItem('helmet'),
+  ]), [], []);
+  assert.deepEqual(absent.metrics.slice(3), [
+    { key: 'physical_min', baseline: null, total: null, delta: null },
+    { key: 'physical_max', baseline: null, total: null, delta: null },
+    { key: 'attacks_per_second', baseline: null, total: null, delta: null },
+    { key: 'physical_dps', baseline: null, total: null, delta: null },
+  ]);
+  assert.deepEqual(calculateInventoryStats([], [], []).metrics.slice(0, 3).map((metric) => metric.total), [0, 0, 0]);
+});
+
+test('pinned Armour and Physical Damage wording produces the documented estimates', () => {
+  const armourNode = bonusData.nodes.find((node) => node.stats.includes('20% increased [Armour]'));
+  const physicalNode = bonusData.nodes.find((node) => node.stats.includes('12% increased [Physical] Damage'));
+  assert.ok(armourNode, 'pinned export contains 20% increased Armour');
+  assert.ok(physicalNode, 'pinned export contains 12% increased Physical Damage');
+  const inventory = normalizeInventory([
+    weaponItem(),
+    inventoryItem('body_armour', { armour: 1000 }),
+  ]);
+  const result = calculateInventoryStats(inventory, [armourNode, physicalNode], [armourNode.id, physicalNode.id]);
+  const metrics = metricsByKey(result);
+  assert.equal(metrics.armour.total, 1200);
+  assert.equal(metrics.physical_min.total, 112);
+  assert.equal(metrics.physical_max.total, 224);
+  assert.equal(metrics.physical_dps.total, 336);
+  assert.deepEqual(result.unsupported, [{
+    node_id: physicalNode.id,
+    node_name: physicalNode.name,
+    text: '12% increased [Lightning] Damage',
+  }]);
+});
+
+test('each supported target applies increased, reduced, more, and less without intermediate rounding', () => {
+  const cases = [
+    ['Armour', ['armour']],
+    ['Evasion', ['evasion']],
+    ['Evasion Rating', ['evasion']],
+    ['maximum Energy Shield', ['energy_shield']],
+    ['Physical Damage', ['physical_min', 'physical_max']],
+    ['Attack Speed', ['attacks_per_second']],
+    ['Armour, Evasion and Energy Shield', ['armour', 'evasion', 'energy_shield']],
+  ];
+  const operations = { increased: 1.2, reduced: 0.8, more: 1.2, less: 0.8 };
+  const inventory = normalizeInventory([
+    weaponItem(), inventoryItem('body_armour', { armour: 100, evasion: 100, energy_shield: 100 }),
+  ]);
+  for (const [target, keys] of cases) {
+    for (const [operation, factor] of Object.entries(operations)) {
+      const node = { id: `${target}-${operation}`, name: 'Template', stats: [`20% ${operation} ${target}`], kind: 'small' };
+      const result = calculateInventoryStats(inventory, [node], [node.id, node.id]);
+      const metrics = metricsByKey(result);
+      for (const key of keys) closeTo(metrics[key].total, metrics[key].baseline * factor);
+      assert.deepEqual(result.applied, [{ node_id: node.id, node_name: 'Template', text: node.stats[0] }]);
+      assert.deepEqual(result.unsupported, []);
+    }
+  }
+
+  const stacked = [
+    { id: 'a', name: 'A', stats: ['20% increased Armour', '50% more Armour'], kind: 'small' },
+    { id: 'b', name: 'B', stats: ['10% reduced Armour', '20% less Armour'], kind: 'small' },
+  ];
+  const total = metricsByKey(calculateInventoryStats(inventory, stacked, ['a', 'b'])).armour.total;
+  closeTo(total, 132);
+  const preciseWeapon = normalizeInventory([weaponItem({
+    weapon: { physical_min: 1, physical_max: 2, attacks_per_second: 1.234 },
+  })]);
+  const speed = { id: 'speed', name: 'Speed', stats: ['10% increased Attack Speed'], kind: 'small' };
+  const preciseAps = metricsByKey(calculateInventoryStats(preciseWeapon, [speed], ['speed'])).attacks_per_second.total;
+  closeTo(preciseAps, 1.3574);
+  assert.notEqual(preciseAps, Number(preciseAps.toFixed(2)));
+  assert.equal(metricsByKey(calculateInventoryStats([], stacked, ['a', 'b'])).armour.total, 0);
+});
+
+
+test('equal increased and reduced inventory modifiers cancel to the equipment baseline', () => {
+  const inventory = normalizeInventory([
+    inventoryItem('body_armour', { armour: 100 }),
+  ]);
+  const nodes = [
+    { id: 'increase', name: 'Increase', stats: ['20% increased Armour'], kind: 'small' },
+    { id: 'reduce', name: 'Reduce', stats: ['20% reduced Armour'], kind: 'small' },
+  ];
+  const armour = metricsByKey(calculateInventoryStats(inventory, nodes, ['increase', 'reduce'])).armour;
+  assert.deepEqual(armour, { key: 'armour', baseline: 100, total: 100, delta: 0 });
+});
+
+test('inventory estimate strips GGG markup and keeps unsupported mechanics with provenance', () => {
+  const nodes = [
+    { id: 'travel', name: 'Travel', stats: ['10% increased [Armour], [Evasion] and [EnergyShield|Energy Shield]'], kind: 'small' },
+    { id: 'conditional', name: 'Conditional', stats: ['20% increased Armour while Stationary'], kind: 'notable' },
+    { id: 'weapon', name: 'Bow node', stats: ['20% increased Physical Damage with Bows'], kind: 'small' },
+    { id: 'local', name: 'Local', stats: ['50% more Armour from Equipped Body Armour'], kind: 'notable' },
+    { id: 'conversion', name: 'Conversion', stats: ['Convert 20% of Evasion Rating to Armour'], kind: 'notable' },
+    { id: 'keystone', name: 'Keystone', stats: ['100% more Armour'], kind: 'keystone' },
+    { id: 'unallocated', name: 'Selected only', stats: ['100% more Armour'], kind: 'small' },
+  ];
+  const allocated = nodes.slice(0, -1).map((node) => node.id);
+  const result = calculateInventoryStats(
+    normalizeInventory([inventoryItem('body_armour', { armour: 100, evasion: 100, energy_shield: 100 })]),
+    nodes,
+    allocated,
+  );
+  assert.deepEqual(result.metrics.slice(0, 3).map((metric) => metric.total), [110, 110, 110]);
+  assert.deepEqual(result.applied, [{
+    node_id: 'travel',
+    node_name: 'Travel',
+    text: '10% increased [Armour], [Evasion] and [EnergyShield|Energy Shield]',
+  }]);
+  assert.deepEqual(result.unsupported, nodes.slice(1, -1).map((node) => ({
+    node_id: node.id, node_name: node.name, text: node.stats[0],
+  })));
+});
+
+test('inventory estimate uses resolved class and ascendancy stats and does not mutate inputs', () => {
+  const raw = syntheticExport();
+  raw.nodes[1].stats = ['10% increased Armour'];
+  raw.skillOverrides = {
+    100: { name: 'Class armour', stats: ['20% increased Armour'] },
+    101: { name: 'Ascendancy armour', stats: ['30% increased Armour'] },
+  };
+  raw.classes[0].overridePairs = { 1: 100 };
+  raw.classes[0].ascendancies[0].overridePairs = { 1: 101 };
+  const classModel = syntheticModel(raw);
+  const ascendancyModel = syntheticModel(raw, 'Test1');
+  const inventory = normalizeInventory([inventoryItem('body_armour', { armour: 100 })]);
+  const before = JSON.stringify({ inventory, classNodes: classModel.nodes, ascendancyNodes: ascendancyModel.nodes });
+  assert.equal(metricsByKey(calculateInventoryStats(inventory, classModel.nodes, ['1'])).armour.total, 120);
+  assert.equal(metricsByKey(calculateInventoryStats(inventory, ascendancyModel.nodes, ['1'])).armour.total, 130);
+  assert.equal(JSON.stringify({ inventory, classNodes: classModel.nodes, ascendancyNodes: ascendancyModel.nodes }), before);
 });

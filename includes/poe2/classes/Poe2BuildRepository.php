@@ -24,8 +24,13 @@ final class Poe2BuildRepository
     private const MAX_MUST_HAVE_NODE_IDS = self::MAX_ALLOCATED_NODE_IDS;
     private const NODE_ID_PATTERN = '/\A[A-Za-z0-9_.:-]{1,32}\z/';
     private const UUID_PATTERN = '/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/';
+    private const INVENTORY_SLOTS = [
+        'main_hand', 'off_hand', 'helmet', 'body_armour', 'gloves',
+        'boots', 'belt', 'amulet', 'ring_1', 'ring_2',
+    ];
+    private const MAX_INVENTORY_VALUE = 1_000_000;
     private const COLUMNS = 'id, user_id, guest_profile_id, character_name, build_name, class_id, ascendancy_id, '
-        . 'tree_version, allocated_node_ids, must_have_node_ids, considered_node_ids, created_at, updated_at';
+        . 'tree_version, allocated_node_ids, must_have_node_ids, considered_node_ids, inventory, created_at, updated_at';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -83,10 +88,11 @@ final class Poe2BuildRepository
 
             $statement = $this->pdo->prepare(
                 'INSERT INTO poe2_saved_builds (' . $column . ', character_name, build_name, class_id, ascendancy_id,'
-                . ' tree_version, allocated_node_ids, must_have_node_ids, considered_node_ids)'
+                . ' tree_version, allocated_node_ids, must_have_node_ids, considered_node_ids, inventory)'
                 . ' VALUES (:owner_id, :character_name, :build_name, :class_id, :ascendancy_id,'
                 . ' :tree_version, CAST(:allocated_node_ids AS jsonb), CAST(:must_have_node_ids AS jsonb),'
-                . " COALESCE(CAST(:considered_node_ids AS jsonb), '[]'::jsonb))"
+                . " COALESCE(CAST(:considered_node_ids AS jsonb), '[]'::jsonb),"
+                . " COALESCE(CAST(:inventory AS jsonb), '[]'::jsonb))"
                 . ' RETURNING ' . self::COLUMNS
             );
             $statement->execute(['owner_id' => $ownerId] + $this->writeParameters($fields));
@@ -132,8 +138,8 @@ final class Poe2BuildRepository
     }
 
     /**
-     * Full replace of every writable field, except that an absent considered list keeps the
-     * stored one: clients from before that field existed must not wipe it.
+     * Full replace of every writable field, except that absent considered and inventory lists
+     * keep the stored values: clients from before those fields existed must not wipe them.
      *
      * @param array{type: string, id: string} $owner
      * @param array<string, mixed> $input
@@ -154,7 +160,8 @@ final class Poe2BuildRepository
             . ' tree_version = :tree_version,'
             . ' allocated_node_ids = CAST(:allocated_node_ids AS jsonb),'
             . ' must_have_node_ids = CAST(:must_have_node_ids AS jsonb),'
-            . ' considered_node_ids = COALESCE(CAST(:considered_node_ids AS jsonb), considered_node_ids)'
+            . ' considered_node_ids = COALESCE(CAST(:considered_node_ids AS jsonb), considered_node_ids),'
+            . ' inventory = COALESCE(CAST(:inventory AS jsonb), inventory)'
             . ' WHERE id = :id AND ' . $column . ' = :owner_id'
             . ' RETURNING ' . self::COLUMNS
         );
@@ -281,7 +288,7 @@ final class Poe2BuildRepository
 
     /**
      * @param array<string, mixed> $input
-     * @return array{character_name: string, build_name: string, class_id: string, ascendancy_id: ?string, tree_version: string, allocated_node_ids: list<string>, must_have_node_ids: list<string>, considered_node_ids: ?list<string>}
+     * @return array{character_name: string, build_name: string, class_id: string, ascendancy_id: ?string, tree_version: string, allocated_node_ids: list<string>, must_have_node_ids: list<string>, considered_node_ids: ?list<string>, inventory: ?list<array<string, mixed>>}
      */
     private function normalizeInput(array $input): array
     {
@@ -300,6 +307,10 @@ final class Poe2BuildRepository
             // Optional, for clients from before the considered list existed; null means "not sent".
             'considered_node_ids' => array_key_exists('considered_node_ids', $input)
                 ? $this->nodeIdList($input, 'considered_node_ids', self::MAX_ALLOCATED_NODE_IDS, $errors)
+                : null,
+            // Optional for compatibility with clients from before inventory existed.
+            'inventory' => array_key_exists('inventory', $input)
+                ? $this->inventory($input['inventory'], $errors)
                 : null,
         ];
 
@@ -375,9 +386,158 @@ final class Poe2BuildRepository
 
         return $value;
     }
+    /**
+     * @param array<string, string> $errors
+     * @return list<array<string, mixed>>
+     */
+    private function inventory(mixed $value, array &$errors): array
+    {
+        if (!is_array($value) || !array_is_list($value)) {
+            $errors['inventory'] = 'inventory must be an array of inventory items.';
+            return [];
+        }
+        if (count($value) > 10) {
+            $errors['inventory'] = 'inventory must contain at most 10 items.';
+            return [];
+        }
+
+        $items = [];
+        $slots = [];
+        foreach ($value as $item) {
+            $item = $this->objectFields($item);
+            if ($item === null || !$this->hasExactlyFields(
+                $item,
+                ['slot', 'name', 'equipped', 'armour', 'evasion', 'energy_shield', 'weapon']
+            )) {
+                $errors['inventory'] = 'Each inventory item must be an object with exactly the required fields.';
+                return [];
+            }
+
+            $slot = $item['slot'];
+            if (!is_string($slot) || !in_array($slot, self::INVENTORY_SLOTS, true)) {
+                $errors['inventory'] = 'Each inventory item must use a known slot.';
+                return [];
+            }
+            if (isset($slots[$slot])) {
+                $errors['inventory'] = 'Inventory slots must be unique.';
+                return [];
+            }
+            $slots[$slot] = true;
+
+            $name = $item['name'];
+            if (!is_string($name)) {
+                $errors['inventory'] = 'Each inventory item name must be a string.';
+                return [];
+            }
+            $name = $this->trimInventoryName($name);
+            if (preg_match('/\p{Cc}/u', $name) === 1 || mb_strlen($name, 'UTF-8') > 80) {
+                $errors['inventory'] = 'Each inventory item name must be at most 80 characters and contain no control characters.';
+                return [];
+            }
+            if (!is_bool($item['equipped'])) {
+                $errors['inventory'] = 'Each inventory item equipped value must be a boolean.';
+                return [];
+            }
+
+            foreach (['armour', 'evasion', 'energy_shield'] as $field) {
+                if (!$this->inventoryInteger($item[$field])) {
+                    $errors['inventory'] = "Each inventory item {$field} must be an integer from 0 to " . self::MAX_INVENTORY_VALUE . '.';
+                    return [];
+                }
+            }
+
+            $weapon = null;
+            if ($item['weapon'] !== null) {
+                if ($slot !== 'main_hand') {
+                    $errors['inventory'] = 'A weapon may only be set for the main_hand slot.';
+                    return [];
+                }
+                $weaponFields = $this->objectFields($item['weapon']);
+                if ($weaponFields === null || !$this->hasExactlyFields(
+                    $weaponFields,
+                    ['physical_min', 'physical_max', 'attacks_per_second']
+                )) {
+                    $errors['inventory'] = 'An inventory weapon must be null or an object with exactly the required fields.';
+                    return [];
+                }
+                if (!$this->inventoryInteger($weaponFields['physical_min'])
+                    || !$this->inventoryInteger($weaponFields['physical_max'])
+                ) {
+                    $errors['inventory'] = 'Weapon physical damage must use integers from 0 to ' . self::MAX_INVENTORY_VALUE . '.';
+                    return [];
+                }
+                if ($weaponFields['physical_min'] > $weaponFields['physical_max']) {
+                    $errors['inventory'] = 'Weapon physical_min must not exceed physical_max.';
+                    return [];
+                }
+                $attacksPerSecond = $weaponFields['attacks_per_second'];
+                if ((!is_int($attacksPerSecond) && !is_float($attacksPerSecond))
+                    || !is_finite((float) $attacksPerSecond)
+                    || $attacksPerSecond <= 0
+                    || $attacksPerSecond > 100
+                ) {
+                    $errors['inventory'] = 'Weapon attacks_per_second must be a finite number greater than 0 and at most 100.';
+                    return [];
+                }
+                $weapon = [
+                    'physical_min' => $weaponFields['physical_min'],
+                    'physical_max' => $weaponFields['physical_max'],
+                    'attacks_per_second' => $attacksPerSecond,
+                ];
+            }
+
+            $items[] = [
+                'slot' => $slot,
+                'name' => $name,
+                'equipped' => $item['equipped'],
+                'armour' => $item['armour'],
+                'evasion' => $item['evasion'],
+                'energy_shield' => $item['energy_shield'],
+                'weapon' => $weapon,
+            ];
+        }
+
+        return $items;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function objectFields(mixed $value): ?array
+    {
+        if ($value instanceof \stdClass) {
+            return get_object_vars($value);
+        }
+        if (is_array($value) && !array_is_list($value)) {
+            return $value;
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $value @param list<string> $fields */
+    private function hasExactlyFields(array $value, array $fields): bool
+    {
+        $actual = array_keys($value);
+        sort($actual);
+        sort($fields);
+
+        return $actual === $fields;
+    }
+
+    private function inventoryInteger(mixed $value): bool
+    {
+        return is_int($value) && $value >= 0 && $value <= self::MAX_INVENTORY_VALUE;
+    }
+
+    private function trimInventoryName(string $value): string
+    {
+        $whitespace = '\\x{0009}-\\x{000D}\\x{0020}\\x{00A0}\\x{1680}\\x{2000}-\\x{200A}'
+            . '\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}';
+
+        return preg_replace('/^[' . $whitespace . ']+|[' . $whitespace . ']+$/u', '', $value) ?? $value;
+    }
 
     /**
-     * @param array{character_name: string, build_name: string, class_id: string, ascendancy_id: ?string, tree_version: string, allocated_node_ids: list<string>, must_have_node_ids: list<string>, considered_node_ids: ?list<string>} $fields
+     * @param array{character_name: string, build_name: string, class_id: string, ascendancy_id: ?string, tree_version: string, allocated_node_ids: list<string>, must_have_node_ids: list<string>, considered_node_ids: ?list<string>, inventory: ?list<array<string, mixed>>} $fields
      * @return array<string, ?string>
      */
     private function writeParameters(array $fields): array
@@ -393,6 +553,9 @@ final class Poe2BuildRepository
             'considered_node_ids' => $fields['considered_node_ids'] === null
                 ? null
                 : json_encode($fields['considered_node_ids'], JSON_THROW_ON_ERROR),
+            'inventory' => $fields['inventory'] === null
+                ? null
+                : json_encode($fields['inventory'], JSON_THROW_ON_ERROR),
         ];
     }
 
@@ -413,6 +576,7 @@ final class Poe2BuildRepository
             'allocated_node_ids' => $this->decodeNodeIds($row['allocated_node_ids']),
             'must_have_node_ids' => $this->decodeNodeIds($row['must_have_node_ids']),
             'considered_node_ids' => $this->decodeNodeIds($row['considered_node_ids']),
+            'inventory' => $this->decodeInventory($row['inventory'] ?? null),
             'created_at' => (string) $row['created_at'],
             'updated_at' => (string) $row['updated_at'],
         ];
@@ -436,5 +600,19 @@ final class Poe2BuildRepository
         }
 
         return $nodeIds;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function decodeInventory(mixed $value): array
+    {
+        $decoded = is_string($value) ? json_decode($value, true) : $value;
+        if ($decoded === null) {
+            return [];
+        }
+
+        $errors = [];
+        $inventory = $this->inventory($decoded, $errors);
+
+        return $errors === [] ? $inventory : [];
     }
 }

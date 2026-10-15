@@ -10,7 +10,9 @@ import * as optimizer from './optimizer.js?v=a6b98e12335a';
 // @ts-ignore
 import * as buildsApi from './builds-api.js?v=14de1306bb90';
 // @ts-ignore
-import * as buildCode from './build-code.js?v=1f44f3dbf1e0';
+import * as buildCode from './build-code.js?v=02a4b54f54ec';
+// @ts-ignore
+import * as inventoryModule from './inventory.js?v=710599b204ac';
 // @ts-ignore
 import * as treeArt from './tree-art.js?v=f3d660112b74';
 
@@ -19,6 +21,7 @@ const { findMinimalRoute, findConnection } = /** @type {typeof import('./optimiz
 const { listBuilds, createBuild, updateBuild, deleteBuild } = /** @type {typeof import('./builds-api.js')} */ (buildsApi);
 const { TREE_ART } = /** @type {typeof import('./tree-art.js')} */ (treeArt);
 const { encodeBuildCode, decodeBuildCode, extractBuildCode } = /** @type {typeof import('./build-code.js')} */ (buildCode);
+const { InventoryError, normalizeInventory, calculateInventoryStats } = /** @type {typeof import('./inventory.js')} */ (inventoryModule);
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const MIN_SCALE = 0.01;
@@ -59,6 +62,33 @@ const KIND_LABELS = {
   notable: 'Notable',
   jewelSocket: 'Jewel socket',
   small: 'Passive',
+};
+
+const INVENTORY_SLOTS = [
+  ['main_hand', 'Main hand'],
+  ['off_hand', 'Off hand'],
+  ['helmet', 'Helmet'],
+  ['body_armour', 'Body armour'],
+  ['gloves', 'Gloves'],
+  ['boots', 'Boots'],
+  ['belt', 'Belt'],
+  ['amulet', 'Amulet'],
+  ['ring_1', 'Ring 1'],
+  ['ring_2', 'Ring 2'],
+];
+
+const INVENTORY_METRICS = {
+  Defense: [
+    ['armour', 'Armour'],
+    ['evasion', 'Evasion'],
+    ['energy_shield', 'Energy Shield'],
+  ],
+  Offense: [
+    ['physical_min', 'Physical damage minimum'],
+    ['physical_max', 'Physical damage maximum'],
+    ['attacks_per_second', 'Attacks per second'],
+    ['physical_dps', 'Physical DPS'],
+  ],
 };
 
 // Gap between the pointer (or focused node) and the tooltip, in CSS pixels.
@@ -118,6 +148,10 @@ const elements = {
   clearRoute: /** @type {HTMLButtonElement} */ (document.querySelector('#poe2-clear-route')),
   routeSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-route-summary')),
   bonusSummary: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-bonus-summary')),
+  inventoryStatus: /** @type {HTMLParagraphElement} */ (document.querySelector('#poe2-inventory-status')),
+  inventorySlots: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-inventory-slots')),
+  inventoryComparison: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-inventory-comparison')),
+  inventorySources: /** @type {HTMLDivElement} */ (document.querySelector('#poe2-inventory-sources')),
   savedBuildForm: /** @type {HTMLFormElement} */ (document.querySelector('#poe2-saved-build-form')),
   characterName: /** @type {HTMLInputElement} */ (document.querySelector('#poe2-character-name')),
   buildName: /** @type {HTMLInputElement} */ (document.querySelector('#poe2-build-name')),
@@ -138,6 +172,7 @@ const state = {
   nodeElements: new Map(),
   edgeElements: [],
   allocated: new Set(),
+  inventory: normalizeInventory(undefined),
   // Node IDs that are a legal next allocation for `allocated` under `model`;
   // null means it must be recomputed (see currentAvailability).
   available: null,
@@ -381,6 +416,7 @@ function currentBuildSnapshot(names) {
     allocated_node_ids: [...state.allocated],
     must_have_node_ids: [...state.mustHaves],
     considered_node_ids: [...state.considered],
+    inventory: normalizeInventory(state.inventory),
   };
 }
 
@@ -456,6 +492,13 @@ function loadSavedBuild(build) {
 // build). Returns whether it loaded.
 function applyBuild(build, { report, origin, savedId }) {
   if (state.buildsBusy || !plannerUsable()) return false;
+  let inventory;
+  try {
+    inventory = normalizeInventory(build.inventory);
+  } catch (error) {
+    report(error instanceof Error ? error.message : `The ${origin} inventory is invalid.`, true);
+    return false;
+  }
   const classOption = state.data.classes.find((option) => option.id === build.class_id);
   if (!classOption) {
     report(`The ${origin} class ${build.class_id} is not available in this tree export.`, true);
@@ -483,6 +526,8 @@ function applyBuild(build, { report, origin, savedId }) {
       return false;
     }
 
+    state.inventory = inventory;
+    renderInventoryManager();
     setAllocation(new Set(build.allocated_node_ids));
     const modelNodeIds = new Set(state.model.nodes.map((node) => node.id));
     state.mustHaves = new Set(build.must_have_node_ids.filter((nodeId) => modelNodeIds.has(nodeId)));
@@ -533,6 +578,7 @@ function currentSharedBuild() {
     considered_node_ids: [...state.considered],
     character_name: elements.characterName.value.trim(),
     build_name: elements.buildName.value.trim(),
+    inventory: normalizeInventory(state.inventory),
   };
 }
 
@@ -762,6 +808,318 @@ function renderNetBonuses() {
     empty.textContent = 'The allocated passives have no listed bonuses.';
     elements.bonusSummary.append(empty);
   }
+}
+
+function setInventoryStatus(message, error = false) {
+  elements.inventoryStatus.textContent = message;
+  elements.inventoryStatus.classList.toggle('is-error', error);
+}
+
+function inventorySlotLabel(slot) {
+  return INVENTORY_SLOTS.find(([id]) => id === slot)?.[1] || slot;
+}
+
+function emptyInventoryItem(slot) {
+  return {
+    slot,
+    name: '',
+    equipped: true,
+    armour: 0,
+    evasion: 0,
+    energy_shield: 0,
+    weapon: null,
+  };
+}
+
+function inventoryNumber(form, name, label) {
+  const control = form.elements.namedItem(name);
+  const value = control instanceof HTMLInputElement ? control.value.trim() : '';
+  if (value === '') throw new InventoryError(`${label} is required.`);
+  return Number(value);
+}
+
+function inventoryField(container, slot, name, label, value, options = {}) {
+  const wrapper = document.createElement('label');
+  wrapper.htmlFor = `poe2-${slot}-${name}`;
+  const text = document.createElement('span');
+  text.textContent = label;
+  const input = document.createElement('input');
+  input.id = wrapper.htmlFor;
+  input.name = name;
+  input.type = options.type || 'number';
+  input.value = String(value);
+  if (options.type === 'text') {
+    input.autocomplete = 'off';
+  } else {
+    input.min = '0';
+    input.max = options.max || '1000000';
+    input.step = options.step || '1';
+    input.inputMode = options.step === '0.01' ? 'decimal' : 'numeric';
+  }
+  wrapper.append(text, input);
+  container.append(wrapper);
+  return input;
+}
+
+function readInventoryForm(form) {
+  const slot = form.dataset.slot;
+  const current = state.inventory.find((item) => item.slot === slot);
+  if (!current) throw new InventoryError(`${inventorySlotLabel(slot)} is no longer present.`);
+  const nameControl = form.elements.namedItem('name');
+  const weaponControl = form.elements.namedItem('has_weapon');
+  const weapon = slot === 'main_hand' && weaponControl instanceof HTMLInputElement && weaponControl.checked
+    ? {
+        physical_min: inventoryNumber(form, 'physical_min', 'Physical damage minimum'),
+        physical_max: inventoryNumber(form, 'physical_max', 'Physical damage maximum'),
+        attacks_per_second: inventoryNumber(form, 'attacks_per_second', 'Attacks per second'),
+      }
+    : null;
+  return {
+    slot,
+    name: nameControl instanceof HTMLInputElement ? nameControl.value : '',
+    equipped: current.equipped,
+    armour: inventoryNumber(form, 'armour', 'Armour'),
+    evasion: inventoryNumber(form, 'evasion', 'Evasion'),
+    energy_shield: inventoryNumber(form, 'energy_shield', 'Energy Shield'),
+    weapon,
+  };
+}
+
+function commitInventoryForm(form, announce = false) {
+  try {
+    const item = readInventoryForm(form);
+    const next = state.inventory.map((candidate) => candidate.slot === item.slot ? item : candidate);
+    state.inventory = normalizeInventory(next);
+    renderInventoryComparison();
+    setInventoryStatus(announce ? `${inventorySlotLabel(item.slot)} values applied.` : '');
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Enter valid equipment values.';
+    setInventoryStatus(`${message} The last valid estimate is still shown.`, true);
+    return false;
+  }
+}
+
+function renderInventoryManager() {
+  elements.inventorySlots.replaceChildren();
+  for (const [slot, label] of INVENTORY_SLOTS) {
+    const item = state.inventory.find((candidate) => candidate.slot === slot);
+    const section = document.createElement('section');
+    section.className = 'poe2-inventory-slot';
+    const heading = document.createElement('h4');
+    heading.textContent = label;
+    section.append(heading);
+
+    if (!item) {
+      const empty = document.createElement('p');
+      empty.className = 'poe2-inventory-empty';
+      empty.textContent = 'Empty slot';
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.textContent = 'Add item';
+      add.setAttribute('aria-label', `Add item to ${label}`);
+      add.addEventListener('click', () => {
+        try {
+          state.inventory = normalizeInventory([...state.inventory, emptyInventoryItem(slot)]);
+          renderInventoryManager();
+          renderInventoryComparison();
+          setInventoryStatus(`${label} item added. Enter its final displayed values.`);
+          const firstInput = elements.inventorySlots.querySelector(`[data-slot="${slot}"] input`);
+          if (firstInput instanceof HTMLInputElement) firstInput.focus();
+        } catch (error) {
+          setInventoryStatus(error instanceof Error ? error.message : 'The item could not be added.', true);
+        }
+      });
+      section.append(empty, add);
+      elements.inventorySlots.append(section);
+      continue;
+    }
+
+    const equipped = document.createElement('p');
+    equipped.className = 'poe2-inventory-equipped';
+    equipped.textContent = item.equipped ? 'Equipped' : 'Unequipped (excluded from estimates)';
+    section.append(equipped);
+
+    const form = document.createElement('form');
+    form.className = 'poe2-inventory-form';
+    form.dataset.slot = slot;
+    inventoryField(form, slot, 'name', 'Item name', item.name, { type: 'text' });
+    const defenses = document.createElement('fieldset');
+    defenses.className = 'poe2-inventory-values';
+    const defenseLegend = document.createElement('legend');
+    defenseLegend.textContent = 'Final displayed defenses';
+    defenses.append(defenseLegend);
+    inventoryField(defenses, slot, 'armour', 'Armour', item.armour);
+    inventoryField(defenses, slot, 'evasion', 'Evasion', item.evasion);
+    inventoryField(defenses, slot, 'energy_shield', 'Energy Shield', item.energy_shield);
+    form.append(defenses);
+
+    if (slot === 'main_hand') {
+      const weaponToggle = document.createElement('label');
+      weaponToggle.className = 'poe2-inventory-check';
+      const weaponInput = document.createElement('input');
+      weaponInput.type = 'checkbox';
+      weaponInput.name = 'has_weapon';
+      weaponInput.checked = item.weapon !== null;
+      const weaponText = document.createElement('span');
+      weaponText.textContent = 'Include main-hand weapon values';
+      weaponToggle.append(weaponInput, weaponText);
+      form.append(weaponToggle);
+
+      const weaponFields = document.createElement('fieldset');
+      weaponFields.className = 'poe2-inventory-values poe2-inventory-weapon';
+      weaponFields.disabled = item.weapon === null;
+      const weaponLegend = document.createElement('legend');
+      weaponLegend.textContent = 'Final displayed weapon values';
+      weaponFields.append(weaponLegend);
+      inventoryField(weaponFields, slot, 'physical_min', 'Physical minimum', item.weapon?.physical_min ?? 0);
+      inventoryField(weaponFields, slot, 'physical_max', 'Physical maximum', item.weapon?.physical_max ?? 0);
+      inventoryField(weaponFields, slot, 'attacks_per_second', 'Attacks per second', item.weapon?.attacks_per_second ?? 1, { max: '100', step: '0.01' });
+      form.append(weaponFields);
+      weaponInput.addEventListener('change', () => {
+        weaponFields.disabled = !weaponInput.checked;
+        commitInventoryForm(form);
+      });
+    }
+
+    const apply = document.createElement('button');
+    apply.type = 'submit';
+    apply.textContent = 'Apply values';
+    form.append(apply);
+    form.addEventListener('input', (event) => {
+      if (!(event.target instanceof HTMLInputElement) || event.target.name === 'has_weapon') return;
+      commitInventoryForm(form);
+    });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (commitInventoryForm(form, true)) renderInventoryManager();
+    });
+    section.append(form);
+
+    const actions = document.createElement('div');
+    actions.className = 'poe2-inventory-actions';
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.textContent = item.equipped ? 'Unequip' : 'Equip';
+    toggle.setAttribute('aria-label', `${item.equipped ? 'Unequip' : 'Equip'} ${item.name || label}`);
+    toggle.addEventListener('click', () => {
+      state.inventory = normalizeInventory(state.inventory.map((candidate) => candidate.slot === slot
+        ? { ...candidate, equipped: !candidate.equipped }
+        : candidate));
+      renderInventoryManager();
+      renderInventoryComparison();
+      setInventoryStatus(`${label} ${item.equipped ? 'unequipped' : 'equipped'}.`);
+    });
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'poe2-inventory-remove';
+    remove.textContent = 'Remove';
+    remove.setAttribute('aria-label', `Remove ${item.name || `item from ${label}`}`);
+    remove.addEventListener('click', () => {
+      state.inventory = normalizeInventory(state.inventory.filter((candidate) => candidate.slot !== slot));
+      renderInventoryManager();
+      renderInventoryComparison();
+      setInventoryStatus(`${label} item removed.`);
+    });
+    actions.append(toggle, remove);
+    section.append(actions);
+    elements.inventorySlots.append(section);
+  }
+}
+
+function formatInventoryValue(value, key, delta = false) {
+  if (value === null) return '—';
+  const formatted = value.toLocaleString(undefined, {
+    minimumFractionDigits: key === 'attacks_per_second' ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+  return delta && value > 0 ? `+${formatted}` : formatted;
+}
+
+function appendInventorySources(title, entries, emptyText) {
+  const section = document.createElement('section');
+  const heading = document.createElement('h4');
+  heading.textContent = title;
+  section.append(heading);
+  if (entries.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'poe2-inventory-empty';
+    empty.textContent = emptyText;
+    section.append(empty);
+  } else {
+    const list = document.createElement('ul');
+    for (const source of entries) {
+      const item = document.createElement('li');
+      item.textContent = `${source.node_name || `Node ${source.node_id}`}: ${source.text}`;
+      list.append(item);
+    }
+    section.append(list);
+  }
+  elements.inventorySources.append(section);
+}
+
+function renderInventoryComparison() {
+  elements.inventoryComparison.replaceChildren();
+  elements.inventorySources.replaceChildren();
+  const comparison = calculateInventoryStats(state.inventory, state.model?.nodes || [], state.allocated);
+
+  if (state.inventory.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'poe2-inventory-empty';
+    empty.textContent = 'No equipment entered. Defense starts at zero and no weapon estimate is available.';
+    elements.inventoryComparison.append(empty);
+  }
+
+  for (const [groupName, metricDefinitions] of Object.entries(INVENTORY_METRICS)) {
+    const section = document.createElement('section');
+    section.className = 'poe2-comparison-group';
+    const heading = document.createElement('h4');
+    heading.textContent = groupName;
+    section.append(heading);
+    if (groupName === 'Offense' && comparison.metrics.find((metric) => metric.key === 'physical_dps')?.baseline === null) {
+      const empty = document.createElement('p');
+      empty.className = 'poe2-inventory-empty';
+      empty.textContent = 'No equipped main-hand weapon with weapon values.';
+      section.append(empty);
+    }
+    const table = document.createElement('table');
+    const head = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    for (const label of ['Metric', 'Equipment', 'With allocated passives', 'Change']) {
+      const cell = document.createElement('th');
+      cell.scope = 'col';
+      cell.textContent = label;
+      headRow.append(cell);
+    }
+    head.append(headRow);
+    const body = document.createElement('tbody');
+    for (const [key, label] of metricDefinitions) {
+      const metric = comparison.metrics.find((candidate) => candidate.key === key);
+      if (!metric) continue;
+      const row = document.createElement('tr');
+      const metricCell = document.createElement('th');
+      metricCell.scope = 'row';
+      metricCell.textContent = label;
+      row.append(metricCell);
+      for (const [column, columnLabel] of [['baseline', 'Equipment'], ['total', 'With allocated passives'], ['delta', 'Change']]) {
+        const cell = document.createElement('td');
+        cell.dataset.label = columnLabel;
+        cell.textContent = formatInventoryValue(metric[column], key, column === 'delta');
+        if (column === 'delta' && metric.delta !== null) {
+          cell.classList.toggle('is-positive', metric.delta > 0);
+          cell.classList.toggle('is-negative', metric.delta < 0);
+        }
+        row.append(cell);
+      }
+      body.append(row);
+    }
+    table.append(head, body);
+    section.append(table);
+    elements.inventoryComparison.append(section);
+  }
+
+  appendInventorySources('Applied passive sources', comparison.applied, 'No supported allocated passive modifiers are applied.');
+  appendInventorySources('Unsupported allocated passive text', comparison.unsupported, 'No unsupported allocated passive text.');
 }
 
 // Called whenever must-haves or allocations change outside route computation.
@@ -1403,6 +1761,7 @@ function updateGraphState() {
   renderLevelEstimate(totals.passive);
   elements.resetButton.disabled = state.allocated.size === 0;
   renderNetBonuses();
+  renderInventoryComparison();
   updateDetails();
 }
 
@@ -1934,4 +2293,6 @@ window.addEventListener('resize', () => {
   if (state.model) fitTree();
 });
 
+renderInventoryManager();
+renderInventoryComparison();
 initialize();

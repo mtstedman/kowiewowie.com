@@ -847,14 +847,14 @@ final class Application
     }
 
     /**
-     * Body of a PoE 2 build write with the node id fields kept at their wire-level type.
+     * Body of a PoE 2 build write with structured fields kept at their wire-level types.
      *
      * Request::json() decodes JSON objects and JSON arrays to the same PHP array type, so a
      * numeric-key object such as {"0":"a"} is indistinguishable from the array ["a"]. The
-     * body is decoded a second time without that collapse and the two id fields are taken
-     * from it: a JSON array stays a PHP list, while a JSON object stays a stdClass that the
-     * repository rejects as a non-array. Every other field, and every invalid_json outcome,
-     * still comes from Request::json().
+     * body is decoded a second time without that collapse. Node lists and the nested inventory
+     * are restored from it: arrays stay PHP lists while objects stay stdClass instances for the
+     * repository to validate. Every other field, and every invalid_json outcome, still comes
+     * from Request::json().
      *
      * @return array<string, mixed>
      */
@@ -880,7 +880,7 @@ final class Application
         }
 
         $wireFields = get_object_vars($wire);
-        foreach (['allocated_node_ids', 'must_have_node_ids', 'considered_node_ids'] as $field) {
+        foreach (['allocated_node_ids', 'must_have_node_ids', 'considered_node_ids', 'inventory'] as $field) {
             if (array_key_exists($field, $wireFields)) {
                 $input[$field] = $wireFields[$field];
             }

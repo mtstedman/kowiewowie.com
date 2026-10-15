@@ -6,13 +6,29 @@ import { chromium } from '@playwright/test';
 const template = await readFile(new URL('../htdocs/path-of-exile-2/index.php', import.meta.url), 'utf8');
 const styles = await readFile(new URL('../htdocs/assets/css/path-of-exile-2.css', import.meta.url), 'utf8');
 const source = await readFile(new URL('../htdocs/assets/js/path-of-exile-2/planner.js', import.meta.url), 'utf8');
+const inventorySource = await readFile(new URL('../htdocs/assets/js/path-of-exile-2/inventory.js', import.meta.url), 'utf8');
+const buildCodeSource = await readFile(new URL('../htdocs/assets/js/path-of-exile-2/build-code.js', import.meta.url), 'utf8');
 const main = template.match(/<main class="poe2-page">[\s\S]*?<\/main>/)?.[0];
 assert.ok(main, 'POE2 planner main template should be available to the browser fixture');
+const executableInventory = inventorySource.replaceAll('export class ', 'class ').replaceAll('export function ', 'function ');
+const executableBuildCode = buildCodeSource
+    .replace(/\/\/ @ts-ignore\nimport[^;]+;\n/g, '')
+    .replaceAll('export class ', 'class ')
+    .replaceAll('export async function ', 'async function ')
+    .replaceAll('export function ', 'function ');
 const script = `
+const inventoryModule = (() => {
+    ${executableInventory}
+    return { InventoryError, normalizeInventory, calculateInventoryStats };
+})();
+const buildCode = (() => {
+    ${executableBuildCode}
+    return { BuildCodeError, encodeBuildCode, decodeBuildCode, extractBuildCode };
+})();
+window.__poe2BuildCode = buildCode;
 const treeData = window.__poe2Modules.treeData;
 const optimizer = window.__poe2Modules.optimizer;
 const buildsApi = window.__poe2Modules.buildsApi;
-const buildCode = window.__poe2Modules.buildCode;
 const treeArt = window.__poe2Modules.treeArt;
 ${source.replace(/\/\/ @ts-ignore\nimport[^;]+;\n/g, '')}
 `;
@@ -22,6 +38,8 @@ const routeSuccess = (nodeIds = ['target']) => ({ ok: true, exact: true, nodeIds
 async function planner(viewport = { width: 1280, height: 800 }) {
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport, reducedMotion: 'reduce' });
+    const pageErrors = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
     await page.route('http://planner.test/**', (route) => route.fulfill({ body: '<!doctype html><title>Planner test</title>' }));
     await page.goto('http://planner.test/');
     await page.setContent(`
@@ -40,8 +58,8 @@ async function planner(viewport = { width: 1280, height: 800 }) {
     await page.evaluate(() => {
         const nodes = [
             { id: 'root', name: 'Warrior start', kind: 'classStart', domain: 'passive', x: 0, y: 0, stats: [] },
-            { id: 'target', name: 'Brute Strength', kind: 'small', domain: 'passive', x: 220, y: 0, stats: ['+5 to Strength'] },
-            { id: 'second', name: 'Iron Path', kind: 'small', domain: 'passive', x: 440, y: 0, stats: ['+5% Armour'] },
+            { id: 'target', name: 'Brute Strength', kind: 'small', domain: 'passive', x: 220, y: 0, stats: ['10% increased Physical Damage', 'Gain 5 Rage on Hit'] },
+            { id: 'second', name: 'Iron Path', kind: 'small', domain: 'passive', x: 440, y: 0, stats: ['20% increased Armour'] },
         ];
         const data = { version: 'fixture', classes: [
             { id: 'warrior', name: 'Warrior', ascendancies: [{ id: 'titan', name: 'Titan' }] },
@@ -56,6 +74,7 @@ async function planner(viewport = { width: 1280, height: 800 }) {
             pointCost(allocated) { return { passive: allocated.length, ascendancy: 0 }; },
         };
         window.__routeResults = [];
+        window.__savedBuilds = [];
         window.__poe2Modules = {
             treeData: {
                 async loadTree() { return data; },
@@ -74,15 +93,18 @@ async function planner(viewport = { width: 1280, height: 800 }) {
                 },
             },
             buildsApi: {
-                async listBuilds() { return { builds: [], owner: 'guest', adoptedFromGuest: 0, guestBuildsRemaining: 0 }; },
-                async createBuild(input) { return input; },
-                async updateBuild(id, input) { return { id, ...input }; },
-                async deleteBuild() {},
-            },
-            buildCode: {
-                async encodeBuildCode() { return 'fixture-code'; },
-                async decodeBuildCode() { throw new Error('Not used by this fixture.'); },
-                extractBuildCode() { return null; },
+                async listBuilds() { return { builds: structuredClone(window.__savedBuilds), owner: 'guest', adoptedFromGuest: 0, guestBuildsRemaining: 0 }; },
+                async createBuild(input) {
+                    const build = { ...structuredClone(input), id: 'build-' + (window.__savedBuilds.length + 1), owner: 'guest', updated_at: new Date().toISOString() };
+                    window.__savedBuilds.unshift(build);
+                    return structuredClone(build);
+                },
+                async updateBuild(id, input) {
+                    const build = { ...structuredClone(input), id, owner: 'guest', updated_at: new Date().toISOString() };
+                    window.__savedBuilds = [build, ...window.__savedBuilds.filter((candidate) => candidate.id !== id)];
+                    return structuredClone(build);
+                },
+                async deleteBuild(id) { window.__savedBuilds = window.__savedBuilds.filter((build) => build.id !== id); },
             },
             treeArt: { TREE_ART: {
                 scale: 1,
@@ -98,7 +120,12 @@ async function planner(viewport = { width: 1280, height: 800 }) {
         };
     });
     await page.addScriptTag({ content: script });
-    await page.waitForFunction(() => !document.getElementById('poe2-build-controls').disabled);
+    try {
+        await page.waitForFunction(() => !document.getElementById('poe2-build-controls').disabled, null, { timeout: 5000 });
+    } catch (error) {
+        await browser.close();
+        throw new Error(`Planner fixture did not initialize: ${pageErrors.join(' | ') || error.message}`);
+    }
     return { browser, page };
 }
 
@@ -192,4 +219,156 @@ test('route action paints busy feedback, reports outcomes, and updates stale out
     assert.equal(await page.locator('#poe2-route-status').getAttribute('class'), 'poe2-route-status is-error');
     assert.match(await page.locator('#poe2-status').textContent(), /Fixture route is impossible/);
     assert.equal(await page.locator('#poe2-find-route').isEnabled(), true);
+});
+
+
+async function addEquipment(page, label, slot, values = {}) {
+    await page.getByRole('button', { name: `Add item to ${label}` }).click();
+    const form = page.locator(`.poe2-inventory-form[data-slot="${slot}"]`);
+    if (values.name !== undefined) await form.locator('[name="name"]').fill(values.name);
+    if (values.armour !== undefined) await form.locator('[name="armour"]').fill(String(values.armour));
+    if (values.evasion !== undefined) await form.locator('[name="evasion"]').fill(String(values.evasion));
+    if (values.energyShield !== undefined) await form.locator('[name="energy_shield"]').fill(String(values.energyShield));
+    if (values.weapon) {
+        await form.locator('[name="has_weapon"]').check();
+        await form.locator('[name="physical_min"]').fill(String(values.weapon.minimum));
+        await form.locator('[name="physical_max"]').fill(String(values.weapon.maximum));
+        await form.locator('[name="attacks_per_second"]').fill(String(values.weapon.speed));
+    }
+    await form.getByRole('button', { name: 'Apply values' }).click();
+    return form;
+}
+
+async function comparisonValues(page, metric) {
+    return page.locator('#poe2-inventory-comparison tbody tr').filter({ hasText: metric }).locator('td').allTextContents();
+}
+
+test('equipment edits, allocated passives, save/load, and share/import stay joined', async (t) => {
+    const { browser, page } = await planner();
+    t.after(() => browser.close());
+
+    await addEquipment(page, 'Body armour', 'body_armour', { name: '<Plate & Mail>', armour: 100, evasion: 25, energyShield: 10 });
+    await addEquipment(page, 'Main hand', 'main_hand', {
+        name: 'Training Axe',
+        weapon: { minimum: 10, maximum: 20, speed: 2 },
+    });
+    assert.deepEqual(await comparisonValues(page, 'Armour'), ['100', '100', '0']);
+    assert.deepEqual(await comparisonValues(page, 'Physical DPS'), ['30', '30', '0']);
+    assert.equal(await page.locator('.poe2-inventory-slot img').count(), 0, 'item names must stay text-safe');
+    const armourInput = page.locator('.poe2-inventory-form[data-slot="body_armour"] [name="armour"]');
+    await armourInput.fill('');
+    assert.match(await page.locator('#poe2-inventory-status').textContent(), /last valid estimate/i);
+    assert.deepEqual(await comparisonValues(page, 'Armour'), ['100', '100', '0']);
+    await armourInput.fill('100');
+
+    await selectBySearch(page, 'Brute Strength');
+    await page.locator('#poe2-toggle-must-have').click();
+    assert.deepEqual(await comparisonValues(page, 'Physical DPS'), ['30', '30', '0']);
+    await page.locator('#poe2-toggle-must-have').click();
+    await page.locator('#poe2-toggle-node').click();
+    await selectBySearch(page, 'Iron Path');
+    await page.locator('#poe2-toggle-node').click();
+    assert.deepEqual(await comparisonValues(page, 'Armour'), ['100', '120', '+20']);
+    assert.deepEqual(await comparisonValues(page, 'Physical DPS'), ['30', '33', '+3']);
+    assert.match(await page.locator('#poe2-inventory-sources').textContent(), /Brute Strength: 10% increased Physical Damage/);
+    assert.match(await page.locator('#poe2-inventory-sources').textContent(), /Brute Strength: Gain 5 Rage on Hit/);
+
+    await page.locator('#poe2-toggle-node').click();
+    await selectBySearch(page, 'Brute Strength');
+    await page.locator('#poe2-toggle-node').click();
+    assert.deepEqual(await comparisonValues(page, 'Armour'), ['100', '100', '0']);
+    assert.deepEqual(await comparisonValues(page, 'Physical DPS'), ['30', '30', '0']);
+
+    const bodySlot = page.locator('.poe2-inventory-form[data-slot="body_armour"]').locator('..');
+    await bodySlot.getByRole('button', { name: /Unequip/ }).click();
+    assert.deepEqual(await comparisonValues(page, 'Armour'), ['0', '0', '0']);
+    await bodySlot.getByRole('button', { name: /Equip/ }).click();
+
+    await page.locator('summary').filter({ hasText: 'Saved builds' }).click();
+    await page.locator('#poe2-character-name').fill('Fixture hero');
+    await page.locator('#poe2-build-name').fill('Equipment build');
+    await page.locator('#poe2-saved-build-form').evaluate((form) => form.requestSubmit());
+    await page.waitForFunction(() => window.__savedBuilds.length === 1);
+    assert.equal(await page.evaluate(() => window.__savedBuilds[0].inventory.length), 2);
+
+    await page.locator('.poe2-inventory-form[data-slot="body_armour"]').locator('..').getByRole('button', { name: /Remove/ }).click();
+    await page.locator('.poe2-inventory-form[data-slot="main_hand"]').locator('..').getByRole('button', { name: /Remove/ }).click();
+    await page.getByRole('button', { name: /Load Equipment build/ }).click();
+    assert.equal(await page.locator('.poe2-inventory-form[data-slot="body_armour"] [name="armour"]').inputValue(), '100');
+    assert.deepEqual(await comparisonValues(page, 'Physical DPS'), ['30', '30', '0']);
+
+    await page.locator('summary').filter({ hasText: 'Share build' }).click();
+    await page.evaluate(() => {
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { async writeText(text) { window.__copiedBuild = text; } },
+        });
+    });
+    await page.locator('#poe2-copy-code').click();
+    await page.waitForFunction(() => typeof window.__copiedBuild === 'string'
+        || document.getElementById('poe2-import-code').value.startsWith('poe2b1.'));
+    const code = await page.evaluate(() => window.__copiedBuild || document.getElementById('poe2-import-code').value);
+    assert.match(code, /^poe2b1\./);
+    await page.locator('.poe2-inventory-form[data-slot="body_armour"]').locator('..').getByRole('button', { name: /Remove/ }).click();
+    await page.locator('#poe2-import-code').fill(code);
+    await page.locator('#poe2-import-build').click();
+    await page.waitForFunction(() => document.querySelector('.poe2-inventory-form[data-slot="body_armour"]'));
+    assert.equal(await page.locator('.poe2-inventory-form[data-slot="body_armour"] [name="armour"]').inputValue(), '100');
+});
+
+test('legacy and malformed imports handle equipment safely on mobile', async (t) => {
+    const { browser, page } = await planner({ width: 390, height: 844 });
+    t.after(() => browser.close());
+
+    const addBody = page.getByRole('button', { name: 'Add item to Body armour' });
+    await addBody.focus();
+    await page.keyboard.press('Enter');
+    const bodyForm = page.locator('.poe2-inventory-form[data-slot="body_armour"]');
+    await bodyForm.locator('[name="armour"]').fill('75');
+    await bodyForm.getByRole('button', { name: 'Apply values' }).click();
+
+    const legacy = await page.evaluate(() => window.__poe2BuildCode.encodeBuildCode({
+        class_id: 'warrior',
+        ascendancy_id: null,
+        tree_version: 'fixture',
+        allocated_node_ids: [],
+        must_have_node_ids: [],
+        considered_node_ids: [],
+        character_name: '',
+        build_name: '',
+    }));
+    await page.locator('summary').filter({ hasText: 'Share build' }).click();
+    await page.locator('#poe2-import-code').fill(legacy);
+    await page.locator('#poe2-import-build').click();
+    await page.waitForFunction(() => !document.querySelector('.poe2-inventory-form[data-slot="body_armour"]'));
+    assert.match(await page.locator('#poe2-inventory-comparison').textContent(), /No equipment entered/);
+    assert.match(await page.locator('#poe2-inventory-comparison').textContent(), /No equipped main-hand weapon/);
+
+    await addEquipment(page, 'Body armour', 'body_armour', { armour: 75 });
+    const malformed = await page.evaluate(async () => {
+        const payload = {
+            v: 1, c: 'warrior', a: null, t: 'fixture', n: [], m: [], k: [],
+            i: [{ slot: 'helmet' }],
+        };
+        const bytes = new TextEncoder().encode(JSON.stringify(payload));
+        const compressed = new Uint8Array(await new Response(
+            new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw')),
+        ).arrayBuffer());
+        let binary = '';
+        for (const byte of compressed) binary += String.fromCharCode(byte);
+        return 'poe2b1.' + btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+    });
+    await page.locator('#poe2-import-code').fill(malformed);
+    await page.locator('#poe2-import-build').click();
+    await page.waitForFunction(() => document.getElementById('poe2-share-status').classList.contains('is-error'));
+    assert.match(await page.locator('#poe2-share-status').textContent(), /invalid inventory/i);
+    assert.equal(await page.locator('.poe2-inventory-form[data-slot="body_armour"] [name="armour"]').inputValue(), '75');
+    assert.deepEqual(await comparisonValues(page, 'Armour'), ['75', '75', '0']);
+
+    const layout = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        touchTargets: [...document.querySelectorAll('.poe2-inventory button')]
+            .every((button) => button.getBoundingClientRect().height >= 44),
+    }));
+    assert.deepEqual(layout, { overflow: false, touchTargets: true });
 });
