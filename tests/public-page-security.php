@@ -15,6 +15,7 @@ $securityContractPages = [
     'htdocs/chess/game.php' => '/chess/game.php',
     'htdocs/trivia/index.php' => '/trivia/',
     'htdocs/trivia/game.php' => '/trivia/game.php',
+    'htdocs/crabs/index.php' => '/crabs/',
     'htdocs/dongs/index.php' => '/dongs/',
     'htdocs/games/index.php' => '/games/',
     'htdocs/games/game.php' => '/games/game.php',

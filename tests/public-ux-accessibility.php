@@ -13,6 +13,7 @@ $publicPages = [
     'htdocs/decks/guide.php' => ['requestUri' => '/decks/guide.php', 'currentSection' => 'games'],
     'htdocs/chess/index.php' => ['requestUri' => '/chess/', 'currentSection' => 'games'],
     'htdocs/chess/game.php' => ['requestUri' => '/chess/game.php', 'currentSection' => 'games'],
+    'htdocs/crabs/index.php' => ['requestUri' => '/crabs/', 'currentSection' => 'crabs'],
     'htdocs/trivia/index.php' => ['requestUri' => '/trivia/', 'currentSection' => 'games'],
     'htdocs/trivia/game.php' => ['requestUri' => '/trivia/game.php', 'currentSection' => 'games'],
     'htdocs/dongs/index.php' => ['requestUri' => '/dongs/', 'currentSection' => 'dongs'],
@@ -158,6 +159,12 @@ foreach ($publicPages as $scriptPath => $routeExpectation) {
         public_ux_assert(strpos($html, 'class="games-subnav"') === false, $scriptPath . ' must not render the Games sub-navigation.');
     }
 }
+
+$homeHtml = render_public_page($root, 'htdocs/index.php', '/');
+public_ux_assert(
+    (bool) preg_match('/<a href="\/crabs\/">Crabs<\/a>/', primary_nav_html($homeHtml, 'homepage')),
+    'Primary navigation must include a Crabs link targeting /crabs/.'
+);
 
 foreach ($focusedHeaderPages as $scriptPath => $routeExpectation) {
     $html = render_public_page($root, $scriptPath, $routeExpectation['requestUri']);

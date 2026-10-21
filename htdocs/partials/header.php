@@ -8,6 +8,7 @@ $publicNavItems = [
     'music' => ['href' => '/music/', 'label' => 'Music'],
     'videos' => ['href' => '/videos/', 'label' => 'Videos'],
     'dongs' => ['href' => '/dongs/', 'label' => 'Dongs'],
+    'crabs' => ['href' => '/crabs/', 'label' => 'Crabs'],
     'collectibles' => ['href' => '/collectibles/', 'label' => 'Collectibles'],
 ];
 
