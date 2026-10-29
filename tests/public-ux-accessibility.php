@@ -20,6 +20,7 @@ $publicPages = [
     'htdocs/games/index.php' => ['requestUri' => '/games/', 'currentSection' => 'games'],
     'htdocs/games/game.php' => ['requestUri' => '/games/game.php', 'currentSection' => 'games'],
     'htdocs/music/index.php' => ['requestUri' => '/music/', 'currentSection' => 'music'],
+    'htdocs/books/index.php' => ['requestUri' => '/books/', 'currentSection' => 'books'],
     'htdocs/recipes/index.php' => ['requestUri' => '/recipes/', 'currentSection' => 'recipes'],
     'htdocs/recipes/recipe.php' => ['requestUri' => '/recipes/recipe.php', 'currentSection' => 'recipes'],
     'htdocs/videos/index.php' => ['requestUri' => '/videos/', 'currentSection' => 'videos'],
@@ -164,6 +165,61 @@ $homeHtml = render_public_page($root, 'htdocs/index.php', '/');
 public_ux_assert(
     (bool) preg_match('/<a href="\/crabs\/">Crabs<\/a>/', primary_nav_html($homeHtml, 'homepage')),
     'Primary navigation must include a Crabs link targeting /crabs/.'
+);
+public_ux_assert(
+    (bool) preg_match('/<a href="\/books\/">Books<\/a>/', primary_nav_html($homeHtml, 'homepage')),
+    'Primary navigation must include a Books link targeting /books/.'
+);
+
+$booksHtml = render_public_page($root, 'htdocs/books/index.php', '/books/');
+public_ux_assert(
+    strpos(primary_nav_html($booksHtml, 'books page'), '<a href="/books/" aria-current="page">Books</a>') !== false,
+    'Books page must mark the Books primary nav link as the current page.'
+);
+public_ux_assert(
+    (bool) preg_match('/<link rel="stylesheet" href="\/assets\/css\/books\.css\?v=[^"]+">/', $booksHtml),
+    'Books page must load its cache-versioned page stylesheet.'
+);
+public_ux_assert(
+    (bool) preg_match('/<script src="\/assets\/js\/books-index\.js\?v=[0-9]+"><\/script>/', $booksHtml),
+    'Books page must load its cache-versioned external renderer script.'
+);
+public_ux_assert(
+    substr_count($booksHtml, '<h1>') === 1
+        && strpos($booksHtml, '<section class="foundation" aria-labelledby="books-title">') !== false
+        && strpos($booksHtml, '<h2 id="books-title">') !== false,
+    'Books page must expose one page heading and a labelled books region.'
+);
+public_ux_assert(
+    (bool) preg_match('/<div id="books-list" class="books-list" aria-live="polite" aria-busy="true">\s*<p class="books-status">[^<]+<\/p>\s*<\/div>/', $booksHtml),
+    'Books page must render a polite, busy live region with an understandable loading message.'
+);
+
+$booksCss = file_get_contents($root . '/htdocs/assets/css/books.css');
+public_ux_assert(is_string($booksCss), 'Unable to read Books CSS.');
+public_ux_assert(
+    (bool) preg_match('/\.book-cover-frame\s*\{[^}]*aspect-ratio:\s*2 \/ 3/s', $booksCss)
+        && (bool) preg_match('/\.book-cover\s*\{[^}]*object-fit:\s*cover/s', $booksCss),
+    'Books covers must preserve book-cover proportions.'
+);
+public_ux_assert(
+    (bool) preg_match('/@media \(max-width: 640px\)\s*\{\s*\.book-card\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s', $booksCss),
+    'Books cards must stack into a single column on narrow screens.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.book-link\s*\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s', $booksCss),
+    'Books Amazon links must preserve a 44px minimum tap target.'
+);
+
+$booksScript = file_get_contents($root . '/htdocs/assets/js/books-index.js');
+public_ux_assert(is_string($booksScript), 'Unable to read Books renderer script.');
+public_ux_assert(
+    strpos($booksScript, 'innerHTML') === false && strpos($booksScript, 'insertAdjacentHTML') === false,
+    'Books renderer must build saved content as text nodes, never imported HTML.'
+);
+public_ux_assert(
+    strpos($booksScript, "fetch('/api/books'") !== false,
+    'Books renderer must consume the shared public books API.'
 );
 
 foreach ($focusedHeaderPages as $scriptPath => $routeExpectation) {

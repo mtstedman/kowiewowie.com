@@ -20,6 +20,7 @@ $securityContractPages = [
     'htdocs/games/index.php' => '/games/',
     'htdocs/games/game.php' => '/games/game.php',
     'htdocs/music/index.php' => '/music/',
+    'htdocs/books/index.php' => '/books/',
     'htdocs/recipes/index.php' => '/recipes/',
     'htdocs/recipes/recipe.php' => '/recipes/recipe.php',
     'htdocs/videos/index.php' => '/videos/',
@@ -41,5 +42,24 @@ foreach ($securityContractPages as $scriptPath => $requestUri) {
         $scriptPath . ' must not render inline event handlers.'
     );
 }
+
+$booksScript = file_get_contents($root . '/htdocs/assets/js/books-index.js');
+public_ux_assert(is_string($booksScript), 'Unable to read Books renderer script.');
+public_ux_assert(
+    strpos($booksScript, 'innerHTML') === false
+        && strpos($booksScript, 'outerHTML') === false
+        && strpos($booksScript, 'insertAdjacentHTML') === false
+        && strpos($booksScript, 'document.write') === false,
+    'Books renderer must not inject saved content as HTML.'
+);
+public_ux_assert(
+    strpos($booksScript, "url.protocol !== 'https:'") !== false
+        && strpos($booksScript, 'AMAZON_HOSTS.has(') !== false,
+    'Books renderer must defensively restrict cover and Amazon URLs to HTTPS and exact Amazon hosts.'
+);
+public_ux_assert(
+    strpos($booksScript, "link.rel = 'noopener noreferrer'") !== false,
+    'Books renderer new-tab links must use safe rel attributes.'
+);
 
 fwrite(STDOUT, 'Public page security regressions passed.' . PHP_EOL);

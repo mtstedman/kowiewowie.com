@@ -6,6 +6,7 @@ $publicNavItems = [
     'recipes' => ['href' => '/recipes/', 'label' => 'Recipes'],
     'games' => ['href' => '/games/', 'label' => 'Games'],
     'music' => ['href' => '/music/', 'label' => 'Music'],
+    'books' => ['href' => '/books/', 'label' => 'Books'],
     'videos' => ['href' => '/videos/', 'label' => 'Videos'],
     'dongs' => ['href' => '/dongs/', 'label' => 'Dongs'],
     'crabs' => ['href' => '/crabs/', 'label' => 'Crabs'],

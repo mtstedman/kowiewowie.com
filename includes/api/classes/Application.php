@@ -122,7 +122,7 @@ final class Application
                     'refresh' => '/v1/auth/refresh',
                     'oauth' => ['/v1/auth/oauth/google/start', '/v1/auth/oauth/github/start'],
                 ],
-                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/collectibles', '/v1/collectibles/collection', '/v1/trivia/rooms', '/v1/risk/games', '/v1/poe2/tree', '/v1/poe2/builds'],
+                'resources' => ['/v1/recipes', '/v1/magic/decks', '/v1/magic/guides', '/v1/games', '/v1/music', '/v1/videos', '/v1/books', '/v1/collectibles', '/v1/collectibles/collection', '/v1/trivia/rooms', '/v1/risk/games', '/v1/poe2/tree', '/v1/poe2/builds'],
             ]);
         }
 
@@ -306,7 +306,8 @@ final class Application
                 throw new ApiException(405, 'method_not_allowed', 'Writes are available only through the versioned API.');
             }
             $user = $this->auth->authenticatedUser($request->bearerToken());
-            $this->auth->requireAnyRole($user, ['admin', 'editor']);
+            // Book recommendations are admin-only; every other content resource keeps editor access.
+            $this->auth->requireAnyRole($user, $resource === 'books' ? ['admin'] : ['admin', 'editor']);
 
             if ($request->method === 'POST' && $slug === null) {
                 $saved = $this->content->save($resource, $request->json(), (string) $user['id']);
@@ -740,10 +741,10 @@ final class Application
         if (preg_match('#^/v1/magic/(decks|guides)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
             return [$matches[1], $matches[2] ?? null, true];
         }
-        if (preg_match('#^/v1/(recipes|decks|guides|games|music|videos)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
+        if (preg_match('#^/v1/(recipes|decks|guides|games|music|videos|books)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
             return [$matches[1], $matches[2] ?? null, true];
         }
-        if (preg_match('#^/(recipes|decks|guides|games|music|videos)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
+        if (preg_match('#^/(recipes|decks|guides|games|music|videos|books)(?:/([a-z0-9-]+))?$#', $path, $matches)) {
             return [$matches[1], $matches[2] ?? null, false];
         }
 

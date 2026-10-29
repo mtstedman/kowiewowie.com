@@ -10,7 +10,7 @@ use Wowie\Api\ApiException;
 
 final class ContentRepository
 {
-    private const RESOURCES = ['recipes', 'decks', 'guides', 'games', 'music', 'videos'];
+    private const RESOURCES = ['recipes', 'decks', 'guides', 'games', 'music', 'videos', 'books'];
     private const TABLES = [
         'recipes' => 'recipes',
         'decks' => 'magic_decks',
@@ -18,7 +18,33 @@ final class ContentRepository
         'games' => 'games',
         'music' => 'music_entries',
         'videos' => 'videos',
+        'books' => 'books',
     ];
+
+    /**
+     * Exact hosts accepted for book amazon_url values. Links are stored as outbound links only;
+     * they are never fetched or resolved. Any other host, including subdomain or suffix
+     * lookalikes, is rejected.
+     */
+    public const AMAZON_HOSTS = [
+        'amzn.to',
+        'amazon.com', 'www.amazon.com',
+        'amazon.co.uk', 'www.amazon.co.uk',
+        'amazon.ca', 'www.amazon.ca',
+        'amazon.com.au', 'www.amazon.com.au',
+        'amazon.de', 'www.amazon.de',
+        'amazon.fr', 'www.amazon.fr',
+        'amazon.it', 'www.amazon.it',
+        'amazon.es', 'www.amazon.es',
+        'amazon.nl', 'www.amazon.nl',
+        'amazon.ie', 'www.amazon.ie',
+        'amazon.co.jp', 'www.amazon.co.jp',
+        'amazon.in', 'www.amazon.in',
+        'amazon.com.mx', 'www.amazon.com.mx',
+        'amazon.com.br', 'www.amazon.com.br',
+    ];
+
+    private const BOOK_PRICE_PATTERN = '/^([0-9]{1,10})(?:\.([0-9]{1,2}))?$/';
 
     public function __construct(private readonly PDO $pdo)
     {
@@ -38,6 +64,7 @@ final class ContentRepository
             'games' => $this->listGames(null, $limit, $offset, $includeUnpublished),
             'music' => $this->listMusic(null, $limit, $offset, $includeUnpublished),
             'videos' => $this->listVideos(null, $limit, $offset, $includeUnpublished),
+            'books' => $this->listBooks(null, $limit, $offset, $includeUnpublished),
         };
     }
 
@@ -52,6 +79,7 @@ final class ContentRepository
             'games' => $this->listGames($slug, 1, 0, $includeUnpublished),
             'music' => $this->listMusic($slug, 1, 0, $includeUnpublished),
             'videos' => $this->listVideos($slug, 1, 0, $includeUnpublished),
+            'books' => $this->listBooks($slug, 1, 0, $includeUnpublished),
         };
         if ($items === []) {
             throw new ApiException(404, 'not_found', 'The requested API resource does not exist.');
@@ -76,6 +104,7 @@ final class ContentRepository
                 'games' => $this->saveGame($input, $actorId),
                 'music' => $this->saveMusic($input, $actorId),
                 'videos' => $this->saveVideo($input, $actorId),
+                'books' => $this->saveBook($input, $actorId),
             };
             $this->pdo->commit();
         } catch (Throwable $error) {
@@ -285,6 +314,34 @@ final class ContentRepository
             'status' => $row['status'],
             'published_at' => $row['published_at'],
             'updated_at' => $row['updated_at'],
+        ], $rows);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function listBooks(?string $slug, int $limit, int $offset, bool $includeUnpublished): array
+    {
+        $rows = $this->contentRows(
+            'SELECT id, slug, title, author, amazon_url, cover_image_url, price_amount, price_currency, overview, status, created_at, updated_at, published_at FROM books',
+            $slug,
+            $limit,
+            $offset,
+            $includeUnpublished,
+        );
+
+        return array_map(fn (array $row): array => [
+            'id' => (string) $row['id'],
+            'slug' => (string) $row['slug'],
+            'title' => (string) $row['title'],
+            'author' => $row['author'] !== null ? (string) $row['author'] : null,
+            'amazon_url' => (string) $row['amazon_url'],
+            'cover_image_url' => (string) $row['cover_image_url'],
+            'price_amount' => $this->formatBookPrice($row['price_amount']),
+            'price_currency' => (string) $row['price_currency'],
+            'overview' => (string) $row['overview'],
+            'status' => (string) $row['status'],
+            'created_at' => (string) $row['created_at'],
+            'updated_at' => (string) $row['updated_at'],
+            'published_at' => $row['published_at'] !== null ? (string) $row['published_at'] : null,
         ], $rows);
     }
 
@@ -582,6 +639,155 @@ final class ContentRepository
             'actor' => $actorId,
             'published_at' => $publishedAt,
         ]);
+    }
+
+    /**
+     * Every book field is validated before the single upsert runs, so invalid input never
+     * reaches the table.
+     *
+     * @param array<string, mixed> $input
+     */
+    private function saveBook(array $input, ?string $actorId): void
+    {
+        $values = [
+            'slug' => requiredSlug($input),
+            'title' => requiredString($input, 'title'),
+            'author' => $this->bookAuthor($input),
+            'amazon_url' => $this->bookAmazonUrl($input),
+            'cover_image_url' => $this->bookCoverImageUrl($input),
+            'price_amount' => $this->bookPriceAmount($input),
+            'price_currency' => $this->bookPriceCurrency($input),
+            'overview' => $this->bookOverview($input),
+            'status' => contentStatus($input),
+            'actor' => $actorId,
+        ];
+
+        $statement = $this->pdo->prepare(<<<'SQL'
+            INSERT INTO books (slug, title, author, amazon_url, cover_image_url, price_amount, price_currency, overview, status, created_by, updated_by, published_at)
+            VALUES (:slug, :title, :author, :amazon_url, :cover_image_url, :price_amount, :price_currency, :overview, :status, :actor, :actor,
+                    CASE WHEN :status = 'published' THEN now() ELSE NULL END)
+            ON CONFLICT (slug) DO UPDATE SET
+                title = EXCLUDED.title, author = EXCLUDED.author, amazon_url = EXCLUDED.amazon_url,
+                cover_image_url = EXCLUDED.cover_image_url, price_amount = EXCLUDED.price_amount,
+                price_currency = EXCLUDED.price_currency, overview = EXCLUDED.overview,
+                status = EXCLUDED.status, updated_by = EXCLUDED.updated_by,
+                published_at = CASE WHEN EXCLUDED.status = 'published' THEN COALESCE(books.published_at, now()) ELSE books.published_at END
+        SQL);
+        $statement->execute($values);
+    }
+
+    /** @param array<string, mixed> $input */
+    private function bookAuthor(array $input): ?string
+    {
+        $author = optionalString($input, 'author', 255);
+
+        return $author === null || $author === '' ? null : $author;
+    }
+
+    /** @param array<string, mixed> $input */
+    private function bookAmazonUrl(array $input): string
+    {
+        $url = requiredString($input, 'amazon_url', 2_000);
+        $parts = $this->httpsUrlParts($url);
+        if ($parts === null || $parts['port'] !== null || !in_array($parts['host'], self::AMAZON_HOSTS, true)) {
+            throw new ApiException(422, 'validation_failed', 'amazon_url must be an HTTPS link to a supported Amazon store or amzn.to.');
+        }
+
+        return $url;
+    }
+
+    /** @param array<string, mixed> $input */
+    private function bookCoverImageUrl(array $input): string
+    {
+        $url = requiredString($input, 'cover_image_url', 2_000);
+        if ($this->httpsUrlParts($url) === null) {
+            throw new ApiException(422, 'validation_failed', 'cover_image_url must be a valid HTTPS URL without credentials.');
+        }
+
+        return $url;
+    }
+
+    /**
+     * Parses an absolute HTTPS URL with a host and no credentials. The port is null when it is
+     * absent or the HTTPS default (443).
+     *
+     * @return array{host: string, port: ?int}|null
+     */
+    private function httpsUrlParts(string $url): ?array
+    {
+        if (preg_match('/[\x00-\x20\x7f\\\\]/', $url) === 1 || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+        $parts = parse_url($url);
+        if (!is_array($parts) || ($parts['scheme'] ?? null) !== 'https') {
+            return null;
+        }
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if ($host === '' || isset($parts['user']) || isset($parts['pass'])) {
+            return null;
+        }
+        $port = isset($parts['port']) && $parts['port'] !== 443 ? (int) $parts['port'] : null;
+
+        return ['host' => $host, 'port' => $port];
+    }
+
+    /** @param array<string, mixed> $input */
+    private function bookPriceAmount(array $input): string
+    {
+        $value = $input['price_amount'] ?? null;
+        if (is_int($value) && $value >= 0) {
+            $value = (string) $value;
+        }
+        $value = is_string($value) ? trim($value) : null;
+        if ($value === null || preg_match(self::BOOK_PRICE_PATTERN, $value, $matches) !== 1) {
+            throw new ApiException(422, 'validation_failed', 'price_amount must be a non-negative decimal string with at most 10 whole digits and 2 decimal places.');
+        }
+
+        $whole = ltrim($matches[1], '0');
+
+        return ($whole === '' ? '0' : $whole) . '.' . str_pad($matches[2] ?? '', 2, '0');
+    }
+
+    /** @param array<string, mixed> $input */
+    private function bookPriceCurrency(array $input): string
+    {
+        $currency = is_string($input['price_currency'] ?? null) ? trim($input['price_currency']) : '';
+        if (preg_match('/^[A-Z]{3}$/', $currency) !== 1) {
+            throw new ApiException(422, 'validation_failed', 'price_currency must be an uppercase three-letter currency code.');
+        }
+
+        return $currency;
+    }
+
+    /**
+     * The overview is plain text: it is stored exactly as typed (trimmed, line endings
+     * normalized) and is never interpreted as HTML; readers must escape it when rendering.
+     *
+     * @param array<string, mixed> $input
+     */
+    private function bookOverview(array $input): string
+    {
+        $overview = requiredString($input, 'overview', 20_000);
+        if (!mb_check_encoding($overview, 'UTF-8') || preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/', $overview) === 1) {
+            throw new ApiException(422, 'validation_failed', 'overview must be plain text without control characters.');
+        }
+
+        return str_replace(["\r\n", "\r"], "\n", $overview);
+    }
+
+    private function formatBookPrice(mixed $value): string
+    {
+        if (is_int($value) || is_float($value)) {
+            return sprintf('%.2f', $value);
+        }
+        $value = trim((string) $value);
+        if (preg_match('/^([0-9]+)(?:\.([0-9]*))?$/', $value, $matches) === 1) {
+            $whole = ltrim($matches[1], '0');
+
+            return ($whole === '' ? '0' : $whole) . '.' . substr(str_pad($matches[2] ?? '', 2, '0'), 0, 2);
+        }
+
+        return $value;
     }
 
     /** @param array<string, mixed> $input */

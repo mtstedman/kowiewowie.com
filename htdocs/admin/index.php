@@ -16,6 +16,7 @@ admin_render_page(
             ['href' => '/admin/guides.php', 'label' => 'Guides', 'category' => 'Magic', 'description' => 'Polish deck guides, summaries, sections, launch dates, and QR labels.'],
             ['href' => '/admin/games.php', 'label' => 'Games', 'category' => 'Arcade', 'description' => 'Keep game pages crisp, findable, and ready for visitors to play.'],
             ['href' => '/admin/music.php', 'label' => 'Music', 'category' => 'Listening shelf', 'description' => 'Curate tracks, artists, Spotify links, notes, and publication status.'],
+            ['href' => '/admin/books.php', 'label' => 'Books', 'category' => 'Reading shelf', 'description' => 'Recommend books with editable Amazon links, covers, prices, overviews, and publication status.'],
             ['href' => '/admin/videos.php', 'label' => 'Videos', 'category' => 'Watch shelf', 'description' => 'Prepare YouTube entries, thumbnails, tags, counts, and publication details.'],
         ];
         ?>

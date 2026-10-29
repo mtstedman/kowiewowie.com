@@ -207,6 +207,15 @@
           "sha256": "390948c7bd533533048b8cf2034db05b6824e0f41e54cc08ebd6ed9e4648b010"
         }
       ]
+    },
+    {
+      "version": 24,
+      "updates": [
+        {
+          "file": "updates/023_books.sql",
+          "sha256": "1326a1e124282982278891f2269e83da210282afda1b3c433224a40c5e8adef4"
+        }
+      ]
     }
   ]
 }
