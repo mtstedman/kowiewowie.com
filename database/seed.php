@@ -108,6 +108,7 @@ $sources = [
     'games' => 'games.json',
     'guides' => 'deck-guides.json',
     'music' => 'music.json',
+    'books' => 'books.json',
 ];
 $inlineSources = [
     'videos' => [

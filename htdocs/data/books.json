@@ -1,0 +1,90 @@
+[
+    {
+        "slug": "dungeon-crawler-carl",
+        "title": "Dungeon Crawler Carl",
+        "author": "Matt Dinniman",
+        "amazon_url": "https://www.amazon.com/dp/B08BKGYQXW",
+        "cover_image_url": "https://wowiekowie.com/assets/images/books/dungeon-crawler-carl.jpg",
+        "price_amount": "4.99",
+        "price_currency": "USD",
+        "overview": "When aliens demolish every building on Earth, Carl and his ex-girlfriend's prize-winning cat, Princess Donut, end up inside a sprawling dungeon broadcast to the galaxy as a deadly game show. With help from a weary guide named Mordecai, they have to fight, loot, and play to the cameras to survive each floor.",
+        "status": "published"
+    },
+    {
+        "slug": "carls-doomsday-scenario",
+        "title": "Carl's Doomsday Scenario",
+        "author": "Matt Dinniman",
+        "amazon_url": "https://www.amazon.com/dp/B08PBCD9Y7",
+        "cover_image_url": "https://wowiekowie.com/assets/images/books/carls-doomsday-scenario.jpg",
+        "price_amount": "5.99",
+        "price_currency": "USD",
+        "overview": "On the third floor, Carl and Donut finally choose their races and classes as the dungeon grows stranger and more dangerous. Carl gets pulled into a risky side quest that puts him on the wrong side of some very powerful viewers.",
+        "status": "published"
+    },
+    {
+        "slug": "the-dungeon-anarchists-cookbook",
+        "title": "The Dungeon Anarchist's Cookbook",
+        "author": "Matt Dinniman",
+        "amazon_url": "https://www.amazon.com/dp/B08V4QSV6W",
+        "cover_image_url": "https://wowiekowie.com/assets/images/books/the-dungeon-anarchists-cookbook.jpg",
+        "price_amount": "5.99",
+        "price_currency": "USD",
+        "overview": "The fourth floor is the Iron Tangle, a monster-packed maze of subway trains where crawlers have to cooperate to keep moving. Along the way Carl studies a strange cookbook full of secrets left behind by crawlers from earlier seasons.",
+        "status": "published"
+    },
+    {
+        "slug": "the-gate-of-the-feral-gods",
+        "title": "The Gate of the Feral Gods",
+        "author": "Matt Dinniman",
+        "amazon_url": "https://www.amazon.com/dp/B093DJ7F3C",
+        "cover_image_url": "https://wowiekowie.com/assets/images/books/the-gate-of-the-feral-gods.jpg",
+        "price_amount": "5.99",
+        "price_currency": "USD",
+        "overview": "The surviving crawlers are scattered into isolated bubble worlds, and each group has to clear its bosses before it can move on. Carl's party picks up an unusual artifact that could change how they travel through the floor.",
+        "status": "published"
+    },
+    {
+        "slug": "the-butchers-masquerade",
+        "title": "The Butcher's Masquerade",
+        "author": "Matt Dinniman",
+        "amazon_url": "https://www.amazon.com/dp/B09R6C5X88",
+        "cover_image_url": "https://wowiekowie.com/assets/images/books/the-butchers-masquerade.jpg",
+        "price_amount": "5.99",
+        "price_currency": "USD",
+        "overview": "The sixth floor turns the dungeon into a hunting ground where alien tourists pay to stalk the crawlers. Carl and Donut have to stay ahead of the hunters while an invitation to a lavish grand ball looks more suspicious by the day.",
+        "status": "published"
+    },
+    {
+        "slug": "the-eye-of-the-bedlam-bride",
+        "title": "The Eye of the Bedlam Bride",
+        "author": "Matt Dinniman",
+        "amazon_url": "https://www.amazon.com/dp/B0C1R52V2J",
+        "cover_image_url": "https://wowiekowie.com/assets/images/books/the-eye-of-the-bedlam-bride.jpg",
+        "price_amount": "5.99",
+        "price_currency": "USD",
+        "overview": "The seventh and eighth floors bring a sprawling hunt followed by tense card-game battles. Carl's crew has to work out a key-based challenge while the show's producers keep raising the stakes.",
+        "status": "published"
+    },
+    {
+        "slug": "this-inevitable-ruin",
+        "title": "This Inevitable Ruin",
+        "author": "Matt Dinniman",
+        "amazon_url": "https://www.amazon.com/dp/B0DJWKWV8W",
+        "cover_image_url": "https://wowiekowie.com/assets/images/books/this-inevitable-ruin.jpg",
+        "price_amount": "5.99",
+        "price_currency": "USD",
+        "overview": "On the ninth floor, the Faction Wars pit the armies of rival warlords against each other. For the first time, the crawlers are drawn directly into the fighting, and Carl has to pick his battles carefully.",
+        "status": "published"
+    },
+    {
+        "slug": "a-parade-of-horribles",
+        "title": "A Parade of Horribles",
+        "author": "Matt Dinniman",
+        "amazon_url": "https://www.amazon.com/dp/B0GJJDXG4L",
+        "cover_image_url": "https://wowiekowie.com/assets/images/books/a-parade-of-horribles.jpg",
+        "price_amount": "6.99",
+        "price_currency": "USD",
+        "overview": "The tenth floor throws the crawlers into a series of deadly races. As the competition heats up, Carl and Donut find the stakes climbing well beyond the finish line.",
+        "status": "published"
+    }
+]
