@@ -30,28 +30,29 @@ $pageStyles = ['/assets/css/trivia.css'];
                     </div>
 
                     <figure class="trivia-scene" id="trivia-scene" data-phase="waiting">
-                        <img id="trivia-scene-image" src="/assets/img/trivia/murder-trivia-lobby.png" alt="Friendly ghosts and skeletons gathering around a glowing question mark in a haunted game room.">
+                        <img class="trivia-scene-image" id="trivia-scene-image" src="/assets/img/trivia/murder-trivia-lobby.png" alt="Friendly ghosts and skeletons gathering around a glowing question mark in a haunted game room.">
                         <figcaption class="trivia-scene-caption">
                             <span id="trivia-phase-label">The lobby</span>
                             <strong id="trivia-phase-title">Gather the living</strong>
                         </figcaption>
                     </figure>
 
-                    <p class="trivia-phase-instructions" id="trivia-phase-instructions">Share the invite links. The host can begin when at least two souls are seated.</p>
+                    <p class="trivia-phase-instructions" id="trivia-phase-instructions" data-phase="waiting">Share the invite links. The host can begin when at least two souls are seated.</p>
 
-                    <div class="trivia-timer" id="trivia-timer" aria-label="Round timer">
-                        <span id="trivia-timer-value">--</span>
-                        <span>seconds</span>
+                    <div class="trivia-timer" id="trivia-timer" role="timer" aria-label="Round timer" data-running="false">
+                        <span class="trivia-timer-value" id="trivia-timer-value">--</span>
+                        <span class="trivia-timer-unit">seconds</span>
                     </div>
 
                     <section class="trivia-prompt" aria-labelledby="trivia-question-text">
                         <p class="eyebrow" id="trivia-round-label">Round --</p>
                         <h2 id="trivia-question-text">Waiting for the first prompt.</h2>
+                        <p class="trivia-expression" id="trivia-expression" aria-live="polite" hidden></p>
                         <p class="trivia-message" id="trivia-round-message" role="status" aria-live="polite"></p>
                     </section>
 
                     <section class="trivia-memory-preview" id="trivia-memory-preview" aria-labelledby="trivia-memory-preview-title" role="status" aria-live="assertive" aria-atomic="true" hidden>
-                        <p class="eyebrow">Memorize now</p>
+                        <p class="eyebrow" id="trivia-memory-preview-eyebrow">Memorize now</p>
                         <h3 id="trivia-memory-preview-title">These symbols vanish in five seconds</h3>
                         <div class="trivia-memory-symbols" id="trivia-memory-symbols"></div>
                     </section>
@@ -60,6 +61,11 @@ $pageStyles = ['/assets/css/trivia.css'];
                         <fieldset id="trivia-choice-fieldset">
                             <legend id="trivia-choice-legend">Choose an answer</legend>
                             <div class="trivia-choice-grid" id="trivia-choice-grid"></div>
+                            <div class="trivia-order-controls" id="trivia-order-controls" hidden>
+                                <p class="trivia-order-status" id="trivia-order-status" role="status" aria-live="polite"></p>
+                                <button class="trivia-button" type="button" id="trivia-undo-order-button" disabled><span aria-hidden="true">&#8630;</span> Undo last</button>
+                                <button class="trivia-button" type="button" id="trivia-clear-order-button" disabled><span aria-hidden="true">&#10005;</span> Clear order</button>
+                            </div>
                         </fieldset>
                         <button class="trivia-button trivia-button-primary" type="submit" id="trivia-submit-answer-button" disabled>Lock answer</button>
                     </form>
@@ -92,6 +98,16 @@ $pageStyles = ['/assets/css/trivia.css'];
                 </div>
 
                 <aside class="trivia-side-panel" aria-label="Trivia game details">
+                    <section class="trivia-panel trivia-viewer-card" id="trivia-viewer-card" data-standing="spectator" aria-labelledby="trivia-viewer-name">
+                        <span class="trivia-viewer-avatar" id="trivia-viewer-avatar" aria-hidden="true">&#128065;</span>
+                        <div class="trivia-viewer-copy">
+                            <p class="eyebrow">Your soul</p>
+                            <h2 id="trivia-viewer-name">Spectator</h2>
+                            <p class="trivia-viewer-role" id="trivia-viewer-role">Watching from the gallery. Claim an invite or rejoin to play.</p>
+                        </div>
+                        <div class="trivia-viewer-lives" id="trivia-viewer-lives" hidden></div>
+                    </section>
+
                     <section class="trivia-panel" aria-labelledby="trivia-game-roster-title">
                         <div class="trivia-section-heading">
                             <p class="eyebrow">Players</p>
@@ -134,6 +150,26 @@ $pageStyles = ['/assets/css/trivia.css'];
                     </section>
                 </aside>
             </section>
+
+            <div class="trivia-reveal" id="trivia-elimination-reveal" hidden>
+                <div class="trivia-reveal-backdrop" id="trivia-elimination-backdrop"></div>
+                <section class="trivia-reveal-card" role="dialog" aria-modal="true" aria-labelledby="trivia-elimination-title" aria-describedby="trivia-elimination-summary">
+                    <figure class="trivia-reveal-art">
+                        <img id="trivia-elimination-image" alt="The haunted mansion reaching out to claim the players who failed the Killing Floor.">
+                    </figure>
+                    <div class="trivia-reveal-body">
+                        <p class="eyebrow" id="trivia-elimination-label">The Killing Floor</p>
+                        <h2 id="trivia-elimination-title">The mansion claims its due</h2>
+                        <p class="trivia-reveal-summary" id="trivia-elimination-summary"></p>
+                        <ul class="trivia-outcome-list" id="trivia-elimination-list"></ul>
+                        <div class="trivia-reveal-actions">
+                            <button class="trivia-button trivia-button-primary" type="button" id="trivia-elimination-dismiss">Back to the game</button>
+                            <span class="trivia-reveal-countdown" id="trivia-elimination-countdown"></span>
+                        </div>
+                        <span class="trivia-reveal-timer" aria-hidden="true"></span>
+                    </div>
+                </section>
+            </div>
         </main>
 
         <?php include dirname(__DIR__) . '/partials/footer.php'; ?>

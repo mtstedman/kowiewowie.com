@@ -18,13 +18,54 @@ final class TriviaRepository
     private const MINI_GAME_POISON_CHALICES = 'poison_chalices';
     private const MINI_GAME_SWORD_BOXES = 'sword_boxes';
     private const MINI_GAME_CRYPT_RUNES = 'crypt_runes';
+    private const MINI_GAME_GRIM_ARITHMETIC = 'grim_arithmetic';
+    private const MINI_GAME_ODD_ONE_OUT = 'odd_one_out';
+    private const MINI_GAME_SEQUENCE_RECALL = 'sequence_recall';
+    private const MINI_GAME_TYPES = [
+        self::MINI_GAME_KEY_LOCK,
+        self::MINI_GAME_MEMORY_MATCH,
+        self::MINI_GAME_POISON_CHALICES,
+        self::MINI_GAME_SWORD_BOXES,
+        self::MINI_GAME_CRYPT_RUNES,
+        self::MINI_GAME_GRIM_ARITHMETIC,
+        self::MINI_GAME_ODD_ONE_OUT,
+        self::MINI_GAME_SEQUENCE_RECALL,
+    ];
     private const KEY_LOCK_IMAGE_URL = '/assets/img/trivia/killing-floor-keys.png';
     private const MEMORY_IMAGE_URL = '/assets/img/trivia/killing-floor-memory.png';
     private const POISON_CHALICES_IMAGE_URL = '/assets/img/trivia/killing-floor-chalices.png';
     private const SWORD_BOXES_IMAGE_URL = '/assets/img/trivia/killing-floor-sword-boxes.png';
     private const CRYPT_RUNES_IMAGE_URL = '/assets/img/trivia/killing-floor-crypt-runes.png';
+    private const GRIM_ARITHMETIC_IMAGE_URL = '/assets/img/trivia/killing-floor-arithmetic.png';
+    private const ODD_ONE_OUT_IMAGE_URL = '/assets/img/trivia/killing-floor-odd-one-out.png';
+    private const SEQUENCE_RECALL_IMAGE_URL = '/assets/img/trivia/killing-floor-sequence.png';
+    private const MEMORY_PREVIEW_SECONDS = 5;
+    private const SEQUENCE_PREVIEW_SECONDS = 6;
+    private const SEQUENCE_RECALL_LENGTH = 4;
+    private const DEFAULT_STARTING_LIVES = 2;
+    private const MIN_STARTING_LIVES = 1;
+    private const MAX_STARTING_LIVES = 3;
     private const RACE_GOAL = 20;
     private const RACE_BODY_START = 4;
+    private const GHOST_HAUNT_CAP = self::RACE_BODY_START - 1;
+    /** Odd One Out categories; members are unique across categories so exactly one choice is odd. */
+    private const ODD_ONE_OUT_CATEGORIES = [
+        'planets' => ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Neptune'],
+        'chess pieces' => ['Rook', 'Bishop', 'Knight', 'Pawn', 'Queen'],
+        'gemstones' => ['Ruby', 'Emerald', 'Sapphire', 'Topaz', 'Opal'],
+        'poisonous plants' => ['Hemlock', 'Nightshade', 'Foxglove', 'Oleander', 'Wolfsbane'],
+        'musical instruments' => ['Violin', 'Cello', 'Oboe', 'Harp', 'Trumpet'],
+        'Greek letters' => ['Alpha', 'Gamma', 'Delta', 'Sigma', 'Omega'],
+        'cheeses' => ['Brie', 'Gouda', 'Cheddar', 'Feta', 'Camembert'],
+        'dog breeds' => ['Beagle', 'Poodle', 'Dachshund', 'Corgi', 'Husky'],
+        'spices' => ['Cinnamon', 'Paprika', 'Nutmeg', 'Cumin', 'Saffron'],
+        'classic monsters' => ['Vampire', 'Werewolf', 'Mummy', 'Zombie', 'Banshee'],
+        'medieval weapons' => ['Mace', 'Halberd', 'Crossbow', 'Flail', 'Longsword'],
+        'birds' => ['Raven', 'Crow', 'Owl', 'Vulture', 'Magpie'],
+        'card suits' => ['Hearts', 'Spades', 'Clubs', 'Diamonds'],
+        'oceans' => ['Pacific', 'Atlantic', 'Arctic', 'Southern'],
+    ];
+    private const SEQUENCE_RECALL_SYMBOLS = ['Skull', 'Candle', 'Key', 'Moon', 'Dagger', 'Bat'];
 
     private readonly TriviaQuestionCatalog $questionCatalog;
 
@@ -42,6 +83,7 @@ final class TriviaRepository
     {
         $maxPlayers = $this->normalizeMaxPlayers($input['max_players'] ?? 6);
         $answerWindowSeconds = $this->normalizeAnswerWindow($input['answer_window_seconds'] ?? 30);
+        $startingLives = $this->normalizeStartingLives($input['starting_lives'] ?? self::DEFAULT_STARTING_LIVES);
         $promptMinimum = $maxPlayers;
         $promptInput = $input['prompts'] ?? null;
         $prompts = $promptInput === null ? null : $this->normalizePrompts($promptInput, $promptMinimum);
@@ -53,13 +95,14 @@ final class TriviaRepository
         $this->pdo->beginTransaction();
         try {
             $roomStatement = $this->pdo->prepare(<<<'SQL'
-                INSERT INTO trivia_rooms (max_players, answer_window_seconds)
-                VALUES (:max_players, :answer_window_seconds)
+                INSERT INTO trivia_rooms (max_players, answer_window_seconds, starting_lives)
+                VALUES (:max_players, :answer_window_seconds, :starting_lives)
                 RETURNING id, public_id
             SQL);
             $roomStatement->execute([
                 'max_players' => $maxPlayers,
                 'answer_window_seconds' => $answerWindowSeconds,
+                'starting_lives' => $startingLives,
             ]);
             $room = $roomStatement->fetch(PDO::FETCH_ASSOC);
             if (!is_array($room)) {
@@ -68,7 +111,7 @@ final class TriviaRepository
 
             $roomId = (string) $room['id'];
             $publicId = (string) $room['public_id'];
-            $host = $this->insertPlayer($roomId, 1, $actor['user_id'], $actor['guest_profile_id'], $actor['display_name'], 'host');
+            $host = $this->insertPlayer($roomId, 1, $actor['user_id'], $actor['guest_profile_id'], $actor['display_name'], 'host', $startingLives);
             $hostRejoinLink = $this->createRecoveryLinkForPlayer($publicId, $host);
 
             $hostStatement = $this->pdo->prepare(<<<'SQL'
@@ -188,6 +231,7 @@ final class TriviaRepository
             $roomInput = [
                 'max_players' => (int) $room['max_players'],
                 'answer_window_seconds' => (int) $room['answer_window_seconds'],
+                'starting_lives' => (int) $room['starting_lives'],
                 'prompts' => $this->loadPromptInputsForRoom((string) $room['id']),
             ];
             if (array_key_exists('link', $input)) {
@@ -258,7 +302,7 @@ final class TriviaRepository
                 }
                 $actor = $this->seatActor($identity);
                 $seatNumber = $this->nextSeatNumber($players, (int) $link['max_players']);
-                $existingSeat = $this->insertPlayer((string) $link['room_id'], $seatNumber, $actor['user_id'], $actor['guest_profile_id'], $actor['display_name'], 'player');
+                $existingSeat = $this->insertPlayer((string) $link['room_id'], $seatNumber, $actor['user_id'], $actor['guest_profile_id'], $actor['display_name'], 'player', (int) $link['starting_lives']);
                 $rejoinLink = $this->createRecoveryLinkForPlayer($publicId, $existingSeat);
             }
 
@@ -563,7 +607,7 @@ final class TriviaRepository
     {
         $publicId = $this->normalizeUuid($publicId, 'room_id');
         $statement = $this->pdo->prepare((<<<'SQL'
-            SELECT id, public_id, status, max_players, answer_window_seconds, host_player_id,
+            SELECT id, public_id, status, max_players, answer_window_seconds, starting_lives, host_player_id,
                    current_round_number, winner_player_id, termination, started_at, finished_at,
                    last_activity_at, created_at, updated_at,
                    COALESCE(phase, 'trivia') AS phase, body_holder_player_id,
@@ -585,7 +629,8 @@ final class TriviaRepository
     private function loadJoinLinkForUpdate(string $token): array
     {
         $statement = $this->pdo->prepare(<<<'SQL'
-            SELECT l.id, l.room_id, l.expires_at, l.revoked_at, r.public_id, r.status AS room_status, r.max_players
+            SELECT l.id, l.room_id, l.expires_at, l.revoked_at, r.public_id, r.status AS room_status, r.max_players,
+                   r.starting_lives
             FROM trivia_room_links l
             JOIN trivia_rooms r ON r.id = l.room_id
             WHERE l.token_hash = :token_hash
@@ -615,7 +660,7 @@ final class TriviaRepository
             SELECT id, room_id, seat_number, role, user_id, guest_profile_id, display_name,
                    status, eliminated_round_id, joined_at, last_seen_at,
                    COALESCE(is_ghost, false) AS is_ghost, ghosted_round_id,
-                   COALESCE(race_position, 0) AS race_position
+                   COALESCE(race_position, 0) AS race_position, lives_remaining
             FROM trivia_players
             WHERE room_id = :room_id
             ORDER BY seat_number ASC
@@ -652,14 +697,14 @@ final class TriviaRepository
     }
 
     /** @return array<string, mixed> */
-    private function insertPlayer(string $roomId, int $seatNumber, ?string $userId, ?string $guestProfileId, string $displayName, string $role): array
+    private function insertPlayer(string $roomId, int $seatNumber, ?string $userId, ?string $guestProfileId, string $displayName, string $role, int $livesRemaining): array
     {
         $statement = $this->pdo->prepare(<<<'SQL'
-            INSERT INTO trivia_players (room_id, seat_number, role, user_id, guest_profile_id, display_name)
-            VALUES (:room_id, :seat_number, :role, :user_id, :guest_profile_id, :display_name)
+            INSERT INTO trivia_players (room_id, seat_number, role, user_id, guest_profile_id, display_name, lives_remaining)
+            VALUES (:room_id, :seat_number, :role, :user_id, :guest_profile_id, :display_name, :lives_remaining)
             RETURNING id, room_id, seat_number, role, user_id, guest_profile_id, display_name,
                       status, eliminated_round_id, joined_at, last_seen_at,
-                      is_ghost, ghosted_round_id, race_position
+                      is_ghost, ghosted_round_id, race_position, lives_remaining
         SQL);
         $statement->execute([
             'room_id' => $roomId,
@@ -668,6 +713,7 @@ final class TriviaRepository
             'user_id' => $userId,
             'guest_profile_id' => $guestProfileId,
             'display_name' => $displayName,
+            'lives_remaining' => $livesRemaining,
         ]);
         $player = $statement->fetch(PDO::FETCH_ASSOC);
         if (!is_array($player)) {
@@ -1023,6 +1069,8 @@ final class TriviaRepository
             $this->resolveKillingFloorRound($round);
         } elseif ($roundType === self::PHASE_GHOST_RACE) {
             $this->resolveRaceRound($round);
+        } elseif ($roundType === self::PHASE_TRIVIA) {
+            $this->applyGhostHaunt($round);
         }
 
         $roundStatement = $this->pdo->prepare(<<<'SQL'
@@ -1255,19 +1303,60 @@ final class TriviaRepository
               AND COALESCE(round_type, 'trivia') = 'killing_floor'
         SQL);
         $statement->execute(['room_id' => $roomId]);
-        $rotation = [
-            self::MINI_GAME_KEY_LOCK,
-            self::MINI_GAME_MEMORY_MATCH,
-            self::MINI_GAME_POISON_CHALICES,
-            self::MINI_GAME_SWORD_BOXES,
-            self::MINI_GAME_CRYPT_RUNES,
-        ];
+        $rotation = $this->killingFloorRotation($roomId);
 
         return $rotation[(int) $statement->fetchColumn() % count($rotation)];
     }
 
     /**
-     * @return array{answer_shape: array<string, string>, image_url: string, instructions: string, payload: array<string, mixed>, title: string}
+     * Every Killing Floor trial in a room-specific order seeded by crc32(room id).
+     * Each type appears once per cycle, and the same cycle repeats.
+     *
+     * @return list<string>
+     */
+    private function killingFloorRotation(string $roomId): array
+    {
+        return $this->seededShuffle(self::MINI_GAME_TYPES, crc32($roomId));
+    }
+
+    private function nextSeedState(int $state): int
+    {
+        return ($state * 1103515245 + 12345) & 0x7fffffff;
+    }
+
+    /** @return list<int> */
+    private function seededRolls(int $seed, int $count): array
+    {
+        $rolls = [];
+        $state = $seed & 0xffffffff;
+        for ($index = 0; $index < $count; $index++) {
+            $state = $this->nextSeedState($state);
+            $rolls[] = $state >> 16;
+        }
+
+        return $rolls;
+    }
+
+    /**
+     * @template T
+     * @param list<T> $items
+     * @return list<T>
+     */
+    private function seededShuffle(array $items, int $seed): array
+    {
+        $items = array_values($items);
+        $rolls = $this->seededRolls($seed, max(0, count($items) - 1));
+        $roll = 0;
+        for ($index = count($items) - 1; $index > 0; $index--) {
+            $swap = $rolls[$roll++] % ($index + 1);
+            [$items[$index], $items[$swap]] = [$items[$swap], $items[$index]];
+        }
+
+        return $items;
+    }
+
+    /**
+     * @return array{answer_shape: array<string, mixed>, image_url: string, instructions: string, payload: array<string, mixed>, title: string}
      */
     private function killingFloorMiniGame(string $miniGameType, string $roundId): array
     {
@@ -1307,7 +1396,120 @@ final class TriviaRepository
                 'image_url' => self::CRYPT_RUNES_IMAGE_URL,
                 'payload' => $this->cryptRunesPayload($roundId),
             ],
+            self::MINI_GAME_GRIM_ARITHMETIC => [
+                'title' => 'Grim Arithmetic',
+                'instructions' => 'Solve the sum before the blade falls.',
+                'answer_shape' => ['type' => 'single_choice'],
+                'image_url' => self::GRIM_ARITHMETIC_IMAGE_URL,
+                'payload' => $this->grimArithmeticPayload($roundId),
+            ],
+            self::MINI_GAME_ODD_ONE_OUT => [
+                'title' => 'Odd One Out',
+                'instructions' => 'Choose the one item that does not belong with the others.',
+                'answer_shape' => ['type' => 'single_choice'],
+                'image_url' => self::ODD_ONE_OUT_IMAGE_URL,
+                'payload' => $this->oddOneOutPayload($roundId),
+            ],
+            self::MINI_GAME_SEQUENCE_RECALL => [
+                'title' => 'Sequence Recall',
+                'instructions' => 'Watch the sequence, then select all four symbols in the same order.',
+                'answer_shape' => ['type' => 'ordered_select', 'count' => self::SEQUENCE_RECALL_LENGTH],
+                'image_url' => self::SEQUENCE_RECALL_IMAGE_URL,
+                'payload' => $this->sequenceRecallPayload($roundId),
+            ],
         };
+    }
+
+    /** @return array<string, mixed> */
+    private function grimArithmeticPayload(string $roundId): array
+    {
+        $rolls = $this->seededRolls(crc32($roundId), 10);
+        $operators = ['+', '−', '×'];
+        $left = 2 + $rolls[0] % 11;
+        $middle = 2 + $rolls[1] % 11;
+        $right = 2 + $rolls[2] % 11;
+        $firstOperator = $operators[$rolls[3] % 3];
+        $secondOperator = $operators[$rolls[4] % 3];
+        $leftToRight = $this->applyArithmetic($secondOperator, $this->applyArithmetic($firstOperator, $left, $middle), $right);
+        $answer = $secondOperator === '×' && $firstOperator !== '×'
+            ? $this->applyArithmetic($firstOperator, $left, $middle * $right)
+            : $leftToRight;
+        $expression = sprintf('%d %s %d %s %d', $left, $firstOperator, $middle, $secondOperator, $right);
+
+        // Exactly one distractor is a near miss (off by 1 or 10); the others are farther away.
+        $nearMisses = [1, -1, 10, -10];
+        $wrong = [$answer + $nearMisses[$rolls[5] % 4]];
+        $direction = $rolls[6] % 2 === 0 ? 1 : -1;
+        $candidates = [$leftToRight];
+        foreach ([2, 3, 4, 5, 6, 7, 8, 9, 11, 12] as $offset) {
+            $candidates[] = $answer + ($direction * $offset);
+            $candidates[] = $answer - ($direction * $offset);
+        }
+        foreach ($candidates as $candidate) {
+            if (count($wrong) >= 3) {
+                break;
+            }
+            if ($candidate === $answer || in_array($candidate, $wrong, true) || in_array(abs($candidate - $answer), [1, 10], true)) {
+                continue;
+            }
+            $wrong[] = $candidate;
+        }
+        $choices = $this->seededShuffle(
+            array_map(static fn (int $value): string => (string) $value, [$answer, ...$wrong]),
+            $rolls[7] ^ $rolls[8],
+        );
+
+        return [
+            'type' => self::MINI_GAME_GRIM_ARITHMETIC,
+            'expression' => $expression,
+            'choices' => $choices,
+            'correct_key' => (string) $answer,
+            'result_description' => sprintf('%s = %d.', $expression, $answer),
+        ];
+    }
+
+    private function applyArithmetic(string $operator, int $left, int $right): int
+    {
+        return match ($operator) {
+            '+' => $left + $right,
+            '−' => $left - $right,
+            default => $left * $right,
+        };
+    }
+
+    /** @return array<string, mixed> */
+    private function oddOneOutPayload(string $roundId): array
+    {
+        $rolls = $this->seededRolls(crc32($roundId), 5);
+        $categories = array_keys(self::ODD_ONE_OUT_CATEGORIES);
+        $categoryCount = count($categories);
+        $categoryIndex = $rolls[0] % $categoryCount;
+        $category = $categories[$categoryIndex];
+        $oddCategory = $categories[($categoryIndex + 1 + $rolls[1] % ($categoryCount - 1)) % $categoryCount];
+        $members = array_slice($this->seededShuffle(self::ODD_ONE_OUT_CATEGORIES[$category], $rolls[2]), 0, 3);
+        $oddMembers = self::ODD_ONE_OUT_CATEGORIES[$oddCategory];
+        $odd = $oddMembers[$rolls[3] % count($oddMembers)];
+
+        return [
+            'type' => self::MINI_GAME_ODD_ONE_OUT,
+            'choices' => $this->seededShuffle([...$members, $odd], $rolls[4]),
+            'correct_key' => $odd,
+            'result_description' => sprintf('Three were %s; %s did not belong.', $category, $odd),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function sequenceRecallPayload(string $roundId): array
+    {
+        $symbols = self::SEQUENCE_RECALL_SYMBOLS;
+        $order = array_slice($this->seededShuffle($symbols, crc32($roundId)), 0, self::SEQUENCE_RECALL_LENGTH);
+
+        return [
+            'type' => self::MINI_GAME_SEQUENCE_RECALL,
+            'choices' => $symbols,
+            'correct_order' => $order,
+            'result_description' => sprintf('The sequence was %s.', implode(', ', $order)),
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -1388,7 +1590,9 @@ final class TriviaRepository
             return;
         }
 
-        $players = $this->loadPlayersForRoom((string) $round['room_id'], true);
+        $roomId = (string) $round['room_id'];
+        $roundId = (string) $round['id'];
+        $players = $this->loadPlayersForRoom($roomId, true);
         $livingIds = [];
         foreach ($players as $player) {
             if ((string) $player['status'] === 'active' && !$this->pgBool($player['is_ghost'] ?? false)) {
@@ -1396,22 +1600,65 @@ final class TriviaRepository
             }
         }
 
-        $correctIds = $this->correctAnswerPlayerIds((string) $round['id']);
-        $loserIds = array_values(array_filter(
-            $eligibleIds,
-            static fn (string $playerId): bool => !in_array($playerId, $correctIds, true)
+        // Players arrive in seat order, so every list and outcome below is seat ordered.
+        $eligiblePlayers = array_values(array_filter(
+            $players,
+            static fn (array $player): bool => in_array((string) $player['id'], $eligibleIds, true)
         ));
-        $sparedId = null;
-        if (count(array_intersect($livingIds, $loserIds)) >= count($livingIds) && $loserIds !== []) {
-            $sparedId = $loserIds[0];
-            $loserIds = array_values(array_filter($loserIds, static fn (string $playerId): bool => $playerId !== $sparedId));
+        $correctIds = $this->correctAnswerPlayerIds($roundId);
+        $answeredIds = $this->answeredPlayerIds($roundId);
+        $currentLives = [];
+        $livesAfter = [];
+        $wouldGhostIds = [];
+        foreach ($eligiblePlayers as $player) {
+            $playerId = (string) $player['id'];
+            $currentLives[$playerId] = (int) ($player['lives_remaining'] ?? 0);
+            if (in_array($playerId, $correctIds, true) || !in_array($playerId, $livingIds, true)) {
+                continue;
+            }
+            $livesAfter[$playerId] = max(0, $currentLives[$playerId] - 1);
+            if ($livesAfter[$playerId] === 0) {
+                $wouldGhostIds[] = $playerId;
+            }
         }
 
-        if ($loserIds !== []) {
+        $sparedId = null;
+        if ($wouldGhostIds !== [] && array_diff($livingIds, $wouldGhostIds) === []) {
+            $sparedId = $this->sparedKillingFloorPlayerId($roomId, $roundId, $wouldGhostIds);
+            $livesAfter[$sparedId] = max(1, $currentLives[$sparedId] ?? 1);
+        }
+
+        $livesLostIds = [];
+        $ghostedIds = [];
+        $livesStatement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_players
+            SET lives_remaining = :lives_remaining,
+                last_seen_at = now()
+            WHERE room_id = :room_id
+              AND id = :id
+        SQL);
+        foreach ($livesAfter as $playerId => $remaining) {
+            $playerId = (string) $playerId;
+            if ($playerId !== $sparedId && $remaining === 0) {
+                $ghostedIds[] = $playerId;
+                continue;
+            }
+            if ($playerId !== $sparedId) {
+                $livesLostIds[] = $playerId;
+            }
+            $livesStatement->execute([
+                'lives_remaining' => $remaining,
+                'room_id' => $roomId,
+                'id' => $playerId,
+            ]);
+        }
+
+        if ($ghostedIds !== []) {
             $statement = $this->pdo->prepare(<<<'SQL'
                 UPDATE trivia_players
                 SET status = 'eliminated',
                     is_ghost = true,
+                    lives_remaining = 0,
                     eliminated_round_id = :round_id,
                     ghosted_round_id = :round_id,
                     last_seen_at = now()
@@ -1420,21 +1667,43 @@ final class TriviaRepository
                   AND status = 'active'
             SQL);
             $statement->execute([
-                'round_id' => $round['id'],
-                'room_id' => $round['room_id'],
-                'player_ids' => $this->postgresUuidArray($loserIds),
+                'round_id' => $roundId,
+                'room_id' => $roomId,
+                'player_ids' => $this->postgresUuidArray($ghostedIds),
             ]);
         }
 
+        $survivorIds = [];
+        $outcomes = [];
+        foreach ($eligiblePlayers as $player) {
+            $playerId = (string) $player['id'];
+            $survived = in_array($playerId, $correctIds, true);
+            if ($survived) {
+                $survivorIds[] = $playerId;
+            }
+            $outcomes[] = [
+                'player_id' => $playerId,
+                'display_name' => (string) $player['display_name'],
+                'answered' => in_array($playerId, $answeredIds, true),
+                'survived' => $survived,
+                'lost_life' => in_array($playerId, $livesLostIds, true),
+                'ghosted' => in_array($playerId, $ghostedIds, true),
+                'spared' => $playerId === $sparedId,
+                'lives_remaining' => $livesAfter[$playerId] ?? $currentLives[$playerId],
+            ];
+        }
+
         $results = [
-            'survivor_player_ids' => array_values(array_intersect($eligibleIds, $correctIds)),
-            'ghosted_player_ids' => $loserIds,
+            'survivor_player_ids' => $survivorIds,
+            'lives_lost_player_ids' => $livesLostIds,
+            'ghosted_player_ids' => $ghostedIds,
             'spared_player_id' => $sparedId,
         ];
         $payload = $this->decodeJsonObject($round['minigame_payload'] ?? null);
         if (isset($payload['result_description'])) {
             $results['result_description'] = (string) $payload['result_description'];
         }
+        $results['player_outcomes'] = $outcomes;
 
         $resultStatement = $this->pdo->prepare(<<<'SQL'
             UPDATE trivia_rounds
@@ -1442,8 +1711,92 @@ final class TriviaRepository
             WHERE id = :id
         SQL);
         $resultStatement->execute([
-            'id' => $round['id'],
+            'id' => $roundId,
             'results' => json_encode($results, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    /**
+     * Choose the one failing player kept alive when a trial would leave nobody living:
+     * most correct trivia answers in the room, then the earliest answer in this trial
+     * (answered beats unanswered), then the lowest seat.
+     *
+     * @param list<string> $candidateIds
+     */
+    private function sparedKillingFloorPlayerId(string $roomId, string $roundId, array $candidateIds): string
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT p.id
+            FROM trivia_players p
+            WHERE p.room_id = :room_id
+              AND p.id = ANY(CAST(:candidate_ids AS uuid[]))
+            ORDER BY (
+                         SELECT count(*)
+                         FROM trivia_answers a
+                         JOIN trivia_rounds r ON r.id = a.round_id
+                         WHERE a.player_id = p.id
+                           AND r.room_id = p.room_id
+                           AND a.is_correct
+                           AND COALESCE(r.round_type, 'trivia') = 'trivia'
+                     ) DESC,
+                     (
+                         SELECT min(a.submitted_at)
+                         FROM trivia_answers a
+                         WHERE a.round_id = CAST(:round_id AS uuid)
+                           AND a.player_id = p.id
+                     ) ASC NULLS LAST,
+                     p.seat_number ASC
+            LIMIT 1
+        SQL);
+        $statement->execute([
+            'room_id' => $roomId,
+            'candidate_ids' => $this->postgresUuidArray($candidateIds),
+            'round_id' => $roundId,
+        ]);
+        $sparedId = $statement->fetchColumn();
+
+        return $sparedId !== false ? (string) $sparedId : $candidateIds[0];
+    }
+
+    /** @return list<string> */
+    private function answeredPlayerIds(string $roundId): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT player_id
+            FROM trivia_answers
+            WHERE round_id = :round_id
+        SQL);
+        $statement->execute(['round_id' => $roundId]);
+
+        return array_values(array_map(static fn (mixed $id): string => (string) $id, $statement->fetchAll(PDO::FETCH_COLUMN) ?: []));
+    }
+
+    /**
+     * A ghost who answers a trivia round correctly haunts one step along the escape
+     * track, capped below the body holder's starting position.
+     *
+     * @param array<string, mixed> $round
+     */
+    private function applyGhostHaunt(array $round): void
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            UPDATE trivia_players p
+            SET race_position = GREATEST(p.race_position, LEAST(p.race_position + 1, CAST(:cap AS integer)))
+            WHERE p.room_id = :room_id
+              AND p.is_ghost
+              AND p.status <> 'left'
+              AND EXISTS (
+                  SELECT 1
+                  FROM trivia_answers a
+                  WHERE a.round_id = :round_id
+                    AND a.player_id = p.id
+                    AND a.is_correct
+              )
+        SQL);
+        $statement->execute([
+            'cap' => self::GHOST_HAUNT_CAP,
+            'room_id' => $round['room_id'],
+            'round_id' => $round['id'],
         ]);
     }
 
@@ -1821,6 +2174,7 @@ final class TriviaRepository
             'phase' => (string) ($room['phase'] ?? self::PHASE_TRIVIA),
             'max_players' => (int) $room['max_players'],
             'answer_window_seconds' => (int) $room['answer_window_seconds'],
+            'starting_lives' => (int) ($room['starting_lives'] ?? self::DEFAULT_STARTING_LIVES),
             'current_round_number' => (int) $room['current_round_number'],
             'termination' => $room['termination'] !== null ? (string) $room['termination'] : null,
             'winner_player_id' => $room['winner_player_id'] !== null ? (string) $room['winner_player_id'] : null,
@@ -1910,18 +2264,36 @@ final class TriviaRepository
         $minigamePayload = $this->decodeJsonObject($round['minigame_payload'] ?? null);
         $minigameResults = $this->decodeJsonObject($round['minigame_results'] ?? null);
         $minigamePreview = [];
+        $minigameType = (string) ($round['minigame_type'] ?? '');
         if (!$resolved
             && $roundType === self::PHASE_KILLING_FLOOR
-            && (string) ($round['minigame_type'] ?? '') === self::MINI_GAME_MEMORY_MATCH
-            && strtotime((string) $round['opened_at']) + 5 > time()
+            && $minigameType === self::MINI_GAME_MEMORY_MATCH
+            && strtotime((string) $round['opened_at']) + self::MEMORY_PREVIEW_SECONDS > time()
         ) {
             $minigamePreview = array_values(array_map(
                 static fn (mixed $choice): string => (string) $choice,
                 is_array($minigamePayload['correct_choices'] ?? null) ? $minigamePayload['correct_choices'] : [],
             ));
         }
+        if (!$resolved
+            && $roundType === self::PHASE_KILLING_FLOOR
+            && $minigameType === self::MINI_GAME_SEQUENCE_RECALL
+            && strtotime((string) $round['opened_at']) + self::SEQUENCE_PREVIEW_SECONDS > time()
+        ) {
+            $minigamePreview = [
+                'sequence' => array_values(array_map(
+                    static fn (mixed $choice): string => (string) $choice,
+                    is_array($minigamePayload['correct_order'] ?? null) ? $minigamePayload['correct_order'] : [],
+                )),
+            ];
+        }
         if (!$resolved) {
-            unset($minigamePayload['correct_key'], $minigamePayload['correct_choices'], $minigamePayload['result_description']);
+            unset(
+                $minigamePayload['correct_key'],
+                $minigamePayload['correct_choices'],
+                $minigamePayload['correct_order'],
+                $minigamePayload['result_description'],
+            );
             unset($answerShape['correct_answers']);
         }
         $raceItems = $promptPayload['items'] ?? [];
@@ -2020,6 +2392,7 @@ final class TriviaRepository
             'eliminated_round_id' => $player['eliminated_round_id'] !== null ? (string) $player['eliminated_round_id'] : null,
             'ghosted_round_id' => $player['ghosted_round_id'] !== null ? (string) $player['ghosted_round_id'] : null,
             'race_position' => (int) ($player['race_position'] ?? 0),
+            'lives_remaining' => (int) ($player['lives_remaining'] ?? 0),
             'joined_at' => (string) $player['joined_at'],
             'last_seen_at' => (string) $player['last_seen_at'],
             'viewer_controls_player' => $this->identityOwnsSeat($player, $identity),
@@ -2150,6 +2523,24 @@ final class TriviaRepository
         }
 
         return $seconds;
+    }
+
+    private function normalizeStartingLives(mixed $value): int
+    {
+        $isWholeNumber = is_int($value) || (is_string($value) && ctype_digit(trim($value)));
+        if (!$isWholeNumber) {
+            throw new ApiException(422, 'validation_error', 'starting_lives must be an integer from 1 to 3.', [
+                'starting_lives' => 'Choose a whole number from 1 to 3.',
+            ]);
+        }
+        $lives = (int) (is_string($value) ? trim($value) : $value);
+        if ($lives < self::MIN_STARTING_LIVES || $lives > self::MAX_STARTING_LIVES) {
+            throw new ApiException(422, 'validation_error', 'starting_lives must be between 1 and 3.', [
+                'starting_lives' => 'Choose a whole number from 1 to 3.',
+            ]);
+        }
+
+        return $lives;
     }
 
     /**
@@ -2548,6 +2939,21 @@ final class TriviaRepository
     private function normalizeKillingFloorAnswer(array $round, array $input): array
     {
         $payload = $this->decodeJsonObject($round['minigame_payload'] ?? null);
+        if ((string) ($round['minigame_type'] ?? '') === self::MINI_GAME_SEQUENCE_RECALL) {
+            $selected = $this->normalizeSelectedAnswers($input);
+            $correctOrder = is_array($payload['correct_order'] ?? null) && array_is_list($payload['correct_order'])
+                ? array_map(fn (mixed $value): string => $this->normalizeAnswer((string) $value), $payload['correct_order'])
+                : [];
+            $selectedOrder = array_map(fn (string $value): string => $this->normalizeAnswer($value), $selected);
+            $isCorrect = $correctOrder !== [] && $selectedOrder === $correctOrder;
+
+            return [
+                'answer_text' => $this->answerTextFromSelection($selected),
+                'answer_payload' => ['selected' => $selected],
+                'is_correct' => $isCorrect,
+                'score' => $isCorrect ? 1 : 0,
+            ];
+        }
         if (in_array((string) ($round['minigame_type'] ?? ''), [self::MINI_GAME_MEMORY_MATCH, self::MINI_GAME_CRYPT_RUNES], true)) {
             $selected = $this->normalizeSelectedAnswers($input);
             $correct = $this->normalizeStringSet($payload['correct_choices'] ?? []);

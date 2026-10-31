@@ -1,9 +1,9 @@
-<!-- schema-version: 24 -->
+<!-- schema-version: 25 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 24**. `migration-chain.json` is the ordered,
+current release pin is **version 25**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -41,11 +41,12 @@ per-file execution ledger.
 | 22 | `021_collectible_collections.sql` | Owned collectible figures, saved for a registered user or a long-lived guest browser cookie |
 | 23 | `022_poe2_inventory.sql` | Equipment inventory on Path of Exile 2 saved builds |
 | 24 | `023_books.sql` | Admin-authored book recommendations with Amazon links, covers, prices, and overviews |
+| 25 | `024_trivia_lives_and_mini_games.sql` | Trivia room starting lives, per-player remaining lives, and grim arithmetic, odd one out, and sequence recall Killing Floor trials |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger.
 
-## Current version 24 inventory
+## Current version 25 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -60,7 +61,9 @@ their full basenames are already stored in production's migration ledger.
 - Trivia: `trivia_rooms`, `trivia_players`, `trivia_room_links`,
   `trivia_link_claims`, `trivia_question_catalog`, `trivia_prompts`,
   `trivia_rounds` (including key lock, memory match, poison chalices, sword
-  boxes, and crypt runes Killing Floor trials), and `trivia_answers`
+  boxes, crypt runes, grim arithmetic, odd one out, and sequence recall Killing
+  Floor trials), and `trivia_answers`; `trivia_rooms.starting_lives` and
+  `trivia_players.lives_remaining` track Killing Floor lives
 - Risk: `risk_games`, `risk_game_players`, and `risk_game_links`
 - Open deck: `open_deck_slots`, `open_deck_set_nominations`,
   `open_deck_fill_votes`, and `open_deck_eviction_votes`
@@ -231,7 +234,19 @@ timed answer window with `opened_at`, `closes_at`, and resolved state.
 a per-room client idempotency UUID, correctness, score, and submission timestamp.
 The application rejects duplicate or late answers. Wrong living players descend
 to a Killing Floor trial—key lock, memory match, poison chalices, sword boxes,
-or crypt runes; failed players become ghosts and remain eligible for later trivia.
+crypt runes, grim arithmetic, odd one out, or sequence recall. Each room plays
+the eight trials in a permutation seeded by its room ID, so every trial appears
+once per eight Killing Floors before the order repeats.
+
+`trivia_rooms.starting_lives` (1-3, default 2) is chosen at room creation and
+copied by replays; every seated player starts with `trivia_players.lives_remaining`
+equal to it. A player who fails a trial loses one life and becomes a ghost only
+at zero lives. If a trial would leave nobody alive, one failing player is spared
+with at least one life: the one with the most correct trivia answers in the room,
+then the earliest answer in that trial, then the lowest seat. Ghosts remain
+eligible for later trivia; each correct ghost trivia answer moves the ghost one
+step along the escape track, up to a head start of 3, while living players
+start the finale at 4.
 
 Creating a room is one transaction: insert the room, seat the host, attach the
 host to the room, persist caller-supplied prompts or copy active default prompts

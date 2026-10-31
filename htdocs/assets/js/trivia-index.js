@@ -12,6 +12,7 @@ const elements = {
     form: /** @type {HTMLFormElement} */ (requireElement('trivia-new-room-form')),
     maxPlayers: /** @type {HTMLInputElement | HTMLSelectElement} */ (requireElement('trivia-max-players')),
     answerWindow: /** @type {HTMLInputElement | HTMLSelectElement} */ (requireElement('trivia-answer-window')),
+    startingLives: /** @type {HTMLInputElement | HTMLSelectElement} */ (requireElement('trivia-starting-lives')),
     newRoomButton: /** @type {HTMLButtonElement} */ (requireElement('trivia-new-room-button')),
     linkBox: requireElement('trivia-link-box'),
     joinUrl: /** @type {HTMLInputElement} */ (requireElement('trivia-join-url')),
@@ -132,6 +133,16 @@ const playerLabel = (player) => {
     return player?.viewer_controls_player ? `${name} (you)` : name;
 };
 
+const roomLives = (room) => {
+    const lives = Number(room?.starting_lives);
+    return Number.isInteger(lives) && lives > 0 ? lives : null;
+};
+
+const livesLabel = (room) => {
+    const lives = roomLives(room);
+    return lives === null ? '' : `${lives} ${lives === 1 ? 'life' : 'lives'} each`;
+};
+
 const activePlayers = (room) => (Array.isArray(room?.players) ? room.players : [])
     .filter((player) => player.status === 'active');
 
@@ -189,6 +200,9 @@ const renderCurrentRoom = (room) => {
         summary.textContent = 'This room has already finished.';
     } else {
         summary.textContent = 'Room state loaded.';
+    }
+    if (livesLabel(room) !== '') {
+        summary.textContent = `${summary.textContent} ${livesLabel(room)}.`;
     }
 
     elements.roomSummary.append(summary);
@@ -311,7 +325,8 @@ const renderRoomList = (rooms) => {
 
         const details = document.createElement('p');
         const playerCount = Array.isArray(room.players) ? room.players.length : 0;
-        details.textContent = `${playerCount}/${room.max_players} players, round ${room.current_round_number || 0}, ${room.status}`;
+        const lives = livesLabel(room);
+        details.textContent = `${playerCount}/${room.max_players} players, round ${room.current_round_number || 0}, ${room.status}${lives !== '' ? `, ${lives}` : ''}`;
 
         const link = document.createElement('a');
         link.className = 'trivia-text-link';
@@ -345,9 +360,13 @@ const handleCreateRoom = async (event) => {
     elements.inviteList.hidden = true;
 
     try {
+        const startingLives = Number.parseInt(elements.startingLives.value, 10);
         const room = await createRoom({
             max_players: Number.parseInt(elements.maxPlayers.value, 10),
             answer_window_seconds: Number.parseInt(elements.answerWindow.value, 10),
+            ...(Number.isInteger(startingLives) && startingLives >= 1 && startingLives <= 3
+                ? { starting_lives: startingLives }
+                : {}),
             create_link: true,
         });
         const createdLinks = Array.isArray(room.created_links) ? [...room.created_links] : [];

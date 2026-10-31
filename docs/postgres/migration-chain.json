@@ -216,6 +216,15 @@
           "sha256": "1326a1e124282982278891f2269e83da210282afda1b3c433224a40c5e8adef4"
         }
       ]
+    },
+    {
+      "version": 25,
+      "updates": [
+        {
+          "file": "updates/024_trivia_lives_and_mini_games.sql",
+          "sha256": "499b6e5bd27e7e061d94d2a0f60eab95b8f8cd1a9e7db72ee589a0748af2e66f"
+        }
+      ]
     }
   ]
 }

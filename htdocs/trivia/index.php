@@ -54,6 +54,15 @@ $pageStyles = ['/assets/css/trivia.css'];
                                 </select>
                             </label>
 
+                            <label class="trivia-field" for="trivia-starting-lives">
+                                <span>Lives</span>
+                                <select id="trivia-starting-lives" name="starting_lives">
+                                    <option value="1">1 life &#9829;</option>
+                                    <option value="2" selected>2 lives &#9829;&#9829;</option>
+                                    <option value="3">3 lives &#9829;&#9829;&#9829;</option>
+                                </select>
+                            </label>
+
                             <button class="trivia-button trivia-button-primary" type="submit" id="trivia-new-room-button">Create room</button>
                         </form>
 
@@ -117,8 +126,9 @@ $pageStyles = ['/assets/css/trivia.css'];
                     <ul class="trivia-rule-list">
                         <li>Everyone sees the same timed prompt.</li>
                         <li>Wrong living players descend to the Killing Floor.</li>
-                        <li>Survive the key lock or memory grid to stay alive.</li>
-                        <li>Eliminated players return as ghosts and keep answering.</li>
+                        <li>Survive one of eight deadly mini-games, from poison chalices to grim arithmetic.</li>
+                        <li>Fail a trap and lose a life. Run out of lives and you return as a ghost.</li>
+                        <li>Ghosts keep answering, and correct answers give them a head start in the race.</li>
                         <li>The final survivor races every ghost for the body.</li>
                     </ul>
                 </aside>

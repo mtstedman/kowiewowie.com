@@ -9,13 +9,34 @@ export const roundType = (room) => {
     return ['trivia', 'killing_floor', 'ghost_race'].includes(value) ? value : 'trivia';
 };
 
+export const MINIGAME_TYPES = [
+    'key_lock',
+    'memory_match',
+    'poison_chalices',
+    'sword_boxes',
+    'crypt_runes',
+    'grim_arithmetic',
+    'odd_one_out',
+    'sequence_recall',
+];
+
+export const SCENE_FALLBACK_IMAGE = `${SCENE_ROOT}/trivia-question-stage.png`;
+export const ELIMINATION_REVEAL_IMAGE = `${SCENE_ROOT}/mansion-claims-victim.png`;
+
 export const minigameType = (room) => {
     const value = String(room?.round?.minigame?.type || '');
-    return ['key_lock', 'memory_match', 'poison_chalices', 'sword_boxes', 'crypt_runes'].includes(value) ? value : '';
+    return MINIGAME_TYPES.includes(value) ? value : '';
 };
 
+/**
+ * @param {any} room
+ * @returns {'ordered' | 'multiple' | 'single'}
+ */
 export const selectionMode = (room) => {
     const shape = String(room?.round?.answer_shape?.type || 'single_choice');
+    if (shape === 'ordered_select') {
+        return 'ordered';
+    }
     return shape === 'multi_select' || minigameType(room) === 'memory_match' || roundType(room) === 'ghost_race'
         ? 'multiple'
         : 'single';
@@ -32,10 +53,21 @@ export const choicesForRound = (room) => {
     return stringList(round.prompt?.choices);
 };
 
+/**
+ * Number of picks an ordered round expects (answer_shape.count, default 4).
+ * @param {any} room
+ * @returns {number}
+ */
+export const orderedSelectionCount = (room) => {
+    const count = Number.parseInt(String(room?.round?.answer_shape?.count ?? ''), 10);
+    return Number.isFinite(count) && count > 0 ? count : 4;
+};
+
 export const answerPayloadForSelection = (room, selection, clientAnswerId) => {
     const selected = stringList(selection).filter((value, index, values) => values.indexOf(value) === index);
     const payload = { client_answer_id: clientAnswerId };
-    if (selectionMode(room) === 'multiple') {
+    const mode = selectionMode(room);
+    if (mode === 'multiple' || mode === 'ordered') {
         payload.selected = selected;
         payload.answer_payload = { selected };
         return payload;
@@ -69,8 +101,12 @@ export const correctAnswersForRound = (room) => {
         return [];
     }
     if (roundType(room) === 'killing_floor') {
-        if (['memory_match', 'crypt_runes'].includes(minigameType(room))) {
+        const minigame = minigameType(room);
+        if (['memory_match', 'crypt_runes'].includes(minigame)) {
             return stringList(round.minigame?.payload?.correct_choices);
+        }
+        if (minigame === 'sequence_recall') {
+            return stringList(round.minigame?.payload?.correct_order);
         }
         return stringList([round.minigame?.payload?.correct_key]);
     }
@@ -88,6 +124,41 @@ export const correctAnswersForRound = (room) => {
     return shapedAnswers.length > 0 ? shapedAnswers : stringList([round.prompt?.correct_answer]);
 };
 
+/**
+ * Symbols to flash before choices unlock: memory_match uses a list preview,
+ * sequence_recall uses preview.sequence (ordered).
+ * @param {any} room
+ * @returns {{ kind: 'memory' | 'sequence' | '', symbols: string[] }}
+ */
+export const previewForRound = (room) => {
+    const preview = room?.round?.minigame?.preview;
+    const minigame = minigameType(room);
+    if (minigame === 'sequence_recall') {
+        const sequence = preview && typeof preview === 'object' && !Array.isArray(preview)
+            ? stringList(preview.sequence)
+            : [];
+        return sequence.length > 0 ? { kind: 'sequence', symbols: sequence } : { kind: '', symbols: [] };
+    }
+    const symbols = Array.isArray(preview) ? stringList(preview) : [];
+    return symbols.length > 0 ? { kind: 'memory', symbols } : { kind: '', symbols: [] };
+};
+
+/**
+ * @typedef {{
+ *   key: string,
+ *   label: string,
+ *   title: string,
+ *   instructions: string,
+ *   image: string,
+ *   alt: string,
+ *   expression?: string,
+ * }} PhasePresentation
+ */
+
+/**
+ * @param {any} room
+ * @returns {PhasePresentation}
+ */
 export const phasePresentation = (room) => {
     const type = roundType(room);
     const minigame = minigameType(room);
@@ -102,6 +173,16 @@ export const phasePresentation = (room) => {
         };
     }
     if (room?.status === 'finished') {
+        if (room?.winner_player_id) {
+            return {
+                key: 'finished',
+                label: 'Game over',
+                title: 'The mansion has chosen',
+                instructions: 'The winner escaped with the body. Everyone else gets the consolation prize of being a ghost.',
+                image: `${SCENE_ROOT}/survivor-escape.png`,
+                alt: 'The last survivor bursting out of the haunted mansion doors into the dawn while ghosts wave goodbye.',
+            };
+        }
         return {
             key: 'finished',
             label: 'Game over',
@@ -151,6 +232,37 @@ export const phasePresentation = (room) => {
             instructions: String(room?.round?.prompt_payload?.instructions || 'Select every rune in the safe pattern.'),
             image: `${SCENE_ROOT}/killing-floor-crypt-runes.png`,
             alt: 'Ancient glowing runes arranged in a safe pattern on a crypt wall.',
+        };
+    }
+    if (type === 'killing_floor' && minigame === 'grim_arithmetic') {
+        return {
+            key: 'grim_arithmetic',
+            label: 'The Killing Floor',
+            title: 'Grim Arithmetic',
+            instructions: String(room?.round?.prompt_payload?.instructions || 'Solve the sum before the blade falls.'),
+            image: `${SCENE_ROOT}/killing-floor-arithmetic.png`,
+            alt: 'A skeleton scrawling a glowing sum on a chalkboard beneath a swinging blade.',
+            expression: String(room?.round?.minigame?.payload?.expression || '').trim(),
+        };
+    }
+    if (type === 'killing_floor' && minigame === 'odd_one_out') {
+        return {
+            key: 'odd_one_out',
+            label: 'The Killing Floor',
+            title: 'Odd One Out',
+            instructions: String(room?.round?.prompt_payload?.instructions || 'Choose the one item that does not belong with the others.'),
+            image: `${SCENE_ROOT}/killing-floor-odd-one-out.png`,
+            alt: 'Four curious objects on haunted pedestals, one of them clearly out of place.',
+        };
+    }
+    if (type === 'killing_floor' && minigame === 'sequence_recall') {
+        return {
+            key: 'sequence_recall',
+            label: 'The Killing Floor',
+            title: 'Sequence Recall',
+            instructions: String(room?.round?.prompt_payload?.instructions || 'Watch the sequence, then select all four symbols in the same order.'),
+            image: `${SCENE_ROOT}/killing-floor-sequence.png`,
+            alt: 'Glowing symbols lighting up one after another along a crypt wall.',
         };
     }
     if (type === 'killing_floor') {
