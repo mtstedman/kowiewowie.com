@@ -79,7 +79,8 @@ final class ChessRepository
             $opponentSeat = $this->insertPlayerSeat($gameId, $opponentColor, null, null, $this->emptySeatDisplayName($opponentColor, $mode));
 
             if ($mode === 'bot' && $opponentColor === 'white') {
-                $botUci = $this->chessBot()->chooseMove($startingFen);
+                // The bot's first move starts the game, so there is no position history yet.
+                $botUci = $this->chessBot()->chooseMove($startingFen, []);
                 if ($botUci !== null) {
                     $botMove = $this->engine->applyUciMove($startingFen, $botUci);
                     if (($botMove['ok'] ?? false) === true) {
@@ -380,7 +381,10 @@ final class ChessRepository
             if ($this->modeFromStoredGame($game, $players) === 'bot' && (string) $game['status'] === 'active') {
                 $botSeat = $this->currentTurnSeat($players, (string) $game['side_to_move']);
                 if ($botSeat !== null && $this->isBotSeat($botSeat)) {
-                    $botUci = $this->chessBot()->chooseMove((string) $game['current_fen']);
+                    $botUci = $this->chessBot()->chooseMove(
+                        (string) $game['current_fen'],
+                        $this->priorPositionFens((string) $game['id'], (int) $game['current_ply']),
+                    );
                     if ($botUci !== null) {
                         $botMove = $this->engine->applyUciMove((string) $game['current_fen'], $botUci);
                         if (($botMove['ok'] ?? false) === true) {
@@ -560,6 +564,30 @@ final class ChessRepository
         $game['pending_takeback_requested_at'] = null;
 
         return $game;
+    }
+
+    /**
+     * Stored position FENs that preceded the current ply, ordered by ply (oldest first). The
+     * current position (the bot's search root) is excluded.
+     *
+     * @return list<string>
+     */
+    private function priorPositionFens(string $gameId, int $currentPly): array
+    {
+        $statement = $this->pdo->prepare(<<<'SQL'
+            SELECT fen
+            FROM chess_game_positions
+            WHERE game_id = :game_id
+              AND ply < :current_ply
+            ORDER BY ply ASC
+        SQL);
+        $statement->execute([
+            'game_id' => $gameId,
+            'current_ply' => $currentPly,
+        ]);
+        $rows = $statement->fetchAll(PDO::FETCH_COLUMN);
+
+        return array_map(static fn (mixed $fen): string => (string) $fen, is_array($rows) ? $rows : []);
     }
 
     private function sideToMoveFromFen(string $fen): string

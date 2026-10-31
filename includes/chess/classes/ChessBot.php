@@ -8,7 +8,12 @@ namespace Wowie\Api\Chess;
  * Server-side chess opponent.
  *
  * Search: iterative-deepening negamax alpha-beta on Board objects with a transposition
- * table, MVV-LVA / killer / history move ordering and a quiescence search at the horizon.
+ * table, MVV-LVA / killer / history move ordering refined by static exchange evaluation (SEE),
+ * and a quiescence search at the horizon that skips captures losing material by SEE.
+ * Selectivity: principal-variation (PV) nodes are searched in full, with internal iterative
+ * deepening when no transposition move is known; null-window (non-PV) nodes outside check
+ * and mate windows use reverse futility and late move pruning; late moves are reduced by a
+ * depth/move-index table and re-searched at full depth whenever they beat alpha.
  * Evaluation: Tomasz Michniewski's Simplified Evaluation Function (piece values plus
  * piece-square tables), https://www.chessprogramming.org/Simplified_Evaluation_Function
  */
@@ -38,10 +43,37 @@ final class ChessBot
     private const ORDER_KILLER = 90000;
     private const ORDER_HISTORY_MAX = 80000;
 
+    /** Captures/promotions losing material by SEE: below killers and every history quiet. */
+    private const ORDER_LOSING_TACTICAL = -100000;
+
     private const ASPIRATION_WINDOW = 40;
     private const TIME_CHECK_NODES = 256;
     private const FUTILITY_MARGIN = [1 => 120, 2 => 300];
     private const DELTA_MARGIN = 120;
+
+    /**
+     * Reverse futility (static null-move) margins by remaining depth: a non-PV node whose
+     * static evaluation exceeds beta by this much returns that evaluation unsearched.
+     */
+    private const REVERSE_FUTILITY_MARGIN = [1 => 120, 2 => 240, 3 => 360];
+
+    /** Late move pruning: searched-move count after which a non-PV node skips plain quiets. */
+    private const LATE_MOVE_PRUNING_COUNT = [1 => 5, 2 => 8, 3 => 12];
+
+    /** Internal iterative deepening: minimum PV-node depth and the shallower search's reduction. */
+    private const IID_MIN_DEPTH = 5;
+    private const IID_REDUCTION = 2;
+
+    /**
+     * Late move reductions: floor(LMR_BASE + ln(depth) * ln(moveIndex) / LMR_DIVISOR), capped at
+     * LMR_MAX_REDUCTION, one ply less in PV nodes, and never below one remaining ply.
+     */
+    private const LMR_MIN_DEPTH = 3;
+    private const LMR_MIN_MOVE_INDEX = 3;
+    private const LMR_BASE = 0.75;
+    private const LMR_DIVISOR = 2.25;
+    private const LMR_MAX_REDUCTION = 4;
+    private const LMR_TABLE_SIZE = 64;
 
     /**
      * The source lists K = 20000; both kings are always on the board, so the king's
@@ -161,6 +193,9 @@ final class ChessBot
     /** @var array<string, array<string, int>> 'K' / 'k' => square => end-game king score. */
     private static array $kingEndgameScores = [];
 
+    /** @var array<int, array<int, int>> depth => move index => late move reduction in plies. */
+    private static array $lateMoveReductions = [];
+
     /** @var array<string, array{0: int, 1: int, 2: int, 3: ?string, 4: string}> */
     private array $table = [];
 
@@ -172,6 +207,14 @@ final class ChessBot
 
     /** @var array<string, true> Collision-safe position identities on the current line. */
     private array $path = [];
+
+    /**
+     * Collision-safe identities of positions that occurred earlier in the real game, with
+     * occurrence counts. Rebuilt per chooseMove() call from the supplied prior FENs.
+     *
+     * @var array<string, int>
+     */
+    private array $gameHistory = [];
 
     /** @var array<string, array<string, array{0: int, 1: int}>> */
     private static array $zobrist = [];
@@ -190,6 +233,9 @@ final class ChessBot
     /** Last fully completed iterative-deepening depth; useful for diagnostics. */
     private int $completedDepth = 0;
 
+    /** Reverse futility and late move pruning switch; diagnostics may disable it to compare node counts. */
+    private bool $selectivePruning = true;
+
     /**
      * @param int $timeBudgetMs Search clock in milliseconds; zero or less disables the clock
      *                          and searches exactly $maxDepth plies.
@@ -202,9 +248,15 @@ final class ChessBot
     ) {
         self::initialiseSquareScores();
         self::initialiseZobrist();
+        self::initialiseLateMoveReductions();
     }
 
-    public function chooseMove(string $fen): ?string
+    /**
+     * @param list<string> $priorFens Positions that occurred earlier in the game, oldest to
+     *                                newest, excluding $fen itself. A search node (never the
+     *                                root) that recreates one of them scores as a draw.
+     */
+    public function chooseMove(string $fen, array $priorFens = []): ?string
     {
         $startedAt = $this->now();
 
@@ -227,6 +279,7 @@ final class ChessBot
         $this->killers = [];
         $this->history = [];
         $this->path = [];
+        $this->gameHistory = $this->buildGameHistory($board, $priorFens);
         $this->aborted = false;
         $this->nodes = 0;
         $this->completedDepth = 0;
@@ -365,7 +418,13 @@ final class ChessBot
         return $bestUci === null ? null : [$bestUci, $bestScore];
     }
 
-    /** Fail-soft negamax alpha-beta. The score is from the side to move's point of view. */
+    /**
+     * Fail-soft negamax alpha-beta. The score is from the side to move's point of view.
+     *
+     * A node searched with a wider-than-null window is a PV node. Reverse futility and late
+     * move pruning apply only to non-PV nodes that are not in check and whose window holds no
+     * mate score; PV nodes without a transposition move first run internal iterative deepening.
+     */
     private function negamax(
         Board $board,
         int $depth,
@@ -382,6 +441,7 @@ final class ChessBot
             return $this->evaluate($board);
         }
 
+        $isPv = $beta - $alpha > 1;
         $inCheck = $board->isInCheck($board->sideToMove());
         if ($inCheck) {
             // The checking move and this evasion do not consume search depth.
@@ -400,7 +460,8 @@ final class ChessBot
 
         [$key, $lock] = $this->positionIdentity($board);
         $pathKey = $key . ':' . $lock;
-        if (isset($this->path[$pathKey])) {
+        if ($ply >= 1 && (isset($this->path[$pathKey]) || isset($this->gameHistory[$pathKey]))) {
+            // A repetition of the search line or of the real game is scored as a draw.
             return 0;
         }
 
@@ -445,6 +506,44 @@ final class ChessBot
             }
         }
 
+        $selective = $this->selectivePruning
+            && !$isPv
+            && !$inCheck
+            && abs($alpha) < self::MATE_BOUND
+            && abs($beta) < self::MATE_BOUND;
+        $staticScore = null;
+
+        // Reverse futility pruning: a static score this far above beta is assumed to hold.
+        // A static evaluation is never a mate score.
+        if ($selective && isset(self::REVERSE_FUTILITY_MARGIN[$depth])) {
+            $staticScore = $this->evaluate($board);
+            if ($staticScore - self::REVERSE_FUTILITY_MARGIN[$depth] >= $beta) {
+                return $staticScore;
+            }
+        }
+
+        // Internal iterative deepening: a shallower search on the same window fills the table
+        // with a best move for ordering. It runs before this position joins the path, so the
+        // inner search does not see itself as a repetition; in check the inner node extends
+        // again, so one ply is removed here to keep the inner search exactly IID_REDUCTION shallower.
+        if ($isPv && $tableMove === null && $depth >= self::IID_MIN_DEPTH) {
+            $this->negamax(
+                $board,
+                $depth - self::IID_REDUCTION - ($inCheck ? 1 : 0),
+                $alpha,
+                $beta,
+                $ply,
+                $allowNull,
+            );
+            if ($this->aborted) {
+                return 0;
+            }
+            $entry = $this->table[$key] ?? null;
+            if ($entry !== null && $entry[4] === $lock && $entry[3] !== null && isset($legalUcis[$entry[3]])) {
+                $tableMove = $entry[3];
+            }
+        }
+
         $originalAlpha = $alpha;
         $this->path[$pathKey] = true;
 
@@ -480,43 +579,54 @@ final class ChessBot
         $ordered = $this->orderMoves($board, $moves, $tableMove, $ply, false);
         $sideKey = $board->sideToMove() === Board::WHITE ? 'w' : 'b';
         $killers = $this->killers[$ply] ?? [null, null];
-        $staticScore = null;
         $futilityMargin = !$inCheck && isset(self::FUTILITY_MARGIN[$depth]) && abs($alpha) < self::MATE_BOUND
             ? self::FUTILITY_MARGIN[$depth]
             : null;
+        $lateMoveLimit = $selective ? (self::LATE_MOVE_PRUNING_COUNT[$depth] ?? null) : null;
         $bestScore = -self::INFINITY;
         $bestUci = null;
         $searchedMoves = 0;
+        $prunedMoves = false;
 
         foreach ($ordered as $moveIndex => $move) {
             $uci = (string) $move['uci'];
             $givesCheck = $move['afterBoard']->isInCheck($move['afterBoard']->sideToMove());
             $isKiller = $uci === $killers[0] || $uci === $killers[1];
-            if (
-                $futilityMargin !== null
-                && $searchedMoves > 0
+            // Plain quiet moves: never the first searched move, a check, a killer or the TT move.
+            $prunable = $searchedMoves > 0
                 && $move['quiet']
                 && !$givesCheck
                 && !$isKiller
-                && $uci !== $tableMove
-            ) {
+                && $uci !== $tableMove;
+            if ($prunable && $lateMoveLimit !== null && $searchedMoves >= $lateMoveLimit) {
+                $prunedMoves = true;
+                continue;
+            }
+            if ($prunable && $futilityMargin !== null) {
                 $staticScore ??= $this->evaluate($board);
                 if ($staticScore + $futilityMargin <= $alpha) {
+                    $prunedMoves = true;
                     continue;
                 }
             }
 
             $childDepth = $depth - 1;
-            $lateQuiet = $depth >= 3
-                && $moveIndex >= 3
-                && $move['quiet']
+            $reduction = 0;
+            if (
+                $depth >= self::LMR_MIN_DEPTH
+                && $moveIndex >= self::LMR_MIN_MOVE_INDEX
+                && $searchedMoves > 0
                 && !$inCheck
                 && !$givesCheck
                 && !$isKiller
-                && $uci !== $tableMove;
+                && $uci !== $tableMove
+                && ($move['quiet'] || $move['see'] < 0)
+            ) {
+                // Late quiets and SEE-losing captures; SEE >= 0 tactical moves are never reduced.
+                $reduction = $this->lateMoveReduction($depth, $moveIndex, $isPv);
+            }
 
-            if ($lateQuiet) {
-                $reduction = $depth >= 6 && $moveIndex >= 6 ? 2 : 1;
+            if ($reduction > 0) {
                 $score = -$this->negamax(
                     $move['afterBoard'],
                     max(0, $childDepth - $reduction),
@@ -575,6 +685,12 @@ final class ChessBot
         }
         unset($this->path[$pathKey]);
 
+        if ($prunedMoves && $bestScore < -self::MATE_BOUND) {
+            // Every searched move was mated, but a pruned quiet move may escape: pruning only
+            // assumed those moves fail low, so report the (non-mate) alpha bound instead.
+            $bestScore = $originalAlpha;
+        }
+
         if ($tableUsable) {
             $bound = self::BOUND_EXACT;
             if ($bestScore <= $originalAlpha) {
@@ -615,6 +731,15 @@ final class ChessBot
             return $alpha;
         }
 
+        // After a capture or pawn move (halfmove clock 0) no earlier position can recur.
+        if ($ply >= 1 && $board->halfmoveClock() > 0) {
+            [$key, $lock] = $this->positionIdentity($board);
+            $pathKey = $key . ':' . $lock;
+            if (isset($this->path[$pathKey]) || isset($this->gameHistory[$pathKey])) {
+                return 0;
+            }
+        }
+
         $inCheck = $board->isInCheck($board->sideToMove());
         $bestScore = -self::INFINITY;
         $standPat = null;
@@ -646,6 +771,11 @@ final class ChessBot
             $givesCheck = $move['afterBoard']->isInCheck($move['afterBoard']->sideToMove());
             $electiveQuietCheck = !$inCheck && $move['quiet'] && $givesCheck;
             if (!$inCheck && $move['quiet'] && (!$givesCheck || !$quietCheckAvailable)) {
+                continue;
+            }
+            if (!$inCheck && !$move['quiet'] && $move['promotion'] === null && $move['see'] < 0) {
+                // A capture that loses material in the swap-off cannot raise the stand-pat
+                // bound; check evasions and promotions are never skipped here.
                 continue;
             }
             if (
@@ -686,12 +816,14 @@ final class ChessBot
     }
 
     /**
-     * Orders moves: the previous-iteration / transposition move, then captures by MVV-LVA
-     * and promotions, then killer moves, then quiet moves by history score. Equal scores
-     * fall back to UCI order so the search is deterministic.
+     * Orders moves: the previous-iteration / transposition move, then captures and
+     * promotions that do not lose material by SEE (MVV-LVA inside that band), then killer
+     * moves, then quiet moves by history score, then SEE-losing captures/promotions (least
+     * loss first). Equal scores fall back to UCI order so the search is deterministic.
      *
      * @param list<array<string, mixed>> $moves
-     * @return list<array<string, mixed>> Moves with 'order' and 'quiet' added.
+     * @return list<array<string, mixed>> Moves with 'order', 'quiet', 'tacticalGain' and
+     *                                    'see' (int for tactical moves, null for quiet) added.
      */
     private function orderMoves(Board $board, array $moves, ?string $firstUci, int $ply, bool $tacticalOnly): array
     {
@@ -716,8 +848,12 @@ final class ChessBot
                 continue;
             }
 
+            $see = $tactical ? $this->staticExchange($board, $from, $to, $promotion) : null;
+
             if ($move['uci'] === $firstUci) {
                 $order = self::ORDER_FIRST;
+            } elseif ($tactical && $see < 0) {
+                $order = self::ORDER_LOSING_TACTICAL + $see;
             } elseif ($tactical) {
                 $order = self::ORDER_TACTICAL
                     + 10 * ($victim !== null ? self::PIECE_VALUES[$victim] : 0)
@@ -733,6 +869,7 @@ final class ChessBot
 
             $move['order'] = $order;
             $move['quiet'] = !$tactical;
+            $move['see'] = $see;
             $move['tacticalGain'] = ($victim !== null ? self::PIECE_VALUES[$victim] : 0)
                 + ($promotion !== null ? max(0, (self::PIECE_VALUES[$promotion] ?? 0) - self::PIECE_VALUES['p']) : 0);
             $ordered[] = $move;
@@ -744,6 +881,180 @@ final class ChessBot
         );
 
         return $ordered;
+    }
+
+    /**
+     * Static exchange evaluation: the centipawn material outcome, from the mover's point
+     * of view, of playing the capture/promotion $from-$to and then letting both sides
+     * recapture on $to with their least valuable attacker, each side free to stop when
+     * continuing would lose material. Uses PIECE_VALUES; an en-passant victim is a pawn,
+     * a promotion gains the promoted piece's value minus a pawn (also for pawn recaptures
+     * onto the last rank, which promote to a queen), and a king recaptures only as a last
+     * resort and never onto a square the opponent still attacks. Sliding attackers revealed
+     * behind a piece that has captured (x-rays) join the exchange. Pins and checks against
+     * the recapturing side are ignored, as is usual for SEE.
+     */
+    private function staticExchange(Board $board, string $from, string $to, ?string $promotion): int
+    {
+        $occupied = $board->pieces();
+        $mover = $occupied[$from];
+        $moverLetter = $mover->fenLetter();
+        $side = $mover->color();
+        [$toFile, $toRank] = Board::squareToCoords($to);
+
+        $victimValue = 0;
+        if (isset($occupied[$to])) {
+            $victimValue = self::PIECE_VALUES[$occupied[$to]->fenLetter()];
+            unset($occupied[$to]);
+        } elseif ($moverLetter === 'p' && $from[0] !== $to[0]) {
+            // En passant: the captured pawn sits beside the mover, on the mover's rank.
+            $victimValue = self::PIECE_VALUES['p'];
+            unset($occupied[$to[0] . $from[1]]);
+        }
+        unset($occupied[$from]);
+
+        $gains = [$victimValue];
+        $onSquare = self::PIECE_VALUES[$moverLetter];
+        if ($promotion !== null) {
+            $promotedValue = self::PIECE_VALUES[strtolower($promotion)] ?? 0;
+            $gains[0] += $promotedValue - self::PIECE_VALUES['p'];
+            $onSquare = $promotedValue;
+        }
+
+        $side = Board::otherColor($side);
+        $promotionRank = [Board::WHITE => 7, Board::BLACK => 0];
+        while (true) {
+            $attacker = self::leastValuableAttacker($occupied, $toFile, $toRank, $side);
+            if ($attacker === null) {
+                break;
+            }
+            [$attackerSquare, $attackerLetter] = $attacker;
+            unset($occupied[$attackerSquare]);
+            if (
+                $attackerLetter === 'k'
+                && self::leastValuableAttacker($occupied, $toFile, $toRank, Board::otherColor($side)) !== null
+            ) {
+                break;
+            }
+
+            $captured = $onSquare;
+            $onSquare = self::PIECE_VALUES[$attackerLetter];
+            if ($attackerLetter === 'p' && $toRank === $promotionRank[$side]) {
+                $captured += self::PIECE_VALUES['q'] - self::PIECE_VALUES['p'];
+                $onSquare = self::PIECE_VALUES['q'];
+            }
+            $gains[] = $captured - $gains[count($gains) - 1];
+            $side = Board::otherColor($side);
+        }
+
+        // Each recapture is optional: the side to recapture keeps the better of stopping
+        // (the negated previous gain) and capturing (its own resolved gain).
+        for ($index = count($gains) - 1; $index > 0; $index--) {
+            $gains[$index - 1] = -max(-$gains[$index - 1], $gains[$index]);
+        }
+
+        return $gains[0];
+    }
+
+    /**
+     * The least valuable $color piece attacking the square at ($file, $rank) on the given
+     * occupancy (pawn, knight, bishop, rook, queen, then king), scanning in a fixed order.
+     *
+     * @param array<string, Piece> $occupied
+     * @return array{0: string, 1: string}|null Attacker square and lowercase piece letter.
+     */
+    private static function leastValuableAttacker(array $occupied, int $file, int $rank, string $color): ?array
+    {
+        $pawnRank = $rank + ($color === Board::WHITE ? -1 : 1);
+        if ($pawnRank >= 0 && $pawnRank < 8) {
+            foreach ([-1, 1] as $fileDelta) {
+                $pawnFile = $file + $fileDelta;
+                if ($pawnFile < 0 || $pawnFile > 7) {
+                    continue;
+                }
+                $square = chr(97 + $pawnFile) . ($pawnRank + 1);
+                $piece = $occupied[$square] ?? null;
+                if ($piece !== null && $piece->color() === $color && $piece->fenLetter() === 'p') {
+                    return [$square, 'p'];
+                }
+            }
+        }
+
+        foreach ([[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]] as [$fileDelta, $rankDelta]) {
+            $targetFile = $file + $fileDelta;
+            $targetRank = $rank + $rankDelta;
+            if ($targetFile < 0 || $targetFile > 7 || $targetRank < 0 || $targetRank > 7) {
+                continue;
+            }
+            $square = chr(97 + $targetFile) . ($targetRank + 1);
+            $piece = $occupied[$square] ?? null;
+            if ($piece !== null && $piece->color() === $color && $piece->fenLetter() === 'n') {
+                return [$square, 'n'];
+            }
+        }
+
+        $best = null;
+        $bestRank = PHP_INT_MAX;
+        $rays = [
+            [1, 1, 'b'], [1, -1, 'b'], [-1, 1, 'b'], [-1, -1, 'b'],
+            [1, 0, 'r'], [-1, 0, 'r'], [0, 1, 'r'], [0, -1, 'r'],
+        ];
+        foreach ($rays as [$fileDelta, $rankDelta, $slider]) {
+            $targetFile = $file + $fileDelta;
+            $targetRank = $rank + $rankDelta;
+            while ($targetFile >= 0 && $targetFile < 8 && $targetRank >= 0 && $targetRank < 8) {
+                $square = chr(97 + $targetFile) . ($targetRank + 1);
+                $piece = $occupied[$square] ?? null;
+                if ($piece === null) {
+                    $targetFile += $fileDelta;
+                    $targetRank += $rankDelta;
+                    continue;
+                }
+
+                $letter = $piece->fenLetter();
+                if (
+                    $piece->color() === $color
+                    && ($letter === $slider || $letter === 'q')
+                    && self::ATTACKER_RANK[$letter] < $bestRank
+                ) {
+                    $best = [$square, $letter];
+                    $bestRank = self::ATTACKER_RANK[$letter];
+                }
+                break;
+            }
+        }
+        if ($best !== null) {
+            return $best;
+        }
+
+        foreach ([[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]] as [$fileDelta, $rankDelta]) {
+            $targetFile = $file + $fileDelta;
+            $targetRank = $rank + $rankDelta;
+            if ($targetFile < 0 || $targetFile > 7 || $targetRank < 0 || $targetRank > 7) {
+                continue;
+            }
+            $square = chr(97 + $targetFile) . ($targetRank + 1);
+            $piece = $occupied[$square] ?? null;
+            if ($piece !== null && $piece->color() === $color && $piece->fenLetter() === 'k') {
+                return [$square, 'k'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Plies to reduce a late move by: the depth/move-index table, one ply less in PV nodes,
+     * and bounded so the reduced child keeps at least one ply before quiescence.
+     */
+    private function lateMoveReduction(int $depth, int $moveIndex, bool $isPv): int
+    {
+        $reduction = self::$lateMoveReductions[min($depth, self::LMR_TABLE_SIZE - 1)][min($moveIndex, self::LMR_TABLE_SIZE - 1)];
+        if ($isPv) {
+            $reduction--;
+        }
+
+        return max(0, min($reduction, $depth - 2));
     }
 
     /** @param array<string, mixed> $move */
@@ -805,6 +1116,37 @@ final class ChessBot
         }
 
         return $this->aborted;
+    }
+
+    /**
+     * Occurrence counts of the prior game positions that the root can still repeat: only the
+     * last halfmoveClock() positions, since a capture or pawn move makes earlier ones unreachable.
+     *
+     * @param array<int|string, mixed> $priorFens
+     * @return array<string, int>
+     */
+    private function buildGameHistory(Board $root, array $priorFens): array
+    {
+        $reachable = $root->halfmoveClock();
+        if ($reachable <= 0 || $priorFens === []) {
+            return [];
+        }
+
+        $history = [];
+        foreach (array_slice(array_values($priorFens), -$reachable) as $priorFen) {
+            if (!is_string($priorFen)) {
+                continue;
+            }
+            try {
+                [$key, $lock] = $this->positionIdentity(Board::fromFen($priorFen));
+            } catch (\Throwable) {
+                continue;
+            }
+            $pathKey = $key . ':' . $lock;
+            $history[$pathKey] = ($history[$pathKey] ?? 0) + 1;
+        }
+
+        return $history;
     }
 
     /**
@@ -874,6 +1216,25 @@ final class ChessBot
         }
 
         return $nullBoard;
+    }
+
+    private static function initialiseLateMoveReductions(): void
+    {
+        if (self::$lateMoveReductions !== []) {
+            return;
+        }
+
+        $reductions = [];
+        for ($depth = 0; $depth < self::LMR_TABLE_SIZE; $depth++) {
+            for ($index = 0; $index < self::LMR_TABLE_SIZE; $index++) {
+                $reduction = 0;
+                if ($depth > 0 && $index > 0) {
+                    $reduction = (int) floor(self::LMR_BASE + log($depth) * log($index) / self::LMR_DIVISOR);
+                }
+                $reductions[$depth][$index] = max(0, min(self::LMR_MAX_REDUCTION, $reduction));
+            }
+        }
+        self::$lateMoveReductions = $reductions;
     }
 
     private static function initialiseZobrist(): void
