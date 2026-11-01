@@ -28,17 +28,12 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
         <?php include dirname(__DIR__) . '/partials/header.php'; ?>
 
         <main class="risk-page" data-risk-game>
-            <section class="risk-hero" aria-labelledby="risk-title">
+            <header class="risk-title-bar">
                 <p class="eyebrow">Risk table</p>
                 <h1 id="risk-title">Risk: world domination</h1>
-                <p class="lede">The classic 42-territory world board, played solo against one to five bots that plan their turns with a game-tree search. Deploy, trade cards, roll real Risk dice, and be the last seat standing.</p>
-            </section>
+            </header>
 
             <section class="risk-layout" aria-label="Playable Risk game">
-                <nav class="risk-table-nav" aria-label="Risk table navigation">
-                    <a href="#risk-board-title">Board</a>
-                    <a href="#risk-objective-title">Current decision</a>
-                </nav>
 
                 <section class="risk-panel risk-board-panel" aria-labelledby="risk-board-title">
                     <div class="risk-panel-heading">
@@ -62,8 +57,11 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                         <button id="risk-zoom-fit" class="risk-button" type="button">Fit</button>
                         <button id="risk-zoom-in" class="risk-button" type="button" aria-label="Zoom map in">+</button>
                     </div>
-                    <p id="risk-map-hint" class="risk-map-hint" hidden><span aria-hidden="true">&#8644;</span> The map is wider than the screen: scroll it sideways to see every territory.</p>
-                    <div id="risk-map" class="risk-map"><?= $riskMapSvg ?></div>
+                    <p id="risk-map-hint" class="risk-map-hint" hidden><span aria-hidden="true">&#8644;</span> The map is wider than the screen: drag or scroll it sideways to see every territory.</p>
+                    <div class="risk-map-frame">
+                        <div id="risk-map" class="risk-map"><?= $riskMapSvg ?></div>
+                        <div id="risk-map-tooltip" class="risk-map-tooltip" role="tooltip" hidden></div>
+                    </div>
                     <p id="risk-status-message" class="risk-status-message">Start a new game to deal the world.</p>
                     <section id="risk-result-banner" class="risk-result-banner" hidden role="dialog" aria-labelledby="risk-result-title">
                         <h3 id="risk-result-title" tabindex="-1">Game over</h3>
@@ -75,213 +73,285 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     </section>
                     <p class="risk-map-legend">
                         <span id="risk-legend-owners" class="risk-legend-owners"></span>
-                        <span><strong>FROM</strong> / <strong>TO</strong> mark source and target</span>
-                        <span>Blue ring: territory you can act from</span>
-                        <span>Dashed ring: legal destination</span>
-                        <span>Dashed gold line: sea route</span>
+                        <span class="risk-legend-item"><span class="risk-legend-swatch risk-legend-swatch-act" aria-hidden="true"></span><span class="risk-visually-hidden">Blue ring:</span> Can act</span>
+                        <span class="risk-legend-item"><span class="risk-legend-swatch risk-legend-swatch-legal" aria-hidden="true"></span><span class="risk-visually-hidden">Dashed ring:</span> Legal target</span>
+                        <span class="risk-legend-item"><strong class="risk-legend-badge">FROM</strong><strong class="risk-legend-badge is-target">TO</strong> Selected</span>
+                        <span class="risk-legend-item"><span class="risk-legend-swatch risk-legend-swatch-route" aria-hidden="true"></span><span class="risk-visually-hidden">Dashed gold line:</span> Sea route</span>
                     </p>
                     <p id="risk-announcer" class="risk-visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
                 </section>
 
-                <aside id="risk-command-panel" class="risk-panel risk-command-panel" aria-labelledby="risk-command-title" data-phase="setup">
+                <aside id="risk-command-panel" class="risk-panel risk-command-panel risk-turn-dock" aria-labelledby="risk-dock-title" data-phase="setup">
+                    <h2 id="risk-dock-title" class="risk-visually-hidden">Turn dock</h2>
                     <section class="risk-turn-console" aria-label="Current turn">
-                        <div class="risk-current-decision">
-                            <section class="risk-objective" aria-labelledby="risk-objective-title">
-                                <p id="risk-objective-label" class="risk-objective-label">Current decision</p>
-                                <div class="risk-decision-layout">
-                                    <div class="risk-decision-copy">
-                                        <h3 id="risk-objective-title" tabindex="-1">Ready to play</h3>
-                                        <p id="risk-objective-text" class="risk-objective-text">Choose your Game setup, then press New game to deal the world.</p>
-                                        <p id="risk-objective-blocker" class="risk-objective-blocker" role="status" aria-live="polite" aria-atomic="true" hidden></p>
-                                    </div>
-                                    <div class="risk-primary-actions">
-                                        <p class="risk-next-action-label">Next action</p>
-                                        <button class="risk-button risk-button-primary" type="button" id="risk-end-button" disabled>End phase</button>
+                        <section class="risk-objective" aria-labelledby="risk-objective-title">
+                            <p id="risk-objective-label" class="risk-objective-label">Current decision</p>
+                            <h3 id="risk-objective-title" tabindex="-1">Ready to play</h3>
+                            <p id="risk-objective-text" class="risk-objective-text">Choose your Game setup, then press New game to deal the world.</p>
+                            <p id="risk-turn-guidance" class="risk-turn-guidance" aria-live="polite">Choose your game setup and start a new game.</p>
+                            <p id="risk-objective-blocker" class="risk-objective-blocker" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+                            <p id="risk-feedback" class="risk-feedback"></p>
+                        </section>
+
+                        <ol id="risk-phase-stepper" class="risk-phase-stepper" aria-label="Turn phases">
+                            <li class="risk-phase-step is-active" data-phase="setup" aria-current="step">Setup</li>
+                            <li class="risk-phase-step" data-phase="reinforce">Reinforce</li>
+                            <li class="risk-phase-step" data-phase="attack">Attack</li>
+                            <li class="risk-phase-step" data-phase="fortify">Fortify</li>
+                        </ol>
+
+                        <div id="risk-action-row" class="risk-action-row" role="group" aria-label="Current phase actions">
+                            <div class="risk-primary-actions">
+                                <p class="risk-next-action-label">Next action</p>
+                                <button class="risk-button risk-button-skip" type="button" id="risk-skip-button" aria-pressed="false" hidden disabled>Skip to my turn</button>
+                                <button class="risk-button risk-button-primary" type="button" id="risk-end-button" disabled>End phase</button>
+                                <div id="risk-confirm-strip" class="risk-confirm-strip" role="group" aria-labelledby="risk-confirm-message" hidden>
+                                    <p id="risk-confirm-message" class="risk-confirm-message">Confirm this action?</p>
+                                    <div class="risk-confirm-actions">
+                                        <button class="risk-button risk-button-primary" type="button" id="risk-confirm-yes">Confirm</button>
+                                        <button class="risk-button" type="button" id="risk-confirm-cancel">Cancel</button>
                                     </div>
                                 </div>
-                                <p id="risk-turn-guidance" class="risk-turn-guidance" aria-live="polite">Choose your game setup and start a new game.</p>
-                                <p id="risk-feedback" class="risk-feedback"></p>
-                            </section>
+                            </div>
 
-                            <ol id="risk-phase-stepper" class="risk-phase-stepper" aria-label="Turn phases">
-                                <li class="risk-phase-step is-active" data-phase="setup" aria-current="step">Setup</li>
-                                <li class="risk-phase-step" data-phase="reinforce">Reinforce</li>
-                                <li class="risk-phase-step" data-phase="attack">Attack</li>
-                                <li class="risk-phase-step" data-phase="fortify">Fortify</li>
-                            </ol>
+                            <div id="risk-action-stage" class="risk-action-stage risk-phase-controls">
+                                <div class="risk-phase-group risk-cards-panel" role="group" aria-labelledby="risk-cards-title" data-risk-phase-panel="reinforce,setup" hidden>
+                                    <h3 id="risk-cards-title" class="risk-visually-hidden">Setup placement</h3>
+                                    <fieldset id="risk-place-amount-options" class="risk-dice-choice risk-compact-choice" hidden>
+                                        <legend>Armies per click</legend>
+                                        <label><input type="radio" name="risk-place-amount" value="1" checked> 1</label>
+                                        <label><input type="radio" name="risk-place-amount" value="3"> 3</label>
+                                        <label><input type="radio" name="risk-place-amount" value="5"> 5</label>
+                                        <label><input type="radio" name="risk-place-amount" value="all"> All</label>
+                                    </fieldset>
+                                    <p id="risk-setup-placement-note" class="risk-setting-note">Setup places exactly one army per territory click.</p>
+                                    <div class="risk-action-buttons">
+                                        <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
+                                        <button class="risk-button risk-button-undo" type="button" id="risk-undo-button" disabled>Undo placement</button>
+                                        <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
+                                    </div>
+                                    <div class="risk-cards-strip">
+                                        <p id="risk-trade-value" class="risk-trade-value">Next set: 4 armies</p>
+                                        <ul id="risk-hand" class="risk-hand" aria-label="Your territory cards"></ul>
+                                        <p id="risk-hand-help" class="risk-hand-help">Select three cards to trade during reinforcement.</p>
+                                        <button class="risk-button" type="button" id="risk-trade-button" disabled>Trade selected set</button>
+                                    </div>
+                                </div>
+
+                                <div class="risk-phase-group risk-attack-controls" role="group" aria-labelledby="risk-attack-title" data-risk-phase-panel="attack,conquer" hidden>
+                                    <h3 id="risk-attack-title" class="risk-visually-hidden">Battle</h3>
+                                    <fieldset id="risk-attack-dice-options" class="risk-dice-choice risk-compact-choice">
+                                        <legend>Attack dice</legend>
+                                        <label><input type="radio" name="risk-attack-dice" value="1"> 1</label>
+                                        <label><input type="radio" name="risk-attack-dice" value="2"> 2</label>
+                                        <label><input type="radio" name="risk-attack-dice" value="3" checked> 3</label>
+                                    </fieldset>
+                                    <div class="risk-action-buttons">
+                                        <button class="risk-button risk-button-attack" type="button" id="risk-attack-button" disabled>Roll attack</button>
+                                        <button class="risk-button risk-button-attack" type="button" id="risk-blitz-button" disabled>Blitz (roll until decided)</button>
+                                    </div>
+
+                                    <section id="risk-conquest-panel" class="risk-decision-field risk-subpanel-alert" aria-labelledby="risk-conquest-title" hidden>
+                                        <h4 id="risk-conquest-title" class="risk-visually-hidden">Territory conquered</h4>
+                                        <p id="risk-conquest-help">Choose how many armies move in.</p>
+                                        <div id="risk-conquest-mover" class="risk-army-mover" role="group" aria-labelledby="risk-conquest-count-label">
+                                            <div class="risk-inline-field risk-army-mover-row">
+                                                <label id="risk-conquest-count-label" for="risk-conquest-count">Armies to move</label>
+                                                <input id="risk-conquest-range" class="risk-army-range" type="range" min="1" max="1" step="1" value="1" aria-label="Armies to move in, slider" aria-describedby="risk-conquest-preview">
+                                                <input id="risk-conquest-count" type="number" inputmode="numeric" min="1" max="1" step="1" value="1" aria-describedby="risk-conquest-help risk-conquest-preview">
+                                            </div>
+                                            <div class="risk-army-quick" role="group" aria-label="Quick amounts to move in">
+                                                <button class="risk-button risk-button-quick" type="button" id="risk-conquest-min" data-army-quick="min">Min</button>
+                                                <button class="risk-button risk-button-quick" type="button" id="risk-conquest-half" data-army-quick="half">Half</button>
+                                                <button class="risk-button risk-button-quick" type="button" id="risk-conquest-all" data-army-quick="all">All</button>
+                                            </div>
+                                            <p id="risk-conquest-preview" class="risk-army-preview">Choose how many armies move in.</p>
+                                            <button class="risk-button risk-button-primary" type="button" id="risk-conquest-button">Move armies</button>
+                                        </div>
+                                    </section>
+
+                                    <section id="risk-defense-panel" class="risk-decision-field risk-subpanel-alert" aria-labelledby="risk-defense-title" aria-describedby="risk-defense-help" hidden>
+                                        <h4 id="risk-defense-title" class="risk-visually-hidden">You are under attack</h4>
+                                        <p id="risk-defense-help">Choose your defense dice.</p>
+                                        <div class="risk-inline-field">
+                                            <button class="risk-button" type="button" id="risk-defend-one-button">Defend with 1 die</button>
+                                            <button class="risk-button risk-button-primary" type="button" id="risk-defend-two-button">Defend with 2 dice</button>
+                                        </div>
+                                    </section>
+                                </div>
+
+                                <div class="risk-phase-group risk-fortify-controls" role="group" aria-labelledby="risk-fortify-title" data-risk-phase-panel="fortify" hidden>
+                                    <h3 id="risk-fortify-title" class="risk-visually-hidden">Fortify</h3>
+                                    <div id="risk-fortify-mover" class="risk-army-mover" role="group" aria-labelledby="risk-fortify-count-label">
+                                        <div class="risk-inline-field risk-army-mover-row">
+                                            <label id="risk-fortify-count-label" for="risk-fortify-count">Armies to move</label>
+                                            <input id="risk-fortify-range" class="risk-army-range" type="range" min="1" max="1" step="1" value="1" aria-label="Armies to fortify with, slider" aria-describedby="risk-fortify-preview" disabled>
+                                            <input id="risk-fortify-count" type="number" inputmode="numeric" min="1" max="1" step="1" value="1" aria-describedby="risk-fortify-preview" disabled>
+                                        </div>
+                                        <div class="risk-army-quick" role="group" aria-label="Quick amounts to fortify with">
+                                            <button class="risk-button risk-button-quick" type="button" id="risk-fortify-min" data-army-quick="min" disabled>Min</button>
+                                            <button class="risk-button risk-button-quick" type="button" id="risk-fortify-half" data-army-quick="half" disabled>Half</button>
+                                            <button class="risk-button risk-button-quick" type="button" id="risk-fortify-all" data-army-quick="all" disabled>All</button>
+                                        </div>
+                                        <p id="risk-fortify-preview" class="risk-army-preview">Choose a source and a connected destination to preview the move.</p>
+                                        <button class="risk-button" type="button" id="risk-fortify-button" disabled>Fortify</button>
+                                    </div>
+                                </div>
+
+                                <p class="risk-phase-idle">Phase controls appear here when it is your move.</p>
+                            </div>
                         </div>
 
-                        <section class="risk-phase-controls" aria-label="Current phase controls">
-                            <section class="risk-subpanel risk-cards-panel" aria-labelledby="risk-cards-title" data-risk-phase-panel="reinforce,setup">
-                        <h3 id="risk-cards-title">Setup placement</h3>
-                        <fieldset id="risk-place-amount-options" class="risk-dice-choice" hidden>
-                            <legend>Armies per click</legend>
-                            <label><input type="radio" name="risk-place-amount" value="1" checked> 1</label>
-                            <label><input type="radio" name="risk-place-amount" value="3"> 3</label>
-                            <label><input type="radio" name="risk-place-amount" value="5"> 5</label>
-                            <label><input type="radio" name="risk-place-amount" value="all"> All</label>
-                        </fieldset>
-                        <p id="risk-setup-placement-note" class="risk-setting-note">Setup places exactly one army per territory click.</p>
-                        <button class="risk-button" type="button" id="risk-reinforce-button" disabled>Place all here</button>
-                        <button class="risk-button" type="button" id="risk-auto-setup-button" disabled>Auto-place setup</button>
-                        <p id="risk-trade-value" class="risk-trade-value">Next set: 4 armies</p>
-                        <ul id="risk-hand" class="risk-hand" aria-label="Your territory cards"></ul>
-                        <p id="risk-hand-help" class="risk-hand-help">Select three cards to trade during reinforcement.</p>
-                        <button class="risk-button" type="button" id="risk-trade-button" disabled>Trade selected set</button>
-                    </section>
-
-                    <section class="risk-subpanel risk-attack-controls" aria-labelledby="risk-attack-title" data-risk-phase-panel="attack,conquer">
-                        <h3 id="risk-attack-title">Battle</h3>
-                        <fieldset id="risk-attack-dice-options" class="risk-dice-choice">
-                            <legend>Attack dice</legend>
-                            <label><input type="radio" name="risk-attack-dice" value="1"> 1</label>
-                            <label><input type="radio" name="risk-attack-dice" value="2"> 2</label>
-                            <label><input type="radio" name="risk-attack-dice" value="3" checked> 3</label>
-                        </fieldset>
-                        <button class="risk-button risk-button-attack" type="button" id="risk-attack-button" disabled>Roll attack</button>
-                        <button class="risk-button risk-button-attack" type="button" id="risk-blitz-button" disabled>Blitz (roll until decided)</button>
-
-                        <section id="risk-conquest-panel" class="risk-subpanel risk-subpanel-alert" aria-labelledby="risk-conquest-title" hidden>
-                            <h3 id="risk-conquest-title">Territory conquered</h3>
-                            <p id="risk-conquest-help">Choose how many armies move in.</p>
-                            <div class="risk-inline-field">
-                                <label for="risk-conquest-count">Armies to move</label>
-                                <input id="risk-conquest-count" type="number" inputmode="numeric" min="1" max="1" step="1" value="1" aria-describedby="risk-conquest-help">
-                                <button class="risk-button risk-button-primary" type="button" id="risk-conquest-button">Move armies</button>
-                            </div>
-                        </section>
-
-                        <section id="risk-defense-panel" class="risk-subpanel risk-subpanel-alert" aria-labelledby="risk-defense-title" aria-describedby="risk-defense-help" hidden>
-                            <h3 id="risk-defense-title">You are under attack</h3>
-                            <p id="risk-defense-help">Choose your defense dice.</p>
-                            <div class="risk-inline-field">
-                                <button class="risk-button" type="button" id="risk-defend-one-button">Defend with 1 die</button>
-                                <button class="risk-button risk-button-primary" type="button" id="risk-defend-two-button">Defend with 2 dice</button>
-                            </div>
-                        </section>
-                        <label class="risk-check"><input type="checkbox" id="risk-auto-defend"> Always defend with maximum dice</label>
-
-                        <section id="risk-dice-tray" class="risk-dice-tray" aria-labelledby="risk-dice-title">
-                            <h3 id="risk-dice-title">Dice tray</h3>
-                            <div class="risk-dice-side risk-dice-side-attack">
-                                <span id="risk-dice-attack-label" class="risk-dice-label">Attacker</span>
-                                <div id="risk-dice-attack" class="risk-dice-row"></div>
-                            </div>
-                            <div class="risk-dice-side risk-dice-side-defend">
-                                <span id="risk-dice-defend-label" class="risk-dice-label">Defender</span>
-                                <div id="risk-dice-defend" class="risk-dice-row"></div>
-                            </div>
-                            <ol id="risk-dice-comparisons" class="risk-dice-comparisons"></ol>
-                            <p id="risk-dice-result" class="risk-dice-result">No battle yet.</p>
-                        </section>
-                    </section>
-
-                            <section class="risk-subpanel" aria-labelledby="risk-fortify-title" data-risk-phase-panel="fortify">
-                                <h3 id="risk-fortify-title">Fortify</h3>
-                                <div class="risk-inline-field">
-                                    <label for="risk-fortify-count">Armies to move</label>
-                                    <input id="risk-fortify-count" type="number" inputmode="numeric" min="1" max="1" step="1" value="1" disabled>
-                                    <button class="risk-button" type="button" id="risk-fortify-button" disabled>Fortify</button>
+                        <section id="risk-battle-panel" class="risk-battle-panel" aria-label="Battle dice" hidden>
+                            <section id="risk-dice-tray" class="risk-dice-tray" aria-labelledby="risk-dice-title">
+                                <h3 id="risk-dice-title">Dice tray</h3>
+                                <div class="risk-dice-side risk-dice-side-attack">
+                                    <span id="risk-dice-attack-label" class="risk-dice-label">Attacker</span>
+                                    <div id="risk-dice-attack" class="risk-dice-row"></div>
                                 </div>
+                                <div class="risk-dice-side risk-dice-side-defend">
+                                    <span id="risk-dice-defend-label" class="risk-dice-label">Defender</span>
+                                    <div id="risk-dice-defend" class="risk-dice-row"></div>
+                                </div>
+                                <ol id="risk-dice-comparisons" class="risk-dice-comparisons"></ol>
+                                <p id="risk-dice-result" class="risk-dice-result">No battle yet.</p>
                             </section>
+                            <label class="risk-check"><input type="checkbox" id="risk-auto-defend"> Always defend with maximum dice</label>
                         </section>
-                    </section>
-
-                    <section class="risk-subpanel risk-game-tools" aria-labelledby="risk-command-title">
-                        <p class="eyebrow">Table controls</p>
-                        <h2 id="risk-command-title">Game setup &amp; lobby</h2>
-                        <div class="risk-actions" aria-label="Risk game controls">
-                            <label class="risk-opponent-field" for="risk-opponent-count">
-                                <span>Opponents</span>
-                                <select id="risk-opponent-count" class="risk-opponent-select" aria-describedby="risk-start-note">
-                                    <option value="1" selected>1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                </select>
-                            </label>
-                            <label class="risk-opponent-field" for="risk-speed">
-                                <span>Speed</span>
-                                <select id="risk-speed" class="risk-opponent-select">
-                                    <option value="normal">Normal</option>
-                                    <option value="fast">Fast</option>
-                                    <option value="instant">Instant</option>
-                                </select>
-                            </label>
-                            <button class="risk-button risk-button-primary" type="button" id="risk-start-button" aria-describedby="risk-start-note">New game</button>
-                            <button class="risk-button risk-button-invite" type="button" id="risk-invite-button" aria-describedby="risk-invite-note">Invite players</button>
-                            <p id="risk-start-note" class="risk-start-note">New game deals the world with the selected setup.</p>
-                            <p id="risk-invite-note" class="risk-start-note">Invite players replaces the game on the table with an online lobby, one seat per opponent. Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press Start game, open seats become bots.</p>
-                        </div>
-
-                        <details id="risk-setup-panel" class="risk-subpanel risk-setup-settings" open>
-                            <summary class="risk-setup-toggle">
-                                <span id="risk-setup-title" class="risk-setup-heading">Game setup</span>
-                                <span id="risk-setup-summary" class="risk-setup-summary">1 bot · Random placement · Incremental cards</span>
-                            </summary>
-                            <div class="risk-setup-body">
-                                <fieldset id="risk-placement-options" class="risk-dice-choice risk-setting-choice">
-                                    <legend>Placement</legend>
-                                    <label><input type="radio" name="risk-placement" value="random" checked> Random</label>
-                                    <label><input type="radio" name="risk-placement" value="manual"> Manual</label>
-                                </fieldset>
-                                <fieldset id="risk-card-mode-options" class="risk-dice-choice risk-setting-choice">
-                                    <legend>Cards</legend>
-                                    <label><input type="radio" name="risk-card-mode" value="incremental" checked> Incremental</label>
-                                    <label><input type="radio" name="risk-card-mode" value="fixed"> Fixed</label>
-                                </fieldset>
-                                <p id="risk-setup-note" class="risk-setting-note">These settings are used when you press New game. Changes made during a game apply to the next game.</p>
-                            </div>
-                        </details>
-
-                        <section id="risk-lobby-panel" class="risk-subpanel risk-lobby" aria-labelledby="risk-lobby-title" hidden>
-                            <h3 id="risk-lobby-title">Online lobby</h3>
-                            <p id="risk-lobby-status" class="risk-lobby-status" role="status" aria-live="polite" aria-atomic="true"></p>
-                            <div id="risk-lobby-invite" class="risk-lobby-invite" hidden>
-                                <label for="risk-invite-url">Invite link</label>
-                                <div class="risk-lobby-link">
-                                    <input id="risk-invite-url" class="risk-lobby-url" type="text" readonly spellcheck="false" autocomplete="off" aria-describedby="risk-lobby-note">
-                                    <button class="risk-button" type="button" id="risk-invite-copy-button">Copy link</button>
-                                </div>
-                            </div>
-                            <button class="risk-button" type="button" id="risk-invite-retry-button" hidden>Try again</button>
-                            <ol id="risk-lobby-roster" class="risk-lobby-roster" aria-label="Seats in this online game"></ol>
-                            <p id="risk-lobby-note" class="risk-lobby-note">Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press Start game, open seats become bots.</p>
-                            <div class="risk-lobby-actions">
-                                <button class="risk-button risk-button-primary" type="button" id="risk-lobby-start-button" hidden>Start game</button>
-                                <button class="risk-button" type="button" id="risk-lobby-leave-button">Leave lobby</button>
-                            </div>
-                        </section>
-                    </section>
-
-                    <section class="risk-secondary-details" aria-label="Board details">
-                        <details class="risk-territory-card risk-detail-disclosure">
-                            <summary>
-                                <span id="risk-selection-title" class="risk-detail-title">Selection details</span>
-                                <span class="risk-detail-summary">Owner, armies and neighbours</span>
-                            </summary>
-                            <figure id="risk-selection-figure" class="risk-selection-figure">
-                                <img id="risk-selection-art" src="/assets/img/risk-selection-art.png" alt="" aria-hidden="true" decoding="async" loading="lazy">
-                                <svg id="risk-selection-shape" class="risk-selection-shape" viewBox="0 0 40 40" aria-hidden="true" focusable="false"></svg>
-                                <figcaption id="risk-selection-caption">Select a territory</figcaption>
-                            </figure>
-                            <div id="risk-territory-card">No territory selected.</div>
-                        </details>
-
-                        <details class="risk-log-panel risk-detail-disclosure">
-                            <summary>
-                                <span id="risk-log-title" class="risk-detail-title">Battle history</span>
-                                <span class="risk-detail-summary">Recent rolls and losses</span>
-                            </summary>
-                            <ol id="risk-log" class="risk-log"></ol>
-                        </details>
                     </section>
                 </aside>
+
+                <section id="risk-board-details" class="risk-panel risk-board-details" aria-labelledby="risk-board-details-title">
+                    <h2 id="risk-board-details-title" class="risk-visually-hidden">Board details</h2>
+                    <div id="risk-details-tabs" class="risk-tablist" role="tablist" aria-label="Board details">
+                        <button id="risk-tab-selection" class="risk-tab" type="button" role="tab" aria-selected="true" aria-controls="risk-tabpanel-selection" tabindex="0">
+                            <span id="risk-selection-title" class="risk-detail-title">Selection</span>
+                            <span class="risk-detail-summary">Owner, armies and neighbours</span>
+                        </button>
+                        <button id="risk-tab-log" class="risk-tab" type="button" role="tab" aria-selected="false" aria-controls="risk-tabpanel-log" tabindex="-1">
+                            <span id="risk-log-title" class="risk-detail-title">Battle history</span>
+                            <span class="risk-detail-summary">Recent rolls and losses</span>
+                        </button>
+                    </div>
+                    <div id="risk-tabpanel-selection" class="risk-tabpanel risk-territory-card" role="tabpanel" aria-labelledby="risk-tab-selection" tabindex="0">
+                        <figure id="risk-selection-figure" class="risk-selection-figure">
+                            <img id="risk-selection-art" src="/assets/img/risk-selection-art.png" alt="" aria-hidden="true" decoding="async" loading="lazy">
+                            <svg id="risk-selection-shape" class="risk-selection-shape" viewBox="0 0 40 40" aria-hidden="true" focusable="false"></svg>
+                            <figcaption id="risk-selection-caption">Select a territory</figcaption>
+                        </figure>
+                        <div id="risk-territory-card">No territory selected.</div>
+                    </div>
+                    <div id="risk-tabpanel-log" class="risk-tabpanel risk-log-panel" role="tabpanel" aria-labelledby="risk-tab-log" tabindex="0" hidden>
+                        <ol id="risk-log" class="risk-log"></ol>
+                    </div>
+                </section>
+
+                <section id="risk-game-tools" class="risk-panel risk-game-tools" aria-labelledby="risk-command-title">
+                    <details id="risk-table-panel" class="risk-table-disclosure" open>
+                        <summary class="risk-table-toggle">
+                            <span class="risk-table-toggle-copy">
+                                <span class="risk-table-eyebrow">Table controls</span>
+                                <h2 id="risk-command-title" class="risk-table-heading">Game setup &amp; lobby</h2>
+                            </span>
+                            <span class="risk-detail-summary">New game, opponents, speed and invites</span>
+                        </summary>
+                        <div class="risk-table-body">
+                            <div class="risk-actions" aria-label="Risk game controls">
+                                <label class="risk-opponent-field" for="risk-opponent-count">
+                                    <span>Opponents</span>
+                                    <select id="risk-opponent-count" class="risk-opponent-select" aria-describedby="risk-start-note">
+                                        <option value="1" selected>1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                    </select>
+                                </label>
+                                <label class="risk-opponent-field" for="risk-speed">
+                                    <span>Speed</span>
+                                    <select id="risk-speed" class="risk-opponent-select">
+                                        <option value="normal">Normal</option>
+                                        <option value="fast">Fast</option>
+                                        <option value="instant">Instant</option>
+                                    </select>
+                                </label>
+                                <button class="risk-button risk-button-primary" type="button" id="risk-start-button" aria-describedby="risk-start-note">New game</button>
+                                <button class="risk-button risk-button-invite" type="button" id="risk-invite-button" aria-describedby="risk-invite-note">Invite players</button>
+                                <div id="risk-restart-confirm" class="risk-confirm-strip risk-restart-confirm" role="group" aria-labelledby="risk-restart-confirm-message" hidden>
+                                    <p id="risk-restart-confirm-message" class="risk-confirm-message">Restart abandons this game. Deal a new one?</p>
+                                    <div class="risk-confirm-actions">
+                                        <button class="risk-button risk-button-primary" type="button" id="risk-restart-confirm-yes">Confirm</button>
+                                        <button class="risk-button" type="button" id="risk-restart-confirm-cancel">Cancel</button>
+                                    </div>
+                                </div>
+                                <p id="risk-start-note" class="risk-start-note">New game deals the world with the selected setup.</p>
+                                <p id="risk-invite-note" class="risk-start-note">Invite players replaces the game on the table with an online lobby, one seat per opponent. Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press Start game, open seats become bots.</p>
+                            </div>
+
+                            <details id="risk-setup-panel" class="risk-subpanel risk-setup-settings" open>
+                                <summary class="risk-setup-toggle">
+                                    <span id="risk-setup-title" class="risk-setup-heading">Game setup</span>
+                                    <span id="risk-setup-summary" class="risk-setup-summary">1 bot · Random placement · Incremental cards</span>
+                                </summary>
+                                <div class="risk-setup-body">
+                                    <fieldset id="risk-placement-options" class="risk-dice-choice risk-setting-choice">
+                                        <legend>Placement</legend>
+                                        <label><input type="radio" name="risk-placement" value="random" checked> Random</label>
+                                        <label><input type="radio" name="risk-placement" value="manual"> Manual</label>
+                                    </fieldset>
+                                    <fieldset id="risk-card-mode-options" class="risk-dice-choice risk-setting-choice">
+                                        <legend>Cards</legend>
+                                        <label><input type="radio" name="risk-card-mode" value="incremental" checked> Incremental</label>
+                                        <label><input type="radio" name="risk-card-mode" value="fixed"> Fixed</label>
+                                    </fieldset>
+                                    <p id="risk-setup-note" class="risk-setting-note">These settings are used when you press New game. Changes made during a game apply to the next game.</p>
+                                </div>
+                            </details>
+
+                            <section id="risk-lobby-panel" class="risk-subpanel risk-lobby" aria-labelledby="risk-lobby-title" hidden>
+                                <h3 id="risk-lobby-title">Online lobby</h3>
+                                <p id="risk-lobby-status" class="risk-lobby-status" role="status" aria-live="polite" aria-atomic="true"></p>
+                                <div id="risk-lobby-invite" class="risk-lobby-invite" hidden>
+                                    <label for="risk-invite-url">Invite link</label>
+                                    <div class="risk-lobby-link">
+                                        <input id="risk-invite-url" class="risk-lobby-url" type="text" readonly spellcheck="false" autocomplete="off" aria-describedby="risk-lobby-note">
+                                        <button class="risk-button" type="button" id="risk-invite-copy-button">Copy link</button>
+                                    </div>
+                                </div>
+                                <button class="risk-button" type="button" id="risk-invite-retry-button" hidden>Try again</button>
+                                <ol id="risk-lobby-roster" class="risk-lobby-roster" aria-label="Seats in this online game"></ol>
+                                <p id="risk-lobby-note" class="risk-lobby-note">Copy the invite link and send it to your friends: each friend who opens it takes the next open seat. When you press Start game, open seats become bots.</p>
+                                <div class="risk-lobby-actions">
+                                    <button class="risk-button risk-button-primary" type="button" id="risk-lobby-start-button" hidden>Start game</button>
+                                    <button class="risk-button" type="button" id="risk-lobby-leave-button">Leave lobby</button>
+                                </div>
+                            </section>
+                        </div>
+                    </details>
+                </section>
+
+                <div id="risk-action-bar" class="risk-action-bar" role="region" aria-label="Turn quick actions">
+                    <nav class="risk-action-bar-nav" aria-label="Risk table navigation">
+                        <a href="#risk-board-title">Board</a>
+                        <a href="#risk-objective-title">Decision</a>
+                    </nav>
+                    <p class="risk-action-bar-status">
+                        <span id="risk-action-bar-phase" class="risk-action-bar-phase">Ready</span>
+                        <span class="risk-action-bar-reserve"><strong id="risk-action-bar-reserve">0</strong> <small>to place</small></span>
+                    </p>
+                    <button class="risk-button risk-button-primary risk-action-bar-primary" type="button" id="risk-action-bar-primary" disabled>End phase</button>
+                </div>
             </section>
 
-            <section class="risk-panel risk-rules" aria-labelledby="risk-rules-title">
-                <p class="eyebrow">How to play</p>
+            <details id="risk-how-to-play" class="risk-panel risk-how-to-play">
+                <summary class="risk-how-to-play-toggle">
+                    <span class="risk-detail-title">How to play</span>
+                    <span class="risk-detail-summary">Seats, setup, cards, battles and fortifying</span>
+                </summary>
+                <section class="risk-hero" aria-label="About this Risk table">
+                    <p class="lede">The classic 42-territory world board, played solo against one to five bots that plan their turns with a game-tree search. Deploy, trade cards, roll real Risk dice, and be the last seat standing.</p>
+                </section>
+                <section class="risk-rules" aria-labelledby="risk-rules-title">
                 <h2 id="risk-rules-title">Classic rules against one to five bots</h2>
                 <div class="risk-rules-grid">
                     <div>
@@ -314,10 +384,11 @@ $riskMapSvg = (string) preg_replace('/^\s*<\?xml[^>]*>\s*/', '', $riskMapSvg);
                     </div>
                     <div>
                         <h3>Fortify &amp; controls</h3>
-                        <p>Once per turn, you may move any number of armies from one territory to another, as long as the route passes only through your own territories and at least one army stays behind. Click a territory or its marker, or Tab to a marker and press Enter. On narrow screens, scroll the board sideways.</p>
+                        <p>Once per turn, you may move any number of armies from one territory to another, as long as the route passes only through your own territories and at least one army stays behind. Click a territory or its marker, or Tab to a marker and press Enter. To attack, pick one of your territories, then click an adjacent enemy: the battle rolls at once, and clicking it again rolls again. Conquest and fortify moves use a slider with Min, Half and All shortcuts, and Undo placement takes back your latest reinforcement click. Hover or focus a marker to see its owner, armies and what you can do there. Drag the board to pan it, pinch or hold Ctrl (⌘ on a Mac) and scroll to zoom, and double-click or double-tap open sea to zoom in or back to Fit.</p>
                     </div>
                 </div>
-            </section>
+                </section>
+            </details>
         </main>
 
         <?php include dirname(__DIR__) . '/partials/footer.php'; ?>

@@ -20,7 +20,6 @@
     overflow-x: clip;
 }
 
-.risk-hero,
 .risk-panel {
     position: relative;
     isolation: isolate;
@@ -33,13 +32,29 @@
     box-shadow: 0 20px 45px -32px rgba(0, 0, 0, 0.9), inset 0 1px 0 var(--surface-highlight);
 }
 
+/* A compact page title keeps the board near the top; the introduction lives in How to play. */
+.risk-title-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.85rem;
+    align-items: baseline;
+}
+
+.risk-title-bar h1,
+.risk-title-bar p {
+    margin: 0;
+}
+
+.risk-title-bar h1 {
+    font-size: clamp(1.45rem, 3.2vw, 2.1rem);
+    line-height: 1.15;
+}
+
 .risk-hero {
     display: grid;
     gap: 0.65rem;
-    padding: clamp(1.2rem, 4vw, 2.35rem);
 }
 
-.risk-hero h1,
 .risk-hero p {
     margin: 0;
 }
@@ -48,18 +63,48 @@
     max-width: 68ch;
 }
 
+/* Desktop: board, board details and table controls stack in the wide column beside one sticky turn dock. */
 .risk-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+    grid-template-areas:
+        "board dock"
+        "details dock"
+        "setup dock";
     gap: 1rem;
     align-items: start;
+}
+
+/* Before play, the setup section leads the board column so New game is the first control to reach. */
+.risk-layout:has(> .risk-command-panel:not([data-game-active="true"])) {
+    grid-template-areas:
+        "setup dock"
+        "board dock"
+        "details dock";
 }
 
 .risk-layout > * {
     min-width: 0;
 }
 
-.risk-table-nav {
+.risk-layout > .risk-board-panel {
+    grid-area: board;
+}
+
+.risk-layout > .risk-command-panel {
+    grid-area: dock;
+}
+
+.risk-layout > .risk-board-details {
+    grid-area: details;
+}
+
+.risk-layout > .risk-game-tools {
+    grid-area: setup;
+}
+
+/* The quick action bar is a narrow-screen affordance only. */
+.risk-action-bar {
     display: none;
 }
 
@@ -276,6 +321,68 @@
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+    /* One-finger touch keeps native vertical page scrolling; the game script handles two-finger pinch zoom. */
+    touch-action: pan-y;
+}
+
+/* The frame anchors the shared territory tooltip without clipping it inside the scrolling board. */
+.risk-map-frame {
+    position: relative;
+}
+
+.risk-map-tooltip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 4;
+    width: max-content;
+    max-width: min(16rem, calc(100% - 0.5rem));
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid rgba(248, 209, 108, 0.55);
+    border-radius: 6px;
+    background: rgba(5, 14, 28, 0.94);
+    box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.95);
+    color: var(--ink);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.3;
+    pointer-events: none;
+}
+
+.risk-map-tooltip[hidden] {
+    display: none;
+}
+
+.risk-map-tooltip-name {
+    font-size: 0.88rem;
+    font-weight: 900;
+}
+
+.risk-map-tooltip-meta {
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.risk-map-tooltip-owner {
+    color: var(--ink-soft);
+}
+
+.risk-map-tooltip-hint {
+    margin-top: 0.15rem;
+    color: var(--risk-human);
+    font-weight: 850;
+}
+
+.risk-map-tooltip-hint.is-blocked {
+    color: #fecaca;
+}
+
+.risk-map-tooltip-hint[hidden] {
+    display: none;
 }
 
 .risk-map-zoom {
@@ -326,6 +433,19 @@
     box-shadow:
         inset 0 0 0 1px rgba(255, 255, 255, 0.08),
         inset -18px 0 16px -14px rgba(248, 209, 108, 0.45);
+    cursor: grab;
+    touch-action: pan-x pan-y;
+}
+
+/* Mouse and pen drag-to-pan starts past a 6px threshold, so plain clicks still activate markers. */
+.risk-map.is-dragging,
+.risk-map.is-dragging .risk-land,
+.risk-map.is-dragging .risk-marker {
+    cursor: grabbing;
+}
+
+.risk-map.is-dragging {
+    user-select: none;
 }
 
 .risk-board-svg {
@@ -450,10 +570,15 @@
     display: none;
 }
 
+/* Marker text is sized in CSS pixels: --risk-svg-unit (SVG units per CSS pixel) is set by the game script,
+   so at Fit counts render at 14px and names at 11px, clamped so they never outgrow their markers. */
 .risk-marker-count {
     fill: #ffffff;
-    font-size: 12.5px;
+    font-size: clamp(12.5px, calc(14px * var(--risk-svg-unit, 1)), 22px);
     font-weight: 900;
+    dominant-baseline: central;
+    transform-box: fill-box;
+    transform-origin: center;
     paint-order: stroke;
     stroke: rgba(3, 10, 15, 0.95);
     stroke-linejoin: round;
@@ -463,8 +588,9 @@
 
 .risk-marker-name {
     fill: #ffffff;
-    font-size: 9.5px;
+    font-size: clamp(9.5px, calc(11px * var(--risk-svg-unit, 1)), 15px);
     font-weight: 800;
+    dominant-baseline: hanging;
     paint-order: stroke;
     stroke: rgba(4, 12, 20, 0.85);
     stroke-width: 3px;
@@ -493,6 +619,18 @@
     stroke: transparent;
     stroke-width: 3;
     pointer-events: none;
+}
+
+/* Short names hide while the board renders below 0.6 CSS px per SVG unit (narrower than 600px at any zoom),
+   where even their 15-unit cap draws them under 9px; the tooltip and Selection tab still name every territory. */
+.risk-map.is-names-hidden .risk-marker-name {
+    display: none;
+}
+
+/* Own territories that can act in the current phase keep a quiet, persistent ring, not only on hover. */
+.risk-marker.is-actionable .risk-marker-ring {
+    stroke: rgba(56, 189, 248, 0.6);
+    stroke-width: 2.5;
 }
 
 .risk-marker:hover .risk-marker-ring {
@@ -561,14 +699,17 @@
     }
 }
 
+/* Compact key: icon swatches with short text in one row that wraps on narrow screens. */
 .risk-map-legend {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem 1rem;
-    margin: 0.65rem 0 0;
+    flex-flow: row wrap;
+    gap: 0.3rem 0.85rem;
+    align-items: center;
+    margin: 0.55rem 0 0;
     color: var(--ink-soft);
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 750;
+    line-height: 1.2;
 }
 
 .risk-map-legend > span,
@@ -576,6 +717,48 @@
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
+    white-space: nowrap;
+}
+
+.risk-legend-swatch {
+    width: 0.85rem;
+    height: 0.85rem;
+    flex: 0 0 auto;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+}
+
+.risk-legend-swatch-act {
+    border-color: #38bdf8;
+    box-shadow: 0 0 4px rgba(56, 189, 248, 0.75);
+}
+
+.risk-legend-swatch-legal {
+    border-color: #f9f871;
+    border-style: dashed;
+}
+
+.risk-legend-swatch-route {
+    width: 1.1rem;
+    height: 0;
+    border-width: 2px 0 0;
+    border-style: dashed;
+    border-color: #f8d16c;
+    border-radius: 0;
+}
+
+.risk-legend-badge {
+    padding: 0.05rem 0.2rem;
+    border-radius: 3px;
+    background: #071923;
+    color: #ffffff;
+    font-size: 0.64rem;
+    font-weight: 950;
+    letter-spacing: 0.06em;
+}
+
+.risk-legend-badge.is-target {
+    color: #ffb3f0;
 }
 
 /* The owner entries are rendered by the game script and flow with the static legend items. */
@@ -831,36 +1014,16 @@
     font-weight: 750;
 }
 
-/* Command panel */
+/* Turn dock: objective, phase stepper, one stable action row, then the battle dice. */
 
 .risk-command-panel,
-.risk-turn-console,
-.risk-current-decision,
-.risk-phase-controls {
+.risk-turn-console {
     display: grid;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .risk-turn-console {
     padding-top: 0.2rem;
-}
-
-/* Keep setup prominent before play while preserving turn-first reading order during a game. */
-.risk-command-panel:not([data-game-active="true"]) .risk-game-tools {
-    order: -1;
-}
-
-.risk-decision-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(8.5rem, 0.65fr);
-    gap: 0.85rem;
-    align-items: end;
-}
-
-.risk-decision-copy {
-    min-width: 0;
-    display: grid;
-    gap: 0.35rem;
 }
 
 .risk-next-action-label {
@@ -936,40 +1099,160 @@
     font-weight: 950;
 }
 
+/* One supporting line under the objective: quieter than the objective, never a separate block. */
 .risk-turn-guidance {
     margin: 0;
-    padding: 0.75rem 0.85rem;
-    border-left: 4px solid var(--risk-human);
-    border-radius: 6px;
-    background: rgba(var(--risk-human-rgb), 0.1);
-    color: var(--ink);
-    font-size: 0.9rem;
-    font-weight: 800;
-    line-height: 1.45;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.risk-command-panel[data-phase="attack"] .risk-objective,
+.risk-command-panel[data-phase="conquer"] .risk-objective {
+    border-left-color: #ef4444;
+}
+
+.risk-command-panel[data-phase="fortify"] .risk-objective {
+    border-left-color: #38bdf8;
+}
+
+/* The action row is always present: the primary action first, then the current phase's controls. */
+.risk-action-row {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.75rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background: rgba(5, 14, 28, 0.58);
 }
 
 .risk-primary-actions {
     display: grid;
     gap: 0.35rem;
-    align-content: end;
 }
 
 .risk-primary-actions .risk-button-primary {
-    min-height: 60px;
+    min-height: 54px;
     font-size: 1rem;
 }
 
-.risk-command-panel[data-phase="attack"] .risk-turn-guidance,
-.risk-command-panel[data-phase="conquer"] .risk-turn-guidance {
-    border-left-color: #ef4444;
+/* Phase groups share one grid cell over a stable minimum height, so switching phases never shifts the dock. */
+.risk-action-stage {
+    min-height: 8.5rem;
+    display: grid;
+    align-content: start;
 }
 
-.risk-command-panel[data-phase="fortify"] .risk-turn-guidance {
-    border-left-color: #38bdf8;
+.risk-action-stage > * {
+    min-width: 0;
+    grid-area: 1 / 1;
+}
+
+.risk-phase-group {
+    display: grid;
+    gap: 0.6rem;
+    align-content: start;
+    animation: risk-dock-fade-in 180ms ease-out;
 }
 
 [data-risk-phase-panel][hidden] {
     display: none;
+}
+
+/* The outgoing group stays painted (inert, hidden from assistive tech) for one short crossfade. */
+.risk-phase-group[hidden].is-leaving {
+    display: grid;
+    pointer-events: none;
+    animation: risk-dock-fade-out 180ms ease-in forwards;
+}
+
+.risk-phase-idle {
+    margin: 0;
+    align-self: center;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 750;
+    text-align: center;
+    animation: risk-dock-fade-in 180ms ease-out;
+}
+
+.risk-action-stage:has(> .risk-phase-group:not([hidden])) > .risk-phase-idle {
+    display: none;
+}
+
+@keyframes risk-dock-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes risk-dock-fade-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+.risk-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.risk-action-buttons .risk-button {
+    flex: 1 1 9rem;
+}
+
+.risk-cards-strip {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.risk-cards-strip p {
+    margin: 0;
+}
+
+/* Conquest and defense are inline decision fields inside the attack group, not stacked sub-panels. */
+.risk-decision-field {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.7rem;
+    border: 1px solid var(--surface-edge);
+    border-radius: 8px;
+    background: rgba(248, 209, 108, 0.08);
+}
+
+.risk-decision-field[hidden] {
+    display: none;
+}
+
+.risk-decision-field p {
+    margin: 0;
+    color: var(--ink);
+    font-size: 0.85rem;
+    font-weight: 750;
+}
+
+/* Battle dice stay under the action row during any seat's attack. */
+.risk-battle-panel {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.risk-battle-panel[hidden] {
+    display: none;
+}
+
+.risk-battle-panel .risk-dice-tray {
+    margin-top: 0;
 }
 
 .risk-actions {
@@ -1005,7 +1288,10 @@
 .risk-inline-field input[type="number"]:focus-visible,
 .risk-check input:focus-visible,
 .risk-setup-toggle:focus-visible,
-.risk-detail-disclosure > summary:focus-visible {
+.risk-table-toggle:focus-visible,
+.risk-how-to-play-toggle:focus-visible,
+.risk-tab:focus-visible,
+.risk-tabpanel:focus-visible {
     outline: 3px solid #7dd3fc;
     outline-offset: 2px;
 }
@@ -1057,38 +1343,13 @@
     cursor: progress;
 }
 
-.risk-subpanel,
-.risk-territory-card,
-.risk-log-panel {
+.risk-subpanel {
     display: grid;
     gap: 0.7rem;
     padding: 0.85rem;
     border: 1px solid var(--surface-edge);
     border-radius: 8px;
     background: rgba(5, 14, 28, 0.58);
-}
-
-.risk-secondary-details {
-    display: grid;
-    gap: 1rem;
-}
-
-.risk-detail-disclosure {
-    display: block;
-}
-
-.risk-detail-disclosure[open] {
-    display: grid;
-}
-
-.risk-detail-disclosure > summary {
-    min-height: 44px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.3rem 0.75rem;
-    align-items: center;
-    border-radius: 4px;
-    cursor: pointer;
 }
 
 .risk-detail-title {
@@ -1100,11 +1361,146 @@
     color: var(--muted);
     font-size: 0.76rem;
     font-weight: 750;
-    text-align: right;
 }
 
-.risk-detail-disclosure[open] > summary {
-    margin-bottom: 0.15rem;
+/* Board details: Selection and Battle history tabs share one panel area. */
+.risk-board-details {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.risk-tablist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    border-bottom: 1px solid var(--surface-edge-strong);
+}
+
+.risk-tab {
+    min-width: 44px;
+    min-height: 44px;
+    display: grid;
+    flex: 0 1 auto;
+    gap: 0.1rem;
+    justify-items: start;
+    margin-bottom: -1px;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid transparent;
+    border-bottom: 3px solid transparent;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: var(--ink-soft);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.risk-tab .risk-detail-title {
+    color: inherit;
+}
+
+.risk-tab:hover {
+    color: var(--ink);
+}
+
+.risk-tab[aria-selected="true"] {
+    border-color: var(--surface-edge);
+    border-bottom-color: var(--accent-warm);
+    background: rgba(248, 209, 108, 0.1);
+    color: var(--ink);
+}
+
+.risk-tabpanel {
+    min-width: 0;
+    display: grid;
+    gap: 0.75rem;
+    border-radius: 6px;
+}
+
+.risk-tabpanel[hidden] {
+    display: none;
+}
+
+/* Selection art sits beside its facts so the wide board column is not filled by one tall image. */
+.risk-tabpanel.risk-territory-card {
+    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+    align-items: start;
+}
+
+/* Game setup & lobby: one collapsible section; open before play, folded once a game starts. */
+.risk-table-toggle,
+.risk-how-to-play-toggle {
+    min-height: 44px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 4px;
+    list-style: none;
+    cursor: pointer;
+}
+
+.risk-table-toggle::-webkit-details-marker,
+.risk-how-to-play-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.risk-table-toggle::after,
+.risk-how-to-play-toggle::after {
+    flex: 0 0 auto;
+    color: var(--accent-warm);
+    content: "\25BE";
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: transform 160ms ease;
+}
+
+[open] > .risk-table-toggle::after,
+[open] > .risk-how-to-play-toggle::after {
+    transform: rotate(180deg);
+}
+
+.risk-table-toggle-copy {
+    min-width: 0;
+    display: grid;
+    flex: 1 1 12rem;
+    gap: 0.1rem;
+}
+
+.risk-table-eyebrow {
+    color: var(--accent-warm);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.risk-table-heading {
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
+.risk-table-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+    gap: 1rem;
+    align-items: start;
+    margin-top: 0.85rem;
+}
+
+/* How to play: introduction and rules below the board, collapsed by default. */
+.risk-how-to-play .risk-detail-title {
+    font-size: 1.05rem;
+}
+
+.risk-how-to-play[open] > .risk-how-to-play-toggle {
+    margin-bottom: 1rem;
+}
+
+.risk-how-to-play .risk-hero {
+    margin-bottom: 1rem;
 }
 
 .risk-subpanel[hidden] {
@@ -1153,6 +1549,16 @@
     color: var(--ink);
     font-weight: 900;
     cursor: pointer;
+}
+
+/* Choices inside the dock's action row use tighter legends so the row stays short. */
+.risk-compact-choice legend {
+    margin-bottom: 0.2rem;
+    font-size: 0.74rem;
+}
+
+.risk-compact-choice label {
+    min-width: 48px;
 }
 
 .risk-dice-choice label:has(input:checked) {
@@ -1695,51 +2101,105 @@
 }
 
 @media (max-width: 940px) {
+    /* One column in reading order; a flex column lets the bottom action bar stick across the whole table. */
     .risk-layout {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .risk-table-nav {
-        position: sticky;
-        top: 0.5rem;
-        z-index: 10;
-        grid-column: 1 / -1;
         display: flex;
-        max-width: 100%;
-        gap: 0.5rem;
+        flex-direction: column;
+        gap: 1rem;
     }
 
-    .risk-table-nav a {
+    .risk-layout:has(> .risk-command-panel:not([data-game-active="true"])) > .risk-game-tools {
+        order: -1;
+    }
+
+    /* Sticky bottom action bar: phase, reserve and the primary action, plus Board/Decision jump links. */
+    .risk-action-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        order: 10;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas:
+            "status status"
+            "nav primary";
+        gap: 0.4rem 0.5rem;
+        align-items: center;
+        padding: 0.5rem 0.6rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        border: 1px solid var(--surface-edge-strong);
+        border-bottom: 0;
+        border-radius: 8px 8px 0 0;
+        background: rgba(5, 14, 28, 0.95);
+        box-shadow: 0 -14px 30px -18px rgba(0, 0, 0, 0.95);
+    }
+
+    .risk-action-bar-status {
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        grid-area: status;
+        gap: 0.2rem 0.75rem;
+        align-items: baseline;
+        justify-content: space-between;
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.8rem;
+        font-weight: 800;
+    }
+
+    .risk-action-bar-phase {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--ink);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .risk-action-bar-reserve strong {
+        color: var(--risk-neutral);
+        font-size: 0.95rem;
+    }
+
+    .risk-action-bar-nav {
+        display: flex;
+        grid-area: nav;
+        gap: 0.4rem;
+    }
+
+    .risk-action-bar-nav a {
         min-width: 44px;
         min-height: 44px;
         display: inline-flex;
-        flex: 1 1 0;
         align-items: center;
         justify-content: center;
-        padding: 0.55rem 0.75rem;
+        padding: 0.45rem 0.65rem;
         border: 1px solid var(--surface-edge-strong);
         border-radius: 6px;
-        background: rgba(5, 14, 28, 0.82);
+        background: rgba(10, 32, 44, 0.88);
         color: var(--ink);
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-weight: 900;
         text-align: center;
         text-decoration: none;
     }
 
-    .risk-table-nav a:focus-visible {
+    .risk-action-bar-nav a:focus-visible {
         outline: 3px solid #7dd3fc;
         outline-offset: 2px;
     }
 
-    #risk-board-title,
-    #risk-objective-title {
-        scroll-margin-top: calc(44px + 1.5rem);
+    .risk-action-bar .risk-action-bar-primary {
+        min-width: 44px;
+        min-height: 44px;
+        grid-area: primary;
+        padding: 0.5rem 0.7rem;
+        font-size: 0.85rem;
     }
 
-    .risk-secondary-details {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        align-items: start;
+    #risk-board-title,
+    #risk-objective-title {
+        scroll-margin-top: 1rem;
+        scroll-margin-bottom: 7rem;
     }
 }
 
@@ -1748,16 +2208,13 @@
         display: grid;
     }
 
-    .risk-map.is-fit-or-smaller .risk-marker-count {
-        font-size: 14px;
-    }
-
-    .risk-map.is-fit-or-smaller .risk-marker-name {
-        font-size: 11px;
+    .risk-map-legend {
+        gap: 0.25rem 0.6rem;
+        font-size: 0.72rem;
     }
 
     .risk-command-panel,
-    .risk-secondary-details {
+    .risk-tabpanel.risk-territory-card {
         grid-template-columns: 1fr;
     }
 
@@ -1767,13 +2224,12 @@
 }
 
 @media (max-width: 430px) {
-    .risk-actions,
-    .risk-decision-layout {
+    .risk-actions {
         grid-template-columns: 1fr;
     }
 
-    .risk-detail-disclosure > summary {
-        grid-template-columns: 1fr;
+    .risk-tab {
+        flex: 1 1 0;
     }
 
     .risk-detail-summary {
@@ -1956,6 +2412,23 @@
     animation: risk-fx-conquer 1.4s ease-out;
 }
 
+/* A changed army count bumps briefly in scale and colour. */
+.risk-marker-count.is-count-bump {
+    animation: risk-count-bump 0.5s ease-out;
+}
+
+@keyframes risk-count-bump {
+    0% {
+        fill: #f9f871;
+        transform: scale(1.45);
+    }
+
+    100% {
+        fill: #ffffff;
+        transform: scale(1);
+    }
+}
+
 @keyframes risk-fx-place {
     0% {
         filter: brightness(1.8) drop-shadow(0 0 8px rgba(255, 255, 255, 0.95));
@@ -2032,6 +2505,7 @@
     .risk-marker.is-legal .risk-marker-ring,
     .risk-feedback[class*="is-"],
     .risk-scoreboard strong.is-fx-tick,
+    .risk-marker-count.is-count-bump,
     .risk-card.is-dealt,
     .risk-card.is-fx-pick,
     .risk-log li.is-new {
@@ -2047,6 +2521,22 @@
 
     .risk-card[aria-pressed="true"] {
         transform: none;
+    }
+
+    /* Phase groups swap instantly: no fade in, and the outgoing group is removed at once. */
+    .risk-phase-group,
+    .risk-phase-idle {
+        animation: none;
+    }
+
+    .risk-phase-group[hidden].is-leaving {
+        display: none;
+        animation: none;
+    }
+
+    .risk-table-toggle::after,
+    .risk-how-to-play-toggle::after {
+        transition: none;
     }
 
     /* Static stand-ins: each effect holds one steady highlight until its timer clears the class. */
@@ -2225,4 +2715,133 @@
     .risk-lobby-link {
         flex-direction: column;
     }
+}
+
+/* Inline confirm strips: a message with Confirm and Cancel that stays until one is chosen (Escape cancels). */
+.risk-confirm-strip {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.65rem 0.7rem;
+    border: 2px solid var(--accent-warm);
+    border-radius: 8px;
+    background: rgba(248, 209, 108, 0.1);
+    animation: risk-dock-fade-in 180ms ease-out;
+}
+
+.risk-confirm-strip[hidden] {
+    display: none;
+}
+
+.risk-actions > .risk-restart-confirm {
+    grid-column: 1 / -1;
+}
+
+.risk-confirm-message {
+    margin: 0;
+    color: var(--ink);
+    font-size: 0.85rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.risk-confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.risk-confirm-actions .risk-button {
+    flex: 1 1 7rem;
+    width: auto;
+    min-height: 44px;
+}
+
+/* Army mover: slider and number field in sync, Min/Half/All shortcuts, and a preview of the split. */
+.risk-army-mover {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.risk-army-mover-row label {
+    flex: 1 0 100%;
+}
+
+.risk-army-range {
+    flex: 1 1 8rem;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    accent-color: var(--risk-human);
+    cursor: pointer;
+}
+
+.risk-army-range:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.risk-army-range:focus-visible {
+    outline: 3px solid #7dd3fc;
+    outline-offset: 2px;
+}
+
+.risk-army-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.risk-army-quick .risk-button-quick {
+    flex: 1 1 3.5rem;
+    min-height: 44px;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.78rem;
+}
+
+.risk-army-preview {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.35;
+}
+
+.risk-army-mover > .risk-button {
+    width: 100%;
+}
+
+/* Undo placement is a quiet, reversible action beside the placement buttons. */
+.risk-button-undo {
+    border-style: dashed;
+}
+
+.risk-feedback.is-undo {
+    color: var(--ink-soft);
+}
+
+.risk-feedback.is-undo::before {
+    content: "\21B6";
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .risk-confirm-strip {
+        animation: none;
+    }
+}
+
+/* Skip to my turn: a full-width secondary action that appears only while a bot turn runs at this browser. */
+.risk-button-skip {
+    width: 100%;
+    border-color: var(--risk-ai2);
+    background: rgba(56, 189, 248, 0.12);
+}
+
+.risk-button-skip[aria-pressed="true"] {
+    border-style: dashed;
+    color: var(--ink-soft);
+}
+
+.risk-button-skip[hidden] {
+    display: none;
 }

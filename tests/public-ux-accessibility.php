@@ -291,59 +291,124 @@ foreach ($currentSectionRequestUriCases as $case) {
 
 $riskHtml = render_public_page($root, 'htdocs/risk/index.php', '/risk/');
 $riskTurnConsolePosition = strpos($riskHtml, '<section class="risk-turn-console" aria-label="Current turn">');
-$riskGameToolsPosition = strpos($riskHtml, '<section class="risk-subpanel risk-game-tools" aria-labelledby="risk-command-title">');
+$riskBoardDetailsPosition = strpos($riskHtml, '<section id="risk-board-details" class="risk-panel risk-board-details" aria-labelledby="risk-board-details-title">');
+$riskGameToolsPosition = strpos($riskHtml, '<section id="risk-game-tools" class="risk-panel risk-game-tools" aria-labelledby="risk-command-title">');
+$riskBoardPanelPosition = strpos($riskHtml, '<section class="risk-panel risk-board-panel" aria-labelledby="risk-board-title">');
+$riskHowToPlayPosition = strpos($riskHtml, '<details id="risk-how-to-play" class="risk-panel risk-how-to-play">');
 public_ux_assert(
-    strpos($riskHtml, '<nav class="risk-table-nav" aria-label="Risk table navigation">') !== false
-        && strpos($riskHtml, '<a href="#risk-board-title">Board</a>') !== false
-        && strpos($riskHtml, '<a href="#risk-objective-title">Current decision</a>') !== false
+    (bool) preg_match('/<div id="risk-action-bar" class="risk-action-bar" role="region" aria-label="Turn quick actions">\s*<nav class="risk-action-bar-nav" aria-label="Risk table navigation">\s*<a href="#risk-board-title">Board<\/a>\s*<a href="#risk-objective-title">Decision<\/a>\s*<\/nav>.*?id="risk-action-bar-phase".*?id="risk-action-bar-reserve".*?id="risk-action-bar-primary" disabled>End phase<\/button>/s', $riskHtml)
+        && strpos($riskHtml, 'class="risk-table-nav"') === false
         && strpos($riskHtml, '<h2 id="risk-board-title" tabindex="-1">Territories</h2>') !== false
         && strpos($riskHtml, '<h3 id="risk-objective-title" tabindex="-1">Ready to play</h3>') !== false,
-    'Risk must provide narrow-screen navigation with focusable board and current-decision destinations.'
+    'Risk must replace the top jump nav with a bottom action bar holding phase, reserve, primary action and focusable Board/Decision destinations.'
 );
 public_ux_assert(
     $riskTurnConsolePosition !== false
+        && $riskBoardDetailsPosition !== false
         && $riskGameToolsPosition !== false
-        && $riskTurnConsolePosition < $riskGameToolsPosition,
-    'Risk must place the current turn console before setup and lobby tools in DOM reading order.'
+        && $riskTurnConsolePosition < $riskBoardDetailsPosition
+        && $riskBoardDetailsPosition < $riskGameToolsPosition,
+    'Risk must place the turn dock, then board details, then setup and lobby tools in DOM reading order.'
 );
 public_ux_assert(
-    strpos($riskHtml, 'id="risk-command-panel" class="risk-panel risk-command-panel" aria-labelledby="risk-command-title"') !== false,
-    'Risk command controls must retain a named, directly targetable region.'
+    strpos($riskHtml, 'id="risk-command-panel" class="risk-panel risk-command-panel risk-turn-dock" aria-labelledby="risk-dock-title"') !== false
+        && strpos($riskHtml, '<h2 id="risk-dock-title" class="risk-visually-hidden">Turn dock</h2>') !== false,
+    'Risk command controls must retain a named, directly targetable turn dock region.'
 );
 public_ux_assert(
-    (bool) preg_match('/<details id="risk-setup-panel" class="risk-subpanel risk-setup-settings" open>.*?<summary class="risk-setup-toggle">.*?Game setup.*?<\/summary>/s', $riskHtml)
+    (bool) preg_match('/<details id="risk-table-panel" class="risk-table-disclosure" open>\s*<summary class="risk-table-toggle">.*?<h2 id="risk-command-title" class="risk-table-heading">Game setup &amp; lobby<\/h2>.*?<\/summary>.*?id="risk-start-button".*?id="risk-invite-button".*?<details id="risk-setup-panel" class="risk-subpanel risk-setup-settings" open>.*?<summary class="risk-setup-toggle">.*?Game setup.*?<\/summary>.*?id="risk-lobby-panel".*?<\/details>\s*<\/section>/s', $riskHtml)
         && strpos($riskHtml, 'Choose your Game setup, then press New game to deal the world.') !== false
         && strpos($riskHtml, 'setup above') === false
         && strpos($riskHtml, 'setup below') === false,
-    'Risk setup must be initially open, remain available during play, and use position-independent instructions.'
+    'Risk setup, table controls and lobby must share one initially open Game setup & lobby disclosure with position-independent instructions.'
 );
 public_ux_assert(
-    (bool) preg_match('/<section class="risk-turn-console" aria-label="Current turn">.*?<section class="risk-objective" aria-labelledby="risk-objective-title">.*?Current decision.*?<div class="risk-primary-actions">.*?Next action.*?id="risk-end-button".*?id="risk-turn-guidance" class="risk-turn-guidance" aria-live="polite"/s', $riskHtml),
-    'Risk must group the current decision, next action, and live turn guidance in one turn console.'
+    (bool) preg_match('/<section class="risk-turn-console" aria-label="Current turn">\s*<section class="risk-objective" aria-labelledby="risk-objective-title">.*?Current decision.*?id="risk-objective-title".*?id="risk-objective-text".*?id="risk-turn-guidance" class="risk-turn-guidance" aria-live="polite".*?id="risk-objective-blocker".*?<\/section>\s*<ol id="risk-phase-stepper".*?<\/ol>\s*<div id="risk-action-row" class="risk-action-row" role="group" aria-label="Current phase actions">\s*<div class="risk-primary-actions">.*?Next action.*?id="risk-end-button".*?<div id="risk-action-stage" class="risk-action-stage risk-phase-controls">/s', $riskHtml),
+    'Risk must order the turn dock as objective, phase stepper, then one action row that starts with the primary action.'
 );
 public_ux_assert(
     strpos($riskHtml, 'id="risk-objective-blocker" class="risk-objective-blocker" role="status" aria-live="polite" aria-atomic="true"') !== false,
     'Risk disabled-control reasons must have one visible polite status surface.'
 );
 public_ux_assert(
-    strpos($riskHtml, '<h3 id="risk-cards-title">Setup placement</h3>') !== false
-        && strpos($riskHtml, 'id="risk-place-amount-options" class="risk-dice-choice" hidden') !== false
+    strpos($riskHtml, '<h3 id="risk-cards-title" class="risk-visually-hidden">Setup placement</h3>') !== false
+        && strpos($riskHtml, 'id="risk-place-amount-options" class="risk-dice-choice risk-compact-choice" hidden') !== false
         && strpos($riskHtml, 'id="risk-setup-placement-note" class="risk-setting-note">Setup places exactly one army per territory click.</p>') !== false,
-    'Risk setup must name its placement panel and hide the reinforce-only amount chooser.'
+    'Risk setup must name its placement group for assistive tech and hide the reinforce-only amount chooser.'
 );
+preg_match('/<div id="risk-action-stage" class="risk-action-stage risk-phase-controls">(?P<stage>.*?)<\/div>\s*<\/div>\s*<section id="risk-battle-panel"/s', $riskHtml, $riskActionStage);
+public_ux_assert(isset($riskActionStage['stage']), 'Risk action row must keep its phase stage directly ahead of the battle dice.');
 foreach (['reinforce,setup', 'attack,conquer', 'fortify'] as $riskPhasePanel) {
     public_ux_assert(
-        strpos($riskHtml, 'data-risk-phase-panel="' . $riskPhasePanel . '"') !== false,
-        'Risk must retain phase controls for ' . $riskPhasePanel . '.'
+        strpos($riskActionStage['stage'], 'data-risk-phase-panel="' . $riskPhasePanel . '"') !== false,
+        'Risk must keep phase controls for ' . $riskPhasePanel . ' inside the single action row.'
     );
 }
 public_ux_assert(
-    (bool) preg_match('/<details class="risk-territory-card risk-detail-disclosure">\s*<summary>.*?Selection details.*?<\/summary>/s', $riskHtml),
-    'Risk selection details must start as a secondary disclosure with a visible summary.'
+    !preg_match('/<h[2-6] id="risk-(?:cards|attack|fortify|conquest|defense)-title">/', $riskHtml)
+        && !preg_match('/class="risk-subpanel[ "]/', $riskActionStage['stage'])
+        && substr_count($riskActionStage['stage'], 'class="risk-visually-hidden"') === 5,
+    'Risk phase groups must not render their own visible heading blocks or stacked sub-panels.'
 );
 public_ux_assert(
-    (bool) preg_match('/<details class="risk-log-panel risk-detail-disclosure">\s*<summary>.*?Battle history.*?<\/summary>/s', $riskHtml),
-    'Risk battle history must start as a secondary disclosure with a visible summary.'
+    (bool) preg_match('/<section id="risk-battle-panel" class="risk-battle-panel" aria-label="Battle dice" hidden>\s*<section id="risk-dice-tray" class="risk-dice-tray"/', $riskHtml),
+    'Risk dice tray must sit in its own battle panel under the action row.'
+);
+foreach (['conquest', 'fortify'] as $riskMoverName) {
+    $riskMoverPrefix = 'risk-' . $riskMoverName;
+    public_ux_assert(
+        strpos($riskActionStage['stage'], 'id="' . $riskMoverPrefix . '-mover"') !== false
+            && (bool) preg_match(
+                '/<div id="' . $riskMoverPrefix . '-mover" class="risk-army-mover" role="group" aria-labelledby="' . $riskMoverPrefix . '-count-label">'
+                . '.*?<label id="' . $riskMoverPrefix . '-count-label" for="' . $riskMoverPrefix . '-count">Armies to move<\/label>'
+                . '\s*<input id="' . $riskMoverPrefix . '-range" class="risk-army-range" type="range"[^>]*aria-label="[^"]+"[^>]*aria-describedby="' . $riskMoverPrefix . '-preview"[^>]*>'
+                . '\s*<input id="' . $riskMoverPrefix . '-count" type="number"[^>]*aria-describedby="[^"]*' . $riskMoverPrefix . '-preview"[^>]*>'
+                . '.*?id="' . $riskMoverPrefix . '-min" data-army-quick="min"[^>]*>Min<\/button>'
+                . '.*?id="' . $riskMoverPrefix . '-half" data-army-quick="half"[^>]*>Half<\/button>'
+                . '.*?id="' . $riskMoverPrefix . '-all" data-army-quick="all"[^>]*>All<\/button>'
+                . '.*?<p id="' . $riskMoverPrefix . '-preview" class="risk-army-preview">/s',
+                $riskHtml
+            ),
+        'Risk ' . $riskMoverName . ' must use the shared army mover: a labelled range slider and number field, Min/Half/All shortcuts and a split preview.'
+    );
+}
+public_ux_assert(
+    (bool) preg_match('/<div class="risk-primary-actions">.*?id="risk-end-button"[^>]*>End phase<\/button>\s*<div id="risk-confirm-strip" class="risk-confirm-strip" role="group" aria-labelledby="risk-confirm-message" hidden>\s*<p id="risk-confirm-message" class="risk-confirm-message">[^<]+<\/p>\s*<div class="risk-confirm-actions">\s*<button class="risk-button risk-button-primary" type="button" id="risk-confirm-yes">Confirm<\/button>\s*<button class="risk-button" type="button" id="risk-confirm-cancel">Cancel<\/button>\s*<\/div>\s*<\/div>\s*<\/div>\s*<div id="risk-action-stage"/s', $riskHtml),
+    'Risk end-attacks and end-turn confirmations must render as an initially hidden inline strip with Confirm and Cancel inside the dock action row.'
+);
+public_ux_assert(
+    (bool) preg_match('/id="risk-start-button".*?<div id="risk-restart-confirm" class="risk-confirm-strip risk-restart-confirm" role="group" aria-labelledby="risk-restart-confirm-message" hidden>\s*<p id="risk-restart-confirm-message" class="risk-confirm-message">[^<]+<\/p>\s*<div class="risk-confirm-actions">\s*<button class="risk-button risk-button-primary" type="button" id="risk-restart-confirm-yes">Confirm<\/button>\s*<button class="risk-button" type="button" id="risk-restart-confirm-cancel">Cancel<\/button>/s', $riskHtml),
+    'Risk restart must keep an inline confirm strip with Confirm and Cancel beside the restart button.'
+);
+public_ux_assert(
+    strpos($riskActionStage['stage'], '<button class="risk-button risk-button-undo" type="button" id="risk-undo-button" disabled>Undo placement</button>') !== false
+        && (bool) preg_match('/data-risk-phase-panel="reinforce,setup".*?id="risk-undo-button".*?data-risk-phase-panel="attack,conquer"/s', $riskActionStage['stage']),
+    'Risk reinforce and setup placement must offer an initially disabled Undo placement button.'
+);
+public_ux_assert(
+    strpos($riskHtml, '<div id="risk-details-tabs" class="risk-tablist" role="tablist" aria-label="Board details">') !== false
+        && strpos($riskHtml, '<button id="risk-tab-selection" class="risk-tab" type="button" role="tab" aria-selected="true" aria-controls="risk-tabpanel-selection" tabindex="0">') !== false
+        && strpos($riskHtml, '<button id="risk-tab-log" class="risk-tab" type="button" role="tab" aria-selected="false" aria-controls="risk-tabpanel-log" tabindex="-1">') !== false,
+    'Risk board details must be a tablist with Selection selected by default.'
+);
+public_ux_assert(
+    (bool) preg_match('/<div id="risk-tabpanel-selection" class="risk-tabpanel risk-territory-card" role="tabpanel" aria-labelledby="risk-tab-selection" tabindex="0">.*?<div id="risk-territory-card">No territory selected\.<\/div>\s*<\/div>/s', $riskHtml)
+        && strpos($riskHtml, '<span id="risk-selection-title" class="risk-detail-title">Selection</span>') !== false,
+    'Risk selection details must render as the initially visible Selection tab panel.'
+);
+public_ux_assert(
+    (bool) preg_match('/<div id="risk-tabpanel-log" class="risk-tabpanel risk-log-panel" role="tabpanel" aria-labelledby="risk-tab-log" tabindex="0" hidden>\s*<ol id="risk-log" class="risk-log"><\/ol>\s*<\/div>/', $riskHtml)
+        && strpos($riskHtml, '<span id="risk-log-title" class="risk-detail-title">Battle history</span>') !== false
+        && strpos($riskHtml, 'risk-detail-disclosure') === false,
+    'Risk battle history must render as an initially hidden Battle history tab panel instead of a disclosure.'
+);
+public_ux_assert(
+    $riskBoardPanelPosition !== false
+        && $riskHowToPlayPosition !== false
+        && $riskBoardPanelPosition < $riskHowToPlayPosition
+        && (bool) preg_match('/<details id="risk-how-to-play" class="risk-panel risk-how-to-play">\s*<summary class="risk-how-to-play-toggle">.*?How to play.*?<\/summary>.*?<section class="risk-hero".*?<section class="risk-rules" aria-labelledby="risk-rules-title">.*?<\/section>\s*<\/details>/s', $riskHtml)
+        && substr_count($riskHtml, '<h1') === 1,
+    'Risk introduction and rules must sit below the board in a collapsed How to play disclosure, keeping one page heading.'
 );
 public_ux_assert(
     strpos($riskHtml, 'id="risk-lobby-panel" class="risk-subpanel risk-lobby"') !== false
@@ -355,6 +420,16 @@ public_ux_assert(
     strpos($riskHtml, 'id="risk-announcer" class="risk-visually-hidden" role="status" aria-live="polite" aria-atomic="true"') !== false,
     'Risk must preserve its consolidated live announcer.'
 );
+$riskScriptSource = file_get_contents($root . '/htdocs/assets/js/risk-game.js');
+public_ux_assert(is_string($riskScriptSource), 'Unable to read Risk game script for its DOM contract.');
+preg_match_all("/byElementId\\('([a-z0-9-]+)'\\)/", $riskScriptSource, $riskScriptIds);
+public_ux_assert(count($riskScriptIds[1]) > 0, 'Risk game script DOM contract could not be read.');
+foreach (array_unique($riskScriptIds[1]) as $riskScriptId) {
+    public_ux_assert(
+        strpos($riskHtml, 'id="' . $riskScriptId . '"') !== false,
+        'Risk page must render every element id the game script looks up: ' . $riskScriptId . '.'
+    );
+}
 
 $riskArtwork = [
     'risk-board-backdrop.png' => [2000, 1400],
@@ -526,12 +601,88 @@ public_ux_assert(
     'Risk page must contain narrow-board overflow at the page boundary.'
 );
 public_ux_assert(
-    (bool) preg_match('/@media \(max-width: 940px\)\s*\{.*?\.risk-table-nav\s*\{[^}]*display:\s*flex/s', $riskCss),
-    'Risk board/control navigation must appear at narrow widths.'
+    (bool) preg_match('/@media \(max-width: 940px\)\s*\{(?P<body>.*?)\n\}/s', $riskCss, $narrowRiskMedia)
+        && (bool) preg_match('/\.risk-action-bar\s*\{(?P<rule>[^}]*)\}/s', $narrowRiskMedia['body'], $narrowRiskActionBar)
+        && strpos($narrowRiskActionBar['rule'], 'position: sticky') !== false
+        && strpos($narrowRiskActionBar['rule'], 'bottom: 0') !== false
+        && strpos($narrowRiskActionBar['rule'], 'display: grid') !== false
+        && (bool) preg_match('/\.risk-action-bar-nav a\s*\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s', $narrowRiskMedia['body'])
+        && (bool) preg_match('/\.risk-action-bar \.risk-action-bar-primary\s*\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s', $narrowRiskMedia['body'])
+        && (bool) preg_match('/\.risk-action-bar\s*\{\s*display:\s*none;\s*\}/', $riskCss)
+        && strpos($riskCss, '.risk-table-nav') === false,
+    'Risk must show a sticky bottom action bar with 44px targets at narrow widths, hide it on desktop, and drop the top jump nav.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.risk-action-stage\s*\{[^}]*min-height:\s*[0-9.]+rem/s', $riskCss)
+        && (bool) preg_match('/\.risk-phase-group\s*\{[^}]*animation:\s*risk-dock-fade-in/s', $riskCss)
+        && (bool) preg_match('/\.risk-phase-group\[hidden\]\.is-leaving\s*\{[^}]*animation:\s*risk-dock-fade-out/s', $riskCss)
+        && (bool) preg_match('/@media \(prefers-reduced-motion: reduce\)\s*\{.*?\.risk-phase-group,\s*\.risk-phase-idle\s*\{\s*animation:\s*none;.*?\.risk-phase-group\[hidden\]\.is-leaving\s*\{\s*display:\s*none;/s', $riskCss),
+    'Risk dock action stage must keep a stable minimum height and crossfade phase groups, without motion under reduced-motion preferences.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.risk-tab\s*\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s', $riskCss)
+        && (bool) preg_match('/\.risk-tabpanel\[hidden\]\s*\{\s*display:\s*none;/', $riskCss),
+    'Risk board detail tabs must keep 44px targets and fully hide inactive tab panels.'
 );
 public_ux_assert(
     !preg_match('/\.risk-log\s*\{[^}]*(?:overflow:\s*auto|max-height:)/s', $riskCss),
     'Risk battle history must not introduce another nested scrolling region.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.risk-confirm-strip\[hidden\]\s*\{\s*display:\s*none;/', $riskCss)
+        && (bool) preg_match('/\.risk-army-range\s*\{[^}]*min-height:\s*44px/s', $riskCss)
+        && (bool) preg_match('/\.risk-army-quick \.risk-button-quick\s*\{[^}]*min-height:\s*44px/s', $riskCss)
+        && (bool) preg_match('/\.risk-confirm-actions \.risk-button\s*\{[^}]*min-height:\s*44px/s', $riskCss),
+    'Risk confirm strips must hide fully when closed, and army mover and confirm controls must keep 44px targets.'
+);
+public_ux_assert(
+    substr_count($riskHtml, 'role="tooltip"') === 1
+        && (bool) preg_match('/<div class="risk-map-frame">\s*<div id="risk-map" class="risk-map">.*?<\/svg>\s*<\/div>\s*<div id="risk-map-tooltip" class="risk-map-tooltip" role="tooltip" hidden><\/div>\s*<\/div>/s', $riskHtml),
+    'Risk must render one shared, initially hidden territory tooltip beside the scrolling board.'
+);
+public_ux_assert(
+    (bool) preg_match('/<p class="risk-map-legend">\s*<span id="risk-legend-owners" class="risk-legend-owners"><\/span>(?P<items>.*?)<\/p>/s', $riskHtml, $riskLegend)
+        && substr_count($riskLegend['items'], 'class="risk-legend-item"') === 4
+        && substr_count($riskLegend['items'], 'class="risk-legend-swatch ') === 3
+        && substr_count($riskLegend['items'], 'aria-hidden="true"') === 3
+        && strpos($riskLegend['items'], '<strong class="risk-legend-badge">FROM</strong><strong class="risk-legend-badge is-target">TO</strong>') !== false
+        && substr_count($riskLegend['items'], '<span class="risk-visually-hidden">') === 3,
+    'Risk map legend must be a compact row of swatch icons with short text, naming each swatch for assistive tech.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.risk-map-legend\s*\{[^}]*display:\s*flex;[^}]*flex-flow:\s*row wrap;/s', $riskCss)
+        && (bool) preg_match('/\.risk-legend-swatch\s*\{[^}]*border-radius:\s*50%/s', $riskCss),
+    'Risk map legend must lay out as one wrapping row with icon swatches.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.risk-map-tooltip\s*\{[^}]*position:\s*absolute;[^}]*pointer-events:\s*none;/s', $riskCss)
+        && (bool) preg_match('/\.risk-map-tooltip\[hidden\]\s*\{\s*display:\s*none;/', $riskCss)
+        && (bool) preg_match('/\.risk-map-frame\s*\{\s*position:\s*relative;/', $riskCss),
+    'Risk territory tooltip must be a non-interactive overlay that hides fully.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.risk-marker-count\s*\{[^}]*font-size:\s*clamp\(12\.5px,\s*calc\(14px \* var\(--risk-svg-unit, 1\)\),\s*22px\);/s', $riskCss)
+        && (bool) preg_match('/\.risk-marker-name\s*\{[^}]*font-size:\s*clamp\(9\.5px,\s*calc\(11px \* var\(--risk-svg-unit, 1\)\),\s*15px\);/s', $riskCss)
+        && (bool) preg_match('/\.risk-map\.is-names-hidden \.risk-marker-name\s*\{\s*display:\s*none;/', $riskCss)
+        && strpos($riskCss, 'below 0.6 CSS px per SVG unit') !== false
+        && (bool) preg_match('/\.risk-marker\.is-actionable \.risk-marker-ring\s*\{[^}]*stroke:/s', $riskCss),
+    'Risk markers must render 14px counts and 11px names at Fit, hide names below the documented scale, and ring actionable territories persistently.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.risk-map\s*\{[^}]*touch-action:\s*pan-y;/s', $riskCss)
+        && (bool) preg_match('/\.risk-map\.is-scrollable\s*\{[^}]*cursor:\s*grab;[^}]*touch-action:\s*pan-x pan-y;/s', $riskCss)
+        && (bool) preg_match('/\.risk-map\.is-dragging,[^{]*\{\s*cursor:\s*grabbing;/s', $riskCss),
+    'Risk map must keep native vertical touch scrolling and show grab cursors while it can be dragged.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.risk-marker-count\.is-count-bump\s*\{[^}]*animation:\s*risk-count-bump/s', $riskCss)
+        && (bool) preg_match('/@media \(prefers-reduced-motion: reduce\)\s*\{[^@]*\.risk-marker-count\.is-count-bump,[^{]*\{\s*animation:\s*none;/s', $riskCss),
+    'Risk army count changes must bump briefly, with no motion under reduced-motion preferences.'
+);
+public_ux_assert(
+    (bool) preg_match('/<div class="risk-primary-actions">\s*<p class="risk-next-action-label">Next action<\/p>\s*<button class="risk-button risk-button-skip" type="button" id="risk-skip-button" aria-pressed="false" hidden disabled>Skip to my turn<\/button>\s*<button class="risk-button risk-button-primary" type="button" id="risk-end-button" disabled>End phase<\/button>/', $riskHtml)
+        && (bool) preg_match('/\.risk-button-skip\[hidden\]\s*\{\s*display:\s*none;/', $riskCss),
+    'Risk must offer an initially hidden Skip to my turn button at the start of the dock action row.'
 );
 
 $riskScript = file_get_contents($root . '/htdocs/assets/js/risk-game.js');
@@ -549,6 +700,33 @@ public_ux_assert(
     'Risk must preserve live announcements and decision-focus synchronization.'
 );
 public_ux_assert(
+    (bool) preg_match('/const relocateHiddenFocus = \(\) => \{.*?!active\.closest\(\'\[hidden\]\'\).*?actionRowFocusTarget\(\)/s', $riskScript)
+        && (bool) preg_match('/const renderPhaseUi = \(\) => \{.*?relocateHiddenFocus\(\);\n    \};/s', $riskScript)
+        && (bool) preg_match('/const syncDecisionFocus = \(\) => \{.*?const relocatedFocus = relocateHiddenFocus\(\);/s', $riskScript)
+        && strpos($riskScript, 'turnGuidance.focus(') === false
+        && strpos($riskScript, 'elements.turnGuidance].find(canFocus)') === false,
+    'Risk must only move focus when the focused dock control was hidden, and then to the first enabled action-row control, never the guidance paragraph.'
+);
+public_ux_assert(
+    strpos($riskScript, "ArrowRight: index === last ? 0 : index + 1") !== false
+        && strpos($riskScript, "ArrowLeft: index === 0 ? last : index - 1") !== false
+        && strpos($riskScript, 'Home: 0') !== false
+        && strpos($riskScript, 'End: last') !== false
+        && strpos($riskScript, "candidate.setAttribute('aria-selected', selected ? 'true' : 'false');") !== false,
+    'Risk board detail tabs must support arrow, Home and End keys and keep aria-selected in sync.'
+);
+public_ux_assert(
+    strpos($riskScript, 'setTablePanelOpen(!state.active);') !== false
+        && strpos($riskScript, "if (visible && elements.lobbyPanel.hidden && !state.active) {\n            setTablePanelOpen(true);") !== false,
+    'Risk Game setup & lobby section must follow the setup disclosure and open when an online lobby appears.'
+);
+public_ux_assert(
+    strpos($riskScript, "root.querySelectorAll('.risk-action-bar-nav a[href^=\"#\"]')") !== false
+        && (bool) preg_match('/uxElements\.actionBarPrimary\?\.addEventListener\(\'click\', \(\) => \{\s*if \(!asButton\(elements\.endButton\)\.disabled\) \{\s*elements\.endButton\.click\(\);/', $riskScript)
+        && strpos($riskScript, 'setText(primary, source.textContent') !== false,
+    'Risk narrow-screen action bar must mirror the primary action and wire its Board/Decision jump links.'
+);
+public_ux_assert(
     strpos($riskScript, 'const phaseCopy =') !== false
         && strpos($riskScript, 'phaseCopy(null, { kind, details }).feedback') !== false
         && strpos($riskScript, 'setControlReason(asButton(elements.endButton), reasons.end)') !== false
@@ -558,6 +736,149 @@ public_ux_assert(
         && strpos($riskScript, 'runtime.selectionKey') !== false
         && strpos($riskScript, 'runtime.scoreboardKey') !== false,
     'Risk phase copy, visible disabled reasons, pending actions, and high-frequency detail renders must remain centralized and keyed.'
+);
+public_ux_assert(
+    (bool) preg_match('/if \(handleAttackSelection\(territory\)\) \{.*?humanAttack\(\);\s*return;/s', $riskScript)
+        && (bool) preg_match('/const handleAttackSelection = \(territory\) => \{.*?if \(runtime\.blitzing\) \{\s*return false;.*?return true;\n    \};/s', $riskScript)
+        && (bool) preg_match('/const selectTerritory = \(territoryId\) => \{.*?if \(state\.current_seat !== runtime\.localSeat\) \{.*?if \(state\.busy\) \{.*?handleAttackSelection\(territory\)/s', $riskScript)
+        && strpos($riskScript, 'elements.attackButton.addEventListener(\'click\', humanAttack);') !== false
+        && strpos($riskScript, 'uxElements.blitzButton?.addEventListener(\'click\', toggleBlitz);') !== false,
+    'Risk must roll a battle when an adjacent enemy is activated with a legal attacker selected, never while busy or off-turn, and keep Roll attack and Blitz.'
+);
+public_ux_assert(
+    strpos($riskScript, 'const createArmyMover = (') !== false
+        && strpos($riskScript, "rangeInput.addEventListener('input'") !== false
+        && strpos($riskScript, "numberInput.addEventListener('change', value);") !== false
+        && strpos($riskScript, "if (event.key === 'Enter') {\n                    event.preventDefault();\n                    value();\n                    onConfirm();") !== false
+        && strpos($riskScript, "quick === 'min'") !== false
+        && strpos($riskScript, 'return Math.min(bounds.max, Math.max(bounds.min, whole));') !== false
+        && strpos($riskScript, 'moveIntoConquest(runtime.localSeat, conquestMover.value())') !== false
+        && strpos($riskScript, 'performFortify(runtime.localSeat, source, target, fortifyMover.value())') !== false
+        && strpos($riskScript, 'stays in ${sourceName} · ${moves} moves to ${targetName}') !== false,
+    'Risk conquest and fortify must share one clamping army mover with synced slider and number, Min/Half/All, a split preview and Enter to confirm.'
+);
+public_ux_assert(
+    (bool) preg_match('/if \(hasLegalAttack\(runtime\.localSeat\)\) \{\s*openConfirmation\(\'end-attacks\'\);\s*return;\s*\}\s*endAttacks\(\);/', $riskScript)
+        && (bool) preg_match('/if \(hasLegalFortify\(runtime\.localSeat\)\) \{\s*openConfirmation\(\'end-turn\'\);\s*return;\s*\}\s*endTurnWithoutFortify\(\);/', $riskScript)
+        && strpos($riskScript, "openConfirmation('restart');") !== false
+        && strpos($riskScript, "if (/** @type {KeyboardEvent} */ (event).key === 'Escape' && runtime.confirmation) {") !== false
+        && strpos($riskScript, "elements.confirmCancel.addEventListener('click', closeConfirmation);") !== false
+        && strpos($riskScript, "elements.confirmYes.addEventListener('click', resolveConfirmation);") !== false
+        && strpos($riskScript, 'Confirm: end attacks') === false
+        && strpos($riskScript, 'restartConfirmationTimer') === false,
+    'Risk End attacks, End turn and Restart must confirm in persistent inline strips (Escape cancels), skipping them when no legal attack or fortify remains.'
+);
+public_ux_assert(
+    strpos($riskScript, "elements.undoButton.addEventListener('click', undoPlacement);") !== false
+        && (bool) preg_match('/const handleReinforceClick = \(territory\) => \{.*?recordPlacement\(territory, count, previousSourceId\);/s', $riskScript)
+        && (bool) preg_match('/const handleSetupClick = \(territory\) => \{.*?recordPlacement\(territory, 1, state\.sourceId\);/s', $riskScript)
+        && (bool) preg_match('/const cancelPending = \(\) => \{.*?runtime\.placementUndo = \[\];/s', $riskScript)
+        && (bool) preg_match('/const enterAttackPhase = \(player\) => \{.*?runtime\.placementUndo = \[\];/s', $riskScript)
+        && (bool) preg_match('/const beginTurn = \(player\) => \{\s*runtime\.placementUndo = \[\];/', $riskScript)
+        && (bool) preg_match('/markOnlineAction\(\'trade\'\);.*?runtime\.placementUndo = \[\];/s', $riskScript)
+        && strpos($riskScript, 'undoButton.disabled = undoPending || !(humanTurn && latestUndoablePlacement());') !== false,
+    'Risk Undo placement must revert the latest local placement and clear its stack on phase changes, trades, bot turns and remote updates.'
+);
+public_ux_assert(
+    (bool) preg_match('/const applyRemoteState = \(remote, version\) => \{.*?sourceId: state\.sourceId,\s*targetId: state\.targetId\s*\};.*?const selection = keepLegalSelection\(keep\.sourceId, keep\.targetId\);\s*state\.sourceId = selection\.sourceId;\s*state\.targetId = selection\.targetId;/s', $riskScript)
+        && (bool) preg_match('/const keepLegalSelection = \(sourceId, targetId\) => \{.*?attackError\(viewer, source, target,.*?fortifyError\(viewer, source, target, 1\)/s', $riskScript)
+        && strpos($riskScript, 'state.selectedCardIds = keep.selectedCardIds.filter((cardId) => hand.some((card) => card.id === cardId));') !== false,
+    'Risk online updates must keep the viewer\'s source, target and card selections while they remain legal.'
+);
+public_ux_assert(
+    strpos($riskScript, 'then click an adjacent enemy to attack it at once') !== false
+        && strpos($riskScript, 'Click an adjacent enemy to attack from ${ownSource.name}.') !== false
+        && strpos($riskScript, 'use Min, Half or All') !== false
+        && strpos($riskScript, 'Undo placement takes back your latest placement') !== false,
+    'Risk phase guidance must describe one-click attacks, the army mover and Undo placement.'
+);
+public_ux_assert(
+    strpos($riskScript, "marker.group.setAttribute('aria-describedby', mapTooltip.id);") !== false
+        && strpos($riskScript, "markers.get(mapTooltipId)?.group.removeAttribute('aria-describedby');") !== false
+        && strpos($riskScript, "group.addEventListener('pointerenter'") !== false
+        && strpos($riskScript, "group.addEventListener('pointerleave'") !== false
+        && strpos($riskScript, "group.addEventListener('focus'") !== false
+        && strpos($riskScript, "group.addEventListener('blur'") !== false
+        && strpos($riskScript, "(event).key === 'Escape' && mapTooltipId") !== false
+        && strpos($riskScript, "if (mapInput.type === 'touch') {\n                showMapTooltip(territoryId);") !== false
+        && strpos($riskScript, 'return open(`Attack from ${source.name}`);') !== false
+        && strpos($riskScript, "return open('Legal fortify target');") !== false
+        && strpos($riskScript, "return open('Place armies here');") !== false,
+    'Risk markers must share one tooltip with owner, armies and a contextual hint, linked by aria-describedby and hidden on pointerleave, blur and Escape.'
+);
+public_ux_assert(
+    strpos($riskScript, 'const MAP_DRAG_THRESHOLD = 6;') !== false
+        && strpos($riskScript, 'if (Math.hypot(dx, dy) < MAP_DRAG_THRESHOLD) {') !== false
+        && strpos($riskScript, "elements.map.addEventListener('pointermove', (event) => {") !== false
+        && strpos($riskScript, 'mapGesture.suppressClick') !== false
+        && strpos($riskScript, "if (!event.ctrlKey && !event.metaKey) {\n            return;\n        }") !== false
+        && strpos($riskScript, '}, { passive: false });') !== false
+        && strpos($riskScript, "elements.map.addEventListener('touchmove', (event) => {") !== false
+        && strpos($riskScript, "elements.map.addEventListener('dblclick', (event) => {") !== false
+        && strpos($riskScript, 'MAP_ZOOM_DETAIL = 1.4') !== false
+        && (bool) preg_match('/const zoomMapAt = \(level, clientX, clientY, options = \{\}\) => \{.*?applyMapZoom\(level, Boolean\(options\.persist\)\);/s', $riskScript)
+        && strpos($riskScript, 'window.localStorage.setItem(MAP_ZOOM_STORAGE_KEY, String(runtime.mapZoom));') !== false
+        && strpos($riskScript, 'const MAP_ZOOM_MIN = 0.6;') !== false
+        && strpos($riskScript, 'const MAP_ZOOM_MAX = 2;') !== false,
+    'Risk map must drag-pan past a 6px threshold, zoom with Ctrl/Cmd + wheel, pinch and double-click through applyMapZoom within 0.6-2, and keep plain wheel scrolling.'
+);
+public_ux_assert(
+    (bool) preg_match('/const scrollTerritoryIntoView = \(territoryId\) => \{.*?elements\.map\.getBoundingClientRect\(\);.*?marker\.ring\.getBoundingClientRect\(\);.*?box\.left >= visibleLeft && box\.right <= visibleRight.*?reducedMotion\(\) \? \'auto\' : \'smooth\'/s', $riskScript)
+        && strpos($riskScript, 'marker.group.scrollIntoView(') === false,
+    'Risk must scroll the board to a selected territory only when its marker lies outside the visible map frame.'
+);
+public_ux_assert(
+    (bool) preg_match('/const renderMap = \(\) => \{.*?const raiseLands = selectionKey !== runtime\.mapSelectionKey;.*?if \(raiseLands\) \{.*?path\.parentNode\.appendChild\(path\);.*?pulseElement\(count, \'is-count-bump\', 520\).*?refreshMapTooltip\(\);\n    \};/s', $riskScript)
+        && substr_count($riskScript, 'path.parentNode.appendChild(path);') === 1
+        && strpos($riskScript, "actionable.has(territory.id) ? 'is-actionable' : ''") !== false,
+    'Risk renderMap must restack land paths only when the selection changes, bump changed army counts, and mark actionable territories.'
+);
+public_ux_assert(
+    strpos($riskScript, 'const AI_WORKER_TIME_BUDGET_MS = 1500;') !== false
+        && strpos($riskScript, 'normal: { budgetMs: AI_WORKER_TIME_BUDGET_MS, timeoutMs: AI_WORKER_TIMEOUT_MS }') !== false
+        && strpos($riskScript, 'fast: { budgetMs: 600,') !== false
+        && strpos($riskScript, 'instant: { budgetMs: 200,') !== false
+        && (bool) preg_match('/const requestBotAction = \(seat\) => \{.*?const budget = botThinkBudget\(\);.*?\}, budget\.timeoutMs\);.*?options: \{ timeBudgetMs: budget\.budgetMs \}/s', $riskScript)
+        && (bool) preg_match('/const pace = \(milliseconds\) => \{\s*const speed = effectiveSpeed\(\);\s*if \(speed === \'instant\'\) \{\s*return 0;/', $riskScript),
+    'Risk bot think time and pacing must follow the Speed setting: 1500ms at Normal, at most 600ms at Fast, at most 200ms and no delay at Instant.'
+);
+public_ux_assert(
+    strpos($riskScript, 'const effectiveSpeed = () => (runtime.skipToTurn ? \'instant\' : runtime.speed);') !== false
+        && strpos($riskScript, "uxElements.skipButton?.addEventListener('click', toggleSkipToTurn);") !== false
+        && (bool) preg_match('/const toggleSkipToTurn = \(\) => \{.*?runtime\.skipToTurn = true;.*?uxElements\.announcer\.textContent = /s', $riskScript)
+        && (bool) preg_match('/const syncSkipToTurn = \(\) => \{\s*if \(runtime\.skipToTurn && !canSkipBotTurn\(\)\) \{\s*runtime\.skipToTurn = false;/', $riskScript)
+        && (bool) preg_match('/const canSkipBotTurn = \(\) => state\.active.*?isBot\(state\.current_seat\).*?!state\.pendingDefense;/s', $riskScript),
+    'Risk Skip to my turn must force instant bot turns, be announced once, and end at the next human decision.'
+);
+public_ux_assert(
+    strpos($riskScript, 'const logBattle = (battle, summary) => {') !== false
+        && strpos($riskScript, 'attacks ${battle.targetName} from ${battle.sourceName} ×${tally.count} — attacker lost ${tally.attackerLost}, defender lost ${tally.defenderLost}${battle.conquered ? \', conquered\' : \'\'}.') !== false
+        && strpos($riskScript, "if (!isBot(battle.attacker) && !runtime.blitzing) {") !== false
+        && strpos($riskScript, 'retained[0].node.textContent = text;') !== false
+        && strpos($riskScript, 'elements.log.scrollTop = previousScrollTop + (scrollAnchor.offsetTop - previousAnchorOffset);') !== false,
+    'Risk must collapse consecutive bot and Blitz battles over one border into one live-updating log entry while keeping the log scroll anchor.'
+);
+public_ux_assert(
+    (bool) preg_match('/const syncOnlineState = \(\) => \{(?P<body>.*?)\n    \};/s', $riskScript, $riskSyncOnlineState)
+        && strpos($riskSyncOnlineState['body'], 'if (runtime.stateRevision === online.syncedRevision) {') !== false
+        && strpos($riskSyncOnlineState['body'], 'JSON.stringify') === false
+        && strpos($riskScript, 'expected_version: online.version, state: job.state') !== false
+        && (bool) preg_match('/const markStateChanged = \(\) => \{\s*runtime\.stateRevision \+= 1;/', $riskScript)
+        && (bool) preg_match('/const addLog = \(message\) => \{\s*markStateChanged\(\);/', $riskScript)
+        && (bool) preg_match('/const applyBotAction = \(seat, action\) => \{\s*let error = \'\';\s*markStateChanged\(\);/', $riskScript)
+        && (bool) preg_match('/const undoPlacement = \(\) => \{.*?runtime\.placementUndo\.pop\(\);\s*markStateChanged\(\);/s', $riskScript)
+        && (bool) preg_match('/const endAttacks = \(\) => \{\s*markOnlineAction\(\'end\'\);\s*markStateChanged\(\);/', $riskScript)
+        && (bool) preg_match('/const applyRemoteState = \(remote, version\) => \{.*?markStateChanged\(\);\s*online\.syncedRevision = runtime\.stateRevision;/s', $riskScript)
+        && (bool) preg_match('/const guidanceContextKey = \(\) => \[(?P<body>.*?)\]\.join\(\'\|\'\);/s', $riskScript, $riskGuidanceKey)
+        && strpos($riskGuidanceKey['body'], 'JSON.stringify') === false,
+    'Risk online sync must serialize only when runtime.stateRevision changed, keep its optimistic-version posts, and key guidance without serializing the state.'
+);
+public_ux_assert(
+    strpos($riskScript, 'const POLL_MS = 2500;') !== false
+        && (bool) preg_match('/const startPolling = \(\) => \{.*?if \(document\.hidden\) \{\s*return;\s*\}.*?\}, POLL_MS\);/s', $riskScript)
+        && (bool) preg_match('/document\.addEventListener\(\'visibilitychange\', \(\) => \{.*?clearPollTimer\(\);.*?startPolling\(\);\s*pollOnlineGame\(\);/s', $riskScript)
+        && (bool) preg_match('/const flushOnlinePost = async \(\) => \{.*?render\(\);\s*flushOnlinePost\(\);.*?pollOnlineGame\(\);.*?\} catch \(error\) \{/s', $riskScript),
+    'Risk online play must poll right after an acknowledged post, pause polling while hidden and poll at once when visible again.'
 );
 
 $css = file_get_contents($root . '/htdocs/assets/styles.css');
