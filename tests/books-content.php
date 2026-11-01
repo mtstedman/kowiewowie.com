@@ -82,15 +82,19 @@ $postgres = $root . '/docs/postgres';
 
 // Migration chain: version 24 appends 023_books.sql with its checksum; history is untouched.
 $chain = json_decode((string) file_get_contents($postgres . '/migration-chain.json'), true, flags: JSON_THROW_ON_ERROR);
-$last = $chain['versions'][count($chain['versions']) - 1];
-check(24, $last['version'] ?? null, 'chain ends at version 24');
-check('updates/023_books.sql', $last['updates'][0]['file'] ?? null, 'version 24 update file');
-check(hash_file('sha256', $postgres . '/updates/023_books.sql'), $last['updates'][0]['sha256'] ?? null, 'version 24 checksum');
+$booksVersion = $chain['versions'][23] ?? [];
+check(24, $booksVersion['version'] ?? null, 'chain version 24 is present');
+check('updates/023_books.sql', $booksVersion['updates'][0]['file'] ?? null, 'version 24 update file');
+check(hash_file('sha256', $postgres . '/updates/023_books.sql'), $booksVersion['updates'][0]['sha256'] ?? null, 'version 24 checksum');
 check('updates/022_poe2_inventory.sql', $chain['versions'][22]['updates'][0]['file'] ?? null, 'version 23 update file is unchanged');
 check('390948c7bd533533048b8cf2034db05b6824e0f41e54cc08ebd6ed9e4648b010', $chain['versions'][22]['updates'][0]['sha256'] ?? null, 'version 23 checksum is unchanged');
-check('24', trim((string) file_get_contents($postgres . '/VERSION')), 'VERSION pin');
+$last = $chain['versions'][count($chain['versions']) - 1];
+check(26, $last['version'] ?? null, 'chain ends at version 26');
+check('updates/024_wedding_registry.sql', $last['updates'][0]['file'] ?? null, 'version 26 update file');
+check(hash_file('sha256', $postgres . '/updates/024_wedding_registry.sql'), $last['updates'][0]['sha256'] ?? null, 'version 26 checksum');
+check('26', trim((string) file_get_contents($postgres . '/VERSION')), 'VERSION pin');
 try {
-    check(24, SchemaVersionMinter::validateDefinition($postgres)['targetVersion'], 'validated target version');
+    check(26, SchemaVersionMinter::validateDefinition($postgres)['targetVersion'], 'validated target version');
 } catch (Throwable $error) {
     $failures[] = 'migration chain does not validate: ' . $error->getMessage();
 }

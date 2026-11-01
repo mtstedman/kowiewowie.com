@@ -23,6 +23,8 @@ use Wowie\Api\Poe2\Poe2TreeRepository;
 use Wowie\Api\Risk\RiskRepository;
 use Wowie\Api\Trivia\TriviaIdentityService;
 use Wowie\Api\Trivia\TriviaRepository;
+use Wowie\Api\Wedding\WeddingRegistryCatalog;
+use Wowie\Api\Wedding\WeddingRegistryRepository;
 
 final class Application
 {
@@ -39,6 +41,7 @@ final class Application
     private readonly RiskRepository $risk;
     private readonly Poe2BuildRepository $poe2Builds;
     private readonly Poe2TreeRepository $poe2Tree;
+    private readonly WeddingRegistryRepository $weddingRegistry;
     /** @var array<string, string> */
     private array $chessIdentityResponseHeaders = [];
     /** @var array<string, string> Headers that must survive an auth error response, such as an expired refresh cookie. */
@@ -65,6 +68,7 @@ final class Application
         $this->risk = new RiskRepository($pdo);
         $this->poe2Builds = new Poe2BuildRepository($pdo);
         $this->poe2Tree = new Poe2TreeRepository($pdo);
+        $this->weddingRegistry = new WeddingRegistryRepository($pdo);
     }
 
     public function handle(Request $request): Response
@@ -283,6 +287,11 @@ final class Application
         $collectionResponse = $this->dispatchCollection($request);
         if ($collectionResponse !== null) {
             return $collectionResponse;
+        }
+
+        $weddingRegistryResponse = $this->dispatchWeddingRegistry($request);
+        if ($weddingRegistryResponse !== null) {
+            return $weddingRegistryResponse;
         }
 
         $contentRoute = $this->contentRoute($request->path);
@@ -984,6 +993,70 @@ final class Application
      * cookie with their first saved figure, and every request renews it. The first read while
      * signed in merges that browser's guest collection into the account.
      */
+    private function dispatchWeddingRegistry(Request $request): ?Response
+    {
+        $routes = [
+            '/v1/wedding-registry/catalog' => 'GET',
+            '/v1/wedding-registry/me' => 'GET',
+            '/v1/wedding-registry/profile' => 'PUT',
+            '/v1/wedding-registry/enrollments' => 'POST',
+            '/v1/wedding-registry/picks' => 'POST',
+        ];
+        if (!isset($routes[$request->path])) {
+            return null;
+        }
+        if ($request->method !== $routes[$request->path]) {
+            throw new ApiException(405, 'method_not_allowed', 'That method is not supported for this wedding registry route.');
+        }
+        if ($request->path === '/v1/wedding-registry/catalog') {
+            return Response::json(['data' => ['registries' => WeddingRegistryCatalog::registries()]]);
+        }
+        if ($request->method !== 'GET') {
+            // Checked before the user is resolved so a rejected request never touches data.
+            $this->requireSiteWriteOrigin($request, 'Wedding registry changes must come from this site or an allowed origin.');
+        }
+
+        $userId = (string) $this->auth->authenticatedUser($request->bearerToken())['id'];
+
+        return match ($request->path) {
+            '/v1/wedding-registry/me' => Response::json(['data' => [
+                'profile' => $this->weddingRegistry->profile($userId),
+                'enrollments' => $this->weddingRegistry->enrollments($userId),
+                'picks' => $this->weddingRegistry->picks($userId),
+            ]]),
+            '/v1/wedding-registry/profile' => Response::json([
+                'data' => $this->weddingRegistry->saveProfile($userId, $request->json()),
+            ]),
+            '/v1/wedding-registry/enrollments' => Response::json(['data' => [
+                'enrollments' => $this->weddingRegistry->enroll($userId, $this->weddingRegistryList($request->json(), 'registries', true)),
+            ]]),
+            '/v1/wedding-registry/picks' => Response::json(['data' => [
+                'picks' => $this->weddingRegistry->savePicks($userId, $this->weddingRegistryList($request->json(), 'picks', false)),
+            ]]),
+        };
+    }
+
+    /**
+     * Reads a list field from a wedding registry request body; the repository validates its items.
+     *
+     * @param array<string, mixed> $body
+     * @return array<mixed>
+     */
+    private function weddingRegistryList(array $body, string $field, bool $optional): array
+    {
+        $value = $body[$field] ?? null;
+        if ($value === null && $optional) {
+            return [];
+        }
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new ApiException(422, 'validation_failed', "The {$field} field must be a list.", [
+                'fields' => [$field => 'Provide a list.'],
+            ]);
+        }
+
+        return $value;
+    }
+
     private function dispatchCollection(Request $request): ?Response
     {
         $routes = [

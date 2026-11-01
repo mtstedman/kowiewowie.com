@@ -25,6 +25,7 @@ $securityContractPages = [
     'htdocs/recipes/recipe.php' => '/recipes/recipe.php',
     'htdocs/videos/index.php' => '/videos/',
     'htdocs/videos/video.php' => '/videos/video.php',
+    'htdocs/wedding-registry/index.php' => '/wedding-registry/',
 ];
 
 foreach ($securityContractPages as $scriptPath => $requestUri) {

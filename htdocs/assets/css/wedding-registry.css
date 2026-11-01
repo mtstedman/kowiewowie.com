@@ -1,0 +1,520 @@
+/* Wedding Registry section. Uses the shared :root tokens from /assets/styles.css. */
+
+.wedding-registry-hero h1 {
+    max-width: 24ch;
+}
+
+.wedding-registry-details,
+.wedding-registry-library {
+    display: grid;
+    gap: var(--space-md);
+}
+
+.wedding-registry-details .section-heading,
+.wedding-registry-library .section-heading {
+    margin-bottom: 0;
+}
+
+.wedding-registry-library .section-heading p:last-child {
+    color: var(--ink-soft);
+}
+
+.wedding-registry-disclosure {
+    display: grid;
+    gap: 0.4rem;
+    max-width: 78ch;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-sm);
+    background: rgba(249, 248, 113, 0.06);
+    box-shadow: inset 3px 0 0 var(--accent-warm);
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+}
+
+.wedding-registry-disclosure p,
+.wedding-registry-disclosure-title {
+    margin: 0;
+}
+
+.wedding-registry-disclosure-title {
+    color: var(--accent-warm);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.wedding-registry-login {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.9rem;
+    margin: 0;
+}
+
+.wedding-registry-login[hidden] {
+    display: none;
+}
+
+.wedding-registry-login-note {
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.wedding-registry-form {
+    display: grid;
+    gap: var(--space-md);
+    margin: 0;
+}
+
+.wedding-registry-fieldset {
+    display: grid;
+    gap: var(--space-md);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.wedding-registry-fieldset:disabled {
+    opacity: 0.72;
+}
+
+.wedding-registry-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm) var(--space-md);
+}
+
+.wedding-registry-field {
+    display: grid;
+    align-content: start;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.wedding-registry-field label,
+.wedding-registry-copy-fallback label {
+    color: var(--ink);
+    font-size: 0.88rem;
+    font-weight: 650;
+}
+
+.wedding-registry-optional {
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.wedding-registry-field input,
+.wedding-registry-field textarea,
+.wedding-registry-copy-fallback textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: rgba(5, 9, 18, 0.88);
+    color: var(--ink);
+    color-scheme: dark;
+    font: inherit;
+    font-size: 0.95rem;
+    transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.wedding-registry-field textarea,
+.wedding-registry-copy-fallback textarea {
+    resize: vertical;
+    line-height: 1.45;
+}
+
+.wedding-registry-field input:hover,
+.wedding-registry-field textarea:hover {
+    border-color: var(--line-strong);
+}
+
+.wedding-registry-field input:focus-visible,
+.wedding-registry-field textarea:focus-visible,
+.wedding-registry-copy-fallback textarea:focus-visible {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent-warm);
+    outline-offset: 2px;
+}
+
+.wedding-registry-field input[aria-invalid="true"],
+.wedding-registry-field textarea[aria-invalid="true"] {
+    border-color: var(--accent-strong);
+    box-shadow: 0 0 0 1px var(--accent-strong);
+}
+
+.wedding-registry-field-error {
+    margin: 0;
+    color: #ff9fe9;
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.wedding-registry-field-error[hidden] {
+    display: none;
+}
+
+.wedding-registry-actions,
+.wedding-registry-card-actions,
+.wedding-registry-product-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+}
+
+.wedding-registry-primary {
+    border-color: var(--accent-strong);
+    background: rgba(255, 43, 214, 0.16);
+    color: #ffffff;
+}
+
+.wedding-registry-primary:hover,
+.wedding-registry-primary:focus-visible {
+    border-color: var(--accent-warm);
+    background: rgba(255, 43, 214, 0.26);
+    box-shadow: 0 0 18px var(--glow-strong);
+}
+
+.wedding-registry-details .button:disabled,
+.wedding-registry-library .button:disabled,
+.wedding-registry-added-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    box-shadow: none;
+}
+
+.wedding-registry-status {
+    min-height: 1.5em;
+    margin: 0;
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--radius-sm);
+    background: var(--surface-fill-subtle);
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+    overflow-wrap: anywhere;
+}
+
+.wedding-registry-status:empty {
+    padding: 0;
+    background: transparent;
+}
+
+.wedding-registry-status[data-tone="success"] {
+    background: rgba(0, 245, 255, 0.09);
+    box-shadow: inset 3px 0 0 var(--accent);
+    color: var(--ink);
+}
+
+.wedding-registry-status[data-tone="error"] {
+    background: rgba(255, 43, 214, 0.1);
+    box-shadow: inset 3px 0 0 var(--accent-strong);
+    color: var(--ink);
+}
+
+.wedding-registry-copy-fallback {
+    display: grid;
+    gap: 0.3rem;
+}
+
+.wedding-registry-copy-fallback[hidden] {
+    display: none;
+}
+
+/* Registry cards: one column on phones, two on tablets, three on desktop. */
+.wedding-registry-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(0.9rem, 2vw, 1.25rem);
+    align-items: start;
+}
+
+.wedding-registry-placeholder {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px dashed var(--surface-edge);
+    border-radius: var(--radius-sm);
+    color: var(--ink-soft);
+}
+
+.wedding-registry-placeholder h3,
+.wedding-registry-placeholder p {
+    margin: 0;
+}
+
+.wedding-registry-placeholder-error {
+    display: grid;
+    gap: 0.4rem;
+    border-style: solid;
+    border-color: var(--surface-edge-strong);
+}
+
+.wedding-registry-card {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: clamp(1rem, 2.5vw, 1.35rem);
+    border: 1px solid var(--surface-edge);
+    border-radius: var(--radius);
+    background: rgba(5, 10, 20, 0.6);
+}
+
+.wedding-registry-card:focus-within {
+    border-color: var(--line-strong);
+}
+
+.wedding-registry-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+}
+
+.wedding-registry-card-title {
+    margin: 0;
+    font-size: var(--step-2);
+}
+
+.wedding-registry-badge {
+    margin: 0;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(166, 186, 214, 0.12);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.wedding-registry-badge[hidden] {
+    display: none;
+}
+
+.wedding-registry-badge[data-state="enrolled"] {
+    background: rgba(249, 248, 113, 0.12);
+    color: var(--accent-warm);
+    box-shadow: inset 0 0 0 1px rgba(249, 248, 113, 0.4);
+}
+
+.wedding-registry-tagline,
+.wedding-registry-help {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+}
+
+.wedding-registry-help {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.wedding-registry-products-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(0, 245, 255, 0.14);
+}
+
+.wedding-registry-products-heading h4 {
+    margin: 0;
+    font-size: var(--step-0);
+}
+
+.wedding-registry-products-summary {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.wedding-registry-enroll-products {
+    justify-self: start;
+}
+
+.wedding-registry-products {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.wedding-registry-product {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 245, 255, 0.03);
+    box-shadow: inset 0 0 0 1px rgba(0, 245, 255, 0.1);
+}
+
+.wedding-registry-product[data-state="picked"] {
+    box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.wedding-registry-product[data-state="added"] {
+    background: rgba(249, 248, 113, 0.05);
+    box-shadow: inset 0 0 0 1px rgba(249, 248, 113, 0.32);
+}
+
+.wedding-registry-product-pick {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+.wedding-registry-product-pick input {
+    flex: 0 0 auto;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: 0.2rem 0 0;
+    accent-color: var(--accent-strong);
+}
+
+.wedding-registry-product-pick input:disabled {
+    cursor: not-allowed;
+}
+
+.wedding-registry-product-pick input:focus-visible {
+    outline: 2px solid var(--accent-warm);
+    outline-offset: 3px;
+}
+
+.wedding-registry-product-text {
+    display: grid;
+    gap: 0.1rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.wedding-registry-product-name {
+    color: var(--ink);
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.wedding-registry-product-meta {
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.wedding-registry-product-state {
+    color: var(--accent);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.wedding-registry-product-state[hidden] {
+    display: none;
+}
+
+.wedding-registry-product[data-state="added"] .wedding-registry-product-state {
+    color: var(--accent-warm);
+}
+
+.wedding-registry-product-actions {
+    padding-left: 1.75rem;
+}
+
+.wedding-registry-product-link,
+.wedding-registry-signup-link {
+    font-size: 0.85rem;
+}
+
+.wedding-registry-added-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.wedding-registry-added-toggle::before {
+    content: "";
+    width: 0.7rem;
+    height: 0.7rem;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+}
+
+.wedding-registry-added-toggle:hover,
+.wedding-registry-added-toggle:focus-visible {
+    border-color: var(--accent);
+    background: rgba(0, 245, 255, 0.08);
+    color: var(--ink);
+}
+
+.wedding-registry-added-toggle:focus-visible {
+    outline: 2px solid var(--accent-warm);
+    outline-offset: 3px;
+}
+
+.wedding-registry-added-toggle[aria-pressed="true"] {
+    border-color: rgba(249, 248, 113, 0.6);
+    background: rgba(249, 248, 113, 0.12);
+    color: var(--accent-warm);
+}
+
+.wedding-registry-added-toggle[aria-pressed="true"]::before {
+    border-color: var(--accent-warm);
+    background: var(--accent-warm);
+    box-shadow: 0 0 8px rgba(249, 248, 113, 0.6);
+}
+
+@media (min-width: 700px) {
+    .wedding-registry-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .wedding-registry-field-wide {
+        grid-column: 1 / -1;
+    }
+
+    .wedding-registry-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1080px) {
+    .wedding-registry-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .wedding-registry-actions .button {
+        flex: 1 1 100%;
+    }
+
+    .wedding-registry-product-actions {
+        padding-left: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wedding-registry-field input,
+    .wedding-registry-field textarea,
+    .wedding-registry-added-toggle {
+        transition: none;
+    }
+}

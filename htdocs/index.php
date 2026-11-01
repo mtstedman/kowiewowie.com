@@ -97,6 +97,11 @@ require __DIR__ . '/partials/head.php';
                         </article>
                         <article>
                             <span class="feature-number">04</span>
+                            <h3><a class="feature-link" href="/wedding-registry/">Wedding Registry</a></h3>
+                            <p>Save your details once, open the Amazon, Target, and Zola signups together, and tick off each store's most-loved gifts.</p>
+                        </article>
+                        <article>
+                            <span class="feature-number">05</span>
                             <h3><a class="feature-link" href="/music/">Music, videos, and more</a></h3>
                             <p>Sound bookmarks, watch pages, and side quests from the rest of the desk.</p>
                         </article>

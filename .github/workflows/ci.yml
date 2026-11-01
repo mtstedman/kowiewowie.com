@@ -61,6 +61,9 @@ jobs:
       - name: Run deployment revision regressions
         run: php tests/deployment-revision.php
 
+      - name: Run wedding registry regressions
+        run: php tests/wedding-registry.php
+
       - name: Validate collectibles production modules
         run: |
           npm run typecheck

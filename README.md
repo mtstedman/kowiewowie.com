@@ -18,6 +18,7 @@ includes/
   content/functions/            Stateless validation and slug helpers
   database/classes/             PDO connection and schema version minter
   http/classes/                 Request/response contracts
+  wedding/classes/              Wedding registry catalog and per-user repository
 database/
   migrate.php                   Compatibility entry point for the DB minter
   seed.php                      Idempotent JSON-to-PostgreSQL import
@@ -39,6 +40,7 @@ tests/api-smoke.php             Database and API integration checks
 tests/trivia-murder-game.php    Isolated full-game database playthrough
 tests/poe2-tree-api.php         PoE 2 passive-tree import and API checks
 tests/collectibles-collection.php  Saved-collection API checks (guest cookie, account merge)
+tests/wedding-registry.php      Isolated SQLite wedding registry API checks
 ```
 
 PostgreSQL owns users, OAuth identities, rotating refresh tokens, recipes,
@@ -109,6 +111,26 @@ POST /v1/collectibles/collection/merge     {figures: [{product_id, figure_name, 
 
 A quantity of zero removes the figure. Writes must come from the site's own
 origin or `WOWIE_CORS_ORIGINS`, as for PoE 2 builds.
+
+The wedding registry helps a signed-in couple get started with Amazon, Target,
+and Zola. None of those retailers offers a signup or add-to-registry API, so
+the site saves the couple's details once, records an enrollment per registry,
+and returns each registry's official signup URL; the couple finishes signup and
+adds their picked products on the retailer's own site. The catalog of popular
+products is curated in `includes/wedding/classes/WeddingRegistryCatalog.php`.
+Routes (all but the catalog need a Bearer token; writes must come from the
+site's own origin or `WOWIE_CORS_ORIGINS`):
+
+```text
+GET  /v1/wedding-registry/catalog      registries with signup URLs and popular products
+GET  /v1/wedding-registry/me           {profile, enrollments, picks}
+PUT  /v1/wedding-registry/profile      {partner_one_name, partner_two_name, wedding_date?, contact_email, shipping_address?}
+POST /v1/wedding-registry/enrollments  {registries?: [amazon|target|zola]}  (no body or an empty list = all three)
+POST /v1/wedding-registry/picks        {picks: [{registry_key, product_key, status: picked|added|removed}]}
+```
+
+Enrollments are idempotent and keep their original `enrolled_at`; enrolling
+requires a saved profile (`422 profile_required`). A `removed` pick deletes it.
 
 ## Database configuration
 
@@ -238,6 +260,10 @@ drops the schema when finished. The passive-tree check imports the pinned
 export if needed, verifies repeat imports, rejected exports, current-version
 switching and ETag revalidation, then confirms through the planner's own rule
 model that the API payload builds the same allocation models as the export.
+
+`php tests/wedding-registry.php` needs only `pdo_sqlite`: it checks the
+wedding registry migration entry, then exercises the catalog, profile,
+enrollment, and pick routes against in-memory SQLite tables.
 
 ## API surface
 

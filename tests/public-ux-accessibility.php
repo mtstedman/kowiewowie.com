@@ -25,6 +25,7 @@ $publicPages = [
     'htdocs/recipes/recipe.php' => ['requestUri' => '/recipes/recipe.php', 'currentSection' => 'recipes'],
     'htdocs/videos/index.php' => ['requestUri' => '/videos/', 'currentSection' => 'videos'],
     'htdocs/videos/video.php' => ['requestUri' => '/videos/video.php', 'currentSection' => 'videos'],
+    'htdocs/wedding-registry/index.php' => ['requestUri' => '/wedding-registry/', 'currentSection' => 'wedding-registry'],
 ];
 
 $focusedHeaderPages = [

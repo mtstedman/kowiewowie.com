@@ -11,6 +11,7 @@ $publicNavItems = [
     'dongs' => ['href' => '/dongs/', 'label' => 'Dongs'],
     'crabs' => ['href' => '/crabs/', 'label' => 'Crabs'],
     'collectibles' => ['href' => '/collectibles/', 'label' => 'Collectibles'],
+    'wedding-registry' => ['href' => '/wedding-registry/', 'label' => 'Wedding Registry'],
 ];
 
 $publicSectionAliases = [

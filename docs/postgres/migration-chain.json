@@ -225,6 +225,15 @@
           "sha256": "499b6e5bd27e7e061d94d2a0f60eab95b8f8cd1a9e7db72ee589a0748af2e66f"
         }
       ]
+    },
+    {
+      "version": 26,
+      "updates": [
+        {
+          "file": "updates/024_wedding_registry.sql",
+          "sha256": "40ab3926712003d426edeae880a69ef2b9b17752b16e4a49b1dac854789fdd26"
+        }
+      ]
     }
   ]
 }

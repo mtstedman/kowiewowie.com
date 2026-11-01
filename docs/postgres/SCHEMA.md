@@ -1,9 +1,9 @@
-<!-- schema-version: 25 -->
+<!-- schema-version: 26 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 25**. `migration-chain.json` is the ordered,
+current release pin is **version 26**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -42,11 +42,14 @@ per-file execution ledger.
 | 23 | `022_poe2_inventory.sql` | Equipment inventory on Path of Exile 2 saved builds |
 | 24 | `023_books.sql` | Admin-authored book recommendations with Amazon links, covers, prices, and overviews |
 | 25 | `024_trivia_lives_and_mini_games.sql` | Trivia room starting lives, per-player remaining lives, and grim arithmetic, odd one out, and sequence recall Killing Floor trials |
+| 26 | `024_wedding_registry.sql` | Per-user wedding registry profiles, Amazon/Target/Zola registry enrollments, and registry product picks |
 
 The two historical filenames beginning with `002` are intentionally preserved:
-their full basenames are already stored in production's migration ledger.
+their full basenames are already stored in production's migration ledger. The
+ledger keys on full basenames, so the two `013` and two `024` files are also
+distinct updates.
 
-## Current version 25 inventory
+## Current version 26 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -77,6 +80,8 @@ their full basenames are already stored in production's migration ledger.
   `poe2_tree_node_keystones_in_radius`, `poe2_tree_skill_overrides`,
   `poe2_tree_class_override_pairs`, and `poe2_tree_ascendancy_override_pairs`;
   `poe2_saved_builds.inventory` stores each build's equipment
+- Wedding registry: `wedding_registry_profiles`,
+  `wedding_registry_enrollments`, and `wedding_registry_product_picks`
 - Migration metadata: `schema_migrations` and `database_schema_version`
 
 All application-owned timestamps are UTC `timestamptz` values. Primary content
@@ -118,6 +123,31 @@ never fetched or resolved:
 `cover_image_url` accepts any valid HTTPS URL without credentials. Public
 reads return published books only; creating, updating, and deleting books
 through the versioned API requires the `admin` role.
+
+## Wedding registry
+
+The wedding registry tables belong to registered `users`; every table's
+`user_id` references `users(id)` with `ON DELETE CASCADE`, so deleting a user
+removes their registry data. Each table has UTC `created_at`/`updated_at`
+timestamps refreshed by a `<table>_set_updated_at` trigger calling
+`set_updated_at()`.
+
+`wedding_registry_profiles` holds one row per user, keyed by `user_id`:
+`partner_one_name` and `partner_two_name` (each 1-120 characters), an optional
+`wedding_date`, a required `contact_email` (3-254 characters), and an optional
+`shipping_address` of at most 500 characters.
+
+`wedding_registry_enrollments` records which registries a user enrolled in:
+a UUID `id`, `user_id`, a `registry_key` of `amazon`, `target`, or `zola`, a
+`status` that is currently always `enrolled`, and `enrolled_at`.
+`(user_id, registry_key)` is unique, and `wedding_registry_enrollments_user_idx`
+serves a user's enrollment list.
+
+`wedding_registry_product_picks` records the products a user picked for a
+registry: a UUID `id`, `user_id`, the same `registry_key` values, a
+`product_key` of 1-80 lowercase letters, digits, or hyphens, and a `status` of
+`picked` or `added`. `(user_id, registry_key, product_key)` is unique, and
+`wedding_registry_product_picks_user_idx` serves a user's picks.
 
 ## Chess game storage
 
