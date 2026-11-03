@@ -21,6 +21,8 @@ use Wowie\Api\Http\Response;
 use Wowie\Api\Poe2\Poe2BuildRepository;
 use Wowie\Api\Poe2\Poe2TreeRepository;
 use Wowie\Api\Risk\RiskRepository;
+use Wowie\Api\Stratego\StrategoEngine;
+use Wowie\Api\Stratego\StrategoRepository;
 use Wowie\Api\Trivia\TriviaIdentityService;
 use Wowie\Api\Trivia\TriviaRepository;
 use Wowie\Api\Wedding\WeddingRegistryCatalog;
@@ -39,6 +41,7 @@ final class Application
     private readonly TriviaIdentityService $triviaGuests;
     private readonly TriviaRepository $trivia;
     private readonly RiskRepository $risk;
+    private readonly StrategoRepository $stratego;
     private readonly Poe2BuildRepository $poe2Builds;
     private readonly Poe2TreeRepository $poe2Tree;
     private readonly WeddingRegistryRepository $weddingRegistry;
@@ -66,6 +69,7 @@ final class Application
         $this->triviaGuests = new TriviaIdentityService($pdo);
         $this->trivia = new TriviaRepository($pdo);
         $this->risk = new RiskRepository($pdo);
+        $this->stratego = new StrategoRepository($pdo, new StrategoEngine());
         $this->poe2Builds = new Poe2BuildRepository($pdo);
         $this->poe2Tree = new Poe2TreeRepository($pdo);
         $this->weddingRegistry = new WeddingRegistryRepository($pdo);
@@ -277,6 +281,11 @@ final class Application
         $riskResponse = $this->dispatchRisk($request);
         if ($riskResponse !== null) {
             return $riskResponse;
+        }
+
+        $strategoResponse = $this->dispatchStratego($request);
+        if ($strategoResponse !== null) {
+            return $strategoResponse;
         }
 
         $poe2Response = $this->dispatchPoe2($request);
@@ -575,6 +584,105 @@ final class Application
                 $game = $this->risk->startGame($publicId, $identity);
             } else {
                 $game = $this->risk->postState($publicId, $request->json(), $identity);
+            }
+            return $this->withChessIdentity(Response::json(['data' => $game]), $identity);
+        }
+
+        return null;
+    }
+
+    private function dispatchStratego(Request $request): ?Response
+    {
+        if ($request->path === '/v1/stratego/games') {
+            if ($request->method === 'GET') {
+                $identity = $this->resolveChessIdentity($request);
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->stratego->listGamesForIdentity($identity, 100),
+                ]), $identity);
+            }
+            if ($request->method !== 'POST') {
+                throw new ApiException(405, 'method_not_allowed', 'That method is not supported for Stratego games.');
+            }
+            $identity = $this->resolveChessIdentity($request);
+            $body = $request->json();
+            if (isset($body['creator_color'])
+                && !in_array($body['creator_color'], ['red', 'blue', 'random'], true)) {
+                throw new ApiException(422, 'validation_failed', 'creator_color must be red, blue or random.');
+            }
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->stratego->createGame($body, $identity),
+            ], 201), $identity);
+        }
+
+        if ($request->path === '/v1/stratego/links/claim') {
+            if ($request->method !== 'POST') {
+                throw new ApiException(405, 'method_not_allowed', 'That method is not supported for Stratego invitation claims.');
+            }
+            $identity = $this->resolveChessIdentity($request);
+            $body = $request->json();
+            $token = $body['token'] ?? null;
+            if (!is_string($token) || trim($token) === '') {
+                throw new ApiException(422, 'validation_failed', 'token must be a non-empty string.');
+            }
+            return $this->withChessIdentity(Response::json([
+                'data' => $this->stratego->claimLink($token, $identity),
+            ]), $identity);
+        }
+
+        if (preg_match('#^/v1/stratego/games/([^/]+)(?:/(links|setup|ready|moves|resign))?$#', $request->path, $matches)) {
+            $action = $matches[2] ?? '';
+            if ($request->method !== ($action === '' ? 'GET' : 'POST')) {
+                throw new ApiException(405, 'method_not_allowed', 'That method is not supported for this Stratego resource.');
+            }
+            $identity = $this->resolveChessIdentity($request);
+            $publicId = $matches[1];
+            if ($action === '') {
+                $sinceVersion = null;
+                if (isset($request->query['since_version'])) {
+                    $sinceVersion = filter_var($request->query['since_version'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+                    if ($sinceVersion === false) {
+                        throw new ApiException(422, 'validation_failed', 'since_version must be a nonnegative integer.');
+                    }
+                }
+                $game = $this->stratego->findGame($publicId, $identity, $sinceVersion);
+            } elseif ($action === 'links') {
+                return $this->withChessIdentity(Response::json([
+                    'data' => $this->stratego->createLink($publicId, $identity),
+                ], 201), $identity);
+            } elseif ($action === 'setup') {
+                $body = $request->json();
+                $placements = $body['placements'] ?? null;
+                if (!is_array($placements) || !array_is_list($placements) || count($placements) > 100) {
+                    throw new ApiException(422, 'validation_failed', 'placements must be an array of {square, rank} objects.');
+                }
+                foreach ($placements as $placement) {
+                    if (!is_array($placement)
+                        || !is_string($placement['square'] ?? null)
+                        || !(is_string($placement['rank'] ?? null) || is_int($placement['rank'] ?? null))) {
+                        throw new ApiException(422, 'validation_failed', 'Each placement must contain a square string and a rank code.');
+                    }
+                }
+                $game = $this->stratego->submitSetup($publicId, ['placements' => $placements], $identity);
+            } elseif ($action === 'ready') {
+                $game = $this->stratego->markReady($publicId, $identity);
+            } elseif ($action === 'moves') {
+                $body = $request->json();
+                $from = $body['from'] ?? null;
+                $to = $body['to'] ?? null;
+                if (!is_string($from) || !is_string($to) || trim($from) === '' || trim($to) === '') {
+                    throw new ApiException(422, 'validation_failed', 'from and to must be board square strings.');
+                }
+                $expectedVersion = $body['expected_version'] ?? null;
+                if ($expectedVersion !== null && (!is_int($expectedVersion) || $expectedVersion < 0)) {
+                    throw new ApiException(422, 'validation_failed', 'expected_version must be a nonnegative integer.');
+                }
+                $game = $this->stratego->submitMove($publicId, [
+                    'from' => $from,
+                    'to' => $to,
+                    'expected_version' => $expectedVersion,
+                ], $identity);
+            } else {
+                $game = $this->stratego->resign($publicId, $identity);
             }
             return $this->withChessIdentity(Response::json(['data' => $game]), $identity);
         }

@@ -234,6 +234,15 @@
           "sha256": "40ab3926712003d426edeae880a69ef2b9b17752b16e4a49b1dac854789fdd26"
         }
       ]
+    },
+    {
+      "version": 27,
+      "updates": [
+        {
+          "file": "updates/025_stratego_games.sql",
+          "sha256": "a73c59088846aab70840941b71495701fa25a55ec39b877bc937fa791b54df18"
+        }
+      ]
     }
   ]
 }

@@ -32,6 +32,7 @@ $focusedHeaderPages = [
     'htdocs/login/index.php' => ['requestUri' => '/login/', 'currentSection' => null, 'gameAlias' => null],
     'htdocs/risk/index.php' => ['requestUri' => '/risk/', 'currentSection' => 'games', 'gameAlias' => '/risk/'],
     'htdocs/palworld/index.php' => ['requestUri' => '/palworld/', 'currentSection' => 'games', 'gameAlias' => '/palworld/'],
+    'htdocs/stratego/index.php' => ['requestUri' => '/stratego/', 'currentSection' => 'games', 'gameAlias' => '/stratego/'],
 ];
 
 $currentSectionRequestUriCases = [

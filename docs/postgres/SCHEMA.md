@@ -1,9 +1,9 @@
-<!-- schema-version: 26 -->
+<!-- schema-version: 27 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 26**. `migration-chain.json` is the ordered,
+current release pin is **version 27**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -43,13 +43,14 @@ per-file execution ledger.
 | 24 | `023_books.sql` | Admin-authored book recommendations with Amazon links, covers, prices, and overviews |
 | 25 | `024_trivia_lives_and_mini_games.sql` | Trivia room starting lives, per-player remaining lives, and grim arithmetic, odd one out, and sequence recall Killing Floor trials |
 | 26 | `024_wedding_registry.sql` | Per-user wedding registry profiles, Amazon/Target/Zola registry enrollments, and registry product picks |
+| 27 | `025_stratego_games.sql` | Online Stratego games, red and blue seats, and hashed play invite links |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger. The
 ledger keys on full basenames, so the two `013` and two `024` files are also
 distinct updates.
 
-## Current version 26 inventory
+## Current version 27 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -68,6 +69,7 @@ distinct updates.
   Floor trials), and `trivia_answers`; `trivia_rooms.starting_lives` and
   `trivia_players.lives_remaining` track Killing Floor lives
 - Risk: `risk_games`, `risk_game_players`, and `risk_game_links`
+- Stratego: `stratego_games`, `stratego_game_players`, and `stratego_game_links`
 - Open deck: `open_deck_slots`, `open_deck_set_nominations`,
   `open_deck_fill_votes`, and `open_deck_eviction_votes`
 - Collectibles: `collectible_products` and `collectible_variants`; collections
@@ -413,6 +415,32 @@ games.
 URL-safe invite token, plus optional `expires_at` and `revoked_at` timestamps
 and `created_at`. One link is reusable by many players until the game leaves
 `waiting`.
+
+## Stratego game storage
+
+The Stratego tables store online two-player Stratego games, separate from the
+static `games` content catalog. Players are identified by a registered user or a
+`chess_guest_profiles` browser identity and are invited through hashed links.
+
+`stratego_games` uses a `bigserial` `id`, a random `public_id` for stable game
+URLs, lifecycle `status` (`waiting`, `setup`, `active`, `finished`, or
+`abandoned`), the required serialized game `state` (`jsonb`), a `state_version`
+counter for optimistic concurrency, the nullable `winner_color` (`red` or
+`blue`), and `created_at`, `updated_at`, and nullable `finished_at` timestamps.
+`stratego_games_status_updated_idx` serves listing by status and recency.
+
+`stratego_game_players` stores one row per seat: `game_id` (cascading on game
+delete), a `color` of `red` or `blue` that is unique per game, the nullable
+`user_id` or `guest_profile_id` identity (each set to `NULL` when the identity
+is deleted), a `display_name` snapshot, the setup `is_ready` flag, and
+`created_at`. Indexes on `game_id`, `user_id`, and `guest_profile_id` support
+seat lookup and finding a player's games.
+
+`stratego_game_links` stores only the 64-character lowercase hex SHA-256
+`token_hash` of a raw URL-safe invite token, a `link_type` that is currently
+always `play`, the optional `seat_color` it offers, the creating and claiming
+player seats (set to `NULL` if those seats are deleted), `claimed_at`, optional
+`expires_at` and `revoked_at` timestamps, and `created_at`.
 
 ## Open-deck scheduler
 

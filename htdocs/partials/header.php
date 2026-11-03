@@ -20,6 +20,7 @@ $publicSectionAliases = [
     'trivia' => 'games',
     'palworld' => 'games',
     'decks' => 'games',
+    'stratego' => 'games',
 ];
 
 $gameSubNavItems = [
@@ -27,6 +28,7 @@ $gameSubNavItems = [
     'chess' => ['href' => '/chess/', 'label' => 'Chess'],
     'trivia' => ['href' => '/trivia/', 'label' => 'Murder Trivia Party'],
     'risk' => ['href' => '/risk/', 'label' => 'Risk'],
+    'stratego' => ['href' => '/stratego/', 'label' => 'Stratego'],
     'palworld' => ['href' => '/palworld/', 'label' => 'Palworld'],
     'decks' => ['href' => '/decks/', 'label' => 'Magic Decks'],
 ];

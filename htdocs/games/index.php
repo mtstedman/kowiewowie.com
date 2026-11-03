@@ -47,6 +47,13 @@ $metaDescription = 'Board games and per-game strategy notes from wowiekowie.com.
                     </article>
 
                     <article class="games-feature-card">
+                        <span class="feature-number">Hidden ranks</span>
+                        <h3>Stratego</h3>
+                        <p>Invite an opponent with a link, deploy your army in secret, and capture their flag.</p>
+                        <a class="text-link" href="/stratego/" aria-label="Play Stratego">Play stratego <span aria-hidden="true">-&gt;</span></a>
+                    </article>
+
+                    <article class="games-feature-card">
                         <span class="feature-number">Breeding planner</span>
                         <h3>Palworld</h3>
                         <p>Combine your pals' passive traits and find a breeding route to your next partner.</p>

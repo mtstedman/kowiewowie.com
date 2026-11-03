@@ -43,6 +43,7 @@ jobs:
           php tests/chess-opening-book.php
           php tests/chess-opening-book-status.php
           php tests/chess-repository-query-count.php
+          php tests/stratego-rules.php
 
       - name: Run chess browser regressions
         run: |
@@ -52,6 +53,7 @@ jobs:
           node tests/videos-index-accessibility.test.mjs
           node tests/music-index-accessibility.test.mjs
           node tests/dongs-copy-feedback.test.mjs
+          node tests/stratego-static.test.mjs
 
       - name: Run public UX accessibility regressions
         run: |
