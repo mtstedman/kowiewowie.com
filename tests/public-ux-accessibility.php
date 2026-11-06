@@ -173,6 +173,139 @@ public_ux_assert(
     'Primary navigation must include a Books link targeting /books/.'
 );
 
+$crabsHtml = render_public_page($root, 'htdocs/crabs/index.php', '/crabs/');
+public_ux_assert(
+    strpos(primary_nav_html($crabsHtml, 'crabs page'), '<a href="/crabs/" aria-current="page">Crabs</a>') !== false,
+    'Crabs page must mark the Crabs primary nav link as the current page.'
+);
+public_ux_assert(
+    (bool) preg_match('/<link rel="stylesheet" href="\/assets\/css\/crabs\.css\?v=[^"]+">/', $crabsHtml),
+    'Crabs page must load its cache-versioned page stylesheet.'
+);
+public_ux_assert(
+    strpos($homeHtml, '/assets/css/crabs.css') === false,
+    'Crabs page stylesheet must not load on the homepage.'
+);
+public_ux_assert(
+    (bool) preg_match('/<section class="foundation crab-gallery-section" aria-labelledby="crab-gallery-title">.*?<h2 id="crab-gallery-title">.*?<\/section>/s', $crabsHtml, $crabGallerySectionMatches),
+    'Crabs page must render a gallery section labelled by crab-gallery-title.'
+);
+$crabGalleryHtml = $crabGallerySectionMatches[0] ?? '';
+public_ux_assert(
+    strpos($crabGalleryHtml, 'imagined illustrations from the takeover story, not photos') !== false
+        && strpos($crabGalleryHtml, "no real crab's body is larger than a person") !== false,
+    'Crab gallery must identify the takeover scenes as imagined illustrations rather than real photos.'
+);
+$crabStoryPosition = strpos($crabsHtml, 'aria-labelledby="crabs-story-title"');
+$crabGalleryPosition = strpos($crabsHtml, 'aria-labelledby="crab-gallery-title"');
+$crabFactsPosition = strpos($crabsHtml, 'aria-labelledby="crab-facts-title"');
+public_ux_assert(
+    $crabStoryPosition !== false
+        && $crabGalleryPosition !== false
+        && $crabFactsPosition !== false
+        && $crabStoryPosition < $crabGalleryPosition
+        && $crabGalleryPosition < $crabFactsPosition,
+    'Crab gallery must appear between the takeover story and the real facts.'
+);
+preg_match_all('/<figure class="crab-gallery-item">.*?<\/figure>/s', $crabGalleryHtml, $crabGalleryItemMatches);
+public_ux_assert(
+    count($crabGalleryItemMatches[0]) === 6,
+    'Crab gallery must render exactly six figures.'
+);
+$expectedCrabImageSources = [
+    '/assets/img/crabs/crab-beach-lifeguard.png',
+    '/assets/img/crabs/crab-boardwalk-council.png',
+    '/assets/img/crabs/crab-everglades-airboat.png',
+    '/assets/img/crabs/crab-highway-crossing.png',
+    '/assets/img/crabs/crab-theme-park-gate.png',
+    '/assets/img/crabs/crab-tourist-snacks.png',
+];
+$renderedCrabImageSources = [];
+foreach ($crabGalleryItemMatches[0] as $crabGalleryItemHtml) {
+    public_ux_assert(
+        (bool) preg_match('/<img\b[^>]*\bsrc="([^"]+)"[^>]*>/i', $crabGalleryItemHtml, $crabImageMatches),
+        'Every crab gallery figure must contain an image.'
+    );
+    public_ux_assert(
+        (bool) preg_match('/<img\b[^>]*\balt="[^"]+"[^>]*>/i', $crabGalleryItemHtml),
+        'Every crab gallery image must have non-empty alt text.'
+    );
+    public_ux_assert(
+        (bool) preg_match('/<img\b[^>]*\bloading="lazy"[^>]*\bdecoding="async"[^>]*>/i', $crabGalleryItemHtml),
+        'Every crab gallery image must use lazy loading and asynchronous decoding.'
+    );
+    public_ux_assert(
+        (bool) preg_match('/<figcaption>\s*[^<\s][^<]*<\/figcaption>/s', $crabGalleryItemHtml),
+        'Every crab gallery figure must include a non-empty figcaption.'
+    );
+
+    $crabImageSource = html_entity_decode($crabImageMatches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    public_ux_assert(
+        strncmp($crabImageSource, '/assets/img/crabs/', strlen('/assets/img/crabs/')) === 0,
+        'Every crab gallery image must use a path under /assets/img/crabs/.'
+    );
+    $crabImageFile = $root . '/htdocs' . $crabImageSource;
+    public_ux_assert(
+        is_file($crabImageFile) && filesize($crabImageFile) > 0,
+        'Crab gallery image must exist on disk as a non-empty file: ' . $crabImageSource
+    );
+    $renderedCrabImageSources[] = $crabImageSource;
+}
+sort($renderedCrabImageSources);
+sort($expectedCrabImageSources);
+public_ux_assert(
+    $renderedCrabImageSources === $expectedCrabImageSources,
+    'Crab gallery must render all six promoted crab images exactly once.'
+);
+public_ux_assert(
+    strpos($crabsHtml, '<section class="foundation crab-facts-section" aria-labelledby="crab-facts-title">') !== false
+        && strpos($crabsHtml, '<h2 id="crab-facts-title">') !== false
+        && strpos($crabsHtml, 'The Florida takeover above is make-believe.') !== false,
+    'Crabs page must label its real-facts section and distinguish it from the fictional takeover.'
+);
+public_ux_assert(
+    strpos($crabsHtml, '<h3 id="crab-fact-group-0">Size records</h3>') !== false
+        && strpos($crabsHtml, '<h3 id="crab-fact-group-1">Bodies and senses</h3>') !== false
+        && strpos($crabsHtml, '<h3 id="crab-fact-group-2">Behaviour</h3>') !== false
+        && strpos($crabsHtml, '<h3 id="crab-fact-group-3">Evolution and oddities</h3>') !== false,
+    'Crab facts must be grouped under all four required themes.'
+);
+preg_match_all('/<article class="crab-fact">.*?<\/article>/s', $crabsHtml, $crabFactMatches);
+public_ux_assert(
+    count($crabFactMatches[0]) >= 16,
+    'Crabs page must render at least 16 real crab facts.'
+);
+foreach ($crabFactMatches[0] as $crabFactHtml) {
+    public_ux_assert(
+        (bool) preg_match('/<a class="crab-fact-source" href="https:\/\/[^\"]+" target="_blank" rel="noopener noreferrer">/', $crabFactHtml),
+        'Every crab fact must include an HTTPS source link with safe external-link attributes.'
+    );
+}
+public_ux_assert(
+    strpos($crabFactMatches[0][0] ?? '', 'about 3.7 m') !== false
+        && strpos($crabFactMatches[0][0] ?? '', 'roughly twice the height of an adult human') !== false,
+    'The first crab fact must lead with the person-sized Japanese spider crab comparison.'
+);
+public_ux_assert(
+    strpos($crabsHtml, '<h2 id="crabs-story-title">A very pinchy takeover.</h2>') !== false,
+    'Crabs page must retain the fictional takeover story heading.'
+);
+
+$crabsCss = file_get_contents($root . '/htdocs/assets/css/crabs.css');
+public_ux_assert(is_string($crabsCss), 'Unable to read Crabs CSS.');
+public_ux_assert(
+    (bool) preg_match('/\.crab-gallery-item img\s*\{[^}]*aspect-ratio:\s*3 \/ 2[^}]*object-fit:\s*cover/s', $crabsCss),
+    'Crab gallery images must reserve a 3:2 frame and cover it.'
+);
+public_ux_assert(
+    (bool) preg_match('/@media \(max-width: 640px\).*?\.crab-gallery\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s', $crabsCss),
+    'Crab gallery must stack into a single column on narrow screens.'
+);
+public_ux_assert(
+    (bool) preg_match('/@media \(max-width: 640px\)\s*\{\s*\.crab-fact-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s', $crabsCss),
+    'Crab facts must stack into a single column on narrow screens.'
+);
+
 $booksHtml = render_public_page($root, 'htdocs/books/index.php', '/books/');
 public_ux_assert(
     strpos(primary_nav_html($booksHtml, 'books page'), '<a href="/books/" aria-current="page">Books</a>') !== false,
