@@ -290,6 +290,109 @@ public_ux_assert(
     strpos($crabsHtml, '<h2 id="crabs-story-title">A very pinchy takeover.</h2>') !== false,
     'Crabs page must retain the fictional takeover story heading.'
 );
+public_ux_assert(
+    preg_match_all('/<h1\b/i', $crabsHtml) === 1,
+    'Crabs page must retain exactly one h1.'
+);
+public_ux_assert(
+    (bool) preg_match('/<section class="hero hero-compact" aria-labelledby="crabs-title">(?:(?!<\/section>).)*<a class="button" href="#crab-dark-universe">[^<]+<\/a>(?:(?!<\/section>).)*<\/section>/s', $crabsHtml),
+    'Crabs hero must link to the dark universe with the shared button tap target.'
+);
+$crabNotesPosition = strpos($crabsHtml, 'aria-labelledby="crab-notes-title"');
+$crabDarkPosition = strpos($crabsHtml, 'id="crab-dark-universe"');
+public_ux_assert(
+    $crabNotesPosition !== false
+        && $crabDarkPosition !== false
+        && $crabNotesPosition < $crabDarkPosition,
+    'Crab dark universe must appear after Field notes.'
+);
+public_ux_assert(
+    (bool) preg_match('/<section id="crab-dark-universe" class="foundation crab-dark-universe" aria-labelledby="crab-dark-title">(?P<dark_universe>.*)<\/section>\s*<\/main>/s', $crabsHtml, $crabDarkUniverseMatches),
+    'Crabs page must end main with the contracted dark-universe section.'
+);
+$crabDarkUniverseHtml = $crabDarkUniverseMatches['dark_universe'] ?? '';
+public_ux_assert(
+    strpos($crabDarkUniverseHtml, '<h2 id="crab-dark-title">') !== false,
+    'Crab dark universe must be labelled by crab-dark-title.'
+);
+public_ux_assert(
+    stripos($crabDarkUniverseHtml, 'fiction') !== false
+        && stripos($crabDarkUniverseHtml, 'graphic violence') !== false,
+    'Crab dark universe must identify itself as fiction and warn about graphic violence.'
+);
+public_ux_assert(
+    (bool) preg_match('/<div class="crab-dark-story">(.*?)<\/div>/s', $crabDarkUniverseHtml, $crabDarkStoryMatches),
+    'Crab dark universe must contain the contracted story wrapper.'
+);
+$crabDarkStoryHtml = $crabDarkStoryMatches[1] ?? '';
+preg_match_all('/<article>.*?<h3>[^<]+<\/h3>.*?<\/article>/s', $crabDarkStoryHtml, $crabDarkChapterMatches);
+public_ux_assert(
+    count($crabDarkChapterMatches[0]) >= 4,
+    'Crab dark story must contain at least four chapters, each with an h3.'
+);
+public_ux_assert(
+    stripos($crabDarkStoryHtml, 'high tide') !== false
+        && stripos($crabDarkStoryHtml, 'never went out') !== false
+        && stripos($crabDarkStoryHtml, 'crabs tore people apart') !== false
+        && stripos($crabDarkStoryHtml, 'world ending') !== false,
+    'Crab dark story must cover the endless high-tide arrival, violent attack, and end of the world.'
+);
+public_ux_assert(
+    (bool) preg_match('/<div class="crab-dark-story">.*?<\/div>\s*(<section class="crab-dark-gallery-section" aria-labelledby="crab-dark-gallery-title">.*?<h3 id="crab-dark-gallery-title">[^<]+<\/h3>.*?<div class="crab-gallery crab-dark-gallery">.*?<\/div>\s*<\/section>)/s', $crabDarkUniverseHtml, $crabDarkGallerySectionMatches),
+    'Crab dark gallery must appear after the story wrapper, use the contracted gallery classes, and be labelled by crab-dark-gallery-title.'
+);
+$crabDarkGalleryHtml = $crabDarkGallerySectionMatches[1] ?? '';
+public_ux_assert(
+    stripos($crabDarkGalleryHtml, 'imagined illustrations') !== false
+        && stripos($crabDarkGalleryHtml, 'not photos') !== false,
+    'Crab dark gallery must identify its scenes as imagined illustrations rather than photos.'
+);
+preg_match_all('/<figure class="crab-gallery-item">.*?<\/figure>/s', $crabDarkGalleryHtml, $crabDarkGalleryItemMatches);
+public_ux_assert(
+    count($crabDarkGalleryItemMatches[0]) === 6,
+    'Crab dark gallery must render exactly six figures.'
+);
+$expectedCrabDarkImageSources = [
+    '/assets/img/crabs/crab-dark-boardwalk-massacre.png',
+    '/assets/img/crabs/crab-dark-drowned-city.png',
+    '/assets/img/crabs/crab-dark-high-tide-surge.png',
+    '/assets/img/crabs/crab-dark-highway-evacuation.png',
+    '/assets/img/crabs/crab-dark-last-shore.png',
+    '/assets/img/crabs/crab-dark-theme-park-flood.png',
+];
+$renderedCrabDarkImageSources = [];
+foreach ($crabDarkGalleryItemMatches[0] as $crabDarkGalleryItemHtml) {
+    public_ux_assert(
+        (bool) preg_match('/<img\b[^>]*\bsrc="([^"]+)"[^>]*>/i', $crabDarkGalleryItemHtml, $crabDarkImageMatches),
+        'Every crab dark gallery figure must contain an image.'
+    );
+    public_ux_assert(
+        (bool) preg_match('/<img\b[^>]*\balt="[^"]+"[^>]*>/i', $crabDarkGalleryItemHtml),
+        'Every crab dark gallery image must have non-empty alt text.'
+    );
+    public_ux_assert(
+        (bool) preg_match('/<img\b[^>]*\bloading="lazy"[^>]*\bdecoding="async"[^>]*>/i', $crabDarkGalleryItemHtml),
+        'Every crab dark gallery image must use lazy loading and asynchronous decoding.'
+    );
+    public_ux_assert(
+        (bool) preg_match('/<figcaption>\s*[^<\s][^<]*<\/figcaption>/s', $crabDarkGalleryItemHtml),
+        'Every crab dark gallery figure must include a non-empty figcaption.'
+    );
+
+    $crabDarkImageSource = html_entity_decode($crabDarkImageMatches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $crabDarkImageFile = $root . '/htdocs' . $crabDarkImageSource;
+    public_ux_assert(
+        is_file($crabDarkImageFile) && filesize($crabDarkImageFile) > 0,
+        'Crab dark gallery image must exist on disk as a non-empty file: ' . $crabDarkImageSource
+    );
+    $renderedCrabDarkImageSources[] = $crabDarkImageSource;
+}
+sort($renderedCrabDarkImageSources);
+sort($expectedCrabDarkImageSources);
+public_ux_assert(
+    $renderedCrabDarkImageSources === $expectedCrabDarkImageSources,
+    'Crab dark gallery must render all six promoted dark crab images exactly once.'
+);
 
 $crabsCss = file_get_contents($root . '/htdocs/assets/css/crabs.css');
 public_ux_assert(is_string($crabsCss), 'Unable to read Crabs CSS.');
@@ -304,6 +407,14 @@ public_ux_assert(
 public_ux_assert(
     (bool) preg_match('/@media \(max-width: 640px\)\s*\{\s*\.crab-fact-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s', $crabsCss),
     'Crab facts must stack into a single column on narrow screens.'
+);
+public_ux_assert(
+    (bool) preg_match('/\.crab-dark-universe\s*\{[^}]*--ink-soft:\s*#[0-9a-f]{6}[^}]*--panel:\s*rgba?\([^}]*--panel-solid:\s*#[0-9a-f]{6}[^}]*--line:\s*rgba?\([^}]*--line-strong:\s*#[0-9a-f]{6}/is', $crabsCss),
+    'Crab dark universe must provide the contracted scoped palette overrides.'
+);
+public_ux_assert(
+    (bool) preg_match('/@media \(max-width: 640px\).*?\.crab-dark-story\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s', $crabsCss),
+    'Crab dark story must stack into a single column on narrow screens.'
 );
 
 $booksHtml = render_public_page($root, 'htdocs/books/index.php', '/books/');

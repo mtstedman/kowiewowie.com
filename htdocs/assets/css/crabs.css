@@ -111,3 +111,79 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+.crab-dark-universe {
+    --ink: #fff7f7;
+    --ink-soft: #ead4d6;
+    --panel: rgba(31, 8, 12, 0.94);
+    --panel-solid: #1a070b;
+    --accent: #ffb1b8;
+    --accent-strong: #ff7b86;
+    --accent-warm: #ffd0a8;
+    --line: rgba(255, 143, 153, 0.46);
+    --line-strong: #ff929c;
+    --surface-sheen-soft: rgba(147, 24, 37, 0.2);
+    --surface-sheen: rgba(120, 15, 29, 0.3);
+    --surface-edge: rgba(255, 123, 134, 0.28);
+    --surface-edge-strong: rgba(255, 146, 156, 0.58);
+    --surface-highlight: rgba(255, 177, 184, 0.16);
+    --surface-highlight-strong: rgba(255, 177, 184, 0.3);
+    --glass-panel-bg: rgba(13, 3, 6, 0.97);
+    --glass-panel-bg-strong: rgba(30, 5, 10, 0.98);
+    --glass-panel-border: var(--line-strong);
+    --glass-panel-shadow: rgba(0, 0, 0, 0.72);
+    --glass-panel-highlight: rgba(255, 123, 134, 0.24);
+    --glass-panel-falloff: rgba(255, 123, 134, 0);
+    display: grid;
+    gap: var(--space-lg);
+    color: var(--ink);
+    background:
+        radial-gradient(circle at 50% 0, rgba(116, 14, 29, 0.28), transparent 36%),
+        linear-gradient(180deg, var(--glass-panel-bg-strong), var(--glass-panel-bg));
+}
+
+.crab-dark-universe > .lede {
+    max-width: 68ch;
+    margin: 0;
+    color: var(--ink-soft);
+}
+
+.crab-dark-universe a {
+    color: var(--accent);
+}
+
+.crab-dark-story {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+}
+
+.crab-dark-story article {
+    min-width: 0;
+    padding: var(--space-lg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: linear-gradient(160deg, rgba(73, 13, 23, 0.42), var(--panel-solid));
+    box-shadow: var(--shadow-sm);
+}
+
+.crab-dark-story h3 {
+    margin: 0 0 var(--space-sm);
+    color: var(--accent-warm);
+}
+
+.crab-dark-story p {
+    margin: 0;
+    color: var(--ink-soft);
+    line-height: 1.7;
+}
+
+@media (max-width: 640px) {
+    .crab-dark-story {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .crab-dark-story article {
+        padding: var(--space-md);
+    }
+}

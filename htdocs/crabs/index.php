@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 $year = gmdate('Y');
 $pageTitle = 'Crabs - wowiekowie.com';
-$metaDescription = 'The fictional Florida crab takeover, followed by true facts about giant crabs, remarkable claws, strange senses, and crab evolution.';
+$metaDescription = 'The fictional Florida crab takeover, true crab facts, and a darker universe where an endless high tide brings the end of the world.';
 $pageStyles = ['/assets/css/crabs.css'];
 $crabFactGroups = [
     [
@@ -119,6 +119,9 @@ require dirname(__DIR__) . '/partials/head.php';
                 <p class="eyebrow">Shell shock</p>
                 <h1 id="crabs-title">The crabs have taken Florida.</h1>
                 <p class="lede">Large, sentient, and extremely organized. The Sunshine State is now a claw-run territory.</p>
+                <div class="hero-actions">
+                    <a class="button" href="#crab-dark-universe">Descend into the darker side</a>
+                </div>
             </section>
 
             <section class="foundation" aria-labelledby="crabs-story-title">
@@ -209,6 +212,65 @@ require dirname(__DIR__) . '/partials/head.php';
                 </div>
                 <p class="lede">Crabs bring strong claws, excellent hats, and the quiet confidence to scuttle wherever the day takes them.</p>
                 <p class="aside">Today's crab wisdom: when forward feels overrated, sideways still counts.</p>
+            </section>
+
+            <section id="crab-dark-universe" class="foundation crab-dark-universe" aria-labelledby="crab-dark-title">
+                <div class="section-heading">
+                    <p class="eyebrow">The darker side</p>
+                    <h2 id="crab-dark-title">The tide that never went out.</h2>
+                </div>
+                <p class="lede"><strong>Fictional horror:</strong> this separate timeline contains graphic violence and the end of the world.</p>
+
+                <div class="crab-dark-story">
+                    <article>
+                        <h3>The arrival</h3>
+                        <p>The high tide arrived beneath a moonless sky and kept climbing after every clock said it should turn. Shapes moved under the black water, first by the hundreds and then beyond counting. When the first crabs hauled themselves onto the seawall, they were taller than the streetlights, armored in weed and rust, and they did not ask for the manager. Behind them, the ocean continued inland.</p>
+                    </article>
+                    <article>
+                        <h3>The breaking</h3>
+                        <p>By dawn, the avenues had become channels. The crabs tore people apart wherever crowds jammed against locked doors, their claws striking with the sound of trees splitting in a storm. Sirens vanished beneath the scraping of shells against concrete. Those who escaped the first assault watched the water carry away every place where safety had once seemed certain.</p>
+                    </article>
+                    <article>
+                        <h3>The failed evacuation</h3>
+                        <p>The last evacuation convoy turned toward higher ground, but every road ended in the same advancing tide. Engines drowned. Rescue boats found the current running backward, drawing them toward a moving wall of claws. Radio voices counted shelters going silent until only static remained, and the survivors understood that there was nowhere left to flee.</p>
+                    </article>
+                    <article>
+                        <h3>The high tide mess</h3>
+                        <p>The high tide never went out. It crossed mountains, swallowed the final lights, and left the world ending in a high tide mess of broken towers, drifting roofs, and red shells moving beneath the waves. At the end there was no shore, no morning traffic, no dry land at all&mdash;only a dark ocean circling the planet and the slow percussion of claws below.</p>
+                    </article>
+                </div>
+
+                <section class="crab-dark-gallery-section" aria-labelledby="crab-dark-gallery-title">
+                    <h3 id="crab-dark-gallery-title">What the last witnesses saw.</h3>
+                    <p class="lede">These are imagined illustrations from the dark story, not photos.</p>
+
+                    <div class="crab-gallery crab-dark-gallery">
+                        <figure class="crab-gallery-item">
+                            <img src="/assets/img/crabs/crab-dark-high-tide-surge.png" alt="A black tide breaks over a Gulf Coast town at night as giant crabs ride the surge and people flee." loading="lazy" decoding="async">
+                            <figcaption>The tide came ashore carrying an army, and every street became an escape route that ended at the water.</figcaption>
+                        </figure>
+                        <figure class="crab-gallery-item">
+                            <img src="/assets/img/crabs/crab-dark-boardwalk-massacre.png" alt="Giant crabs overrun a flooded boardwalk while people flee through the dark water." loading="lazy" decoding="async">
+                            <figcaption>The boardwalk lights stayed on long enough to show the survivors what was hunting them.</figcaption>
+                        </figure>
+                        <figure class="crab-gallery-item">
+                            <img src="/assets/img/crabs/crab-dark-highway-evacuation.png" alt="Giant crabs rip into cars trapped on a gridlocked evacuation highway at night." loading="lazy" decoding="async">
+                            <figcaption>The evacuation stopped where the traffic did, beneath claws strong enough to open every locked door.</figcaption>
+                        </figure>
+                        <figure class="crab-gallery-item">
+                            <img src="/assets/img/crabs/crab-dark-theme-park-flood.png" alt="Giant crabs hunt survivors through a flooded amusement park beside a half-sunk Ferris wheel." loading="lazy" decoding="async">
+                            <figcaption>The drowned midway played its final music while shapes moved between the rides.</figcaption>
+                        </figure>
+                        <figure class="crab-gallery-item">
+                            <img src="/assets/img/crabs/crab-dark-drowned-city.png" alt="Enormous crab claws reach for people in the water between the towers of a flooded city." loading="lazy" decoding="async">
+                            <figcaption>The city disappeared floor by floor, and the claws below chose who vanished next.</figcaption>
+                        </figure>
+                        <figure class="crab-gallery-item">
+                            <img src="/assets/img/crabs/crab-dark-last-shore.png" alt="A lone survivor stands on the last strip of land, ringed by crabs before a black tide and blood-red sky." loading="lazy" decoding="async">
+                            <figcaption>At the last shore, the final survivor watched the black tide close over the world.</figcaption>
+                        </figure>
+                    </div>
+                </section>
             </section>
         </main>
 
