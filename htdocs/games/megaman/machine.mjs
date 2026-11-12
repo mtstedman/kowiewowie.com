@@ -130,7 +130,7 @@ export function createMachine(options={}) {
  initialize(options);
  return Object.freeze({reset:initialize,resetCPU,step,advance:(o={})=>execute(o,null),frame(o={}){const r=execute(o,frames+1);if(r.reason!=='frame')bad('FRAME_BUDGET','Frame incomplete at '+r.reason);return r;},getState:state,
  setButton(port,button,down){int(port,1,2,'port');int(button,0,7,'button');if(typeof down!=='boolean')bad('BAD_ARGUMENT','down');nes.controllers[port][down?'buttonDown':'buttonUp'](button);if(strobe)latch();},
- getFrame:()=>video.slice(),getRGBA(){const a=new Uint8ClampedArray(245760);for(let i=0;i<video.length;i++){const v=video[i];a[i*4]=v&255;a[i*4+1]=(v>>>8)&255;a[i*4+2]=(v>>>16)&255;a[i*4+3]=255;}return a;},
+ getFrame:()=>video.slice(),getRGBA(buffer){if(buffer!==undefined&&(!(buffer instanceof ArrayBuffer)||buffer.byteLength!==245760))bad('BAD_ARGUMENT','RGBA buffer size');const a=buffer?new Uint8ClampedArray(buffer):new Uint8ClampedArray(245760);for(let i=0;i<video.length;i++){const v=video[i];a[i*4]=v&255;a[i*4+1]=(v>>>8)&255;a[i*4+2]=(v>>>16)&255;a[i*4+3]=255;}return a;},
  takeAudio(){const a=new Float32Array(count*2);for(let i=0;i<count;i++){const j=((head+i)%capacity)*2;a[i*2]=audio[j];a[i*2+1]=audio[j+1];}head=0;count=0;return a;},
  readMemory:(a,n=1)=>memory(a,n,false),readDeviceMemory:(a,n=1)=>memory(a,n,true),readPPUMemory(a,n=1){int(a,0,16383,'PPU address');int(n,1,4096,'PPU length');if(a+n>16384)bad('BAD_ARGUMENT','PPU range');return Uint8Array.from({length:n},(_,i)=>ppuPeek(a+i));},getOAM:()=>nes.ppu.spriteMem.slice(),
  getPPUCache(){return {tile0:nes.ppu.ptTile[0].pix.slice(),tile256:nes.ppu.ptTile[256].pix.slice(),nametablePages:nes.ppu.ntable1.slice(),physicalTile0:nes.ppu.nameTable.slice(0,ciram.length/1024).map(t=>t.tile[0])};},

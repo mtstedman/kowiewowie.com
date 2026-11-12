@@ -1,3 +1,15 @@
+## Frame pacing repair (2026-11-12)
+
+Video presentation now uses display-refresh timestamps and a gently corrected audio
+clock offset, so noisy audio timestamp measurements cannot abruptly hold or skip a
+video frame. A 2 ms presentation deadband prevents rounding noise from causing
+a skip followed by a hold near a display-refresh boundary. The browser reuses transferred frame buffers and updates status text
+four times per second. Enabling audio preserves queued video and PCM. A true audio
+underrun retains queued video and increases the production buffer within a 200 ms
+cap, rather than clearing the queue and inserting another full buffering delay.
+
+---
+
 ## Direct browser timing repair (2026-11-12)
 
 The deployed browser now uses a module-owned mapper epoch fast path, sealed device

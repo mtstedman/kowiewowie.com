@@ -24,20 +24,41 @@ const pads=Array.from(document.querySelectorAll('[data-button]'));
 const input=new SampledInput(),pointers=new Map(),sources=new Set();
 let worker=null,ready=false,loading=false,running=false,pending=null,timer=null;
 let epoch=0,seq=0,synced=-1,last=-Infinity,ac=null,audioNext=0,notice='';
-let autoRender=false,audioUnlocked=false,master=null,fadeIn=true;
+let autoRender=false,audioUnlocked=false,master=null,fadeIn=true,audioClockActive=false;
 const CPU_HZ=1789772.7272727273,BUFFER_SECONDS=.08;
 let mediaNext=0,pumpTimer=null,videoQueue=[],lastCycles=null;
 let measuredAt=0,measuredCycles=0,measuredFrames=0,presented=0,speed=0,fps=0;
-const clock=()=>audioUnlocked&&ac?.state==='running'?ac.currentTime:performance.now()/1000;
-function presentationClock(){
-  if(audioUnlocked&&ac?.state==='running'&&ac.getOutputTimestamp){
-    const stamp=ac.getOutputTimestamp();
-    if(stamp.performanceTime>0)return stamp.contextTime+(performance.now()-stamp.performanceTime)/1000;
+let renderOffset=null,renderWall=null,statusAt=0,bufferTarget=BUFFER_SECONDS;
+const freeVideo=[];
+const clock=()=>audioClockActive?ac.currentTime:performance.now()/1000;
+function recycle(frame){if(frame?.rgba.buffer.byteLength===256*240*4&&freeVideo.length<20)freeVideo.push(frame.rgba.buffer);}
+function presentationClock(timestamp){
+  const wall=timestamp/1000;
+  if(!audioClockActive)return wall;
+  const stamp=ac.getOutputTimestamp?.();
+  const observed=stamp?.performanceTime>0?stamp.contextTime-stamp.performanceTime/1000:
+    ac.currentTime-performance.now()/1000-(ac.outputLatency||0);
+  if(renderOffset===null)renderOffset=observed;
+  else {
+    // Audio timestamps are noisy measurements, not permission to jump the video clock.
+    // Slew at at most 1 ms/second while keeping the display on its vsync timestamps.
+    const limit=Math.max(0,wall-renderWall)*.001;
+    renderOffset+=Math.max(-limit,Math.min(limit,observed-renderOffset));
   }
-  return clock();
+  renderWall=wall;return wall+renderOffset;
+}
+function syncAudioClock(){
+  const active=audioUnlocked&&ac?.state==='running';
+  if(Boolean(active)===audioClockActive)return;
+  const before=clock();audioClockActive=Boolean(active);
+  const shift=clock()-before;
+  silence();mediaNext+=shift;renderOffset=null;renderWall=null;
+  // Preserve queued video and PCM when a gesture enables audio; do not flush a frame queue.
+  for(const frame of videoQueue){frame.at+=shift;if(audioClockActive&&frame.at>ac.currentTime)sound(frame.audio,frame.at);}
+  pump();
 }
 function rebase(){
-  silence();videoQueue=[];mediaNext=clock()+BUFFER_SECONDS;
+  silence();for(const frame of videoQueue)recycle(frame);videoQueue=[];mediaNext=clock()+bufferTarget;renderOffset=null;renderWall=null;
   measuredAt=performance.now();measuredCycles=lastCycles??0;measuredFrames=presented;
   clearTimeout(pumpTimer);pumpTimer=null;
 }
@@ -45,16 +66,16 @@ function pump(){
   clearTimeout(pumpTimer);pumpTimer=null;
   if(!ready||!running||document.hidden||pending||synced!==epoch)return;
   const ahead=mediaNext-clock();
-  if(ahead<=BUFFER_SECONDS)send('frame',{buttons:input.sample()});
-  else pumpTimer=setTimeout(pump,Math.max(1,(ahead-BUFFER_SECONDS)*1000));
+  if(ahead<=bufferTarget){const rgbaBuffer=freeVideo.pop();send('frame',{buttons:input.sample(),rgbaBuffer},rgbaBuffer?[rgbaBuffer]:[]);}
+  else pumpTimer=setTimeout(pump,Math.max(1,(ahead-bufferTarget)*1000));
 }
 function enqueue(d){
   const now=clock(),duration=d.audio.length?d.audio.length/2/48000:
     lastCycles===null?1/60.0988:(d.cycles-lastCycles)/CPU_HZ;
   // Rebase after a real underrun, never stretch samples or accumulate stale work.
-  if(mediaNext<now+.003){silence();videoQueue=[];mediaNext=now+BUFFER_SECONDS;}
+  if(mediaNext<now+.003){bufferTarget=Math.min(.2,bufferTarget+.02);mediaNext=now+.012;fadeIn=true;}
   sound(d.audio,mediaNext);
-  videoQueue.push({at:mediaNext,rgba:d.rgba,frames:d.frames});
+  videoQueue.push({at:mediaNext,rgba:d.rgba,audio:d.audio,frames:d.frames});
   mediaNext+=duration;lastCycles=d.cycles;
   const elapsed=(performance.now()-measuredAt)/1000;
   if(elapsed>=1){
@@ -88,12 +109,12 @@ function fail(e){
   worker?.terminate();worker=null;notice='';
   show('Stopped: '+String(e)+'. Reset to retry.');
 }
-function send(type,extra={}){
+function send(type,extra={},transfer=[]){
   if(pending||!worker||!ready)return;
   if(seq>=Number.MAX_SAFE_INTEGER){fail('Request identity exhausted; reload page');return;}
   const message={type,epoch,seq:++seq,...extra};pending={type,epoch,seq:message.seq};
   timer=setTimeout(()=>fail(type==='frame'?'Frame worker timed out':'Input release timed out'),120000);
-  try{worker.postMessage(message);}catch(e){fail(e.message||e);}
+  try{worker.postMessage(message,transfer);}catch(e){fail(e.message||e);}
 }
 function sync(){if(ready&&!pending&&synced!==epoch)send('sync');}
 function pause(reason='Paused'){
@@ -103,7 +124,7 @@ function pause(reason='Paused'){
   if(ready){show(reason);sync();}else controls();
 }
 function sound(samples,at){
-  if(!audioUnlocked||!ac||ac.state!=='running'||!samples.length)return;
+  if(!audioClockActive||!ac||ac.state!=='running'||!samples.length)return;
   const n=samples.length/2,b=ac.createBuffer(2,n,48000);
   for(let ch=0;ch<2;ch++){const a=b.getChannelData(ch);for(let i=0;i<n;i++)a[i]=samples[2*i+ch];}
   const source=ac.createBufferSource();source.buffer=b;source.connect(master);sources.add(source);
@@ -115,11 +136,11 @@ function start(withAudio=true){
   if(!ready||document.hidden)return;
   if(!running){running=true;last=-Infinity;notice='';rebase();show('Starting…');sync();pump();}
   if(!withAudio||!running)return;
-  const firstAudio=!audioUnlocked;audioUnlocked=true;
+  audioUnlocked=true;
   // Audio permission never delays input or determines engine running state.
   const g=epoch,w=worker;
   const audioError=()=>{if(g===epoch&&w===worker&&running){notice='Audio unavailable';if(!status.textContent.includes(notice))status.textContent+=' · '+notice;}};
-  try{const A=window.AudioContext||window.webkitAudioContext;if(A){if(!ac){ac=new A({sampleRate:48000});master=ac.createGain();master.connect(ac.destination);ac.onstatechange=()=>{if(running){rebase();pump();}};}Promise.resolve(ac.resume()).then(()=>{if(g===epoch&&w===worker&&running&&firstAudio){rebase();pump();}}).catch(audioError);}}
+  try{const A=window.AudioContext||window.webkitAudioContext;if(A){if(!ac){ac=new A({sampleRate:48000});master=ac.createGain();master.connect(ac.destination);ac.onstatechange=syncAudioClock;}Promise.resolve(ac.resume()).then(()=>{if(g===epoch&&w===worker)syncAudioClock();}).catch(audioError);}}
   catch{audioError();}
 }
 function receive(w,d){
@@ -150,7 +171,7 @@ function receive(w,d){
 }
 function reset(){
   try{advanceEpoch();}catch(e){fail(e.message);return;}
-  running=false;ready=false;loading=true;autoRender=true;audioUnlocked=false;clearInputs();lastCycles=null;presented=0;fps=0;speed=0;rebase();notice='';
+  running=false;ready=false;loading=true;autoRender=true;audioUnlocked=false;audioClockActive=false;bufferTarget=BUFFER_SECONDS;clearInputs();lastCycles=null;presented=0;fps=0;speed=0;rebase();notice='';
   clearTimeout(timer);timer=null;pending=null;synced=-1;last=-Infinity;
   worker?.terminate();worker=null;ctx.clearRect(0,0,256,240);show('Loading translated game… First load may take a minute. Reset is available while loading.');
   try{
@@ -192,14 +213,18 @@ for(const b of pads){
 window.addEventListener('pointerup',pointerUp);window.addEventListener('pointercancel',pointerUp);
 window.addEventListener('blur',()=>pause('Paused after focus loss.'));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause('Paused while hidden.');else controls();});
-function tick(){
+function tick(timestamp){
   requestAnimationFrame(tick);
   if(!ready||!running||document.hidden)return;
-  const now=presentationClock();let frame;
-  while(videoQueue.length&&videoQueue[0].at<=now)frame=videoQueue.shift();
+  const now=presentationClock(timestamp);let frame;
+  // A small phase deadband prevents a timestamp/sample rounding wobble from
+  // skipping one frame and then holding its successor at the next refresh.
+  if(videoQueue.length&&videoQueue[0].at<=now+.002)frame=videoQueue.shift();
+  while(videoQueue.length&&videoQueue[0].at<=now-.002){recycle(frame);frame=videoQueue.shift();}
   if(frame){
     ctx.putImageData(new ImageData(frame.rgba,256,240),0,0);presented++;
-    show('Running · '+fps.toFixed(1)+' FPS · '+Math.round(speed*100)+'% speed · frame '+frame.frames);
+    recycle(frame);
+    if(timestamp-statusAt>=250){statusAt=timestamp;status.textContent='Running · '+fps.toFixed(1)+' FPS · '+Math.round(speed*100)+'% speed · frame '+frame.frames+(notice?' · '+notice:'');}
   }
   pump();
 }
