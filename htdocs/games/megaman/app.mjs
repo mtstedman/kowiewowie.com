@@ -24,6 +24,7 @@ const pads=Array.from(document.querySelectorAll('[data-button]'));
 const input=new SampledInput(),pointers=new Map(),sources=new Set();
 let worker=null,ready=false,loading=false,running=false,pending=null,timer=null;
 let epoch=0,seq=0,synced=-1,last=-Infinity,ac=null,audioNext=0,notice='';
+let autoRender=false,audioUnlocked=false;
 function controls(){
   $('start').disabled=!ready||running||document.hidden;
   $('pause').disabled=!ready||!running;
@@ -52,21 +53,24 @@ function send(type,extra={}){
 }
 function sync(){if(ready&&!pending&&synced!==epoch)send('sync');}
 function pause(reason='Paused'){
+  autoRender=false;
   try{advanceEpoch();}catch(e){fail(e.message);return;}
   running=false;clearInputs();silence();notice='';last=-Infinity;
   if(ready){show(reason);sync();}else controls();
 }
 function sound(samples){
-  if(!ac||ac.state!=='running'||!samples.length||audioNext>ac.currentTime+.15)return;
+  if(!audioUnlocked||!ac||ac.state!=='running'||!samples.length||audioNext>ac.currentTime+.15)return;
   const n=samples.length/2,b=ac.createBuffer(2,n,48000);
   for(let ch=0;ch<2;ch++){const a=b.getChannelData(ch);for(let i=0;i<n;i++)a[i]=samples[2*i+ch];}
   const s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);sources.add(s);
   s.onended=()=>{sources.delete(s);s.disconnect();};
   audioNext=Math.max(audioNext,ac.currentTime+.02);s.start(audioNext);audioNext+=n/48000;
 }
-function start(){
-  if(!ready||running||document.hidden)return;
-  running=true;last=-Infinity;notice='';show('Starting…');sync();
+function start(withAudio=true){
+  if(!ready||document.hidden)return;
+  if(!running){running=true;last=-Infinity;notice='';show('Starting…');sync();}
+  if(!withAudio||!running)return;
+  audioUnlocked=true;
   // Audio permission never delays input or determines engine running state.
   const g=epoch,w=worker;
   const audioError=()=>{if(g===epoch&&w===worker&&running){notice='Audio unavailable';if(!status.textContent.includes(notice))status.textContent+=' · '+notice;}};
@@ -78,7 +82,9 @@ function receive(w,d){
   if(loading){
     if(d?.type==='error'){fail((d.code||'INIT')+': '+d.message);return;}
     if(d?.type!=='ready'){fail('Invalid initialization response');return;}
-    clearTimeout(timer);timer=null;loading=false;ready=true;show('Ready. Use Engine start or Game Start.');sync();return;
+    clearTimeout(timer);timer=null;loading=false;ready=true;
+    if(autoRender&&!document.hidden)start(false);else show('Paused. Use Engine resume or Game Start.');
+    autoRender=false;sync();return;
   }
   // Stale or duplicate replies must not complete a newer pending request.
   if(!pending||!d||d.epoch!==pending.epoch||d.seq!==pending.seq)return;
@@ -99,7 +105,7 @@ function receive(w,d){
 }
 function reset(){
   try{advanceEpoch();}catch(e){fail(e.message);return;}
-  running=false;ready=false;loading=true;clearInputs();silence();notice='';
+  running=false;ready=false;loading=true;autoRender=true;audioUnlocked=false;clearInputs();silence();notice='';
   clearTimeout(timer);timer=null;pending=null;synced=-1;last=-Infinity;
   worker?.terminate();worker=null;ctx.clearRect(0,0,256,240);show('Loading translated game… First load may take a minute. Reset is available while loading.');
   try{
@@ -118,7 +124,7 @@ function down(source,b,repeat=false){
 }
 function up(source){try{input.release(source);controls();}catch(e){fail(e.message);}}
 function pointerUp(e){pointers.delete(e.pointerId);up('p:'+e.pointerId);}
-$('start').onclick=start;$('pause').onclick=()=>pause();$('reset').onclick=reset;
+$('start').onclick=()=>start();$('pause').onclick=()=>pause();$('reset').onclick=reset;
 const keys={KeyZ:0,KeyX:1,ShiftRight:2,ShiftLeft:2,Enter:3,ArrowUp:4,ArrowDown:5,ArrowLeft:6,ArrowRight:7};
 for(const event of ['keydown','keyup'])window.addEventListener(event,e=>{
   if(!Object.prototype.hasOwnProperty.call(keys,e.code))return;
