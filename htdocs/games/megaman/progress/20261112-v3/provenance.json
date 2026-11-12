@@ -1,0 +1,30 @@
+{
+  "scope": "Static captures of builder-generated translated game running locally under a slower diagnostic frame allowance. Not screenshots of successful hosted gameplay.",
+  "source_manifest_sha256": "c3a15e907e82681a338091ccf61a02dc3a38ecadc3975df564fa159176a5f762",
+  "completed_frames": 2289,
+  "elapsed_ms": 657206,
+  "full_game_correctness": "not_established",
+  "strict_reference_comparison": "failed",
+  "files": [
+    {
+      "file": "opening.png",
+      "sha256": "f11161443ea5f632e10aa2cbdb30fbfdf8f8308dc7679578ea797fe22c603427"
+    },
+    {
+      "file": "title.png",
+      "sha256": "13b5f305e7829a25529f0f16c2b820a486e1095d474a44de60c3d81da4eb0541"
+    },
+    {
+      "file": "boss-select.png",
+      "sha256": "527e6f5eb995af74a829d58ad3fc3bafaeaf13865596b05a7047231940ff856a"
+    },
+    {
+      "file": "stage.png",
+      "sha256": "a08db44e9c54dfae20e419846cc72cf7e7749d385175a0106831b34a0da244a7"
+    },
+    {
+      "file": "arrival.png",
+      "sha256": "ca9454abfc03330afbe3e4c6e863ad6490773d91c2c410340f6b59c2460c4db4"
+    }
+  ]
+}
