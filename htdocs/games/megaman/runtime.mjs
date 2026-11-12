@@ -8,6 +8,13 @@ const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).
 export function fromHex(h){if(typeof h!=='string'||h.length%2||!/^[0-9a-f]*$/.test(h))bad('BAD_ROM_DATA','Invalid hex');const b=new Uint8Array(h.length/2);for(let i=0;i<b.length;i++)b[i]=parseInt(h.slice(i*2,i*2+2),16);return b;}
 function banks1(v,info){const p=v.prg,mode=(v.control>>2)&3,mask=info.prgBanks-1;if(info.mmc1.wiring==='fixed32')return [0,1];if(mode<2)return [(p&14)&mask,((p&14)+1)&mask];const bypass=info.mmc1.revision==='MMC1A'&&Boolean(p&16);return mode===2?[(bypass?p&8:0)&mask,(p&15)&mask]:[(p&15)&mask,(bypass?(p&8)|7:15)&mask];}
 function ram1(v,info){return info.mmc1.prg_ram==='8k'&&!(info.mmc1.revision==='MMC1B'&&(v.prg&16))&&!(info.mmc1.wiring==='SNROM'&&((v.control&16)&&(v.ppuAddress&4096)?v.chr1:v.chr0)&16);}
+// Only module-owned buses with immutable cartridge metadata use the fast epoch path.
+const ownedBuses=new WeakMap();
+export function composeBus(base,hooks){
+ const record=ownedBuses.get(base);
+ if(!record||!hooks||Object.keys(hooks).some(k=>!['read','write','peek','advanceCPUClock'].includes(k))||Object.values(hooks).some(v=>typeof v!=='function'))bad('BAD_BUS','Invalid hardware bus composition');
+ const bus=Object.freeze({...base,...hooks});ownedBuses.set(bus,record);return bus;
+}
 const MMC_KEYS=['mapper','identity','control','chr0','chr1','prg','shift','count','lastWriteCycle','clock','ppuAddress','version','low','high','ramEnabled'];
 function valid1(v,info){
  if(!exact(v,MMC_KEYS)||v.mapper!==1||v.identity!==info.mappingIdentity)bad('BAD_MAPPER_STATE','Wrong MMC1 state identity or fields');
@@ -72,13 +79,18 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:0},chr=n
  function mapNametable(a){integer(a,16383,'PPU address');if(a<8192||a>=16128)bad('BAD_ARGUMENT','Nametable address required');const n=(a-8192)&4095,page=n>>10,mode=mirroring();return (mode==='four_screen'?page:mode==='single_lower'?0:mode==='single_upper'?1:mode==='vertical'?page&1:page>>1)*1024+(n&1023);}
  const api={read:a=>read(a),peek:a=>read(a,true),write,mapPRG,getMapperState,loadMapperState,mapCHR,mapNametable,getMirroring:mirroring,setPPUAddress,peekCHR:a=>chrData[mapCHR(a)],ppuRead(a){integer(a,8191,'Pattern-table address');setPPUAddress(a);return chrData[mapCHR(a)];},ppuWrite(a,v){integer(a,8191,'Pattern-table address');byte(v);setPPUAddress(a);if(chrRAM)chrData[mapCHR(a)]=v;},snapshot(){const v={ram:ram.slice(),prgRam:sram.slice()};if(mmc)v.chrRam=chrRAM?chrData.slice():new Uint8Array();if(ux||mmc)v.mapper=getMapperState();return v;},loadRAM(r,p){if(!(r instanceof Uint8Array)||r.length!==2048||!(p instanceof Uint8Array)||p.length!==sram.length)bad('BAD_ARGUMENT','Exact RAM arrays required');ram.set(r);sram.set(p);},loadCHR(r){if(!(r instanceof Uint8Array)||r.length!==(chrRAM?8192:0))bad('BAD_ARGUMENT','Exact CHR RAM array required');if(chrRAM)chrData.set(r);}};
  if(mmc){api.getCPUClock=getCPUClock;api.advanceCPUClock=advanceCPUClock;}
+ if(Object.isFrozen(info)&&(!cfg||Object.isFrozen(cfg))){
+  ownedBuses.set(api,{info,snapshot(){if(mmc){const [low,high]=banks1(state,info);return {low,high,version,clock:state.clock};}return {bank:register&(count-1),version};},unchanged(m){return version===m.version&&(!mmc||state.clock===m.clock);}});
+ }
  return Object.freeze(api);
 }
 export function makeCPU(bus,blocks,info){
  if(!bus||['read','write','peek'].some(k=>typeof bus[k]!=='function'))bad('BAD_BUS','Bus requires read, write, peek');
  const mmc=info.mapper===1,banked=info.mapper!==0;
  if(banked&&['mapPRG','getMapperState',...(mmc?['getCPUClock','advanceCPUClock']:[])].some(k=>typeof bus[k]!=='function'))bad('BAD_MAPPING_HOOK','Missing mapper/timing hooks');
+ const owned=ownedBuses.get(bus),trusted=owned?.info===info?owned:null;
  function mapping(){
+  if(trusted)return trusted.snapshot();
   if(!banked)return null;
   if(mmc){let v;try{v=valid1(bus.getMapperState(),info);}catch(e){if(e instanceof CPUError)bad('BAD_MAPPING',e.message);throw e;}if(bus.getCPUClock()!==v.clock)bad('BAD_MAPPING','Clock hook mismatch');return v;}
   const v=bus.getMapperState(),mask=info.uxrom.board==='UNROM'?7:15;
@@ -89,6 +101,7 @@ export function makeCPU(bus,blocks,info){
  // mapping() still runs first, including EVERY state and clock callback.
  let comparisonSnapshot=null,comparisonKeys=null;
  function unchanged(m){
+  if(trusted){if(!trusted.unchanged(m))bad('MAPPING_CHANGED','Mapping changed during fetch');return;}
   const v=mapping();
   if(m!==comparisonSnapshot){comparisonKeys=Object.keys(m);comparisonSnapshot=m;}
   for(let i=0;i<comparisonKeys.length;i++){const k=comparisonKeys[i];if(v[k]!==m[k])bad('MAPPING_CHANGED','Mapping changed during fetch');}

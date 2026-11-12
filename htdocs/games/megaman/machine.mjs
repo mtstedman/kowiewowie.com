@@ -1,3 +1,4 @@
+import {composeBus} from './runtime.mjs';
 import {createCPU,createBus,getCHR,metadata} from './compiled.mjs';
 import {PPU,PAPU,Mapper0 as DeviceRegisters,Controller} from './devices.mjs';
 export {metadata};
@@ -88,11 +89,12 @@ export function createMachine(options={}) {
    requestIrq(k){if(k===0)return;if(k===1){f.nmiPending=true;return;}bad('DEVICE_IRQ','Unexpected IRQ/reset request');},
    haltCycles(n){if(n!==4)bad('DEVICE_DMA','Only four-cycle DMC requests accepted');pendingDmc+=n;metrics.dmcRequests++;if(pendingDmc>4096)bad('DMA_LIMIT','Excessive DMC stalls');},
    emulate(){metrics.interpreterCalls++;bad('CPU_INTERPRETER_FORBIDDEN','Translated CPU execution is mandatory');}};
-  facade=new Proxy(f,{get(t,k){if(!(k in t))bad('DEVICE_CONTRACT','Unknown facade field '+String(k));return t[k];},set(t,k,v){if(!(k in t))bad('DEVICE_CONTRACT','Unknown facade write '+String(k));t[k]=v;return true;}});
+  // Device fields are fixed by the bundled device contract; avoid Proxy traps on every CPU cycle.
+  facade=Object.seal(f);
   nes={cpu:facade,opts:{sampleRate,emulateSound:true,onAudioSample:audioSample,onBatteryRamWrite(){}},ui:{writeFrame(p){if(p.length!==61440)bad('DEVICE_VIDEO','Framebuffer length');video.set(p);frames++;},updateStatus(){}},controllers:{1:new Controller(),2:new Controller()},rom:{VERTICAL_MIRRORING:0,HORIZONTAL_MIRRORING:1,FOURSCREEN_MIRRORING:2,SINGLESCREEN_MIRRORING:3,SINGLESCREEN_MIRRORING2:4,vromCount:getCHR().length/4096}};
   nes.mmap=new DeviceRegisters(nes);nes.ppu=new PPU(nes);nes.papu=new PAPU(nes);base=createBus({read:readIO,write:writeIO,peek:peekIO});
   const b={read(a){facade.instrBusCycles++;gateSupported();const v=base.read(a);facade.dataBus=v;return v;},write(a,v,t){facade.instrBusCycles++;writeCPU(a,v,t);},peek:a=>base.peek(a),mapPRG:a=>base.mapPRG(a),getMapperState:()=>base.getMapperState()};
-  if(mmc){b.getCPUClock=()=>base.getCPUClock();b.advanceCPUClock=completeClock;}bus=Object.freeze(b);
+  if(mmc){b.getCPUClock=()=>base.getCPUClock();b.advanceCPUClock=completeClock;}bus=composeBus(base,{read:b.read,write:b.write,peek:b.peek,...(mmc?{advanceCPUClock:b.advanceCPUClock}:{})});
   nes.mmap.load=a=>{const v=base.read(a);facade.dataBus=v;return v;};
   for(const name of ['loadROM','loadPRGROM','loadCHRROM','loadBatteryRam','loadRomBank','load32kRomBank','load8kRomBank','loadVromBank','load8kVromBank','load1kVromBank','load2kVromBank','write','writelow'])nes.mmap[name]=()=>bad('DEVICE_CONTRACT','Compiler owns cartridge and timed writes');
   nes.ppu.clipToTvSize=false;installPPU();nes.ppu.startFrame();busy=true;
@@ -113,17 +115,17 @@ export function createMachine(options={}) {
   metrics.dmcCycles+=drained;if(stalled)cpu.setState({cycles:cpu.getState().cycles+stalled});return stalled;
  }
  function invariant(){const s=cpu.getState();if(s.instructions!==metrics.translatedInstructions||s.cycles!==cycles||(mmc&&base.getCPUClock()!==cycles))bad('CPU_PROVENANCE','CPU/device/cartridge counters differ');}
- function step(){
+ function step(trace=true){
   healthy();try{
    const before=cycles;facade.instrBusCycles=0;facade.apuCatchupCycles=0;facade._cpuCycleBase=cycles;stepWrites=[];sync();
-   const pc=cpu.getState().pc,mappingBefore=base.getMapperState(),physicalPC=pc>=32768?base.mapPRG(pc):null;
+   const pc=cpu.getState().pc,mappingBefore=trace?base.getMapperState():null,physicalPC=pc>=32768?base.mapPRG(pc):null;
    busy=true;let r;try{r=cpu.step();}finally{busy=false;}if(!mmc)clockTo(before+r.cycles);
-   if(r.kind==='instruction'){metrics.translatedInstructions++;const index=mmc?(pc<49152?mappingBefore.low:metadata.prgBanks+mappingBefore.high):ux?(pc<49152?mappingBefore.bank:metadata.prgBanks):0;metrics.bankInstructions[index]++;}else if(r.kind==='nmi')metrics.nmiEntries++;else if(r.kind==='irq')metrics.irqEntries++;
-   drain();sync();invariant();return {kind:r.kind,pc:r.pc,cycles:cycles-before,physicalPC,mappingBefore,mappingAfter:base.getMapperState(),writes:stepWrites.map(w=>({...w}))};
+   if(r.kind==='instruction'){metrics.translatedInstructions++;const bank=physicalPC===null?0:physicalPC>>>14,index=mmc?(pc<49152?bank:metadata.prgBanks+bank):ux?(pc<49152?bank:metadata.prgBanks):0;metrics.bankInstructions[index]++;}else if(r.kind==='nmi')metrics.nmiEntries++;else if(r.kind==='irq')metrics.irqEntries++;
+   drain();sync();if(trace){invariant();return {kind:r.kind,pc:r.pc,cycles:cycles-before,physicalPC,mappingBefore,mappingAfter:base.getMapperState(),writes:stepWrites.map(w=>({...w}))};}
   }catch(e){busy=false;fault=e.code||'DEVICE_ERROR';throw e;}
  }
  function resetCPU(){healthy();try{const before=cycles;stepWrites=[];busy=true;try{cpu.reset();}finally{busy=false;}if(!mmc)clockTo(before+7);drain();sync();invariant();return state();}catch(e){fault=e.code||'DEVICE_ERROR';throw e;}}
- function execute(o,target){object(o,['maxSteps','maxCycles','maxMs']);healthy();const maxSteps=int(o.maxSteps??20000,1,100000,'maxSteps'),maxCycles=int(o.maxCycles??40000,1,1000000,'maxCycles'),maxMs=int(o.maxMs??250,1,60000,'maxMs'),start=performance.now(),initial=cycles;let steps=0,reason='steps';while(steps<maxSteps){if(cycles-initial>=maxCycles){reason='cycles';break;}if(performance.now()-start>=maxMs){reason='time';break;}step();steps++;if(target!==null&&frames>=target){reason='frame';break;}}return {steps,cycles:cycles-initial,reason,frames,state:state()};}
+ function execute(o,target){object(o,['maxSteps','maxCycles','maxMs']);healthy();const maxSteps=int(o.maxSteps??20000,1,100000,'maxSteps'),maxCycles=int(o.maxCycles??40000,1,1000000,'maxCycles'),maxMs=int(o.maxMs??250,1,60000,'maxMs'),start=performance.now(),initial=cycles;let steps=0,reason='steps';while(steps<maxSteps){if(cycles-initial>=maxCycles){reason='cycles';break;}if(performance.now()-start>=maxMs){reason='time';break;}step(false);steps++;if(target!==null&&frames>=target){reason='frame';break;}}invariant();return {steps,cycles:cycles-initial,reason,frames,state:state()};}
  function memory(a,n,device){int(a,0,65535,'address');int(n,1,4096,'length');if(a+n>65536)bad('BAD_ARGUMENT','memory range');const r=new Uint8Array(n);for(let i=0;i<n;i++){const p=a+i;if(p>=8192&&p<24576)bad('UNSUPPORTED_PEEK','I/O requires snapshots');r[i]=device?facade.mem[p]:base.peek(p);}return r;}
  initialize(options);
  return Object.freeze({reset:initialize,resetCPU,step,advance:(o={})=>execute(o,null),frame(o={}){const r=execute(o,frames+1);if(r.reason!=='frame')bad('FRAME_BUDGET','Frame incomplete at '+r.reason);return r;},getState:state,

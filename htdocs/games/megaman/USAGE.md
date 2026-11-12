@@ -1,3 +1,23 @@
+## Direct browser timing repair (2026-11-12)
+
+The deployed browser now uses a module-owned mapper epoch fast path, sealed device
+state without per-cycle Proxy traps, and frame execution without allocating public
+instruction traces. Public step tracing and CPU/device cycle invariants remain
+available. CPU, PPU and APU cycle ratios and translated instruction semantics are
+unchanged. Custom buses retain full mapper validation.
+
+A continuous producer keeps approximately 80 ms of audio/video ready. Both streams
+use the same media timeline; video presentation follows the audio output clock when
+sound is enabled. Pause, focus loss, Reset and real underruns rebase that timeline.
+The display reports measured presentation FPS and emulated-time/wall-time speed.
+
+This is a direct source repair of the deployed artifact, authorized by the user;
+it is not a newly published Posse builder output. Earlier build receipts and compiler
+manifests describe the original generation. The outer manifest records current file
+hashes and the direct patch. Full-game correctness remains unestablished.
+
+---
+
 Build adapter: romjs-browser-fast-build. Only build mode is exposed. Historical library self_test descriptions below do not describe execution by this adapter. The candidate ROM compile was reported successful by the user; its full self_test timed out at 25 seconds and is not a pass. Browser performance has not been observed; no speed claim is made.
 
 # Translated NES machine, browser package API3
