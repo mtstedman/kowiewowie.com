@@ -1,4 +1,5 @@
 import {GamepadInput} from './gamepad.mjs';
+import {TouchDPad} from './touch-dpad.mjs';
 // Aggregate controller edges each occupy a frame. Sources overlap by OR.
 // Repeats and duplicate releases are idempotent. Overflow stops explicitly.
 class SampledInput {
@@ -23,6 +24,7 @@ class SampledInput {
 const $=id=>document.getElementById(id),canvas=$('screen'),ctx=canvas.getContext('2d'),status=$('status');
 const pads=Array.from(document.querySelectorAll('[data-button]'));
 const input=new SampledInput(),pointers=new Map(),sources=new Set();
+const touchDpad=new TouchDPad($('touch-dpad'),{press:down,release:up});
 const gamepad=new GamepadInput({press:down,release:up,status:text=>{$('controller-status').textContent=text;}});
 ctx.imageSmoothingEnabled=false;
 const scaleSelect=$('scale');
@@ -96,6 +98,7 @@ function enqueue(d){
 }
 
 function controls(){
+  touchDpad.render(ready&&running&&!document.hidden,b=>input.hasButton(b));
   $('start').disabled=!ready||running||document.hidden;
   $('pause').disabled=!ready||!running;
   for(const b of pads){const n=Number(b.dataset.button);b.disabled=!ready||document.hidden||(!running&&n!==3);b.setAttribute('aria-pressed',String(input.hasButton(n)));}
@@ -108,7 +111,7 @@ function silence(){
   sources.clear();audioNext=0;fadeIn=true;
 }
 function clearInputs(){
-  gamepad.clear();input.clear();
+  gamepad.clear();touchDpad.clear();input.clear();
   const captured=Array.from(pointers);pointers.clear();
   for(const [id,b] of captured){try{if(b.hasPointerCapture(id))b.releasePointerCapture(id);}catch{}}
 }
@@ -201,6 +204,15 @@ function down(source,b,repeat=false){
 function up(source){try{input.release(source);controls();}catch(e){fail(e.message);}}
 function pointerUp(e){pointers.delete(e.pointerId);up('p:'+e.pointerId);}
 $('start').onclick=()=>start();$('pause').onclick=()=>pause();$('reset').onclick=reset;
+const touchQuery=matchMedia('(any-pointer: coarse)');
+function updateTouchMode(){
+  const mode=$('touch-mode').value,visible=mode==='on'||(mode==='auto'&&(touchQuery.matches||navigator.maxTouchPoints>0));
+  if(!visible)clearInputs();
+  $('touch-overlay').hidden=!visible;document.body.dataset.touch=String(visible);
+}
+$('touch-mode').onchange=updateTouchMode;
+touchQuery.addEventListener('change',updateTouchMode);updateTouchMode();
+$('touch-overlay').addEventListener('contextmenu',e=>e.preventDefault());
 const keys={KeyZ:0,KeyX:1,ShiftRight:2,ShiftLeft:2,Enter:3,ArrowUp:4,ArrowDown:5,ArrowLeft:6,ArrowRight:7};
 for(const event of ['keydown','keyup'])window.addEventListener(event,e=>{
   if(e.target?.closest?.('select,input,textarea,[contenteditable="true"]'))return;

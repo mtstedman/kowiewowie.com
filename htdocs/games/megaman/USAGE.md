@@ -1,3 +1,14 @@
+## Touch overlay
+
+Touch controls appear automatically for touch-capable/coarse-pointer devices. Use
+Touch controls Auto/On/Off to override detection. The translucent controller sits
+over the visible, scrollable game display: slide the D-pad for directions/diagonals,
+use A/B together with movement, and tap Start/Select. Pointer capture and independent
+finger sources preserve multi-touch holds. Touch cancellation, pause, reset, focus
+loss, and hiding the overlay clear held inputs. Start enables audio through a gesture.
+The image keeps its selected integer scale; touch mode bounds the display viewport
+so the overlay remains reachable while oversized video can be scrolled underneath.
+
 ## Controller and pixel scaling
 
 Windows Xbox/XInput controllers use the browser's standard Gamepad API mapping.
