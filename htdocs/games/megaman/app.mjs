@@ -101,10 +101,9 @@ function reset(){
   try{advanceEpoch();}catch(e){fail(e.message);return;}
   running=false;ready=false;loading=true;clearInputs();silence();notice='';
   clearTimeout(timer);timer=null;pending=null;synced=-1;last=-Infinity;
-  worker?.terminate();worker=null;ctx.clearRect(0,0,256,240);show('Loading translated game…');
+  worker?.terminate();worker=null;ctx.clearRect(0,0,256,240);show('Loading translated game… First load may take a minute. Reset is available while loading.');
   try{
     const w=worker=new Worker(new URL('./worker.mjs',import.meta.url),{type:'module'});
-    timer=setTimeout(()=>{if(w===worker)fail('Initialization timed out');},5000);
     w.onerror=e=>{if(w===worker)fail(e.message||'Worker failed');};
     w.onmessageerror=()=>{if(w===worker)fail('Unreadable worker message');};
     w.onmessage=({data:d})=>receive(w,d);
