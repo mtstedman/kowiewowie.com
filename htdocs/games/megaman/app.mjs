@@ -1,0 +1,16 @@
+const $=id=>document.getElementById(id),canvas=$('screen'),ctx=canvas.getContext('2d'),status=$('status');
+let worker,ready=false,running=false,pending=false,timer=null,last=0,ac=null,audioNext=0,generation=0;const sources=new Set();
+function silence(){for(const s of sources){try{s.stop();}catch{}}sources.clear();audioNext=0;}
+function release(){if(ready)for(let i=0;i<8;i++)worker.postMessage({type:'button',button:i,down:false});}
+function pause(){generation++;running=false;release();silence();}
+function error(e){pause();ready=false;clearTimeout(timer);worker?.terminate();status.textContent='Stopped: '+String(e)+'. Reset to retry.';}
+function sound(samples){if(!ac||ac.state!=='running'||!samples.length)return;if(audioNext>ac.currentTime+.15)return;const n=samples.length/2,b=ac.createBuffer(2,n,48000);for(let ch=0;ch<2;ch++){const a=b.getChannelData(ch);for(let i=0;i<n;i++)a[i]=samples[2*i+ch];}const s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect();};audioNext=Math.max(audioNext,ac.currentTime+.02);s.start(audioNext);audioNext+=n/48000;}
+function reset(){pause();ready=false;pending=false;clearTimeout(timer);worker?.terminate();ctx.clearRect(0,0,256,240);status.textContent='Loading translated game…';const w=worker=new Worker(new URL('./worker.mjs',import.meta.url),{type:'module'});timer=setTimeout(()=>error('Initialization timed out'),5000);w.onerror=e=>{if(w===worker)error(e.message);};w.onmessage=({data:d})=>{if(w!==worker)return;if(d.type==='error'){error((d.code||'ERROR')+': '+d.message);return;}if(d.type==='ready'){clearTimeout(timer);ready=true;status.textContent='Ready. Press Start.';return;}if(d.type==='frame'){clearTimeout(timer);pending=false;ctx.putImageData(new ImageData(d.rgba,256,240),0,0);if(running){sound(d.audio);status.textContent='Running · frame '+d.frames;}}};}
+$('start').onclick=async()=>{if(!ready||running)return;const g=generation;try{const A=window.AudioContext||window.webkitAudioContext;if(A){ac??=new A({sampleRate:48000});await ac.resume();}}catch(e){status.textContent='Audio unavailable: '+e.message;}if(g!==generation||!ready)return;running=true;last=0;};
+$('pause').onclick=()=>{pause();status.textContent='Paused';};$('reset').onclick=reset;
+function tick(t){requestAnimationFrame(tick);if(running&&ready&&!pending&&t-last>=1000/60){last=t;pending=true;worker.postMessage({type:'frame'});timer=setTimeout(()=>error('Frame worker timed out'),1500);}}requestAnimationFrame(tick);
+const keys={KeyZ:0,KeyX:1,ShiftRight:2,ShiftLeft:2,Enter:3,ArrowUp:4,ArrowDown:5,ArrowLeft:6,ArrowRight:7};
+function button(b,down){if(ready)worker.postMessage({type:'button',button:b,down});}
+for(const event of ['keydown','keyup'])window.addEventListener(event,e=>{if(e.code in keys){e.preventDefault();button(keys[e.code],event==='keydown');}});
+for(const b of document.querySelectorAll('[data-button]')){b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);button(Number(b.dataset.button),true);};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>button(Number(b.dataset.button),false);}
+window.addEventListener('blur',()=>{pause();if(ready)status.textContent='Paused';});document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});reset();

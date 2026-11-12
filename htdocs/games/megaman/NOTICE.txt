@@ -1,0 +1,3 @@
+JSNES 2.1.0, Copyright 2020 Ben Firshman and contributors. Apache-2.0; see LICENSE-JSNES.txt.
+Device sources unchanged; devices.mjs is their generated combination.
+Compiler CPU integration, browser UI and tests are separately authored. No JSNES CPU interpreter is included. ROM/compiled-output rights are not granted.
