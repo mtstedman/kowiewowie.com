@@ -17,7 +17,7 @@ globalThis.onmessage=({data:d})=>{
     let rgba,audio,frames;
     try{
       for(let b=0;b<8;b++)machine.setButton(1,b,d.buttons[b]);
-      machine.frame({maxSteps:20000,maxCycles:40000,maxMs:1000});
+      machine.frame({maxSteps:20000,maxCycles:40000,maxMs:60000});
       rgba=machine.getRGBA();audio=machine.takeAudio();frames=machine.getState().frames;
     }finally{releaseAll();}
     postMessage({type:'frame',epoch,seq:d.seq,rgba,audio,frames},[rgba.buffer,audio.buffer]);

@@ -39,7 +39,7 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:0},chr=n
  let state=mmc?{control:cfg.startup_control,chr0:cfg.startup_chr0,chr1:cfg.startup_chr1,prg:cfg.startup_prg,shift:0,count:0,lastWriteCycle:null,clock:0,ppuAddress:0}:null;
  const bump=()=>{if(version>=Number.MAX_SAFE_INTEGER)bad('MAPPING_OVERFLOW','Epoch exhausted');version++;};
  function mapPRG(a){address(a);if(a<32768)bad('BAD_ARGUMENT','PRG address required');if(mmc){const banks=banks1(state,info);return banks[a<49152?0:1]*16384+(a&16383);}return ux?((a<49152?register&(count-1):count-1)*16384+(a&16383)):(a-32768)%rom.length;}
- function getMapperState(){if(mmc){const [low,high]=banks1(state,info);return {mapper:1,identity:info.mappingIdentity,...state,version,low,high,ramEnabled:ram1(state,info)};}return ux?{mapper:2,identity:info.mappingIdentity,register,bank:register&(count-1),version}:{mapper:0};}
+ function getMapperState(){if(mmc){const [low,high]=banks1(state,info);return {mapper:1,identity:info.mappingIdentity,control:state.control,chr0:state.chr0,chr1:state.chr1,prg:state.prg,shift:state.shift,count:state.count,lastWriteCycle:state.lastWriteCycle,clock:state.clock,ppuAddress:state.ppuAddress,version,low,high,ramEnabled:ram1(state,info)};}return ux?{mapper:2,identity:info.mappingIdentity,register,bank:register&(count-1),version}:{mapper:0};}
  function loadMapperState(v){
   if(mmc){const q=valid1(v,info);bump();state={control:q.control,chr0:q.chr0,chr1:q.chr1,prg:q.prg,shift:q.shift,count:q.count,lastWriteCycle:q.lastWriteCycle,clock:q.clock,ppuAddress:q.ppuAddress};return;}
   if(!ux)bad('BAD_MAPPER_STATE','NROM has no latch');
@@ -84,7 +84,15 @@ export function makeCPU(bus,blocks,info){
   const v=bus.getMapperState(),mask=info.uxrom.board==='UNROM'?7:15;
   if(!v||v.mapper!==2||v.identity!==info.mappingIdentity||!Number.isInteger(v.register)||v.register<0||v.register>mask||v.bank!==(v.register&(info.prgBanks-1))||!Number.isSafeInteger(v.version)||v.version<0)bad('BAD_MAPPING','Bus mapping does not match cartridge');return {bank:v.bank,register:v.register,version:v.version};
  }
- function unchanged(m){const v=mapping();if(Object.keys(m).some(k=>v[k]!==m[k]))bad('MAPPING_CHANGED','Mapping changed during fetch');}
+ // m is a private fresh snapshot, never returned or passed to a hook.
+ // Cache only its keys, never public results or validation decisions.
+ // mapping() still runs first, including EVERY state and clock callback.
+ let comparisonSnapshot=null,comparisonKeys=null;
+ function unchanged(m){
+  const v=mapping();
+  if(m!==comparisonSnapshot){comparisonKeys=Object.keys(m);comparisonSnapshot=m;}
+  for(let i=0;i<comparisonKeys.length;i++){const k=comparisonKeys[i];if(v[k]!==m[k])bad('MAPPING_CHANGED','Mapping changed during fetch');}
+ }
  function mapped(a,m){
   unchanged(m);
   const expected=(mmc?(a<49152?m.low:m.high):(a<49152?m.bank:info.prgBanks-1))*16384+(a&16383);

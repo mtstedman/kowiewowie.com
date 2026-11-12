@@ -48,7 +48,7 @@ function send(type,extra={}){
   if(pending||!worker||!ready)return;
   if(seq>=Number.MAX_SAFE_INTEGER){fail('Request identity exhausted; reload page');return;}
   const message={type,epoch,seq:++seq,...extra};pending={type,epoch,seq:message.seq};
-  timer=setTimeout(()=>fail(type==='frame'?'Frame worker timed out':'Input release timed out'),1500);
+  timer=setTimeout(()=>fail(type==='frame'?'Frame worker timed out':'Input release timed out'),120000);
   try{worker.postMessage(message);}catch(e){fail(e.message||e);}
 }
 function sync(){if(ready&&!pending&&synced!==epoch)send('sync');}
