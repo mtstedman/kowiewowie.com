@@ -1,3 +1,19 @@
+## Controller and pixel scaling
+
+Windows Xbox/XInput controllers use the browser's standard Gamepad API mapping.
+Connect the controller and press a button to expose it to the page. D-pad/left stick
+move; A is NES A (jump), X or B is NES B (shoot), Menu/Start is Start, and View/Back
+is Select. Click Game Start once if the browser needs a gesture to enable audio.
+Only the first selected standard-mapped controller drives player one. Disconnecting
+releases its input. Pause, Reset and focus loss require held controls to be released
+before they can act again. Keyboard and touch can be used alongside the controller.
+Unknown mappings show a message instead of guessing button indices.
+
+Pixel scale selects exactly 2x (512x480) or 4x (1024x960) from the native 256x240
+framebuffer, with nearest-neighbor CSS rendering and canvas smoothing disabled.
+The display scrolls on smaller viewports rather than resampling to fractional sizes.
+The scale preference is remembered locally when browser storage is available.
+
 ## Frame pacing repair (2026-11-12)
 
 Video presentation now uses display-refresh timestamps and a gently corrected audio

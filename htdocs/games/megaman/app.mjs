@@ -1,3 +1,4 @@
+import {GamepadInput} from './gamepad.mjs';
 // Aggregate controller edges each occupy a frame. Sources overlap by OR.
 // Repeats and duplicate releases are idempotent. Overflow stops explicitly.
 class SampledInput {
@@ -22,6 +23,15 @@ class SampledInput {
 const $=id=>document.getElementById(id),canvas=$('screen'),ctx=canvas.getContext('2d'),status=$('status');
 const pads=Array.from(document.querySelectorAll('[data-button]'));
 const input=new SampledInput(),pointers=new Map(),sources=new Set();
+const gamepad=new GamepadInput({press:down,release:up,status:text=>{$('controller-status').textContent=text;}});
+ctx.imageSmoothingEnabled=false;
+const scaleSelect=$('scale');
+function setScale(value){
+  const scale=value==='4'?'4':'2';canvas.dataset.scale=scale;scaleSelect.value=scale;
+  try{localStorage.setItem('romjs-pixel-scale',scale);}catch{}
+}
+let savedScale='2';try{savedScale=localStorage.getItem('romjs-pixel-scale')||'2';}catch{}
+setScale(savedScale);scaleSelect.onchange=()=>setScale(scaleSelect.value);
 let worker=null,ready=false,loading=false,running=false,pending=null,timer=null;
 let epoch=0,seq=0,synced=-1,last=-Infinity,ac=null,audioNext=0,notice='';
 let autoRender=false,audioUnlocked=false,master=null,fadeIn=true,audioClockActive=false;
@@ -98,7 +108,7 @@ function silence(){
   sources.clear();audioNext=0;fadeIn=true;
 }
 function clearInputs(){
-  input.clear();
+  gamepad.clear();input.clear();
   const captured=Array.from(pointers);pointers.clear();
   for(const [id,b] of captured){try{if(b.hasPointerCapture(id))b.releasePointerCapture(id);}catch{}}
 }
@@ -193,6 +203,7 @@ function pointerUp(e){pointers.delete(e.pointerId);up('p:'+e.pointerId);}
 $('start').onclick=()=>start();$('pause').onclick=()=>pause();$('reset').onclick=reset;
 const keys={KeyZ:0,KeyX:1,ShiftRight:2,ShiftLeft:2,Enter:3,ArrowUp:4,ArrowDown:5,ArrowLeft:6,ArrowRight:7};
 for(const event of ['keydown','keyup'])window.addEventListener(event,e=>{
+  if(e.target?.closest?.('select,input,textarea,[contenteditable="true"]'))return;
   if(!Object.prototype.hasOwnProperty.call(keys,e.code))return;
   e.preventDefault();
   if(event==='keyup'){up('k:'+e.code);return;}
@@ -215,6 +226,7 @@ window.addEventListener('blur',()=>pause('Paused after focus loss.'));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause('Paused while hidden.');else controls();});
 function tick(timestamp){
   requestAnimationFrame(tick);
+  gamepad.poll(ready&&!document.hidden&&document.hasFocus());
   if(!ready||!running||document.hidden)return;
   const now=presentationClock(timestamp);let frame;
   // A small phase deadband prevents a timestamp/sample rounding wobble from
