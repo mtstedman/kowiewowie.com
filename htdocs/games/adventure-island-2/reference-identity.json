@@ -1,0 +1,38 @@
+{
+  "source_commit": "a0c4ce480579a08404e9c8b861de00a869f3d122",
+  "scope": "Generic code only; no ROM, compiled banks, cartridge or game-specific policy. Reference files for builder-authored generic artifact derivation.",
+  "files": {
+    "runtime.mjs": {
+      "sha256": "ff8c053669ff2ef7f74ca9cb64a6360206c9c5f580843d336a67fd34dbd26487",
+      "bytes": 17857
+    },
+    "machine.mjs": {
+      "sha256": "16a27321594d38b5e8ff7b3a0fbd9953e48e42a0f93149835a7c0ee27c85af99",
+      "bytes": 18326
+    },
+    "app.mjs": {
+      "sha256": "fecc6d96aaad5e5be2dc0eebf7d7ad0f7ede99ccfda00ac25622e6f9e2c6b3cc",
+      "bytes": 14423
+    },
+    "worker.mjs": {
+      "sha256": "bda021bafb9af90ffed69814feeea7b8f56fbf5aff37719cace63614760b34a3",
+      "bytes": 1529
+    },
+    "index.html": {
+      "sha256": "28ef459de6939a238797419a866117e2b22a141e9ca060833a5bed9ad9977f86",
+      "bytes": 3757
+    },
+    "styles.css": {
+      "sha256": "dd5e6933af7c782ca1851e5bd2b9b30cff7c0c2e059dac011210263b1247b93f",
+      "bytes": 2763
+    },
+    "gamepad.mjs": {
+      "sha256": "871075585547001bc71951e6d44e1450718d6874581a2869d2cd33b8828cd007",
+      "bytes": 2399
+    },
+    "touch-dpad.mjs": {
+      "sha256": "cd25fed16dcd2c263477cca4261ce6ea02f99c05dae3b1f7251169e304921848",
+      "bytes": 2356
+    }
+  }
+}

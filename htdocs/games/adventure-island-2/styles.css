@@ -1,0 +1,24 @@
+body{margin:.75rem auto;max-width:68rem;padding:0 .75rem;font:16px system-ui;background:#16181d;color:#eef}.screen-viewport{max-width:100%;overflow:auto;margin:.75rem auto;background:black}canvas{display:block;max-width:none;margin:0 auto;image-rendering:pixelated;background:black}canvas[data-scale="2"]{width:512px;height:480px}canvas[data-scale="4"]{width:1024px;height:960px}select{font:inherit;padding:.4rem}#controller-status{min-height:2.5em}button{font:inherit;padding:.5rem;margin:.2rem;touch-action:none}#status{min-height:2.5em;margin:.5rem 0}a{color:#9df}
+
+button:disabled{opacity:.5;cursor:not-allowed}button[aria-pressed="true"]{outline:3px solid #9df}
+
+.game-stage{position:relative;margin:.75rem auto;max-width:100%}
+.game-stage .screen-viewport{margin:0}
+.touch-overlay{position:absolute;inset:0;pointer-events:none;user-select:none;-webkit-user-select:none;z-index:2}
+.touch-overlay[hidden]{display:none}
+.touch-overlay button{pointer-events:auto;touch-action:none;margin:0;border:1px solid #ffffff60;color:white;background:#131b2dd9;box-shadow:0 2px 8px #0008;text-shadow:0 1px 2px #000;font-weight:700;opacity:.72;-webkit-touch-callout:none}
+.touch-overlay button:disabled{opacity:.3}
+.touch-overlay button[aria-pressed="true"]{opacity:1;background:#536bc9e6;outline:2px solid #d8e6ff}
+.touch-dpad{position:absolute;left:max(10px,env(safe-area-inset-left));bottom:max(45px,env(safe-area-inset-bottom));width:132px;height:132px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);pointer-events:auto;touch-action:none;border-radius:50%;background:#10182730}
+.touch-dpad button{padding:0;border-radius:9px;font-size:20px;min-width:44px;min-height:44px}
+.dpad-up{grid-area:1/2}.dpad-left{grid-area:2/1}.dpad-center{grid-area:2/2;background:#131b2d80;border-radius:5px}.dpad-right{grid-area:2/3}.dpad-down{grid-area:3/2}
+.touch-actions{position:absolute;right:max(12px,env(safe-area-inset-right));bottom:max(65px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px}
+.touch-actions button{width:56px;height:56px;border-radius:50%;font-size:24px;padding:0}
+.touch-actions .touch-b{transform:translateY(16px)}
+.touch-menu{position:absolute;bottom:max(9px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;gap:12px}
+.touch-menu button{min-width:64px;min-height:40px;border-radius:20px;padding:6px 12px;font-size:13px;letter-spacing:.04em}
+.touch-help{display:none}
+body[data-touch="true"] .touch-help{display:block}
+body[data-touch="true"] .button-controller{display:none}
+body[data-touch="true"] .screen-viewport{max-height:75vh;max-height:75svh;overscroll-behavior:contain}
+@media (max-width:360px){.touch-dpad{left:6px}.touch-actions{right:6px;gap:8px}.touch-actions button{width:52px;height:52px}}

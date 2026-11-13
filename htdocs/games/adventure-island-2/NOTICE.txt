@@ -1,0 +1,2 @@
+JSNES 2.1.0, Copyright 2020 Ben Firshman and contributors. Apache-2.0; see LICENSE-JSNES.txt.
+Vendor sources are unchanged. devices.mjs combines authenticated devices. ppu-mmc3.mjs overrides PPU behavior with a separately authored dot pipeline. No JSNES CPU interpreter is included. ROM distribution rights are not granted.
