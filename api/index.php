@@ -11,6 +11,10 @@ use Wowie\Api\Http\Response;
 
 require __DIR__ . '/bootstrap.php';
 
+if (\Wowie\Api\NetplayService::matches()) {
+    \Wowie\Api\NetplayService::serve(dirname(__DIR__));
+}
+
 try {
     $config = Config::load(dirname(__DIR__));
     $application = new Application($config, Database::connect($config));

@@ -66,15 +66,19 @@ function statusAndError(Response $response): array
 $root = dirname(__DIR__);
 $postgres = $root . '/docs/postgres';
 
-// Migration chain: the newest version appends 024_wedding_registry.sql with its checksum.
+// Migration chain: version 26 retains 024_wedding_registry.sql and its checksum as later migrations append.
 $chain = json_decode((string) file_get_contents($postgres . '/migration-chain.json'), true, flags: JSON_THROW_ON_ERROR);
 $last = $chain['versions'][count($chain['versions']) - 1];
-check(26, $last['version'] ?? null, 'chain ends at version 26');
-check('updates/024_wedding_registry.sql', $last['updates'][0]['file'] ?? null, 'version 26 update file');
-check(hash_file('sha256', $postgres . '/updates/024_wedding_registry.sql'), $last['updates'][0]['sha256'] ?? null, 'version 26 checksum');
-check('26', trim((string) file_get_contents($postgres . '/VERSION')), 'VERSION pin');
+$weddingVersions = array_values(array_filter($chain['versions'], static fn (array $version): bool => ($version['version'] ?? null) === 26));
+check(1, count($weddingVersions), 'version 26 exists uniquely');
+$weddingVersion = $weddingVersions[0] ?? [];
+check('updates/024_wedding_registry.sql', $weddingVersion['updates'][0]['file'] ?? null, 'version 26 update file');
+check(hash_file('sha256', $postgres . '/updates/024_wedding_registry.sql'), $weddingVersion['updates'][0]['sha256'] ?? null, 'version 26 checksum');
+$currentVersion = $last['version'] ?? null;
+check(true, is_int($currentVersion) && $currentVersion >= 26, 'chain includes version 26 or later');
+check((string) $currentVersion, trim((string) file_get_contents($postgres . '/VERSION')), 'VERSION pin matches chain tail');
 try {
-    check(26, SchemaVersionMinter::validateDefinition($postgres)['targetVersion'], 'validated target version');
+    check($currentVersion, SchemaVersionMinter::validateDefinition($postgres)['targetVersion'], 'validated target version');
 } catch (Throwable $error) {
     $failures[] = 'migration chain does not validate: ' . $error->getMessage();
 }

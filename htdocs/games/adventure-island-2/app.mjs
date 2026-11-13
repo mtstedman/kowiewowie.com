@@ -1,3 +1,4 @@
+import {installHost} from './netplay-client.mjs';
 import {GamepadInput} from './gamepad.mjs';
 import {TouchDPad} from './touch-dpad.mjs';
 // Aggregate controller edges each occupy a frame. Sources overlap by OR.
@@ -23,7 +24,9 @@ class SampledInput {
 }
 const $=id=>document.getElementById(id),canvas=$('screen'),ctx=canvas.getContext('2d'),status=$('status');
 const pads=Array.from(document.querySelectorAll('[data-button]'));
-const input=new SampledInput(),pointers=new Map(),sources=new Set();
+const input=new SampledInput(),remoteInput=new SampledInput(),pointers=new Map(),sources=new Set();
+let netplay=null;
+function sampledButtons(){const local=input.sample(),remote=remoteInput.sample();return local.map((value,b)=>value||remote[b]);}
 const touchDpad=new TouchDPad($('touch-dpad'),{press:down,release:up});
 const gamepad=new GamepadInput({press:down,release:up,status:text=>{$('controller-status').textContent=text;}});
 ctx.imageSmoothingEnabled=false;
@@ -78,7 +81,7 @@ function pump(){
   clearTimeout(pumpTimer);pumpTimer=null;
   if(!ready||!running||document.hidden||pending||synced!==epoch)return;
   const ahead=mediaNext-clock();
-  if(ahead<=bufferTarget){const rgbaBuffer=freeVideo.pop();send('frame',{buttons:input.sample(),rgbaBuffer},rgbaBuffer?[rgbaBuffer]:[]);}
+  if(ahead<=bufferTarget){const rgbaBuffer=freeVideo.pop();send('frame',{buttons:sampledButtons(),rgbaBuffer},rgbaBuffer?[rgbaBuffer]:[]);}
   else pumpTimer=setTimeout(pump,Math.max(1,(ahead-bufferTarget)*1000));
 }
 function enqueue(d){
@@ -111,12 +114,14 @@ function silence(){
   sources.clear();audioNext=0;fadeIn=true;
 }
 function clearInputs(){
+  remoteInput.clear();netplay?.barrier();
   gamepad.clear();touchDpad.clear();input.clear();
   const captured=Array.from(pointers);pointers.clear();
   for(const [id,b] of captured){try{if(b.hasPointerCapture(id))b.releasePointerCapture(id);}catch{}}
 }
 function advanceEpoch(){if(epoch>=Number.MAX_SAFE_INTEGER)throw Error('Session identity exhausted; reload page');epoch++;}
 function fail(e){
+  netplay?.end("Host runtime stopped; sharing ended.");
   running=false;ready=false;loading=false;clearInputs();rebase();
   clearTimeout(timer);timer=null;pending=null;synced=-1;
   worker?.terminate();worker=null;notice='';
@@ -153,7 +158,7 @@ function start(withAudio=true){
   // Audio permission never delays input or determines engine running state.
   const g=epoch,w=worker;
   const audioError=()=>{if(g===epoch&&w===worker&&running){notice='Audio unavailable';if(!status.textContent.includes(notice))status.textContent+=' · '+notice;}};
-  try{const A=window.AudioContext||window.webkitAudioContext;if(A){if(!ac){ac=new A({sampleRate:48000});master=ac.createGain();master.connect(ac.destination);ac.onstatechange=syncAudioClock;}Promise.resolve(ac.resume()).then(()=>{if(g===epoch&&w===worker)syncAudioClock();}).catch(audioError);}}
+  try{const A=window.AudioContext||window.webkitAudioContext;if(A){if(!ac){ac=new A({sampleRate:48000});master=ac.createGain();master.connect(ac.destination);netplay?.audio();ac.onstatechange=syncAudioClock;}Promise.resolve(ac.resume()).then(()=>{if(g===epoch&&w===worker)syncAudioClock();}).catch(audioError);}}
   catch{audioError();}
 }
 function receive(w,d){
@@ -183,6 +188,7 @@ function receive(w,d){
   sync();pump();
 }
 function reset(){
+  netplay?.end("Host reset; sharing ended.");
   try{advanceEpoch();}catch(e){fail(e.message);return;}
   running=false;ready=false;loading=true;autoRender=true;audioUnlocked=false;audioClockActive=false;bufferTarget=BUFFER_SECONDS;clearInputs();lastCycles=null;presented=0;fps=0;speed=0;rebase();notice='';
   clearTimeout(timer);timer=null;pending=null;synced=-1;last=-Infinity;
@@ -252,4 +258,7 @@ function tick(timestamp){
   }
   pump();
 }
+netplay=installHost({canvas,start:()=>start(),audio:()=>({context:ac,master}),enabled:()=>ready&&running&&!document.hidden&&document.hasFocus(),clearRemote:()=>remoteInput.clear(),remote:buttons=>{
+  for(let b=0;b<8;b++){const source='remote:'+b;if(buttons[b])remoteInput.press(source,b);else remoteInput.release(source);}
+}});
 requestAnimationFrame(tick);reset();

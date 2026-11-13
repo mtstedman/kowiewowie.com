@@ -243,6 +243,15 @@
           "sha256": "a73c59088846aab70840941b71495701fa25a55ec39b877bc937fa791b54df18"
         }
       ]
+    },
+    {
+      "version": 28,
+      "updates": [
+        {
+          "file": "updates/028_romjs_netplay.sql",
+          "sha256": "56f174e9b5fbf7c8f1eba5e4c08743ad31251d9f711015b4e0aa29fe9ca0e34e"
+        }
+      ]
     }
   ]
 }

@@ -1,9 +1,9 @@
-<!-- schema-version: 27 -->
+<!-- schema-version: 28 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 27**. `migration-chain.json` is the ordered,
+current release pin is **version 28**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -44,13 +44,14 @@ per-file execution ledger.
 | 25 | `024_trivia_lives_and_mini_games.sql` | Trivia room starting lives, per-player remaining lives, and grim arithmetic, odd one out, and sequence recall Killing Floor trials |
 | 26 | `024_wedding_registry.sql` | Per-user wedding registry profiles, Amazon/Target/Zola registry enrollments, and registry product picks |
 | 27 | `025_stratego_games.sql` | Online Stratego games, red and blue seats, and hashed play invite links |
+| 28 | `028_romjs_netplay.sql` | Bounded shared-control netplay with renewable host authorization, separate invite expiry and replaceable ICE rounds |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger. The
 ledger keys on full basenames, so the two `013` and two `024` files are also
 distinct updates.
 
-## Current version 27 inventory
+## Current version 28 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -653,3 +654,7 @@ apply the chain manually with:
 php docs/postgres/db-version-minter.php --status
 php docs/postgres/db-version-minter.php
 ```
+
+## ROMJS netplay
+
+`romjs_netplay_rooms` has at most 128 service-admitted two-role rooms, two bounded SDP slots, hashed role/invite credentials, five-minute unused invitations and an authenticated renewable 60-second host lease. Joined rooms have no absolute age limit. Participant liveness is 15 seconds. TURN admission credentials last 600 seconds and are renewed before expiry. Random negotiation rounds replace SDP slots. `romjs_netplay_buckets` has 1024 fixed rows. `romjs_netplay_gate` serializes admission/rates. Creation cleans expired leases and unused invites; no scheduler or growing history is needed. Media and controller input are never stored.

@@ -1,0 +1,39 @@
+# INERT TEMPLATE. Separate provisioning owner installs the actual service.
+# Complete realm, listening-ip, relay-ip, cert and pkey after verifying host facts.
+# Add the static-auth-secret directive in protected installed configuration ONLY.
+# Its value must equal the literal WOWIE_NETPLAY_TURN_SECRET string used by PHP.
+# Do not add user accounts, no-auth or an HTTP credential endpoint on coturn.
+listening-port=3478
+tls-listening-port=5349
+fingerprint
+use-auth-secret
+rest-api-separator=:
+min-port=49160
+max-port=49259
+user-quota=8
+total-quota=256
+max-bps=500000
+bps-capacity=20000000
+max-allocate-timeout=30
+max-allocate-lifetime=600
+stale-nonce=600
+no-multicast-peers
+no-cli
+no-tlsv1
+no-tlsv1_1
+no-software-attribute
+denied-peer-ip=0.0.0.0-0.255.255.255
+denied-peer-ip=10.0.0.0-10.255.255.255
+denied-peer-ip=100.64.0.0-100.127.255.255
+denied-peer-ip=127.0.0.0-127.255.255.255
+denied-peer-ip=169.254.0.0-169.254.255.255
+denied-peer-ip=172.16.0.0-172.31.255.255
+denied-peer-ip=192.168.0.0-192.168.255.255
+denied-peer-ip=224.0.0.0-255.255.255.255
+denied-peer-ip=::1
+denied-peer-ip=fc00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+denied-peer-ip=fe80::-febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+# Protect operator services with egress address/port rules.
+# A blanket ban on the relay public IP can break two clients using this relay.
+# Allow intended relay-to-relay traffic within the configured relay port range.
+# Verify option names against the actual installed patched coturn version.

@@ -22,3 +22,5 @@ body[data-touch="true"] .touch-help{display:block}
 body[data-touch="true"] .button-controller{display:none}
 body[data-touch="true"] .screen-viewport{max-height:75vh;max-height:75svh;overscroll-behavior:contain}
 @media (max-width:360px){.touch-dpad{left:6px}.touch-actions{right:6px;gap:8px}.touch-actions button{width:52px;height:52px}}
+
+#netplay{border:1px solid #59647c;padding:.5rem;margin:.5rem 0}#netplay-status{min-height:2em}#netplay-actions input,#netplay-actions textarea{max-width:100%;font:inherit}#netplay-media{position:fixed;left:-4px;top:-4px;width:1px;height:1px;opacity:0;pointer-events:none}
