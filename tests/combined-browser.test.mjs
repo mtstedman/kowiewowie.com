@@ -123,6 +123,19 @@ for(const id of ['megaman','adventure-island-2','transport-diagnostic'])test(id+
   await receiverPadSet(guest,[15]);await receiverObservation(host,guest,two,true);
   await guest.locator('#touch-mode').focus();await waitHeld(host,two,true,false);await guest.locator('#session-surface').focus();await receiverObservation(host,guest,two,false);
   await receiverPadSet(guest);await receiverPadSet(guest,[],[.7,0]);await receiverObservation(host,guest,two,true);await receiverPadSet(guest);await waitHeld(host,two,true,false);
+  // The outside-focus ArrowRight check can change the native select. Verify Off, then restore On for touch.
+  const receiverTouchPad=guest.locator('#receiver-controls .receiver-pad'),receiverTouchRight=guest.locator('#receiver-controls [data-receiver-control="right"]');
+  assert.equal(await receiverTouchPad.count(),1);assert.equal(await receiverTouchRight.count(),1);
+  await guest.locator('#touch-mode').selectOption('off');assert.equal(await guest.locator('#touch-mode').inputValue(),'off');
+  await receiverTouchPad.waitFor({state:'hidden',timeout:10000});
+  assert.equal(await receiverTouchPad.isVisible(),false,'Off hides receiver touch controls');assert.equal(await receiverTouchRight.isVisible(),false,'Off hides the receiver touch target');
+  await guest.locator('#touch-mode').selectOption('on');assert.equal(await guest.locator('#touch-mode').inputValue(),'on');
+  // Setting changes release remote input; no public barrier acknowledgement is exposed. Retain the established active + 750ms settling pattern.
+  await until(guest,()=>wowieGameHost.getState().session.phase==='active',undefined,10000);await receiverDelay(750);
+  await until(guest,()=>{const s=wowieGameHost.getState(),b=document.querySelector('#receiver-controls [data-receiver-control="right"]');return s.session.role==='guest'&&s.session.phase==='active'&&s.canControl===true&&b?.disabled===false;},undefined,10000);
+  await receiverTouchPad.waitFor({state:'visible',timeout:10000});await receiverTouchRight.waitFor({state:'visible',timeout:10000});
+  assert.equal(await receiverTouchPad.isVisible(),true,'On shows receiver touch controls');assert.equal(await receiverTouchRight.isVisible(),true,'On restores the receiver touch target');
+  assert.equal(await receiverTouchRight.isEnabled(),true,'Receiver touch target is enabled after the setting release has settled');
   // Real browser touch dispatch must produce a trusted touch pointer and reach the remote host.
   await guest.evaluate(()=>{window.__receiverTouches=[];document.addEventListener('pointerdown',e=>{if(e.target.closest('#receiver-controls'))__receiverTouches.push({type:e.pointerType,trusted:e.isTrusted});},{capture:true});});
   cd=await guest.context().newCDPSession(guest);await cd.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
