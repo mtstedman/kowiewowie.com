@@ -44,10 +44,14 @@ export function hostAdapter(p,b,lease,state,runtime){
  release,remove(id){release(id);participants.delete(id);}};
 }
 const shortWait=promise=>new Promise(resolve=>{const timer=setTimeout(()=>resolve({serverConfirmed:false,cleanupPending:true}),6000);Promise.resolve(promise).then(v=>{clearTimeout(timer);resolve(v);},()=>{clearTimeout(timer);resolve({serverConfirmed:false});});});
+export function invitationMessage(p){
+ const c=p.capabilities;
+ return c.nativePlayers===2&&c.play==='host-p1-guest-p2'?(c.mode==='alternating'?'Invite someone to watch or take turns · Player 1 and Player 2.':'Invite someone to watch or join the game · Player 1 and Player 2.'):c.play==='shared-hero'?'Invite someone to watch or share this hero.':'Invite someone to watch this game.';
+}
 export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
  let lease=null,host=null,guest=null,opening=null,disposed=false,timer=null,releaseBusy=false,epoch=0,lastRawEpoch=0,receiverEnded=false;
  let retryTimer=null,retryWake=null,integration=null,disposal=null,joining=null,operation=0;
- let state=Object.freeze({role:record?'spectator':'solo',phase:record?'connecting':'inactive',epoch:0,reconnect:'none',watch:record?'unavailable':'available',play:record?'unavailable':'available',message:record?'Connecting to shared game…':'Invite someone to watch or share this hero.'});
+ let state=Object.freeze({role:record?'spectator':'solo',phase:record?'connecting':'inactive',epoch:0,reconnect:'none',watch:record?'unavailable':'available',play:record?'unavailable':'available',message:record?'Connecting to shared game…':invitationMessage(p)});
  const listeners=new Set(),video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.muted=true;video.setAttribute('aria-label','Shared game video and audio');
  const notify=()=>{if(disposed)return;for(const f of listeners)try{f(state);}catch{}onUI({state,participants:host?.getState().participants||[]});};
  function update(){
@@ -56,7 +60,7 @@ export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
   if(role==='guest'&&phase==='active'&&!raw.inputEnabled)phase='reconnecting';
   const rawEpoch=raw?.epoch??0,barrier=role!==state.role||phase!==state.phase||rawEpoch!==lastRawEpoch;lastRawEpoch=rawEpoch;
   if(barrier)epoch++;
-  const next={role,phase,epoch,reconnect:phase==='reconnecting'?'pending':phase==='active'&&epoch>1?'recovered':'none',watch:!record&&phase!=='ended'&&(raw?.watchAvailable??true)?'available':'unavailable',play:!record&&phase!=='ended'&&(raw?.playAvailable??true)?'available':'unavailable',message:phase==='ended'?'Sharing ended.':role==='spectator'?(phase==='active'?'Watching live · no controls.':'Connecting live video and audio…'):role==='guest'?(phase==='active'?(p.capabilities.play==='shared-hero'?'Sharing one hero · Player 1.':'Connected to the assigned second player.'):'Reconnecting · controls released.'):host?'Sharing this game.':'Invite someone to watch or share this hero.'};
+  const next={role,phase,epoch,reconnect:phase==='reconnecting'?'pending':phase==='active'&&epoch>1?'recovered':'none',watch:!record&&phase!=='ended'&&(raw?.watchAvailable??true)?'available':'unavailable',play:!record&&phase!=='ended'&&(raw?.playAvailable??true)?'available':'unavailable',message:phase==='ended'?'Sharing ended.':role==='spectator'?(phase==='active'?'Watching live · no controls.':'Connecting live video and audio…'):role==='guest'?(phase==='active'?(p.capabilities.play==='shared-hero'?'Sharing one hero · Player 1.':(p.capabilities.mode==='alternating'?'Connected as Player 2 · take turns.':'Connected to the assigned second player.')):'Reconnecting · controls released.'):host?'Sharing this game.':invitationMessage(p)};
   if(JSON.stringify(next)===JSON.stringify(state))return;state=Object.freeze(next);notify();
  }
  const event=e=>{if(disposed)return;queueMicrotask(update);if(e.type==='roster')onUI({state,participants:e.state.participants});};

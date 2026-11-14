@@ -13,13 +13,13 @@ const assets=new Map();
 async function asset(path,dependency=false){let bytes;try{bytes=await readFile(new URL('htdocs'+path,root));}catch(e){if(!dependency)throw e;bytes=await readFile(new URL('../dependencies/htdocs'+path,root));}assets.set(path,bytes);}
 for(const name of ['index.html','arcade.css','package.mjs','host.mjs','ui.mjs','nes-adapter.mjs','catalog.json'])await asset('/games/arcade/'+name);
 for(const row of rows){await asset(row.manifest);for(const name of ['index.html','host-entry.mjs','host-runtime.mjs'])await asset('/games/'+row.id+'/'+name);for(const name of ['gamepad.mjs','touch-dpad.mjs'])await asset('/games/'+row.id+'/'+name,true);}
-// Serve each package's declared dependencies, including the current sharing bridge.
-for(const row of rows){const envelope=JSON.parse(assets.get(row.manifest));for(const dependency of Object.keys(envelope.manifest.files))if(!assets.has(dependency))await asset(dependency,true);}
-await asset('/games/netplay/catalog.json');
-assets.set('/games/arcade/sharing.mjs',Buffer.from('export function createSharing(){return {load:(p,signal,route,loader)=>loader(p,signal),attach:async()=>{},dispose:async()=>{}};}'));
 await asset('/games/megaman/progress/20261112-v3/stage.png',true);
 await asset('/games/adventure-island-2/progress/20261114-ui/stage.png');
 assets.set('/games/arcade/catalog.json',Buffer.from(JSON.stringify(rows)));
+// Serve package-declared dependencies, including the sharing bridge.
+for(const row of rows){const envelope=JSON.parse(assets.get(row.manifest));for(const dependency of Object.keys(envelope.manifest.files))if(!assets.has(dependency))await asset(dependency,true);}
+await asset('/games/netplay/catalog.json');
+assets.set('/games/arcade/sharing.mjs',Buffer.from('export function createSharing(){return {load:(p,signal,route,loader)=>loader(p,signal),attach:async()=>{},dispose:async()=>{}};}'));
 const bounded=async(p,ms=5000)=>{let t;try{return await Promise.race([p,new Promise((_,r)=>{t=setTimeout(()=>r(Error('Browser fixture deadline')),ms);})]);}finally{clearTimeout(t);}};
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 function instrument(){
