@@ -1,18 +1,25 @@
 // Real Chromium document + production shell, catalog loader, NES adapter and extracted runtime.
-// Only the emulator Worker boundary is controlled. No ROM execution or gameplay-fidelity claim.
+// Worker and automatic sharing attachment are controlled. Tests explicitly bind
+// session providers; real sharing/transport is covered by the combined browser lab.
+// No ROM execution or gameplay-fidelity claim.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {chromium} from '@playwright/test';
 const root=new URL('../',import.meta.url),origin='http://127.0.0.1:49152';
-const rows=JSON.parse(await readFile(new URL('htdocs/games/arcade/catalog.json',root),'utf8'));
+const rows=JSON.parse(await readFile(new URL('htdocs/games/arcade/catalog.json',root),'utf8')).filter(r=>["megaman","adventure-island-2"].includes(r.id));
 const assets=new Map();
 async function asset(path,dependency=false){let bytes;try{bytes=await readFile(new URL('htdocs'+path,root));}catch(e){if(!dependency)throw e;bytes=await readFile(new URL('../dependencies/htdocs'+path,root));}assets.set(path,bytes);}
 for(const name of ['index.html','arcade.css','package.mjs','host.mjs','ui.mjs','nes-adapter.mjs','catalog.json'])await asset('/games/arcade/'+name);
 for(const row of rows){await asset(row.manifest);for(const name of ['index.html','host-entry.mjs','host-runtime.mjs'])await asset('/games/'+row.id+'/'+name);for(const name of ['gamepad.mjs','touch-dpad.mjs'])await asset('/games/'+row.id+'/'+name,true);}
+// Serve each package's declared dependencies, including the current sharing bridge.
+for(const row of rows){const envelope=JSON.parse(assets.get(row.manifest));for(const dependency of Object.keys(envelope.manifest.files))if(!assets.has(dependency))await asset(dependency,true);}
+await asset('/games/netplay/catalog.json');
+assets.set('/games/arcade/sharing.mjs',Buffer.from('export function createSharing(){return {load:(p,signal,route,loader)=>loader(p,signal),attach:async()=>{},dispose:async()=>{}};}'));
 await asset('/games/megaman/progress/20261112-v3/stage.png',true);
 await asset('/games/adventure-island-2/progress/20261114-ui/stage.png');
+assets.set('/games/arcade/catalog.json',Buffer.from(JSON.stringify(rows)));
 const bounded=async(p,ms=5000)=>{let t;try{return await Promise.race([p,new Promise((_,r)=>{t=setTimeout(()=>r(Error('Browser fixture deadline')),ms);})]);}finally{clearTimeout(t);}};
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 function instrument(){
