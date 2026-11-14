@@ -252,6 +252,15 @@
           "sha256": "56f174e9b5fbf7c8f1eba5e4c08743ad31251d9f711015b4e0aa29fe9ca0e34e"
         }
       ]
+    },
+    {
+      "version": 29,
+      "updates": [
+        {
+          "file": "updates/029_romjs_netplay_roles.sql",
+          "sha256": "ac9fb793a5f8b63456a6a18135c40f7ad203f801a7090ed0a978b8229b8b8750"
+        }
+      ]
     }
   ]
 }

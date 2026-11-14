@@ -14,7 +14,7 @@ function clear(){for(const source of held.keys())if(source.startsWith('k:'))bloc
 const video=document.createElement('video');video.id='netplay-media';video.playsInline=true;video.autoplay=true;video.muted=true;video.setAttribute('aria-hidden','true');document.body.append(video);
 ctx.imageSmoothingEnabled=false;
 for(const id of ['start','pause','reset'])$(id).disabled=true;
-$('status').textContent='Guest stream. Your controls join the host controls.';
+$('status').textContent='Live participant. The invitation determines watch or play access.';
 let scale='2';try{scale=localStorage.getItem('romjs-pixel-scale')==='4'?'4':'2';}catch{}
 function scaling(){const s=$('scale').value==='4'?'4':'2';canvas.dataset.scale=s;try{localStorage.setItem('romjs-pixel-scale',s);}catch{}}
 $('scale').value=scale;scaling();$('scale').onchange=scaling;
@@ -33,3 +33,5 @@ window.addEventListener('focus',render);
 function tick(){requestAnimationFrame(tick);gamepad.poll(usable());if(!document.hidden&&video.readyState>=2){ctx.imageSmoothingEnabled=false;ctx.drawImage(video,0,0,256,240);}}
 session=await guestSession({video,state,clear,enabled(value){if(allowed!==value){allowed=value;if(!value)clear();render();}},stopped(){allowed=false;clear();ctx.clearRect(0,0,256,240);}});
 render();requestAnimationFrame(tick);
+
+export {session as network};

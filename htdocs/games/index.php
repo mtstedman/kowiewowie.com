@@ -25,6 +25,8 @@ $metaDescription = 'Board games and per-game strategy notes from wowiekowie.com.
                 </div>
 
                 <div class="games-curated feature-grid" aria-label="Interactive games">
+                    <article class="games-feature-card"><span class="feature-number">Game arcade</span><h3>A small shelf of adventures</h3><p>Pick a game, settle in, and make an evening of it.</p><a class="text-link" href="/games/arcade/" aria-label="Open the game arcade">Open the arcade <span aria-hidden="true">-&gt;</span></a></article>
+
                     <article class="games-feature-card">
                         <span class="feature-number">Live board</span>
                         <h3>Chess</h3>

@@ -1,9 +1,9 @@
-<!-- schema-version: 28 -->
+<!-- schema-version: 29 -->
 
 # PostgreSQL schema
 
 The wowiekowie.com database schema is pinned by [`VERSION`](VERSION). The
-current release pin is **version 28**. `migration-chain.json` is the ordered,
+current release pin is **version 29**. `migration-chain.json` is the ordered,
 machine-readable history, and every executable SQL update lives in `updates/`.
 
 The version pin describes the schema required by the same application release.
@@ -45,13 +45,14 @@ per-file execution ledger.
 | 26 | `024_wedding_registry.sql` | Per-user wedding registry profiles, Amazon/Target/Zola registry enrollments, and registry product picks |
 | 27 | `025_stratego_games.sql` | Online Stratego games, red and blue seats, and hashed play invite links |
 | 28 | `028_romjs_netplay.sql` | Bounded shared-control netplay with renewable host authorization, separate invite expiry and replaceable ICE rounds |
+| 29 | `029_romjs_netplay_roles.sql` | Add package-bound protocol-3 watch/play rooms; preserve all version-28 objects/history |
 
 The two historical filenames beginning with `002` are intentionally preserved:
 their full basenames are already stored in production's migration ledger. The
 ledger keys on full basenames, so the two `013` and two `024` files are also
 distinct updates.
 
-## Current version 28 inventory
+## Current version 29 inventory
 
 - Authentication: `users`, `oauth_accounts`, `oauth_authorization_requests`,
   and `refresh_tokens`
@@ -658,3 +659,7 @@ php docs/postgres/db-version-minter.php
 ## ROMJS netplay
 
 `romjs_netplay_rooms` has at most 128 service-admitted two-role rooms, two bounded SDP slots, hashed role/invite credentials, five-minute unused invitations and an authenticated renewable 60-second host lease. Joined rooms have no absolute age limit. Participant liveness is 15 seconds. TURN admission credentials last 600 seconds and are renewed before expiry. Random negotiation rounds replace SDP slots. `romjs_netplay_buckets` has 1024 fixed rows. `romjs_netplay_gate` serializes admission/rates. Creation cleans expired leases and unused invites; no scheduler or growing history is needed. Media and controller input are never stored.
+
+## Protocol 3 package networking
+
+`romjs_netplay3_rooms` admits at most 32 rooms, each with four watchers and one player, separate session/credential/SDP state and a renewable host lease. Classification comes from the immutable server catalog. See `deploy/netplay/ROLES.md`.

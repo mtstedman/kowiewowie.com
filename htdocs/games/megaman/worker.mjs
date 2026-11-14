@@ -1,6 +1,6 @@
 import {createMachine} from './machine.mjs';
 let machine,epoch=-1,lastSeq=0;
-function releaseAll(){if(machine)for(let b=0;b<8;b++)machine.setButton(1,b,false);}
+function releaseAll(){if(machine)for(let port=1;port<=2;port++)for(let b=0;b<8;b++)machine.setButton(port,b,false);}
 try{machine=createMachine();releaseAll();postMessage({type:'ready'});}
 catch(e){postMessage({type:'error',code:e.code||'INIT',message:String(e.message||e)});}
 globalThis.onmessage=({data:d})=>{
@@ -12,11 +12,11 @@ globalThis.onmessage=({data:d})=>{
       epoch=d.epoch;lastSeq=d.seq;releaseAll();
       postMessage({type:'synced',epoch,seq:d.seq});return;
     }
-    if(d.type!=='frame'||d.epoch!==epoch||!Array.isArray(d.buttons)||d.buttons.length!==8||d.buttons.some(v=>typeof v!=='boolean'))throw Error('Invalid sampled frame');
+    if(d.type!=='frame'||d.epoch!==epoch||!Array.isArray(d.buttons)||d.buttons.length!==8||d.buttons.some(v=>typeof v!=='boolean')||!Array.isArray(d.buttons2)||d.buttons2.length!==8||d.buttons2.some(v=>typeof v!=='boolean'))throw Error('Invalid sampled frame');
     lastSeq=d.seq;
     let rgba,audio,frames,cycles;
     try{
-      for(let b=0;b<8;b++)machine.setButton(1,b,d.buttons[b]);
+      for(let b=0;b<8;b++){machine.setButton(1,b,d.buttons[b]);machine.setButton(2,b,d.buttons2[b]);}
       const result=machine.frame({maxSteps:20000,maxCycles:40000,maxMs:60000});
       rgba=machine.getRGBA(d.rgbaBuffer);audio=machine.takeAudio();const state=result.state;frames=state.frames;cycles=state.cycles;
     }finally{releaseAll();}

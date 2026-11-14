@@ -1,1 +1,4 @@
-export const binding=Object.freeze({"route":"/games/megaman/","artifact":"a61cbfd19eff469297bc5e7a7576a9752c0a075aeae595385648577f3ac1c29d"});
+import {verifyPackage,readBytes} from '../arcade/package.mjs';
+import {loadBinding} from '../arcade/session-bridge.mjs';
+const e=JSON.parse(new TextDecoder().decode(await readBytes(new URL('./game-package.json',import.meta.url),524288)));
+export const binding=await loadBinding(await verifyPackage(e,e.artifactDigest));

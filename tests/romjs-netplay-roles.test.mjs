@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import {randomBytes} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+import {createTransport} from '../htdocs/games/netplay/transport.mjs';
+import {assignment,validateSDP,validateBinding,zero} from '../htdocs/games/netplay/policy.mjs';
+import {NESRemoteInputs} from '../htdocs/games/netplay/nes-adapter.mjs';
+import {HostRoom,joinParticipant} from '../htdocs/games/netplay/session.mjs';
+const binding=JSON.parse(readFileSync(new URL('../htdocs/games/netplay/catalog.json',import.meta.url),'utf8')).packages.megaman;
+import {DiagnosticAdapter} from './fixtures/netplay-diagnostic.mjs';
+const id=n=>randomBytes(n).toString('hex'),buttons=n=>{const b=Array(8).fill(false);if(n!==undefined)b[n]=true;return b;};
+const assigned=(b,role='play')=>({protocol:3,catalog:b.catalog,binding:b.version,packageId:b.packageId,artifactDigest:b.artifactDigest,inputProfile:b.inputProfile,inputsDigest:b.inputsDigest,compatibility:b.compatibility,participant:id(16),participant_role:role,player:role==='play'?b.players.remote:null,session:id(16),capabilities:{video:true,audio:true,input:role==='play'}});
+const controls=(b,key)=>({...zero(b),...(key?{[key]:true}:{})});
+for(const two of [false,true]){
+ const b=validateBinding({...binding,compatibility:two?'native-two/1':'solo-shared/1',players:{local:'player-1',remote:two?'player-2':'player-1'},capabilities:{...binding.capabilities,nativePlayers:two?2:1,play:two?'independent':'shared-hero'}}),r=new NESRemoteInputs(b),a=assigned(b);r.admit(a);r.set(a.participant,a.session,a.player,controls(b,'right'));
+ const v=r.sample(buttons(0));assert(v.buttons[0]);assert.equal(v.buttons[7],!two);assert.equal(v.buttons2[7],two);assert.equal(v.buttons2[0],false);
+ assert.throws(()=>r.set(a.participant,id(16),a.player,controls(b,'a')));assert.throws(()=>r.set(a.participant,a.session,'forged-player',controls(b,'a')));
+ r.clear(a.participant);assert.deepEqual(r.sample(buttons(0)),{buttons:buttons(0),buttons2:buttons()});
+ r.set(a.participant,a.session,a.player,controls(b,'b'));r.set(a.participant,a.session,a.player,zero(b));assert(r.sample(buttons())[two?'buttons2':'buttons'][1]);assert.equal(r.sample(buttons())[two?'buttons2':'buttons'][1],false);
+ r.remove(a.participant);assert.throws(()=>r.set(a.participant,a.session,a.player,zero(b)));const w=assigned(b,'watch');r.admit(w);assert.throws(()=>r.set(w.participant,w.session,null,controls(b,'a')));
+}
+const worker=readFileSync(new URL('../htdocs/games/megaman/worker.mjs',import.meta.url),'utf8'),importLine="import {createMachine} from './machine.mjs';\n";assert(worker.startsWith(importLine));
+const held=[buttons(),buttons()],frames=[],replies=[];
+const machine={setButton(p,b,v){held[p-1][b]=v;},frame(){frames.push(held.map(x=>x.slice()));return {state:{frames:frames.length,cycles:frames.length*100}};},getRGBA(){return new Uint8ClampedArray(256*240*4);},takeAudio(){return new Float32Array(0);}};
+const context={createMachine:()=>machine,postMessage:d=>replies.push(d),Uint8ClampedArray,Float32Array};runInNewContext(worker.slice(importLine.length),context,{timeout:1000});
+context.onmessage({data:{type:'sync',epoch:1,seq:1}});context.onmessage({data:{type:'frame',epoch:1,seq:2,buttons:buttons(0),buttons2:buttons(7)}});assert.deepEqual(frames[0],[buttons(0),buttons(7)]);assert.deepEqual(held,[buttons(),buttons()]);
+context.onmessage({data:{type:'frame',epoch:0,seq:3,buttons:buttons(1),buttons2:buttons(1)}});assert.equal(frames.length,1);context.onmessage({data:{type:'frame',epoch:1,seq:4,buttons:buttons(),buttons2:[true]}});assert.equal(replies.at(-1).type,'error');assert.deepEqual(held,[buttons(),buttons()]);
+const generic=validateBinding({...binding,packageId:'diagnostic',route:'/games/diagnostic/',entryAdapter:'/games/diagnostic/adapter.mjs',adapter:'diagnostic/1',compatibility:'native-two/1',capabilities:{...binding.capabilities,nativePlayers:2,play:'independent'},players:{local:'left-player',remote:'right-player'},inputs:[{id:'mark',label:'Mark',kind:'button'},{id:'jump',label:'Jump',kind:'button'}]});
+const diagnostic=new DiagnosticAdapter(generic),a=assigned(generic),auth={...a,room:id(16),credential:id(32)},t=createTransport(generic);diagnostic.admit(a);diagnostic.local.add('mark');
+let clock=10000;Object.defineProperty(globalThis,'performance',{value:{now:()=>clock},configurable:true});
+const p=new t.Peer('host',auth,{enabled:()=>true,clearRemote:()=>diagnostic.release(a.participant),remote:c=>diagnostic.remote(a.participant,a.session,a.player,c)});
+p.pc={connectionState:'connected',close(){this.connectionState='closed';}};p.dc={readyState:'open',bufferedAmount:0,send(){},close(){this.readyState='closed';}};p.peerLive=true;p.suspended=false;p.lastServer=clock;p.lastData=clock;p.barrier();p.pulse();
+const packet=(seq,c=zero(generic),extra={})=>JSON.stringify({v:3,type:'state',package:generic.packageId,artifact:generic.artifactDigest,room:auth.room,participant:a.participant,participant_role:'play',player:a.player,inputsDigest:generic.inputsDigest,session:p.session,epoch:p.epoch,challenge:p.challenge,seq,controls:c,release:false,...extra});
+p.receive(packet(1,controls(generic,'jump')));assert.equal(diagnostic.remoteHeld.size,0);p.receive(packet(2));p.receive(packet(3,controls(generic,'jump')));assert(diagnostic.remoteHeld.get(a.participant).has('jump'));assert(diagnostic.local.has('mark'));
+const old=p.epoch;p.receive(packet(4,zero(generic),{release:true}));assert.notEqual(p.epoch,old);p.receive(packet(5,controls(generic,'jump'),{epoch:old}));assert.equal(diagnostic.remoteHeld.size,0);
+for(const forged of [{player:'left-player'},{participant_role:'watch'},{session:id(16)},{participant:id(16)},{room:id(16)},{artifact:id(32)},{package:'other'},{inputsDigest:id(32)}])assert.throws(()=>p.receive(packet(9,zero(generic),forged)));
+p.pulse();p.receive(packet(1));p.receive(packet(2,controls(generic,'jump')));p.receive(packet(2,zero(generic)));assert(diagnostic.remoteHeld.get(a.participant).has('jump'));clock+=1100;p.receive(packet(3,zero(generic)));assert(diagnostic.remoteHeld.get(a.participant).has('jump'));p.suspend('loss','rebuild');assert.equal(diagnostic.remoteHeld.size,0);assert(diagnostic.local.has('mark'));
+const watch=assigned(generic,'watch'),w=new t.Peer('host',{...auth,...watch},{clearRemote(){},enabled:()=>true});assert.throws(()=>w.receive(packet(4)));let rejected=false;assert.throws(()=>w.attachChannel({close(){rejected=true;}}));assert(rejected);assert.equal(w.permitted(),false);
+assert.throws(()=>assignment(generic,{...watch,player:a.player}));assert.throws(()=>assignment(generic,{...watch,capabilities:{video:true,audio:true,input:true}}));
+const fingerprint=Array.from(randomBytes(32),v=>v.toString(16).padStart(2,'0')).join(':');
+const sdp=(type,data=false)=>({type,sdp:'v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\na=fingerprint:sha-256 '+fingerprint+'\r\n'+['audio','video'].map(k=>'m='+k+' 9 UDP/TLS/RTP/SAVPF 96\r\na='+(type==='offer'?'sendonly':'recvonly')+'\r\n').join('')+(data?'m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\na=sctp-port:5000\r\n':'')});
+validateSDP(sdp('offer'),true);validateSDP(sdp('answer'),true);validateSDP(sdp('offer',true),false);assert.throws(()=>validateSDP(sdp('offer',true),true));assert.throws(()=>validateSDP({...sdp('answer'),sdp:sdp('answer').sdp.replace('recvonly','sendrecv')},true));
+let disposed=0;globalThis.MediaStream=class{constructor(tracks=[]){this.tracks=tracks;}getTracks(){return this.tracks;}};
+globalThis.RTCPeerConnection=class{constructor(){this.connectionState='connected';}addTransceiver(){return {sender:{replaceTrack:async()=>{}}};}createDataChannel(){throw Error('Watcher must not create data channels');}close(){this.connectionState='closed';}};
+const capture=()=>({video:{kind:'video',stop(){}},getAudio:()=>null,dispose(){disposed++;}}),watchCallbacks={capture,clearRemote(){},enabled:()=>true};
+const w1=new t.Peer('host',{...auth,...assigned(generic,'watch')},watchCallbacks),w2=new t.Peer('host',{...auth,...assigned(generic,'watch')},watchCallbacks);w1.connect({iceServers:[]});w2.connect({iceServers:[]});assert(w1.healthy());assert.equal(w1.dc,null);w1.stop('revoke');assert.equal(disposed,1);assert(w2.healthy());w2.stop('end');assert.equal(disposed,2);
+let resolvePoll;globalThis.fetch=()=>new Promise(r=>{resolvePoll=r;});const late=new t.Peer('guest',auth,{clear(){},enabled(){}});const waiting=late.poll();late.stop('dispose');resolvePoll(new Response(JSON.stringify({...a,round:'',mode:'rebuild',recover:'none',peer_live:true,message:null})));await waiting;assert.equal(late.pc,null);
+const renewable=new t.Peer('host',auth,{clearRemote(){}});renewable.request=async()=>({...a,available:true,iceServers:[{urls:['turn:relay.example.invalid:3478'],username:id(16),credential:id(16)}],iceTransportPolicy:'all',server_time:Math.floor(clock/1000),expires_at:Math.floor(clock/1000)+600,refresh_after_seconds:420});await renewable.freshIce(0);const first=renewable.refreshAt;clock+=900000;await renewable.freshIce(0);assert(renewable.refreshAt>first);assert.equal(renewable.closed,false);
+// Exercise actual host revoke/end methods with independently owned fake peers.
+const rootCalls=[],room=new HostRoom(generic,diagnostic,{...t,api:async(action)=>{rootCalls.push(action);return action==='end'?{ended:true}:{revoked:true};}},auth,()=>{});room.slots=[a,watch];let stops=0;room.peers.set(a.participant,{assignment:a,stop(){stops++;},barrier(){diagnostic.release(a.participant);}});room.peers.set(watch.participant,{assignment:watch,stop(){stops++;},barrier(){}});await room.revoke(a.participant);assert.equal(stops,1);assert(room.peers.has(watch.participant));assert(diagnostic.local.has('mark'));await room.end();await room.end();assert.equal(stops,2);assert.deepEqual(rootCalls,['revoke','end']);
+// A real exported receiving session with a watcher assignment rejects all input.
+globalThis.fetch=async(url)=>new Response(JSON.stringify(String(url).endsWith('/join')?watch:{...watch,round:'',mode:'rebuild',recover:'none',peer_live:true,message:null}));
+const receiver=await joinParticipant(generic,{room:id(16),participant:watch.participant,credential:id(32),invite:id(32),join_id:id(16)},{video:{play:async()=>{},pause(){},srcObject:null}});assert.equal(receiver.input({control:'jump',source:'forged',pressed:true,epoch:receiver.getState().epoch}),false);assert.equal(receiver.getState().assignment.capabilities.input,false);await receiver.dispose();
+console.log(JSON.stringify({status:'passed',scope:'synthetic transport, observer rejection, controller and lifecycle diagnostics; no browser, ROM, gameplay or relay execution'}));

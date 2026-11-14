@@ -1,0 +1,18 @@
+/** game-network-binding/1. Trusted package metadata; no UI or engine API. */
+export interface InputDescriptor {readonly id:string;readonly label:string;readonly kind:'button'}
+export interface Binding {readonly version:'game-network-binding/1';readonly protocol:3;readonly catalog:'romjs-cartridge-roles/1';readonly packageFormat:'game-network-package/1';readonly packageId:string;readonly artifactDigest:string;readonly route:string;readonly entryAdapter:string;readonly adapter:string;readonly compatibility:'solo-shared/1'|'native-two/1';readonly inputProfile:'buttons/1';readonly inputsDigest:string;readonly inputs:readonly InputDescriptor[];readonly players:Readonly<{local:string;remote:string}>;readonly capabilities:Readonly<{nativePlayers:1|2;play:'shared-hero'|'independent';watch:true;video:true;audio:true}>}
+export interface Assignment {readonly protocol:3;readonly catalog:string;readonly binding:string;readonly packageId:string;readonly artifactDigest:string;readonly participant:string;readonly participant_role:'watch'|'play';readonly session:string;readonly player:string|null;readonly inputsDigest:string;readonly inputProfile:'buttons/1';readonly compatibility:string;readonly capabilities:Readonly<{input:boolean;video:true;audio:true}>}
+export type Controls=Readonly<Record<string,boolean>>;
+/** One capture lease per peer. Dispose only lease-owned tracks/taps, never engine audio. */
+export interface CaptureLease {video:MediaStreamTrack;getAudio():MediaStreamTrack|null;dispose():void}
+export interface NetworkAdapter {version:1;packageId:string;artifactDigest:string;capture():CaptureLease;enabled():boolean;admit(a:Assignment):void;remote(participant:string,session:string,player:string,controls:Controls):void;release(participant?:string):void;remove(participant:string):void}
+export interface PrivateResume {room:string;participant:string;credential:string;join_id:string;invite?:string;session?:string;joined?:boolean}
+export interface InputEdge {control:string;source:string;pressed:boolean;epoch:number}
+export interface GuestSession {version:1;packageId:string;artifactDigest:string;resume:PrivateResume;assignment:Assignment;getState():{role:'guest'|'spectator';phase:'active'|'reconnecting'|'ended';epoch:number;assignment:Assignment;inputEnabled:boolean};input(e:InputEdge):boolean;release():void;retry():void;enableAudio():Promise<void>;getMedia():{video:HTMLVideoElement;audio:HTMLVideoElement};dispose(options?:{leave?:boolean}):Promise<{serverConfirmed:boolean;rejoinAfterSeconds?:number}>}
+export interface Invitation {assignment:Assignment;expiresInSeconds:number;fragment:string;route:string}
+export interface HostSession {binding:Binding;inviteWatch():Promise<Invitation>;invitePlay():Promise<Invitation>;revoke(participant:string):Promise<void>;release():void;audio():void;getState():object;end():Promise<{serverConfirmed:boolean;leaseFallbackSeconds?:number}>;dispose():Promise<{serverConfirmed:boolean;leaseFallbackSeconds?:number}>}
+export declare function createHostSession(binding:Binding,adapter:NetworkAdapter,options?:{onEvent?:(event:object)=>void;signal?:AbortSignal}):Promise<HostSession>;
+export declare function joinParticipant(binding:Binding,record:PrivateResume,options:{video:HTMLVideoElement;onEvent?:(event:object)=>void;signal?:AbortSignal}):Promise<GuestSession>;
+export declare function prepareJoin(fragment:string):PrivateResume;
+export declare function prepareRejoin(record:PrivateResume):PrivateResume;
+/** UI lifecycle: release before pause/reset/blur/hidden; end before package change/dispose. Host-local inputs are never released by participant loss. Credentials must not enter telemetry. */

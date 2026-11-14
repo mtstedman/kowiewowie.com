@@ -1,0 +1,9 @@
+{
+  "purpose": "Cartridge shelf thumbnail captured from actual authenticated rebuilt game, no image synthesis.",
+  "artifact_manifest_sha256": "65b3bf2b0c52cbddb02448119275c1d6a67b9a01efb12251213bf3c8b6d1220c",
+  "capture_method": "Playwright locator(canvas).screenshot",
+  "captured_at": "2026-11-14T03:06:12.439Z",
+  "browser": "153.0.8010.12",
+  "bytes": 5559,
+  "sha256": "69230a2bd539cb7da09a2f70b1e4418575aa83495fda0f9f0e94a300c4976392"
+}

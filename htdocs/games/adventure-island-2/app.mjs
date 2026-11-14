@@ -1,4 +1,6 @@
 import {installHost} from './netplay-client.mjs';
+import {NESRemoteInputs} from '../netplay/nes-adapter.mjs';
+import {binding} from './netplay-binding.mjs';
 import {GamepadInput} from './gamepad.mjs';
 import {TouchDPad} from './touch-dpad.mjs';
 // Aggregate controller edges each occupy a frame. Sources overlap by OR.
@@ -24,9 +26,10 @@ class SampledInput {
 }
 const $=id=>document.getElementById(id),canvas=$('screen'),ctx=canvas.getContext('2d'),status=$('status');
 const pads=Array.from(document.querySelectorAll('[data-button]'));
-const input=new SampledInput(),remoteInput=new SampledInput(),pointers=new Map(),sources=new Set();
+const input=new SampledInput(),remoteInput=new NESRemoteInputs(binding),pointers=new Map(),sources=new Set();
 let netplay=null;
-function sampledButtons(){const local=input.sample(),remote=remoteInput.sample();return local.map((value,b)=>value||remote[b]);}
+let arcadeClosed=false,arcadeFrame=0;
+function sampledButtons(){return remoteInput.sample(input.sample());}
 const touchDpad=new TouchDPad($('touch-dpad'),{press:down,release:up});
 const gamepad=new GamepadInput({press:down,release:up,status:text=>{$('controller-status').textContent=text;}});
 ctx.imageSmoothingEnabled=false;
@@ -81,7 +84,7 @@ function pump(){
   clearTimeout(pumpTimer);pumpTimer=null;
   if(!ready||!running||document.hidden||pending||synced!==epoch)return;
   const ahead=mediaNext-clock();
-  if(ahead<=bufferTarget){const rgbaBuffer=freeVideo.pop();send('frame',{buttons:sampledButtons(),rgbaBuffer},rgbaBuffer?[rgbaBuffer]:[]);}
+  if(ahead<=bufferTarget){const rgbaBuffer=freeVideo.pop();send('frame',{...sampledButtons(),rgbaBuffer},rgbaBuffer?[rgbaBuffer]:[]);}
   else pumpTimer=setTimeout(pump,Math.max(1,(ahead-bufferTarget)*1000));
 }
 function enqueue(d){
@@ -136,6 +139,7 @@ function send(type,extra={},transfer=[]){
 }
 function sync(){if(ready&&!pending&&synced!==epoch)send('sync');}
 function pause(reason='Paused'){
+  if(arcadeClosed)return;
   autoRender=false;
   try{advanceEpoch();}catch(e){fail(e.message);return;}
   running=false;clearInputs();rebase();notice='';last=-Infinity;
@@ -151,6 +155,7 @@ function sound(samples,at){
   source.start(at);audioNext=at+n/48000;
 }
 function start(withAudio=true){
+  if(arcadeClosed)return;
   if(!ready||document.hidden)return;
   if(!running){running=true;last=-Infinity;notice='';rebase();show('Starting…');sync();pump();}
   if(!withAudio||!running)return;
@@ -188,6 +193,7 @@ function receive(w,d){
   sync();pump();
 }
 function reset(){
+  if(arcadeClosed)return;
   netplay?.end("Host reset; sharing ended.");
   try{advanceEpoch();}catch(e){fail(e.message);return;}
   running=false;ready=false;loading=true;autoRender=true;audioUnlocked=false;audioClockActive=false;bufferTarget=BUFFER_SECONDS;clearInputs();lastCycles=null;presented=0;fps=0;speed=0;rebase();notice='';
@@ -201,6 +207,7 @@ function reset(){
   }catch(e){fail(e.message||e);}
 }
 function down(source,b,repeat=false){
+  if(arcadeClosed)return false;
   if(repeat||input.held.has(source)||!ready||document.hidden)return false;
   if(b===3)start();
   if(!running){show('Paused. Use Engine resume or Game Start.');return false;}
@@ -243,7 +250,8 @@ window.addEventListener('pointerup',pointerUp);window.addEventListener('pointerc
 window.addEventListener('blur',()=>pause('Paused after focus loss.'));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause('Paused while hidden.');else controls();});
 function tick(timestamp){
-  requestAnimationFrame(tick);
+  if(arcadeClosed)return;
+  arcadeFrame=requestAnimationFrame(tick);
   gamepad.poll(ready&&!document.hidden&&document.hasFocus());
   if(!ready||!running||document.hidden)return;
   const now=presentationClock(timestamp);let frame;
@@ -258,7 +266,19 @@ function tick(timestamp){
   }
   pump();
 }
-netplay=installHost({canvas,start:()=>start(),audio:()=>({context:ac,master}),enabled:()=>ready&&running&&!document.hidden&&document.hasFocus(),clearRemote:()=>remoteInput.clear(),remote:buttons=>{
-  for(let b=0;b<8;b++){const source='remote:'+b;if(buttons[b])remoteInput.press(source,b);else remoteInput.release(source);}
-}});
-requestAnimationFrame(tick);reset();
+netplay=installHost({canvas,start:()=>start(),audio:()=>({context:ac,master}),enabled:()=>ready&&running&&!document.hidden&&document.hasFocus(),admit:a=>remoteInput.admit(a),clearRemote:id=>remoteInput.clear(id),removeRemote:id=>remoteInput.remove(id),remote:(id,session,player,controls)=>remoteInput.set(id,session,player,controls)});
+
+let arcadeDisposal=null;
+function arcadeDispose(){
+ if(arcadeDisposal)return arcadeDisposal;arcadeClosed=true;running=false;ready=false;loading=false;autoRender=false;
+ const failures=[],tryIt=fn=>{try{fn();}catch(e){failures.push(e);}};tryIt(clearInputs);tryIt(()=>netplay?.end('Game closed.'));
+ clearTimeout(timer);clearTimeout(pumpTimer);timer=pumpTimer=null;cancelAnimationFrame(arcadeFrame);pending=null;synced=-1;
+ const oldWorker=worker;worker=null;tryIt(()=>{if(oldWorker){oldWorker.onmessage=oldWorker.onerror=oldWorker.onmessageerror=null;oldWorker.terminate();}});
+ const oldSources=[...sources];tryIt(silence);for(const s of oldSources)tryIt(()=>{s.onended=null;s.disconnect();});sources.clear();videoQueue=[];freeVideo.length=0;
+ tryIt(()=>touchQuery.removeEventListener('change',updateTouchMode));const oldAudio=ac;ac=null;audioUnlocked=false;audioClockActive=false;tryIt(()=>{if(oldAudio)oldAudio.onstatechange=null;master?.disconnect();});master=null;
+ arcadeDisposal=Promise.resolve().then(async()=>{if(oldAudio&&oldAudio.state!=='closed')await oldAudio.close();if(failures.length)throw failures[0];});return arcadeDisposal;
+}
+window.wowieLegacyDispose=arcadeDispose;
+window.addEventListener('pagehide',()=>{void arcadeDispose().catch(()=>{});});
+arcadeFrame=requestAnimationFrame(tick);reset();
+

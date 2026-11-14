@@ -44,7 +44,7 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=n
  const bump=()=>{if(version>=Number.MAX_SAFE_INTEGER-8192)bad('MAPPING_OVERFLOW','Epoch exhausted');version++;};
  const ramEnabled=()=>sram.length>0&&Boolean(state.protect&128);
  function mapPRG(a){address(a);if(a<32768)bad('BAD_ARGUMENT','PRG address');const slot=(a-32768)>>>13,mask=n-1;let bank;if(slot===3)bank=n-1;else if(slot===1)bank=state.r7&63&mask;else bank=((state.select&64)?slot===0:slot===2)?n-2:state.r6&63&mask;return bank*8192+(a&8191);}
- function mapCHR(a){integer(a,8191,'CHR address');let slot=(a>>>10)^((state.select&128)?4:0),bank=slot<4?((state[slot<2?'r0':'r1']&254)+(slot&1)):state['r'+(slot-2)];return (bank&(chrData.length/1024-1))*1024+(a&1023);}
+ function mapCHR(a){integer(a,8191,'CHR address');let slot=(a>>>10)^((state.select&128)?4:0),bank=slot<4?(((slot<2?state.r0:state.r1)&254)+(slot&1)):(slot===4?state.r2:slot===5?state.r3:slot===6?state.r4:state.r5);return (bank&(chrData.length/1024-1))*1024+(a&1023);}
  function mirroring(){return cfg.mirroring==='mapper'?(state.mirror?'horizontal':'vertical'):cfg.mirroring.replace('fixed_','');}
  function mapNametable(a){integer(a,16383,'PPU address');if(a<8192||a>=16128)bad('BAD_ARGUMENT','Nametable address');const off=(a-8192)&4095,page=off>>>10,mode=mirroring();return (mode==='four_screen'?page:mode==='vertical'?page&1:page>>>1)*1024+(off&1023);}
  function getMapperState(){const w=windows4(state,info),en=ramEnabled();return {mapper:4,identity:info.mappingIdentity,...state,version,w0:w[0],w1:w[1],w2:w[2],w3:w[3],ramEnabled:en,ramWritable:en&&!(state.protect&64)};}
@@ -66,9 +66,11 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=n
  function advancePPUClock(t){integer(t,Number.MAX_SAFE_INTEGER-8192,'PPU clock');if(t<state.ppuDot)bad('BAD_TIMING','PPU clock backwards');if(t===state.ppuDot)return;const phase=cfg.m2_falling_dot;if(!(state.ppuAddress&4096)){const edges=Math.floor((t-1-phase)/3)-Math.floor((state.ppuDot-1-phase)/3);state.lowSamples=Math.min(3,state.lowSamples+edges);}state.ppuDot=t;bump();}
  function setPPUAddress(a,t=state.ppuDot){integer(a,16383,'PPU address');advancePPUClock(t);const high=Boolean(a&4096),was=Boolean(state.ppuAddress&4096);bump();if(high&&!was&&state.lowSamples>=3)irqClock();if(high||was)state.lowSamples=0;state.ppuAddress=a;}
  const api={read:a=>read(a),peek:a=>read(a,true),write,mapPRG,mapCHR,mapNametable,getMirroring:mirroring,getMapperState,loadMapperState,getCPUClock,advanceCPUClock,setPPUAddress,advancePPUClock,getPPUClock:()=>state.ppuDot,getIRQ:()=>state.asserted,peekCHR:a=>chrData[mapCHR(a)],ppuRead(a,t=state.ppuDot){integer(a,8191,'CHR address');setPPUAddress(a,t);return chrData[mapCHR(a)];},ppuWrite(a,v,t=state.ppuDot){integer(a,8191,'CHR address');byte(v);setPPUAddress(a,t);if(chrRAM)chrData[mapCHR(a)]=v;},snapshot(){return {ram:ram.slice(),prgRam:sram.slice(),chrRam:chrRAM?chrData.slice():new Uint8Array(),mapper:getMapperState()};},loadRAM(r,p){if(!(r instanceof Uint8Array)||r.length!==2048||!(p instanceof Uint8Array)||p.length!==sram.length)bad('BAD_ARGUMENT','Exact RAM arrays');bump();ram.set(r);sram.set(p);},loadCHR(r){if(!(r instanceof Uint8Array)||r.length!==(chrRAM?8192:0))bad('BAD_ARGUMENT','Exact CHR RAM');bump();if(chrRAM)chrData.set(r);}};
- if(Object.isFrozen(info)&&Object.isFrozen(cfg)&&Object.isFrozen(cfg.startup_registers))ownedBuses.set(api,{info,snapshot(){const w=windows4(state,info);return {w0:w[0],w1:w[1],w2:w[2],w3:w[3],version,clock:state.clock};},unchanged(m){return version===m.version&&state.clock===m.clock;}});
+ if(Object.isFrozen(info)&&Object.isFrozen(cfg)&&Object.isFrozen(cfg.startup_registers))ownedBuses.set(api,{info,snapshot(){const mask=info.prgBanks-1,r6=(state.r6&63)&mask,r7=(state.r7&63)&mask;return state.select&64?{w0:info.prgBanks-2,w1:r7,w2:r6,w3:info.prgBanks-1,version,clock:state.clock}:{w0:r6,w1:r7,w2:info.prgBanks-2,w3:info.prgBanks-1,version,clock:state.clock};},unchanged(m){return version===m.version&&state.clock===m.clock;}});
  return Object.freeze(api);
 }
+// Generic fixed-property lookup; no mapping result or validation is cached.
+function windowBank(m,w){switch(w){case 0:return m.w0;case 1:return m.w1;case 2:return m.w2;case 3:return m.w3;default:return undefined;}}
 export function makeCPU(bus,blocks,info){
  if(!bus||['read','write','peek'].some(k=>typeof bus[k]!=='function'))bad('BAD_BUS','Bus requires read, write, peek');
  const mmc=true,banked=true;
@@ -90,7 +92,7 @@ export function makeCPU(bus,blocks,info){
  }
  function mapped(a,m){
   unchanged(m);
-  const expected=m['w'+((a-32768)>>>13)]*8192+(a&8191);
+  const expected=windowBank(m,((a-32768)>>>13))*8192+(a&8191);
   const actual=bus.mapPRG(a);
   unchanged(m);
   if(actual!==expected)bad('BAD_MAPPING','Incorrect physical mapping',a);
@@ -119,8 +121,8 @@ export function makeCPU(bus,blocks,info){
   if(!hold&&(nmiPending||(irq&&!irqMask))){const nmi=nmiPending;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return {kind:nmi?'nmi':'irq',pc,cycles:7};}
   if(pc<32768)bad('MUTABLE_CODE_UNSUPPORTED','Execution outside immutable PRG',pc);
   const m=mapping();if(banked)mapped(pc,m);
-  const window=(pc-32768)>>>13;let entry=blocks[window][m['w'+window]][pc];
-  if(entry&&entry.cross)entry=entry.cross[m['w'+(window+1)]];
+  const window=(pc-32768)>>>13;let entry=blocks[window][windowBank(m,window)][pc];
+  if(entry&&entry.cross)entry=entry.cross[windowBank(m,window+1)];
   if(!entry){const op=fetchByte(pc,m,true);bad(info.officialOpcodes.includes(op)?'MISSING_TRANSLATION':'UNSUPPORTED_OPCODE','No translated instruction at '+pc+' (opcode '+op+')',pc);}
   for(let i=0;i<entry[0].length;i++)if(fetchByte(pc+i,m,true)!==entry[0][i])bad('CODE_CHANGED','Peek differs from source',pc);
   for(let i=0;i<entry[0].length;i++)if(fetchByte(pc+i,m)!==entry[0][i])bad('CODE_CHANGED','Fetch differs from source',pc);
@@ -130,5 +132,5 @@ export function makeCPU(bus,blocks,info){
   const old=s.p;hold=false;const n=entry[1](c);s.p=c.norm(s.p);irqMask=entry[2]===1?old&4:s.p&4;if(entry[2]===2)hold=true;addCycles(n);s.instructions++;return {kind:'instruction',pc,cycles:n};
  }finally{busy=false;}}
  function run(options={}){safe();if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(k=>!['maxSteps','maxCycles','maxMs'].includes(k)))bad('BAD_ARGUMENT','Invalid run options');const maxSteps=options.maxSteps??1000,maxCycles=options.maxCycles??100000,maxMs=options.maxMs??1000;integer(maxSteps,1000000,'maxSteps');integer(maxCycles,10000000,'maxCycles');integer(maxMs,5000,'maxMs');if(!maxSteps||!maxCycles||!maxMs)bad('BAD_ARGUMENT','Positive bounds required');const now=()=>globalThis.performance?.now?.()??Date.now(),start=now(),initial=s.cycles;let steps=0,reason='steps';while(steps<maxSteps){if(s.cycles-initial>=maxCycles){reason='cycles';break;}if(now()-start>=maxMs){reason='time';break;}step();steps++;}return {steps,cycles:s.cycles-initial,reason,state:snapshot()};}
- const api=Object.freeze({bus,getState:snapshot,setState,step,run,reset,setIRQ(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean IRQ required');irq=v;},setNMI(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean NMI required');if(v&&!nmiLine)nmiPending=true;nmiLine=v;},requestNMI(){safe();nmiPending=true;},getSignals:()=>({irq,nmiLine,nmiPending,irqMask:Boolean(irqMask),hold})});reset();return api;
+ const api=Object.freeze({bus,getState:snapshot,getPC:()=>s.pc,setState,step,run,reset,setIRQ(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean IRQ required');irq=v;},setNMI(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean NMI required');if(v&&!nmiLine)nmiPending=true;nmiLine=v;},requestNMI(){safe();nmiPending=true;},getSignals:()=>({irq,nmiLine,nmiPending,irqMask:Boolean(irqMask),hold})});reset();return api;
 }

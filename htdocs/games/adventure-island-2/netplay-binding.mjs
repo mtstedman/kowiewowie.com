@@ -1,1 +1,4 @@
-export const binding=Object.freeze({"route":"/games/adventure-island-2/","artifact":"34fa7e70a266298e7770c1d39a1dd3a9be7d6cd559a399e9b260183376ceb64a"});
+import {verifyPackage,readBytes} from '../arcade/package.mjs';
+import {loadBinding} from '../arcade/session-bridge.mjs';
+const e=JSON.parse(new TextDecoder().decode(await readBytes(new URL('./game-package.json',import.meta.url),524288)));
+export const binding=await loadBinding(await verifyPackage(e,e.artifactDigest));
