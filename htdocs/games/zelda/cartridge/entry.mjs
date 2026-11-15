@@ -1,0 +1,2 @@
+export * from "./data.mjs";
+export const requirements=Object.freeze({"abi":"timed-mmc1/1","battery":true,"board":"SNROM","compiler":"fetch-epoch-2","mapper":1,"region":"ntsc"});

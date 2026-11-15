@@ -1,4 +1,4 @@
-import {createMachine} from './machine.mjs';
+import {createMachine} from "./composition-entry.mjs";
 import {createProducer} from '../arcade/worker-stream-producer.mjs';
 let producer;
 try{

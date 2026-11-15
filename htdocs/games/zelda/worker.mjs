@@ -1,4 +1,4 @@
-import {createMachine} from './engine/machine.mjs';
+import {createMachine} from "./composition-entry.mjs";
 import {createProducer} from '../arcade/worker-stream-producer.mjs';
 import {encodeRAM,decodeRAM} from './battery-codec.mjs';
 let machine,producer,initialized=false;

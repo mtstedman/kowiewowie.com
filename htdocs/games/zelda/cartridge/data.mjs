@@ -1,0 +1,21 @@
+import T0 from "./bank-0-low.mjs";
+import T1 from "./bank-1-low.mjs";
+import T2 from "./bank-2-low.mjs";
+import T3 from "./bank-3-low.mjs";
+import T4 from "./bank-4-low.mjs";
+import T5 from "./bank-5-low.mjs";
+import T6 from "./bank-6-low.mjs";
+import T7 from "./bank-7-low.mjs";
+import T8 from "./bank-0-high.mjs";
+import T9 from "./bank-1-high.mjs";
+import T10 from "./bank-2-high.mjs";
+import T11 from "./bank-3-high.mjs";
+import T12 from "./bank-4-high.mjs";
+import T13 from "./bank-5-high.mjs";
+import T14 from "./bank-6-high.mjs";
+import T15 from "./bank-7-high.mjs";
+import {prgHex,chrHex,trainerHex} from "./cartridge.mjs";
+function freeze(v){if(v&&typeof v==="object"){for(const x of Object.values(v))freeze(x);Object.freeze(v);}return v;}
+export const metadata=freeze({"apiVersion":3,"assumptions":{"chrRamBytes":8192,"hardware":"PPU/APU/DMA/controllers pending","prgRam":"8k","startup":"explicit deterministic policy; not a hardware guarantee","timing":"exact official write-cycle offsets; incomplete read trace"},"baseline":{"draft":"draft-92deb9033484c30accf8e3fc985b9422","independentlyHashed":false,"suppliedSourceSha256":"6769aa445abe8cd57f3395325d6e707c256dd85855cc66e949dcea72ca438136"},"battery":true,"board":"SNROM","candidate_addresses":262144,"chrSha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","compiled_candidates":128404,"complete_conversion":false,"crossing_variants":0,"mapper":1,"mappingIdentity":"49e5cb0fedd0d708c31bed2b75e29dd54bad8d63abd6fdde6563a21cdd5bc644","mirroring":"mapper_controlled","mmc1":{"prg_ram":"8k","revision":"MMC1B","startup_chr0":0,"startup_chr1":0,"startup_control":12,"startup_prg":0,"wiring":"SNROM"},"officialOpcodes":[0,1,5,6,8,9,10,13,14,16,17,21,22,24,25,29,30,32,33,36,37,38,40,41,42,44,45,46,48,49,53,54,56,57,61,62,64,65,69,70,72,73,74,76,77,78,80,81,85,86,88,89,93,94,96,97,101,102,104,105,106,108,109,110,112,113,117,118,120,121,125,126,129,132,133,134,136,138,140,141,142,144,145,148,149,150,152,153,154,157,160,161,162,164,165,166,168,169,170,172,173,174,176,177,180,181,182,184,185,186,188,189,190,192,193,196,197,198,200,201,202,204,205,206,208,209,213,214,216,217,221,222,224,225,228,229,230,232,233,234,236,237,238,240,241,245,246,248,249,253,254],"operand_wrap_candidates_rejected":0,"prgBanks":8,"prgSha256":"ec0d4ebf6d2fcecd1d95fef7329954efe79676959bc281ea908b226459bc6dc2","region":"ntsc","romSha256":"89232edf4f9b52e3cb872094bc78973de080befca2ddea893b6e936066514d4e","runtimeRevision":"fetch-epoch-2","scan_complete":true,"scanned_addresses":262144,"sources":["https://www.nesdev.org/wiki/MMC1","https://www.nesdev.org/wiki/MMC1_pinout","https://www.nesdev.org/wiki/Programming_MMC1","https://www.nesdev.org/6502_cpu.txt","https://www.nesdev.org/obelisk-6502-guide/reference.html","https://www.nesdev.org/wiki/CPU_interrupts","https://www.nesdev.org/wiki/CPU_ALL","https://www.nesdev.org/wiki/INES","https://www.nesdev.org/wiki/UxROM","https://www.nesdev.org/wiki/Bus_conflict","https://www.nesdev.org/wiki/CPU_unofficial_opcodes","https://www.nesdev.org/wiki/CPU_memory_map"],"trainerSha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","uxrom":null,"vectorPolicy":"startup mapping; runtime reads current bus","vectors":{"irq":65520,"nmi":58500,"reset":65360}});
+export const blocks=Object.freeze([T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15]);
+export {prgHex,chrHex,trainerHex};

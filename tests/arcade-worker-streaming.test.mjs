@@ -213,7 +213,7 @@ async function batteryWorker(){
  const modules=new Map();
  function get(file){
   if(modules.has(file))return modules.get(file);
-  const fake=file===resolve(sourceRoot,'htdocs/games/zelda/engine/machine.mjs');
+  const fake=file===resolve(sourceRoot,'htdocs/games/zelda/composition-entry.mjs');
   const text=fake?'export const createMachine=()=>globalThis.machine;':exactModuleSource(sourceRoot,file,pins).text;
   const m=new vm.SourceTextModule(text,{context,identifier:pathToFileURL(file).href,importModuleDynamically(){throw Error('Dynamic imports disabled');}});modules.set(file,m);return m;
  }

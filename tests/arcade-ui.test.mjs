@@ -1,3 +1,4 @@
+import {sharedEngineHistoricalRead} from './shared-engine-history.mjs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -80,6 +81,9 @@ test('screen-first shell, accessible shelf, same-document routing and transport-
  const prov=JSON.parse(read('docs/arcade-ui-provenance.json'));for(const link of prov.preserved_games_links)assert(read('htdocs/games/index.php').includes(link));for(const p of packages)assert.equal(read('htdocs'+p.route+'index.html'),html);
  assert(!prov.changed_paths.some(p=>/bank-|source\.nes$|\/api\/|postgres|netplay-client\.mjs$|netplay-binding\.mjs$|worker\.mjs$/.test(p)));
 });
-test('each retained legacy page has its own authenticated shared heading and one shelf link',()=>{
- for(const p of packages.filter(p=>["megaman","adventure-island-2"].includes(p.id))){const html=read('htdocs'+p.route+'legacy.html');assert.deepEqual([...html.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/gi)].map(m=>m[1]),[p.title+' · shared game']);const link='<p><a href="/games/arcade/">Return to the game shelf</a></p>';assert.equal(html.split(link).length-1,1);assert.equal(html.split('href="/games/arcade/"').length-1,1);assert.equal(html.split('src="./legacy-entry.mjs"').length-1,1);assert(!html.includes('src="./netplay-entry.mjs"'));const bytes=readFileSync(new URL('htdocs'+p.route+'legacy.html',root));assert.deepEqual(p.files[p.route+'legacy.html'],{bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
+test('retired standalone pages retain authenticated historical headings and shelf links',()=>{
+ const prior=sharedEngineHistoricalRead();
+ const read=p=>prior(p).toString('utf8');
+ const packages=JSON.parse(read('htdocs/games/arcade/catalog.json')).map(row=>JSON.parse(read('htdocs'+row.manifest)).manifest);
+ for(const p of packages.filter(p=>["megaman","adventure-island-2"].includes(p.id))){const html=read('htdocs'+p.route+'legacy.html');assert.deepEqual([...html.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/gi)].map(m=>m[1]),[p.title+' · shared game']);const link='<p><a href="/games/arcade/">Return to the game shelf</a></p>';assert.equal(html.split(link).length-1,1);assert.equal(html.split('href="/games/arcade/"').length-1,1);assert.equal(html.split('src="./legacy-entry.mjs"').length-1,1);assert(!html.includes('src="./netplay-entry.mjs"'));const bytes=prior('htdocs'+p.route+'legacy.html');assert.deepEqual(p.files[p.route+'legacy.html'],{bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
 });

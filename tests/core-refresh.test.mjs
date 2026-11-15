@@ -2,12 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {verifyCoreRefresh,coreHistoricalRead} from './core-refresh-history.mjs';
+import {verifyCoreRefresh as verifyPriorCoreRefresh,coreHistoricalRead as priorCoreHistoricalRead} from './core-refresh-history.mjs';
+import {sharedEngineHistoricalRead} from './shared-engine-history.mjs';
 const root=new URL('../',import.meta.url);
-const read=p=>readFileSync(new URL(p,root));
+const read=sharedEngineHistoricalRead(p=>readFileSync(new URL(p,root)));
+const verifyCoreRefresh=(reader=read)=>verifyPriorCoreRefresh(reader);
+const coreHistoricalRead=(reader=read)=>priorCoreHistoricalRead(reader);
 const pin=b=>({bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')});
 
-test('every catalog game has authenticated core provenance and unchanged cartridge bytes',()=>{
+test('prior core release retains authenticated provenance and cartridge bytes through the shared-engine history',()=>{
  const receipt=verifyCoreRefresh();
  const ids=JSON.parse(read('htdocs/games/arcade/catalog.json')).map(x=>x.id).sort();
  assert.deepEqual(Object.keys(receipt.game_cores).sort(),ids);
@@ -25,7 +28,7 @@ test('prior release views retain original bytes after validating current core ch
  assert.equal(coreHistoricalRead(historical),historical);
 });
 
-test('core refresh rejects altered current files, retained originals, additions and receipt',()=>{
+test('prior core release rejects altered retained files, additions and receipt',()=>{
  const receipt=verifyCoreRefresh();
  const [path,change]=Object.entries(receipt.changes).find(([path])=>path.endsWith('/machine.mjs'));
  const targets=[path,change.original,'tests/core-refresh-migration.json'];
