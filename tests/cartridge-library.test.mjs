@@ -53,7 +53,7 @@ for(const p of packages.filter(p=>plan.newIds.includes(p.id)))test(p.id+': real 
 });
 for(const id of plan.newIds)test(id+': preserved frame-sampled input and lifecycle wrapper',async()=>{
  const g=plan.games.find(g=>g.slug===id),path='htdocs/games/'+id+'/'+(g.battery?'host-runtime-base.mjs':'host-runtime.mjs');
- const f=runtimeHarness(fileURLToPath(new URL(path,root))),r=f.runtime;r.reset();const w=f.workers[0];w.receive({type:'ready'});r.start(false);assert(r.input('local:held',0,true));assert(r.input('remote:p2',7,true,2));r.clearRemote();assert(r.held(0));r.pause();assert(!r.held(0));await r.dispose();assert(w.dead);assert.equal(f.rafs.size,0);assert.equal(f.timers.size,0);
+ const f=await runtimeHarness(fileURLToPath(new URL(path,root))),r=f.runtime;await r.reset();const w=f.workers[0];w.receive({type:'ready'});await r.start(false);assert(r.input('local:held',0,true));assert(r.input('remote:p2',7,true,2));r.clearRemote();assert(r.held(0));await r.pause();assert(!r.held(0));await r.dispose();assert(w.dead);assert.equal(f.rafs.size,0);assert.equal(f.timers.size,0);
 });
 for(const g of plan.games.filter(g=>g.battery)){
  const prefix='htdocs/games/'+g.slug+'/';

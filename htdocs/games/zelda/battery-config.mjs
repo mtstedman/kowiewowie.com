@@ -1,0 +1,1 @@
+export const config=Object.freeze({identity:Object.freeze({"mapper":1,"mapping_identity":"49e5cb0fedd0d708c31bed2b75e29dd54bad8d63abd6fdde6563a21cdd5bc644","ram_bytes":8192,"rom_sha256":"89232edf4f9b52e3cb872094bc78973de080befca2ddea893b6e936066514d4e","version":1})});

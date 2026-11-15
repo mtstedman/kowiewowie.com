@@ -1,0 +1,21 @@
+{
+  "package": "zelda",
+  "artifactDigest": "8819e0397a752000ad90934942934fa772862f2c27b13f761de779891f144628",
+  "engine_authorship": "Unchanged Posse-generated engine and battery wrapper; see tests/zelda-addition.json for exact source pins.",
+  "validation": {
+    "arcade_tests_passed": 60,
+    "syntax_and_combined_commands_passed": 456,
+    "typecheck": "passed",
+    "deployment_checks": "passed",
+    "browser_save_and_page_reload": "passed; exact 8192-byte game-created save restored to a fresh worker; retained name visually reviewed",
+    "native_focus_play_watch_relay": "passed; real OS focus loss, same-peer resume, retained pixels, watcher denial, cleanup",
+    "performance": {
+      "overworld_observation_seconds": 90.00639999997615,
+      "observed_frames": 4688,
+      "worker_hz": 52.0851850535211,
+      "target_hz": 60,
+      "target_met": false
+    }
+  },
+  "scope": "Publication requested with known performance shortfall reported. Full-game completion and save-anywhere snapshots are not established."
+}

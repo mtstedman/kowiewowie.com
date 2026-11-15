@@ -4,7 +4,7 @@ for p in sorted(root.rglob('*')):
  if not p.is_file():continue
  if p.suffix=='.mjs':commands.append(('node_syntax',['node','--check',str(p)]))
  if p.suffix=='.php':commands.append(('php_syntax',['php','-l',str(p)]))
-commands.extend([('node_unit',['node','--test','tests/arcade-ui.test.mjs','tests/combined-integration.test.mjs','tests/combined-followup.test.mjs']),('node_unit',['node','tests/romjs-netplay-roles.test.mjs']),('php_unit',['php','tests/combined-policy.php'])])
+commands.extend([('node_unit',['node','--experimental-vm-modules','--test','tests/arcade-ui.test.mjs','tests/combined-integration.test.mjs','tests/combined-followup.test.mjs']),('node_unit',['node','tests/romjs-netplay-roles.test.mjs']),('php_unit',['php','tests/combined-policy.php'])])
 for suite,cmd in commands:
  try:
   p=subprocess.run(cmd,cwd=root,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=max(.1,min(120,end-time.monotonic())))
