@@ -1,10 +1,12 @@
+import {streamingHistoricalRead} from './worker-streaming-history.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 const root=new URL('../',import.meta.url);
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const pin=b=>({bytes:b.length,sha256:hash(b)});
-export const actualRead=p=>readFileSync(new URL(p,root));
+const rawRead=p=>readFileSync(new URL(p,root));
+export const actualRead=streamingHistoricalRead(rawRead);
 export function verifyContraAddition(read=actualRead){
  const raw=read('tests/contra-addition.json');
  assert.equal(hash(raw),'533f336660d655510a26585c3633239646a01c70d7e24d34d3c8e20ef400d595');
@@ -19,6 +21,7 @@ export function verifyContraAddition(read=actualRead){
 }
 // Preserve each historical transition while validating the current addition first.
 export function contraHistoricalRead(read=actualRead){
+ read=streamingHistoricalRead(read);
  const r=verifyContraAddition(read);
  return p=>{const c=r.changes[p];if(!c)return read(p);
   assert.deepEqual(pin(read(p)),c.after,p);const old=read(c.original);

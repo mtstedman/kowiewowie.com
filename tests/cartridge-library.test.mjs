@@ -1,3 +1,5 @@
+import {streamingHistoricalRead} from './worker-streaming-history.mjs';
+import {createProducer} from '../htdocs/games/arcade/worker-stream-producer.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -12,7 +14,10 @@ import {runtimeHarness} from './arcade-runtime-harness.mjs';
 const root=new URL('../',import.meta.url),read=p=>readFileSync(new URL(p,root)),json=p=>JSON.parse(read(p)),hash=b=>createHash('sha256').update(b).digest('hex');
 const plan=json('tests/cartridge-library-plan.json'),rows=json('htdocs/games/arcade/catalog.json'),net=json('htdocs/games/netplay/catalog.json');
 const packages=await Promise.all(rows.map(r=>verifyPackage(json('htdocs'+r.manifest),r.artifactDigest)));
-test('exact preservation, authoritative package digests and matched catalogs',()=>{
+test('exact preservation, authoritative package digests and matched catalogs',async()=>{
+ const read=streamingHistoricalRead(p=>readFileSync(new URL(p,root))),json=p=>JSON.parse(read(p)),rows=json('htdocs/games/arcade/catalog.json'),net=json('htdocs/games/netplay/catalog.json');
+ const packages=await Promise.all(rows.map(r=>verifyPackage(json('htdocs'+r.manifest),r.artifactDigest)));
+
  assert.deepEqual(read('htdocs/games/netplay/catalog.json'),read('includes/api/classes/netplay-catalog.json'));
  assert(read('includes/api/classes/NetplayPolicy.php').toString().includes("DIGEST='"+hash(read('htdocs/games/netplay/catalog.json'))+"'"));
  for(const [p,r] of Object.entries(plan.preserved)){const b=read(p);assert.equal(b.length,r.bytes,p);assert.equal(hash(b),r.sha256,p);}
@@ -20,7 +25,10 @@ test('exact preservation, authoritative package digests and matched catalogs',()
  for(const p of packages){for(const [u,r] of Object.entries(p.files)){const b=read('htdocs'+u);assert.equal(b.length,r.bytes,u);assert.equal(hash(b),r.sha256,u);}const b=validateBinding(net.packages[p.id]);assert.equal(b.artifactDigest,p.artifactDigest);assert.equal(b.capabilities.nativePlayers,p.capabilities.nativePlayers);assert.equal(b.inputsDigest,hash(canonical(p.inputs.map(({id,label,kind})=>({id,label,kind})))));}
  const c=new Catalog();packages.forEach(p=>c.register(p));for(const p of packages){const r=c.route('/games/arcade/?package='+p.id);assert.equal(r.id,p.id);assert.equal(r.canonical,null);assert.equal(new URL(c.route(p.route).canonical,'https://fixture.invalid').pathname,'/games/arcade/');}
 });
-test('shared-copy identity migrations change only the declared shared dependency and derived metadata',()=>{
+test('shared-copy identity migrations change only the declared shared dependency and derived metadata',async()=>{
+ const read=streamingHistoricalRead(p=>readFileSync(new URL(p,root))),json=p=>JSON.parse(read(p)),rows=json('htdocs/games/arcade/catalog.json'),net=json('htdocs/games/netplay/catalog.json');
+ const packages=await Promise.all(rows.map(r=>verifyPackage(json('htdocs'+r.manifest),r.artifactDigest)));
+
  for(const x of plan.identityMigrations){const p=packages.find(p=>p.id===x.id),{artifactDigest,...m}=p,old=structuredClone(x.original_manifest);assert(x.shared_changes.length>0);
  assert.equal(hash(canonical(old)),x.before);assert.equal(artifactDigest,x.after);assert.notEqual(x.before,x.after);for(const {member:u,after:shared_after,before:shared_before} of x.shared_changes){assert.deepEqual(old.files[u],shared_before);assert.deepEqual(m.files[u],shared_after);old.files[u]=shared_after;}assert.deepEqual(m,old);
  const prefix='htdocs'+p.route,n=json(prefix+'network-package.json'),outer=json(prefix+'manifest.json'),bi=json(prefix+'bundle-inputs.json');assert.equal(n.artifactDigest,x.after);assert.deepEqual(n.binding,net.packages[p.id]);assert.equal(outer.artifactDigest,x.after);
@@ -71,9 +79,25 @@ for(const g of plan.games.filter(g=>g.battery)){
   const count=workers.length;saved.set(codec.storageKey,JSON.stringify({format:'wrong'}));assert.throws(make);assert.equal(workers.length,count);
  });
  test(g.slug+': worker persistence handshake, independent ports and release on malformed input',()=>{
-  const source=read(prefix+'worker.mjs').toString().split('\n').filter(line=>!line.startsWith('import ')).join('\n');
-  function instance(){const messages=[],ports=[Array(8).fill(false),Array(8).fill(false)],ram=new Uint8Array(8192);let frames=0;const seen=[];const machine={exportBattery:()=>ram.slice(),importBattery:b=>ram.set(b),setButton:(p,b,v)=>{ports[p-1][b]=v;},frame(){seen.push(ports.map(p=>p.slice()));ram[0]=77;return {state:{frames:++frames,cycles:frames*29780}};},getRGBA:()=>new Uint8ClampedArray(245760),takeAudio:()=>new Float32Array()};const context=vm.createContext({createMachine:()=>machine,encodeRAM:codec.encodeRAM,decodeRAM:codec.decodeRAM,postMessage:d=>messages.push(d),Uint8Array,Uint8ClampedArray,Float32Array});vm.runInContext(source,context,{timeout:1000});return {messages,ports,ram,seen,send:d=>{context.d=d;vm.runInContext('onmessage({data:d})',context,{timeout:1000});}};}
-  let f=instance();assert.equal(f.messages[0].type,'battery-await-init');f.send({type:'battery-init',record:null});assert.equal(f.messages.at(-1).type,'ready');f.send({type:'sync',epoch:1,seq:1});const a=Array(8).fill(false),b=Array(8).fill(false);a[0]=true;b[7]=true;f.send({type:'frame',epoch:1,seq:2,buttons:a,buttons2:b});assert.deepEqual(f.seen[0],[a,b]);assert(f.ports.every(p=>p.every(v=>!v)));f.send({type:'battery-flush',request:1});const record=f.messages.at(-1).record;assert.equal(record.data[0],77);f=instance();f.send({type:'battery-init',record});assert.equal(f.ram[0],77);f.send({type:'sync',epoch:1,seq:1});f.send({type:'frame',epoch:1,seq:2,buttons:[true],buttons2:b});assert.equal(f.messages.at(-1).type,'error');assert(f.ports.every(p=>p.every(v=>!v)));
+   const source=read(prefix+'worker.mjs').toString().split('\n').filter(line=>!line.startsWith('import ')).join('\n');
+   function instance(){
+    const messages=[],tasks=new Map(),ports=[Array(8).fill(false),Array(8).fill(false)],ram=new Uint8Array(8192),seen=[];let frames=0,id=0;
+    const machine={exportBattery:()=>ram.slice(),importBattery:b=>ram.set(b),setButton:(p,b,v)=>{ports[p-1][b]=v;},frame(){seen.push(ports.map(p=>p.slice()));ram[0]=77;return {state:{frames:++frames,cycles:frames*29780}};},getRGBA:()=>new Uint8ClampedArray(245760),takeAudio:()=>new Float32Array()};
+    const context=vm.createContext({createMachine:()=>machine,createProducer:options=>createProducer({...options,schedule:f=>{tasks.set(++id,f);return id;},cancel:k=>tasks.delete(k)}),encodeRAM:codec.encodeRAM,decodeRAM:codec.decodeRAM,postMessage:d=>messages.push(d),Uint8Array,Uint8ClampedArray,Float32Array});
+    vm.runInContext(source,context,{timeout:1000});
+    return {messages,ports,ram,seen,send:d=>{context.d=d;vm.runInContext('onmessage({data:d})',context,{timeout:1000});},step(){const [k,f]=tasks.entries().next().value;tasks.delete(k);f();}};
+   }
+   let f=instance();assert.equal(f.messages[0].type,'battery-await-init');f.send({type:'battery-init',record:null});assert.equal(f.messages.at(-1).type,'ready');
+   f.send({type:'sync',epoch:1,seq:1});
+   f.send({type:'input',epoch:1,seq:2,inputSeq:1,source:'p1',seat:1,button:0,pressed:true});
+   f.send({type:'input',epoch:1,seq:3,inputSeq:2,source:'p2',seat:2,button:7,pressed:true});
+   f.send({type:'grant',epoch:1,seq:4,count:2,returns:[]});f.step();
+   assert(f.seen[0][0][0]);assert(f.seen[0][1][7]);
+   f.send({type:'stop',epoch:1,seq:5});assert(f.ports.every(p=>p.every(v=>!v)));
+   f.send({type:'battery-flush',request:1});const record=f.messages.at(-1).record;assert.equal(record.data[0],77);
+   f=instance();f.send({type:'battery-init',record});assert.equal(f.ram[0],77);f.send({type:'sync',epoch:1,seq:1});
+   f.send({type:'input',epoch:1,seq:2,inputSeq:1,source:'bad',seat:2,button:8,pressed:true});
+   assert.equal(f.messages.at(-1).type,'error');assert(f.ports.every(p=>p.every(v=>!v)));
  });
 }
 test('accessor-only fixture preserves CPU/mapper/volatile RAM and copies both directions',async()=>{
