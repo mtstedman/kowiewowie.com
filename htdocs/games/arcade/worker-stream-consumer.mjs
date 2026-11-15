@@ -7,8 +7,13 @@ export function createConsumer({send}){
  function reset(e){epoch=e;credits=0;owned.clear();returns.length=0;lastId=0;nextAt=0;lastFrames=lastCycles=-1;inputSeq=appliedSeq=0;duration=1/60.0988;}
  function input(source,button,pressed,seat){if(epoch<0)return;send('input',{source,button,pressed,seat,inputSeq:++inputSeq});}
  function grant(ahead,target){
-  const count=Math.min(4,CAPACITY-credits-owned.size,Math.floor((Math.min(target,.2)-ahead)/duration)-credits);
-  if(count<2)return 0;
+  if(epoch<0)return 0;
+  if(!Number.isFinite(ahead)||!Number.isFinite(target)||target<=0)throw Error('Invalid media lead');
+  // Round up by less than one frame, reserving in-flight work exactly once.
+  // Extra slots support presentation latency, not a higher media target.
+  // Retain an absolute 200ms cap even for high caller targets.
+  const count=Math.min(4,CAPACITY-credits-owned.size,Math.ceil((Math.min(target,.2,CAPACITY*duration)-Math.max(0,ahead))/duration)-credits);
+  if(count<1)return 0;
   const batch=returns.slice(),transfer=batch.flatMap(r=>[r.rgba,r.audio]);
   send('grant',{count,returns:batch},transfer);
   returns.length=0;credits+=count;grantMessages++;returnedBuffers+=batch.length;return count;

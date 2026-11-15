@@ -26,10 +26,10 @@ export function workerTransport(getBattery,{flushMode='auto'}={}){
    if(m.type==='sync'){this.streamEpoch=m.epoch;this.streamCredits=0;}
     if(m.type==='grant'){
      assert.equal(m.epoch,this.streamEpoch,'Grant before release barrier');
-     assert(Number.isSafeInteger(m.count)&&m.count>=2&&m.count<=4,'Bounded batch grant');
-     assert(Array.isArray(m.returns)&&m.returns.length<=8,'Bounded ownership returns');
+     assert(Number.isSafeInteger(m.count)&&m.count>=1&&m.count<=4,'Bounded batch grant');
+     assert(Array.isArray(m.returns)&&m.returns.length<=16,'Bounded ownership returns');
      this.streamCredits=(this.streamCredits||0)+m.count;
-     assert(this.streamCredits<=8,'Reservations exceed capacity');
+     assert(this.streamCredits<=16,'Reservations exceed capacity');
     }
     if(m.type==='input'){
      assert.equal(m.epoch,this.streamEpoch,'Input before release barrier');

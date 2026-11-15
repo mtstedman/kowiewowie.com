@@ -1,5 +1,5 @@
 // Bounded streaming producer. No page frame requests and no shared memory.
-export const CAPACITY=8, RGBA_BYTES=256*240*4;
+export const CAPACITY=16, RGBA_BYTES=256*240*4;
 const integer=(v,min=0)=>Number.isSafeInteger(v)&&v>=min;
 export function createTaskScheduler(Channel=globalThis.MessageChannel){
  if(typeof Channel!=='function')throw Error('MessageChannel unavailable');
@@ -56,7 +56,7 @@ export function createProducer({machine,post,schedule,cancel,afterFrame=()=>{}})
    }
    if(d.type==='grant'){
     const returned=d.returns??[];
-    if(!integer(d.count,2)||d.count>4||!Array.isArray(returned)||returned.length>CAPACITY)throw Error('Invalid grant batch');
+    if(!integer(d.count,1)||d.count>4||!Array.isArray(returned)||returned.length>CAPACITY)throw Error('Invalid grant batch');
     const ids=new Set(),buffers=new Set(pool);
     for(const r of returned){
      const lease=r&&leases.get(r.id);

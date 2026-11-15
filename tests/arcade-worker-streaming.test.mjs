@@ -13,9 +13,9 @@ import {resolve,dirname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 const sourceRoot=fileURLToPath(new URL('../',import.meta.url));
 const pins=JSON.parse(readFileSync(new URL('./arcade-runtime-source-pins.json',import.meta.url))).files;
-function lab(){
+function lab(audioSamples=1600){
  let sequence=0,taskId=0,frames=0,cycles=0;const tasks=new Map(),messages=[],samples=[],buttons=Array(16).fill(false);
- const machine={setButton(p,b,v){buttons[(p-1)*8+b]=v;},frame(){samples.push([...buttons]);return {state:{frames:++frames,cycles:cycles+=29781}};},getRGBA(b){return new Uint8ClampedArray(b||new ArrayBuffer(RGBA_BYTES));},takeAudio(){return new Float32Array(1600);}};
+ const machine={setButton(p,b,v){buttons[(p-1)*8+b]=v;},frame(){samples.push([...buttons]);return {state:{frames:++frames,cycles:cycles+=29781}};},getRGBA(b){return new Uint8ClampedArray(b||new ArrayBuffer(RGBA_BYTES));},takeAudio(){return new Float32Array(audioSamples);}};
  const producer=createProducer({machine,schedule:f=>{tasks.set(++taskId,f);return taskId;},cancel:id=>tasks.delete(id),post:(m,t)=>messages.push(structuredClone(m,{transfer:t||[]}))});
  const send=(type,extra={},transfer=[])=>producer.receive(structuredClone({type,epoch,seq:++sequence,...extra},{transfer}));
  let epoch=1;const consumer=createConsumer({send});
@@ -41,10 +41,35 @@ test('one grant produces several ordered transferable frames, idles, recycles an
  l.send('stop');assert.equal(l.tasks.size,0);assert.equal(l.producer.snapshot().credits,0);
 });
 test('capacity includes grants, in flight and page queues; violations stop visibly',()=>{
- const l=lab();l.consumer.grant(0,.2);l.consumer.grant(0,.2);
- assert.equal(l.producer.snapshot().credits,CAPACITY);
- for(let i=0;i<CAPACITY;i++)l.step();l.drain();assert.equal(l.consumer.grant(0,.2),0);
+ const l=lab(960);l.consumer.grant(0,.2);l.step();const first=l.messages.shift();l.consumer.accept(first);
+ for(let i=0;i<4;i++)l.consumer.grant(0,.2);
+ assert.equal(l.producer.snapshot().credits+1,CAPACITY);
+ for(let i=1;i<CAPACITY;i++)l.step();l.drain();assert.equal(l.consumer.snapshot().queued,16);assert.equal(l.consumer.grant(0,.2),0);
+ l.consumer.recycle(first);
+ assert.equal(l.consumer.grant(.195,.2),0);
+ assert.equal(l.consumer.grant(.155,.2),1,'The only free physical slot wakes the idle producer');
+ assert.equal(first.rgba.byteLength,0,'Single-slot return transfers ownership');
+ l.step();l.drain();assert.equal(l.consumer.snapshot().queued,16);
+ assert.equal(l.producer.snapshot().outstanding,16);assert.equal(l.tasks.size,0);
  l.send('grant',{count:2});assert.equal(l.messages.at(-1).type,'error');assert(l.producer.snapshot().failed);assert.equal(l.tasks.size,0);
+});
+test('all 16 ownership returns transfer atomically; a seventeenth reservation fails',()=>{
+ const l=lab(960);l.consumer.grant(0,.2);l.step();const first=l.messages.shift();l.consumer.accept(first);
+ while(l.consumer.grant(0,.2)){}
+ while(l.tasks.size)l.step();const frames=[first,...l.messages.splice(0)];
+ for(const f of frames.slice(1))l.consumer.accept(f);
+ assert.equal(frames.length,16);assert.equal(l.producer.snapshot().outstanding,16);
+ for(const f of frames)l.consumer.recycle(f);
+ assert.equal(l.consumer.snapshot().pendingReturns,16);
+ assert.equal(l.consumer.grant(0,.2),4);
+ assert.equal(l.consumer.snapshot().pendingReturns,0);assert.equal(l.producer.snapshot().outstanding,0);
+ for(const f of frames){assert.equal(f.rgba.byteLength,0);assert.equal(f.audio.byteLength,0);}
+ assert.equal(l.producer.snapshot().credits,4);l.producer.dispose();
+ const b=lab(960);b.consumer.grant(0,.2);b.step();const f=b.messages.shift();b.consumer.accept(f);
+ while(b.consumer.grant(0,.2)){}
+ assert.equal(b.producer.snapshot().credits+b.producer.snapshot().outstanding,16);
+ b.send('grant',{count:1,returns:[]});assert(b.producer.snapshot().failed);
+ assert.match(b.messages.at(-1).message,/Credit overflow/);assert.equal(b.tasks.size,0);
 });
 test('yield between frames preserves taps, aggregate source OR and independent P2',()=>{
  const l=lab();l.consumer.input('local',0,true,1);l.consumer.input('remote',0,true,1);l.consumer.input('local',0,false,1);
@@ -136,7 +161,7 @@ test('watchdog cancels when all granted work arrives and the page holds capacity
  const barrier=w.sent.findLast(m=>m.type==='sync');w.receive({type:'synced',epoch:barrier.epoch,seq:barrier.seq});
  const duration=1/60.0988;let id=0;
  while(r.snapshot().stream.credits>0){
-  assert(++id<=8);
+  assert(++id<=CAPACITY);
   w.receive({type:'frame',epoch:barrier.epoch,id,produced:id,at:(id-1)*duration,duration,rgba:new Uint8ClampedArray(RGBA_BYTES),audio:new Float32Array(),frames:id,cycles:id*29781,inputSeq:0,appliedSeq:0});
  }
  assert(r.snapshot().running);assert(r.snapshot().stream.queued>0);
@@ -197,6 +222,96 @@ async function batteryWorker(){
  for(const m of modules.values())assert(!m.hasTopLevelAwait());await main.evaluate({timeout:2000});
  return {messages,tasks,ram,send:d=>context.onmessage({data:structuredClone(d)}),step(){const [k,f]=tasks.entries().next().value;tasks.delete(k);f();}};
 }
+test('grant rounding, outstanding reservations and a single free slot remain live',()=>{
+ const l=lab();
+ assert.equal(l.consumer.grant(.012,.08),4);
+ assert.equal(l.consumer.grant(.012,.08),1,'Round deficit up instead of losing a frame to floor/min2');
+ assert.equal(l.consumer.grant(.012,.08),0,'Outstanding credits are reserved exactly once');
+ for(let i=0;i<5;i++)l.step();l.drain();
+ assert.equal(l.consumer.grant(.084,.2),4);
+ assert.equal(l.consumer.grant(.084,.2),3);
+ assert.equal(l.consumer.grant(.084,.2),0,'Existing credits reserve the remaining target exactly once');
+ for(let i=0;i<7;i++)l.step();
+ const frames=l.messages.splice(0);for(const f of frames)l.consumer.accept(f);
+ assert.equal(l.consumer.snapshot().queued,12);
+ assert.equal(l.consumer.grant(.2,.2),0,'Extra physical slots do not raise the media target');
+ l.consumer.recycle(frames[0]);
+ assert.equal(l.consumer.grant(.19,.2),1,'One-frame deficit must wake an idle producer');
+ assert.equal(frames[0].audio.byteLength,0,'Single grant retains transfer ownership');
+ l.step();assert.equal(l.tasks.size,0);l.drain();
+ assert.equal(l.consumer.snapshot().queued,12);
+ assert.equal(l.producer.snapshot().outstanding,12);
+ l.producer.dispose();l.consumer.reset(-1);assert.equal(l.consumer.grant(0,.08),0);
+});
+test('credit target retains an absolute time cap even after arbitrarily long starvation',()=>{
+ const l=lab();assert.equal(l.consumer.grant(-100,100),4);
+ assert.equal(l.consumer.grant(-100,100),4);assert.equal(l.consumer.grant(-100,100),4);assert.equal(l.consumer.grant(-100,100),1);assert.equal(l.consumer.grant(-100,100),0);
+ // Initial nominal duration rounds 200ms up to 13 frame reservations.
+ assert.equal(l.producer.snapshot().credits,13);
+ for(let i=0;i<13;i++)l.step();l.drain();
+ assert.equal(l.tasks.size,0);assert.equal(l.consumer.snapshot().queued,13);
+ assert.equal(l.consumer.grant(.2,100),0,'High caller target retains absolute 200ms cap');
+ l.nextEpoch();assert.equal(l.consumer.snapshot().queued,0);assert.equal(l.consumer.snapshot().credits,0);
+ assert.equal(l.consumer.grant(.079,.08),1,'A sub-frame target deficit is live');
+ l.step();l.drain();assert.equal(l.tasks.size,0);l.producer.dispose();
+});
+async function audioScheduleLab(){
+ const h=await runtimeHarness(resolve(sourceRoot,'htdocs/games/contra/host-runtime.mjs')),r=h.runtime;
+ await r.reset();const w=h.workers[0];w.receive({type:'ready'});r.start();
+ await Promise.resolve();await Promise.resolve();
+ const ac=h.contexts[0],starts=[],stops=[];
+ ac.createBuffer=(channels,n,rate)=>({channels,n,rate,data:Array.from({length:channels},()=>new Float32Array(n)),getChannelData(ch){return this.data[ch];}});
+ ac.createBufferSource=()=>({connect(){},disconnect(){},stop(at){stops.push(at);},start(at){starts.push({at,buffer:this.buffer});}});
+ const barrier=w.sent.findLast(m=>m.type==='sync');w.receive({type:'synced',epoch:barrier.epoch,seq:barrier.seq});
+ let id=0;const duration=800/48000;
+ function frame(){const audio=new Float32Array(1600);for(let i=0;i<audio.length;i++)audio[i]=(i%19-9)/16;
+  const expected=audio.slice();id++;
+  w.receive({type:'frame',epoch:barrier.epoch,id,produced:id,at:(id-1)*duration,duration,rgba:new Uint8ClampedArray(RGBA_BYTES),audio,frames:id,cycles:id*29781,inputSeq:0,appliedSeq:0});
+  assert(r.snapshot().running,r.snapshot().message);
+  const b=starts.at(-1).buffer;assert.equal(b.rate,48000);assert.equal(b.n,800);
+  for(let i=0;i<800;i++){assert.equal(b.data[0][i],expected[2*i]);assert.equal(b.data[1][i],expected[2*i+1]);}
+  const end=starts.at(-1).at+duration;
+  // Present eligible frames so this test respects bounded transport ownership.
+  const [raf,callback]=h.rafs.entries().next().value;h.rafs.delete(raf);callback(1000+ac.currentTime*1000);
+  return end;
+ }
+ return {h,r,w,ac,starts,stops,frame};
+}
+test('positive sub-3ms lead schedules exact contiguous PCM; real underruns recover once',async()=>{
+ const l=await audioScheduleLab();
+ try{
+  assert.equal(l.r.snapshot().bufferTarget,.08);
+  let end=l.frame();
+  for(const lead of [.0029,.001,.0001,0]){l.ac.currentTime=end-lead;const previous=end;end=l.frame();assert.equal(l.starts.at(-1).at,previous,'Queued PCM must retain its exact previous end');assert.equal(l.r.snapshot().bufferTarget,.08,'Nonnegative lead never adapts');}
+  for(const late of [.001,10,.002,.1,.003,1,2,3]){
+   const target=l.r.snapshot().bufferTarget;
+   l.ac.currentTime=end+late;const now=l.ac.currentTime;end=l.frame();
+   assert.equal(l.starts.at(-1).at,now+.012,'Recovery adds only the bounded startup lead');
+   assert.equal(l.r.snapshot().bufferTarget,Math.min(.2,target+.02),'Only true underruns grow lead by 20ms up to 200ms');
+   const adapted=l.r.snapshot().bufferTarget;
+   const previous=end;end=l.frame();assert.equal(l.starts.at(-1).at,previous,'Recovery does not rebase every queued frame');
+   assert.equal(l.r.snapshot().bufferTarget,adapted,'Queued recovery frames do not adapt again');
+  }
+ }finally{await l.r.dispose();}
+ assert.equal(l.h.timers.size,0);assert.equal(l.h.rafs.size,0);assert(l.w.dead);
+});
+test('audio clock conversion, pause barrier and reset preserve scheduling lifecycle',async()=>{
+ const l=await audioScheduleLab();
+ try{
+  l.frame();l.ac.currentTime=.001;
+  l.ac.state='suspended';l.ac.onstatechange();l.ac.state='running';l.ac.onstatechange();
+  assert(l.r.snapshot().running);assert(l.starts.length>=2,'Gesture clock conversion reschedules future queued PCM');
+  const before=l.starts.length;l.r.pause();assert(l.stops.length);assert(!l.r.snapshot().running);
+  const barrier=l.w.sent.findLast(m=>m.type==='sync');
+  l.r.start(false);const grants=l.w.sent.filter(m=>m.type==='grant').length;
+  l.w.receive({type:'synced',epoch:barrier.epoch-1,seq:barrier.seq});
+  assert.equal(l.w.sent.filter(m=>m.type==='grant').length,grants);
+  l.w.receive({type:'synced',epoch:barrier.epoch,seq:barrier.seq});
+  assert(l.w.sent.filter(m=>m.type==='grant').length>grants);assert.equal(l.starts.length,before,'Pause discards prior-epoch queued audio');
+  await l.r.reset();assert(l.w.dead);assert.equal(l.r.snapshot().stream.credits,0);
+ }finally{await l.r.dispose();}
+ assert.equal(l.h.timers.size,0);assert.equal(l.h.rafs.size,0);
+});
 test('actual Zelda worker imports saved RAM before ready, exports periodically and flushes paused',async()=>{
  const w=await batteryWorker();assert.equal(w.messages.shift().type,'battery-await-init');
  w.send({type:'battery-init',record:null});assert.equal(w.messages.shift().type,'ready');

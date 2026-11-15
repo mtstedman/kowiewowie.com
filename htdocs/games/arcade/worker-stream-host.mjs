@@ -90,7 +90,7 @@ function pump(){
   const now=clock(),duration=d.audio.length?d.audio.length/2/48000:
     lastCycles===null?1/60.0988:(d.cycles-lastCycles)/CPU_HZ;
   // Rebase after a real underrun, never stretch samples or accumulate stale work.
-  if(mediaNext<now+.003){bufferTarget=Math.min(.2,bufferTarget+.02);mediaNext=now+.012;fadeIn=true;}
+  if(mediaNext<now){bufferTarget=Math.min(.2,bufferTarget+.02);mediaNext=now+.012;fadeIn=true;}
   sound(d.audio,mediaNext);
   videoQueue.push({at:mediaNext,rgba:d.rgba,audio:d.audio,frames:d.frames,transport:d});
   mediaNext+=duration;lastCycles=d.cycles;
@@ -248,6 +248,6 @@ function dispose(){
  const oldAudio=ac;ac=null;audioUnlocked=false;audioClockActive=false;tryIt(()=>{if(oldAudio)oldAudio.onstatechange=null;master?.disconnect();});master=null;
  disposed=Promise.resolve().then(async()=>{if(oldAudio&&oldAudio.state!=='closed')await oldAudio.close();if(failures.length)throw failures[0];});return disposed;
 }
-const api=Object.freeze({reset,start,pause,dispose,releaseAll:clearInputs,held:b=>input.hasButton(b),clearRemote:()=>{remoteInput.clear();remoteInput2.clear();},input:(source,b,pressed,seat=1)=>{if(closed)return false;if(source.startsWith('remote:')){const q=seat===2?remoteInput2:remoteInput;if(!pressed){q.release(source);return true;}if(!ready||!running)return false;try{return q.press(source,b);}catch(e){q.clear();fail(e.message);return false;}}if(seat!==1)return false;if(pressed)return down(source,b);up(source);return true;},snapshot:()=>Object.freeze({ready,running,loading,closed,message:status.textContent,stream:stream.snapshot()}),audio:()=>({context:ac,node:master})});
+const api=Object.freeze({reset,start,pause,dispose,releaseAll:clearInputs,held:b=>input.hasButton(b),clearRemote:()=>{remoteInput.clear();remoteInput2.clear();},input:(source,b,pressed,seat=1)=>{if(closed)return false;if(source.startsWith('remote:')){const q=seat===2?remoteInput2:remoteInput;if(!pressed){q.release(source);return true;}if(!ready||!running)return false;try{return q.press(source,b);}catch(e){q.clear();fail(e.message);return false;}}if(seat!==1)return false;if(pressed)return down(source,b);up(source);return true;},snapshot:()=>Object.freeze({ready,running,loading,closed,message:status.textContent,bufferTarget,stream:stream.snapshot()}),audio:()=>({context:ac,node:master})});
 runtimeFrame=requestAnimationFrame(tick);return api;
 }

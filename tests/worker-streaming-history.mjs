@@ -8,7 +8,7 @@ const views=new WeakSet();
 export const actualRead=p=>readFileSync(new URL(p,root));
 export function verifyStreamingMigration(read=actualRead){
  const raw=read('tests/worker-streaming-migration.json');
- assert.equal(hash(raw),'94955e608338262bf88ed8b709247192f0afabb3519f81e6b8148c6812fa8de0');
+ assert.equal(hash(raw),'314dbd13c4cccb039205d1fed6a172d044572d1552aef66924fb914f763a4ef5');
  const r=JSON.parse(raw);assert.equal(r.format,'worker-streaming-migration/1');
  for(const [p,c] of Object.entries(r.changes)){
   assert.deepEqual(pin(read(p)),c.after,p);
