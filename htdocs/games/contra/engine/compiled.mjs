@@ -1,0 +1,18 @@
+import {makeCPU,makeBus,fromHex} from './runtime.mjs';
+import {prgHex,chrHex,trainerHex} from './cartridge.mjs';
+export {CPUError} from './runtime.mjs';
+import T0 from "./bank-0.mjs";
+import T1 from "./bank-1.mjs";
+import T2 from "./bank-2.mjs";
+import T3 from "./bank-3.mjs";
+import T4 from "./bank-4.mjs";
+import T5 from "./bank-5.mjs";
+import T6 from "./bank-6.mjs";
+import T7 from "./bank-7.mjs";
+import T8 from "./bank-fixed.mjs";
+const info={"apiVersion":3,"runtimeRevision":"fetch-epoch-2","mapper":2,"board":"UNROM","prgBanks":8,"uxrom":{"board":"UNROM","bus_conflicts":"and","prg_ram":"none","startup_bank":0},"mmc1":null,"mappingIdentity":"407d6eb85b1c2999286cce3af5578f33fe5d7bb198ea04894a6c97359ac9b7c8","romSha256":"26541a5550ee22deeb3d5484e4a96130219b58cff74d068fb1eb6567fa5e5519","prgSha256":"d41e28b1a33b3b6768e7c39c9fdfb1fda4b49940542d14085911fabd399e1ca9","chrSha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","trainerSha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","vectors":{"nmi":49248,"reset":49153,"irq":49333},"vectorPolicy":"startup mapping; runtime reads current bus","mirroring":"vertical","region":"ntsc","battery":false,"officialOpcodes":[0,1,5,6,8,9,10,13,14,16,17,21,22,24,25,29,30,32,33,36,37,38,40,41,42,44,45,46,48,49,53,54,56,57,61,62,64,65,69,70,72,73,74,76,77,78,80,81,85,86,88,89,93,94,96,97,101,102,104,105,106,108,109,110,112,113,117,118,120,121,125,126,129,132,133,134,136,138,140,141,142,144,145,148,149,150,152,153,154,157,160,161,162,164,165,166,168,169,170,172,173,174,176,177,180,181,182,184,185,186,188,189,190,192,193,196,197,198,200,201,202,204,205,206,208,209,213,214,216,217,221,222,224,225,228,229,230,232,233,234,236,237,238,240,241,245,246,248,249,253,254],"compiled_candidates":93272,"scanned_addresses":147456,"candidate_addresses":147456,"crossing_variants":0,"scan_complete":true,"operand_wrap_candidates_rejected":1,"complete_conversion":false,"assumptions":{"startup":"explicit deterministic policy; not a hardware guarantee","chrRamBytes":8192,"prgRam":"none","timing":"exact official write-cycle offsets; incomplete read trace","hardware":"PPU/APU/DMA/controllers pending"},"sources":["https://www.nesdev.org/wiki/MMC1","https://www.nesdev.org/wiki/MMC1_pinout","https://www.nesdev.org/wiki/Programming_MMC1","https://www.nesdev.org/6502_cpu.txt","https://www.nesdev.org/obelisk-6502-guide/reference.html","https://www.nesdev.org/wiki/CPU_interrupts","https://www.nesdev.org/wiki/CPU_ALL","https://www.nesdev.org/wiki/INES","https://www.nesdev.org/wiki/UxROM","https://www.nesdev.org/wiki/Bus_conflict","https://www.nesdev.org/wiki/CPU_unofficial_opcodes","https://www.nesdev.org/wiki/CPU_memory_map"],"baseline":{"draft":"draft-92deb9033484c30accf8e3fc985b9422","suppliedSourceSha256":"6769aa445abe8cd57f3395325d6e707c256dd85855cc66e949dcea72ca438136","independentlyHashed":false},"dmaExtension":"rp2a03-dmc-stop-reload-1","derivedCompilerIdentity":"8ab71695cf0f2af4337e02839396553617acedd9d75bac0f50ba3363e8c4683c","renderRegisterExtension":"render-register-performance-4"};
+function freeze(v){if(v&&typeof v==='object'){for(const x of Object.values(v))freeze(x);Object.freeze(v);}return v;}export const metadata=freeze(info);
+const B=Object.freeze([T0,T1,T2,T3,T4,T5,T6,T7,T8]);
+export const getPRG=()=>fromHex(prgHex),getCHR=()=>fromHex(chrHex),getTrainer=()=>fromHex(trainerHex);
+export const createBus=(io={})=>makeBus(getPRG(),getTrainer(),io,metadata,getCHR());
+export const createCPU=(bus=createBus())=>makeCPU(bus,B,metadata);

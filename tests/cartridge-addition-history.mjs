@@ -1,10 +1,12 @@
+import {contraHistoricalRead} from './contra-addition-history.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 const root=new URL('../',import.meta.url);
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const pin=b=>({bytes:b.length,sha256:hash(b)});
-export const actualRead=p=>readFileSync(new URL(p,root));
+const rawRead=p=>readFileSync(new URL(p,root));
+export const actualRead=contraHistoricalRead(rawRead);
 export function verifyAddition(read=actualRead){
  const raw=read('tests/zelda-addition.json');
  assert.equal(hash(raw),'d94007f9451be64fedf92257bf0ab04b27f20254eee878fdd90edb805b197748');
@@ -20,6 +22,7 @@ export function verifyAddition(read=actualRead){
 // The hotfix test still validates its original five-game transition. Verify
 // the current additive release first, then supply retained catalog metadata.
 export function additionHistoricalRead(read){
+ read=contraHistoricalRead(read);
  const r=verifyAddition(read);
  return p=>{const c=r.changes[p];if(!c)return read(p);
   assert.deepEqual(pin(read(p)),c.after,p);const old=read(c.original);
