@@ -1,5 +1,5 @@
 import {installFactoryPPU,rememberBackend} from './owned-machine-adapter.mjs';
-import {createFactoryBus,composeFactoryBus,createFactoryCPU,preflightStats} from './owned-cpu-runtime.mjs';
+import {createFactoryBus,composeFactoryBus,createFactoryCPU,preflightStats,getFactoryExecution} from './owned-cpu-runtime.mjs';
 import {installDotPPU} from './render-ppu.mjs';
 import {createDMA,installDMC} from './dma.mjs';
 
@@ -12,7 +12,7 @@ const bad=(c,m)=>{throw new MachineError(c,m);};
 const int=(v,lo,hi,n)=>{if(!Number.isSafeInteger(v)||v<lo||v>hi)bad('BAD_ARGUMENT',n);return v;};
 const object=(x,keys)=>{if(!x||typeof x!=='object'||Array.isArray(x)||Object.keys(x).some(k=>!keys.includes(k)))bad('BAD_ARGUMENT','Unexpected options');};
 export function createMachine(options={}) {
- let dma,dmaDmc,dmaCpuCycles=0,ownedPPU=null;
+ let dma,dmaDmc,dmaCpuCycles=0,ownedPPU=null,cpuExecution=null;
  const mmc=metadata.mapper===1,ux=metadata.mapper===2,banked=metadata.mapper!==0,chrRAM=getCHR().length===0,sampleRate=48000,capacity=16384;
  let nes,cpu,base,bus,facade,cycles,frames,metrics,fault,video,audio,head,count,strobe,latches,positions,writes,lastWrites,stepWrites,ciram,chrMap,mirror,busy,nmiQueued,frameReset;
  function active(){const p=nes.ppu;return Boolean(p.f_bgVisibility||p.f_spVisibility)&&p.scanline>=20&&p.scanline<=260;}
@@ -80,7 +80,7 @@ export function createMachine(options={}) {
  function initialize(o={}){
   object(o,['startPC']);if(o.startPC!==undefined)int(o.startPC,32768,65535,'startPC');
   if(metadata.apiVersion!==3||metadata.runtimeRevision!=='fetch-epoch-2'||![0,1,2].includes(metadata.mapper)||metadata.region!=='ntsc'||metadata.scan_complete!==true)bad('UNSUPPORTED_CARTRIDGE','Requires complete compiler API3 fetch-epoch-2 NTSC output');
-  cpu=null;base=null;fault=null;cycles=0;frames=0;head=0;count=0;dmaCpuCycles=0;strobe=false;latches=[Array(8).fill(0),Array(8).fill(0)];positions=[0,0];writes=[];lastWrites=[];stepWrites=[];chrMap=null;mirror=null;busy=false;nmiQueued=false;frameReset=null;
+  cpu=null;cpuExecution=null;base=null;fault=null;cycles=0;frames=0;head=0;count=0;dmaCpuCycles=0;strobe=false;latches=[Array(8).fill(0),Array(8).fill(0)];positions=[0,0];writes=[];lastWrites=[];stepWrites=[];chrMap=null;mirror=null;busy=false;nmiQueued=false;frameReset=null;
   video=new Uint32Array(61440);audio=new Float32Array(capacity*2);ciram=new Uint8Array(metadata.mirroring==='four_screen'?4096:2048);
   metrics={translatedInstructions:0,nmiEntries:0,irqEntries:0,nmiEdges:0,oamTransfers:0,oamCycles:0,dmcRequests:0,dmcCycles:0,audioSamples:0,audioDropped:0,interpreterCalls:0,mapperWrites:0,clockCompletions:0,chrRefreshes:0,mirroringUpdates:0,bankInstructions:Array(mmc?metadata.prgBanks*2:ux?metadata.prgBanks+1:1).fill(0)};
   const registers=new Uint8Array(65536),numeric=k=>typeof k==='string'&&/^(0|[1-9][0-9]*)$/.test(k)&&Number(k)<65536;
@@ -100,7 +100,7 @@ export function createMachine(options={}) {
   nes.mmap.load=a=>{const v=base.read(a);facade.dataBus=v;return v;};
   for(const name of ['loadROM','loadPRGROM','loadCHRROM','loadBatteryRam','loadRomBank','load32kRomBank','load8kRomBank','loadVromBank','load8kVromBank','load1kVromBank','load2kVromBank','write','writelow'])nes.mmap[name]=()=>bad('DEVICE_CONTRACT','Compiler owns cartridge and timed writes');
   nes.ppu.clipToTvSize=false;installPPU();nes.ppu.startFrame();busy=true;
-  try{cpu=createFactoryCPU(bus);}finally{busy=false;}
+  try{cpu=createFactoryCPU(bus);cpuExecution=getFactoryExecution(cpu);}finally{busy=false;}
   if(o.startPC!==undefined)cpu.setState({pc:o.startPC});facade.instrBusCycles=0;sync();return state();
  }
  function state(){ownedPPU?.boundary();return {cpu:cpu.getState(),cycles,cartridgeClock:mmc?base.getCPUClock():null,frames,sampleRate,fault,dataBus:facade.dataBus,mapper:base.getMapperState(),mapperWrites:writes.map(w=>({...w,before:{...w.before},after:{...w.after}})),cpuWrites:lastWrites.map(w=>({...w})),dma:{...dma.snapshot(),dmcOutput:dmaDmc.snapshot()},metrics:{...metrics,...dma.stats(),bankInstructions:metrics.bankInstructions.slice()},ppu:{renderRegisters:nes.ppu.renderRegisterState(),scanline:nes.ppu.scanline,dot:nes.ppu.curX,status:facade.mem[0x2002],mirroring:mirror,chrOffsets:chrMap.slice()},apu:{frameIRQ:nes.papu.frameIrqActive,dmcIRQ:nes.papu.dmc.irqGenerated,dmcLastByte:nes.papu.dmc.lastFetchedByte}};}
@@ -110,9 +110,9 @@ export function createMachine(options={}) {
  function step(trace=true){
   healthy();try{
    const before=cycles;facade.instrBusCycles=0;facade.apuCatchupCycles=0;facade._cpuCycleBase=cycles;stepWrites=[];sync();
-   const pc=cpu.getState().pc,mappingBefore=trace?base.getMapperState():null,physicalPC=pc>=32768?base.mapPRG(pc):null;
-   busy=true;let r;try{r=cpu.step();}finally{busy=false;}
-   if(r.kind==='instruction'){metrics.translatedInstructions++;const bank=physicalPC===null?0:physicalPC>>>14,index=mmc?(pc<49152?bank:metadata.prgBanks+bank):ux?(pc<49152?bank:metadata.prgBanks):0;metrics.bankInstructions[index]++;}else if(r.kind==='nmi')metrics.nmiEntries++;else if(r.kind==='irq')metrics.irqEntries++;
+   const pc=!trace&&cpuExecution?cpuExecution.getPC():cpu.getState().pc,mappingBefore=trace?base.getMapperState():null,physicalPC=pc>=32768?base.mapPRG(pc):null;
+   busy=true;let r;try{r=!trace&&cpuExecution?cpuExecution.stepKind():cpu.step();}finally{busy=false;}
+   const kind=!trace&&cpuExecution?r:r.kind;if(kind==='instruction'){metrics.translatedInstructions++;const bank=physicalPC===null?0:physicalPC>>>14,index=mmc?(pc<49152?bank:metadata.prgBanks+bank):ux?(pc<49152?bank:metadata.prgBanks):0;metrics.bankInstructions[index]++;}else if(kind==='nmi')metrics.nmiEntries++;else if(kind==='irq')metrics.irqEntries++;
    drain();sync();if(trace){invariant();return {kind:r.kind,pc:r.pc,cycles:cycles-before,physicalPC,mappingBefore,mappingAfter:base.getMapperState(),writes:stepWrites.map(w=>({...w}))};}
   }catch(e){busy=false;fault=e.code||'DEVICE_ERROR';throw e;}
  }

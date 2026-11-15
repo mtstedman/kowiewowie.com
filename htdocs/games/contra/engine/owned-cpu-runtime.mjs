@@ -148,9 +148,10 @@ function makeCPUInternal(bus,blocks,info,capability){
  function vector(a){const m=mapping(),lo=fetchByte(a,m),hi=fetchByte(a+1,m);if(banked)unchanged(m);return lo|(hi<<8);}
  function reset(){safe();busy=true;try{if(preflight){preflight.entries=new WeakMap();preflight.resets++;}begin();if(timed){c.r(s.pc);c.r(s.pc);for(let i=0;i<3;i++){c.r(256+s.sp);s.sp=(s.sp-1)&255;}}else s.sp=(s.sp-3)&255;s.p=c.norm(s.p|4);s.pc=vector(65532);addCycles(7);irqMask=4;nmiPending=false;hold=false;return snapshot();}finally{busy=false;}}
  function interrupt(a){c.r(s.pc);c.r(s.pc);c.push(s.pc>>>8,2);c.push(s.pc&255,3);c.push(c.norm(s.p),4);s.p|=4;s.pc=vector(a);irqMask=4;hold=true;addCycles(7);}
- function step(){safe();busy=true;try{
+ function step(){return executeStep(false);}
+ function executeStep(kindOnly){safe();busy=true;try{
   if(s.cycles>Number.MAX_SAFE_INTEGER-8||s.instructions>Number.MAX_SAFE_INTEGER-2)bad('COUNTER_OVERFLOW','Counter exhausted');begin();const pc=s.pc;
-  if(!hold&&(nmiPending||(irq&&!irqMask))){const nmi=nmiPending;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return {kind:nmi?'nmi':'irq',pc,cycles:timed?s.cycles-startCycle:7};}
+  if(!hold&&(nmiPending||(irq&&!irqMask))){const nmi=nmiPending;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return kindOnly?(nmi?'nmi':'irq'):{kind:nmi?'nmi':'irq',pc,cycles:timed?s.cycles-startCycle:7};}
   if(pc<32768)bad('MUTABLE_CODE_UNSUPPORTED','Execution outside immutable PRG',pc);
   const m=mapping();if(banked)mapped(pc,m);
   let entry=mmc?blocks[(pc<49152?0:info.prgBanks)+(pc<49152?m.low:m.high)][pc]:banked?blocks[pc<49152?m.bank:info.prgBanks][pc]:blocks[pc];
@@ -173,16 +174,16 @@ function makeCPUInternal(bus,blocks,info,capability){
    if(preflight&&!preflightHit){if(!contexts){contexts=new Set();preflight.entries.set(entry,contexts);}contexts.add(sourceContext);preflight.validated++;}
    // Semantic writes legitimately update mapping and the MMC1 clock. Do not
   // compare their final state to the pre-fetch snapshot.
-  const old=s.p;hold=false;const n=entry[1](c);s.p=c.norm(s.p);irqMask=entry[2]===1?old&4:s.p&4;if(entry[2]===2)hold=true;addCycles(n);s.instructions++;return {kind:'instruction',pc,cycles:timed?s.cycles-startCycle:n};
+  const old=s.p;hold=false;const n=entry[1](c);s.p=c.norm(s.p);irqMask=entry[2]===1?old&4:s.p&4;if(entry[2]===2)hold=true;addCycles(n);s.instructions++;return kindOnly?'instruction':{kind:'instruction',pc,cycles:timed?s.cycles-startCycle:n};
  }finally{busy=false;}}
  function run(options={}){safe();if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(k=>!['maxSteps','maxCycles','maxMs'].includes(k)))bad('BAD_ARGUMENT','Invalid run options');const maxSteps=options.maxSteps??1000,maxCycles=options.maxCycles??100000,maxMs=options.maxMs??1000;integer(maxSteps,1000000,'maxSteps');integer(maxCycles,10000000,'maxCycles');integer(maxMs,5000,'maxMs');if(!maxSteps||!maxCycles||!maxMs)bad('BAD_ARGUMENT','Positive bounds required');const now=()=>globalThis.performance?.now?.()??Date.now(),start=now(),initial=s.cycles;let steps=0,reason='steps';while(steps<maxSteps){if(s.cycles-initial>=maxCycles){reason='cycles';break;}if(now()-start>=maxMs){reason='time';break;}step();steps++;}return {steps,cycles:s.cycles-initial,reason,state:snapshot()};}
- const api=Object.freeze({bus,getState:snapshot,setState,step,run,reset,setIRQ(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean IRQ required');irq=v;},setNMI(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean NMI required');if(v&&!nmiLine)nmiPending=true;nmiLine=v;},requestNMI(){safe();nmiPending=true;},getSignals:()=>({irq,nmiLine,nmiPending,irqMask:Boolean(irqMask),hold})});factoryCPUStats.set(api,()=>({eligible:Boolean(preflight),hits:preflight?.hits??0,misses:preflight?.misses??0,validated:preflight?.validated??0,peekBytes:preflight?.peekBytes??0,skippedBytes:preflight?.skippedBytes??0,resets:preflight?.resets??0}));reset();return api;
+ const api=Object.freeze({bus,getState:snapshot,setState,step,run,reset,setIRQ(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean IRQ required');irq=v;},setNMI(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean NMI required');if(v&&!nmiLine)nmiPending=true;nmiLine=v;},requestNMI(){safe();nmiPending=true;},getSignals:()=>({irq,nmiLine,nmiPending,irqMask:Boolean(irqMask),hold})});if(eligible)factoryExecutions.set(api,Object.freeze({getPC:()=>s.pc,stepKind:()=>executeStep(true)}));factoryCPUStats.set(api,()=>({eligible:Boolean(preflight),hits:preflight?.hits??0,misses:preflight?.misses??0,validated:preflight?.validated??0,peekBytes:preflight?.peekBytes??0,skippedBytes:preflight?.skippedBytes??0,resets:preflight?.resets??0}));reset();return api;
 }
 
 
 // This registry admits only privately copied PRG made with actual compiled imports.
 // Public makeBus/makeCPU and the original runtime never acquire this capability.
-const factoryBuses=new WeakMap(),factoryCPUStats=new WeakMap(),factoryCapability={};
+const factoryBuses=new WeakMap(),factoryCPUStats=new WeakMap(),factoryExecutions=new WeakMap(),factoryCapability={};
 function frozenData(root){
  const seen=new Set(),pending=[root];
  while(pending.length){const v=pending.pop();if(v===null||typeof v!=='object'||seen.has(v))continue;seen.add(v);
@@ -203,3 +204,5 @@ export function composeFactoryBus(base,hooks){
 }
 export function createFactoryCPU(bus){return makeCPUInternal(bus,B,factoryMetadata,factoryCapability);}
 export function preflightStats(cpu){const f=factoryCPUStats.get(cpu);return f?f():null;}
+// Admission uses actual factory identities and source proof, never caller flags.
+export function getFactoryExecution(cpu){return factoryExecutions.get(cpu)??null;}
