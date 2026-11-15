@@ -91,7 +91,17 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:0},chr=n
  const api={read:a=>read(a),peek:a=>read(a,true),write,mapPRG,getMapperState,loadMapperState,mapCHR,mapNametable,getMirroring:mirroring,setPPUAddress,peekCHR:a=>chrData[mapCHR(a)],ppuRead(a){integer(a,8191,'Pattern-table address');setPPUAddress(a);return chrData[mapCHR(a)];},ppuWrite(a,v){integer(a,8191,'Pattern-table address');byte(v);setPPUAddress(a);if(chrRAM)chrData[mapCHR(a)]=v;},snapshot(){const v={ram:ram.slice(),prgRam:sram.slice()};if(mmc)v.chrRam=chrRAM?chrData.slice():new Uint8Array();if(ux||mmc)v.mapper=getMapperState();return v;},loadRAM(r,p){if(!(r instanceof Uint8Array)||r.length!==2048||!(p instanceof Uint8Array)||p.length!==sram.length)bad('BAD_ARGUMENT','Exact RAM arrays required');ram.set(r);sram.set(p);},loadCHR(r){if(!(r instanceof Uint8Array)||r.length!==(chrRAM?8192:0))bad('BAD_ARGUMENT','Exact CHR RAM array required');if(chrRAM)chrData.set(r);}};
  if(mmc){api.getCPUClock=getCPUClock;api.advanceCPUClock=advanceCPUClock;}
  if(Object.isFrozen(info)&&(!cfg||Object.isFrozen(cfg))){
-  ownedBuses.set(api,{info,snapshot(){if(mmc){const [low,high]=banks1(state,info);return {low,high,version,clock:state.clock};}return {bank:register&(count-1),version};},unchanged(m){return version===m.version&&(!mmc||state.clock===m.clock);}});
+   let privateUxSnapshot=null;
+   ownedBuses.set(api,{info,snapshot(){if(mmc){const [low,high]=banks1(state,info);return {low,high,version,clock:state.clock};}if(!ux)return {bank:register&(count-1),version};
+    // Captured primitives only: no callback or public object can observe this
+    // identity. bump() rejects overflow before any latch mutation.
+    // loadMapperState accepts caller getters: its final register getter can
+    // reenter after bump() but before assignment. Check the bank as well so a
+    // snapshot captured by that callback cannot survive the final assignment.
+    const bank=register&(count-1);
+    if(privateUxSnapshot===null||privateUxSnapshot.version!==version||privateUxSnapshot.bank!==bank)privateUxSnapshot=Object.freeze({bank,version});
+    return privateUxSnapshot;
+   },unchanged(m){return version===m.version&&(!mmc||state.clock===m.clock);}});
  }
  return Object.freeze(api);
 }
@@ -135,7 +145,8 @@ function makeCPUInternal(bus,blocks,info,capability){
  }
  const record=factoryBuses.get(bus);
  const eligible=capability===factoryCapability&&factoryTablesProven&&info===factoryMetadata&&blocks===B&&[0,2].includes(info.mapper)&&record&&bus.peek===record.peek&&bus.mapPRG===record.mapPRG&&bus.getMapperState===record.getMapperState;
- const preflight=eligible?{entries:new WeakMap(),hits:0,misses:0,validated:0,peekBytes:0,skippedBytes:0,resets:0}:null;
+ // Factory bus construction validates UxROM bank count against PRG length and board policy; NROM has one context.
+ const preflight=eligible?{bits:new Uint8Array((banked?info.prgBanks:1)*4096),hits:0,misses:0,validated:0,peekBytes:0,skippedBytes:0,resets:0}:null;
  mapping();
  const s={a:0,x:0,y:0,sp:0,p:36,pc:0,cycles:0,instructions:0};let irq=false,nmiLine=false,nmiPending=false,irqMask=4,hold=false,busy=false,startCycle=0;
  const timed=typeof bus.dmaClock==='function';let coreStart=0;
@@ -146,7 +157,7 @@ function makeCPUInternal(bus,blocks,info,capability){
  function setState(patch){safe();if(!patch||typeof patch!=='object'||Array.isArray(patch)||Object.keys(patch).some(k=>!Object.hasOwn(s,k)))bad('BAD_STATE','Unknown CPU state property');for(const [k,v] of Object.entries(patch))integer(v,k==='pc'?65535:['cycles','instructions'].includes(k)?Number.MAX_SAFE_INTEGER-8:255,'Invalid CPU state');Object.assign(s,patch);s.p=c.norm(s.p);if('p' in patch)irqMask=s.p&4;}
  function addCycles(n){if(timed){const q=bus.dmaClock(),elapsed=q.cycle-startCycle;if(q.accesses-coreStart!==n||elapsed<n||elapsed>n+8192)bad('BAD_TIMING','Static cycle trace or DMA bound differs');if(mmc)bus.advanceCPUClock(q.cycle);s.cycles=q.cycle;}else{if(s.cycles>Number.MAX_SAFE_INTEGER-8)bad('CYCLE_OVERFLOW','Counter exhausted');if(mmc)bus.advanceCPUClock(startCycle+n);s.cycles+=n;}}
  function vector(a){const m=mapping(),lo=fetchByte(a,m),hi=fetchByte(a+1,m);if(banked)unchanged(m);return lo|(hi<<8);}
- function reset(){safe();busy=true;try{if(preflight){preflight.entries=new WeakMap();preflight.resets++;}begin();if(timed){c.r(s.pc);c.r(s.pc);for(let i=0;i<3;i++){c.r(256+s.sp);s.sp=(s.sp-1)&255;}}else s.sp=(s.sp-3)&255;s.p=c.norm(s.p|4);s.pc=vector(65532);addCycles(7);irqMask=4;nmiPending=false;hold=false;return snapshot();}finally{busy=false;}}
+ function reset(){safe();busy=true;try{if(preflight){preflight.bits.fill(0);preflight.resets++;}begin();if(timed){c.r(s.pc);c.r(s.pc);for(let i=0;i<3;i++){c.r(256+s.sp);s.sp=(s.sp-1)&255;}}else s.sp=(s.sp-3)&255;s.p=c.norm(s.p|4);s.pc=vector(65532);addCycles(7);irqMask=4;nmiPending=false;hold=false;return snapshot();}finally{busy=false;}}
  function interrupt(a){c.r(s.pc);c.r(s.pc);c.push(s.pc>>>8,2);c.push(s.pc&255,3);c.push(c.norm(s.p),4);s.p|=4;s.pc=vector(a);irqMask=4;hold=true;addCycles(7);}
  function step(){return executeStep(false);}
  function executeStep(kindOnly){safe();busy=true;try{
@@ -157,11 +168,11 @@ function makeCPUInternal(bus,blocks,info,capability){
   let entry=mmc?blocks[(pc<49152?0:info.prgBanks)+(pc<49152?m.low:m.high)][pc]:banked?blocks[pc<49152?m.bank:info.prgBanks][pc]:blocks[pc];
   if(entry&&entry.cross)entry=entry.cross[m.high];
   if(!entry){const op=fetchByte(pc,m,true);bad(info.officialOpcodes.includes(op)?'MISSING_TRANSLATION':'UNSUPPORTED_OPCODE','No translated instruction at '+pc+' (opcode '+op+')',pc);}
-   // Per CPU and actual imported entry; pc plus BOTH UxROM windows are
-   // fixed by this key (upper is prgBanks-1). Epoch checks stay in timed fetch.
-   const sourceContext=preflight?pc+(banked?m.bank*65536:0):0;
-   let contexts=preflight?preflight.entries.get(entry):null;
-   const preflightHit=contexts?.has(sourceContext);
+   // Per CPU: proven frozen imported tables select exactly one entry for
+   // logical PC plus lower bank; upper is fixed. Epoch checks stay in timed fetch.
+   const sourceContext=preflight?pc-32768+(banked?m.bank*32768:0):0;
+   const validationByte=sourceContext>>>3,validationMask=1<<(sourceContext&7);
+   const preflightHit=preflight&&(preflight.bits[validationByte]&validationMask)!==0;
    if(preflightHit){preflight.hits++;preflight.skippedBytes+=entry[0].length;}
    else{
     if(preflight)preflight.misses++;
@@ -171,7 +182,7 @@ function makeCPUInternal(bus,blocks,info,capability){
    if(banked)unchanged(m);
    // A failed source peek, timed byte comparison or epoch check cannot seed
    // a successful cache entry. No source/byte/epoch guard is changed below.
-   if(preflight&&!preflightHit){if(!contexts){contexts=new Set();preflight.entries.set(entry,contexts);}contexts.add(sourceContext);preflight.validated++;}
+   if(preflight&&!preflightHit){preflight.bits[validationByte]|=validationMask;preflight.validated++;}
    // Semantic writes legitimately update mapping and the MMC1 clock. Do not
   // compare their final state to the pre-fetch snapshot.
   const old=s.p;hold=false;const n=entry[1](c);s.p=c.norm(s.p);irqMask=entry[2]===1?old&4:s.p&4;if(entry[2]===2)hold=true;addCycles(n);s.instructions++;return kindOnly?'instruction':{kind:'instruction',pc,cycles:timed?s.cycles-startCycle:n};

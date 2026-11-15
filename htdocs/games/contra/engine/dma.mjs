@@ -43,10 +43,9 @@ export function createDMA(io){
    io.tick();if(complete)complete(value);
   }
  }
- function exclusive(fn){if(locked)fail('DMA_REENTRANT','Reentrant bus cycle');locked=true;try{return fn();}finally{locked=false;}}
  return Object.freeze({
-  readCPU(a){integer(a,65535);return exclusive(()=>{drain(a);const v=raw(a);io.tick();return v;});},
-  writeCPU(a,v){integer(a,65535);integer(v,255);return exclusive(()=>{last=-1;io.writeCPU(a,v);io.setBus(v);io.tick();});},
+  readCPU(a){integer(a,65535);if(locked)fail('DMA_REENTRANT','Reentrant bus cycle');locked=true;try{drain(a);const v=raw(a);io.tick();return v;}finally{locked=false;}},
+  writeCPU(a,v){integer(a,65535);integer(v,255);if(locked)fail('DMA_REENTRANT','Reentrant bus cycle');locked=true;try{last=-1;io.writeCPU(a,v);io.setBus(v);io.tick();}finally{locked=false;}},
   requestOam(page){integer(page,255);if(o&&o.stage!=='halt')fail('DMA_CONTRACT','OAM request during active transfer');o={page,index:0,value:0,stage:'halt'};},
   requestDmc(address,at,done,cancelled=null){integer(address,65535);integer(at,Number.MAX_SAFE_INTEGER-8192);if(address<32768||typeof done!=='function'||(cancelled!==null&&typeof cancelled!=='function')||d)fail('DMA_CONTRACT','Invalid or duplicate DMC request');d={address,at,done,cancelled,stage:'wait'};stats.dmcRequests++;},
   cancelDmc(){if(!d)return 'idle';if(d.stage==='get'){event('dmc-stop-committed',d.address);return 'committed';}const old=d;d=null;const aborted=old.stage==='dummy';if(aborted)stats.dmcAborts++;else stats.dmcCancels++;event(aborted?'dmc-abort':'dmc-cancel',old.address);if(old.cancelled)old.cancelled();return aborted?'aborted':'cancelled';},
