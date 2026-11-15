@@ -1,0 +1,178 @@
+{
+  "format": "core-refresh-validation/1",
+  "baseline_commit": "248e791aab3beb1b6936f6904965255ce96b36a5",
+  "core_receipt_sha256": "f8e1043928676704a2bfd17d61a40b88d3bcc5588b905dadba9c2cb76dea079d",
+  "authorship": {
+    "core_updates": "draft-721fa401f9db62c2de397f052a4c405c",
+    "contra_packaging": "draft-75a3f01f8a03bad134724018a3926956",
+    "contra_runtime": "draft-aeff2ba204fe502fbe3be7b733814fe8"
+  },
+  "arcade_tests": {
+    "pass": 94,
+    "fail": 0
+  },
+  "typecheck": "passed",
+  "php_policy_lint": "passed",
+  "authored_regression_checks": 1806,
+  "fixed_input_differentials": [
+    {
+      "id": "adventure-island-2",
+      "frames": 720,
+      "checks": 2160,
+      "pass": true
+    },
+    {
+      "id": "bionic-commando",
+      "frames": 720,
+      "checks": 2160,
+      "pass": true
+    },
+    {
+      "id": "castlevania",
+      "frames": 720,
+      "checks": 2160,
+      "pass": true
+    },
+    {
+      "id": "contra",
+      "frames": 720,
+      "checks": 2160,
+      "pass": true
+    },
+    {
+      "id": "ikari-warriors",
+      "frames": 720,
+      "checks": 2160,
+      "pass": true
+    },
+    {
+      "id": "megaman",
+      "frames": 720,
+      "checks": 2160,
+      "pass": true
+    },
+    {
+      "id": "zelda",
+      "frames": 720,
+      "checks": 2162,
+      "pass": true
+    }
+  ],
+  "zelda_battery_roundtrip": true,
+  "browser_worker_measurements": [
+    {
+      "id": "megaman",
+      "exit": 0,
+      "cpu_speed_ratio": 1.122295640278364,
+      "wall_speed_ratio": 1.1712866015826557,
+      "state_equal": true,
+      "frame_equal": true,
+      "cpu_samples": {
+        "control": [
+          3007.53,
+          3313.7
+        ],
+        "candidate": [
+          2815.36,
+          2817.05
+        ]
+      }
+    },
+    {
+      "id": "adventure-island-2",
+      "exit": 1,
+      "error_tail": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\npage.waitForFunction: Timeout 120000ms exceeded.\n    at /home/mason/.local/share/posse-rom-toolchain/evidence/all-core-refresh-20261115/browser-abba.mjs:67:15 {\n  log: [],\n  name: 'TimeoutError'\n}\n\nNode.js v24.17.0\n",
+      "followup": {
+        "cpu_speed_ratio": 1.063716309698648,
+        "wall_speed_ratio": 1.093626787473187,
+        "state_equal": true,
+        "frame_equal": true,
+        "note": "Same frozen core inputs and replay; harness now surfaces early worker errors. Rerun passed. Original warmup timeout retained; cause not established."
+      }
+    },
+    {
+      "id": "castlevania",
+      "exit": 0,
+      "cpu_speed_ratio": 0.9926315397206507,
+      "wall_speed_ratio": 0.9869123416333194,
+      "state_equal": true,
+      "frame_equal": true,
+      "cpu_samples": {
+        "control": [
+          3249.31,
+          2844.66
+        ],
+        "candidate": [
+          3257.98,
+          2881.23
+        ]
+      }
+    },
+    {
+      "id": "ikari-warriors",
+      "exit": 0,
+      "cpu_speed_ratio": 1.0312716190592532,
+      "wall_speed_ratio": 1.0325453395928428,
+      "state_equal": true,
+      "frame_equal": true,
+      "cpu_samples": {
+        "control": [
+          2797.39,
+          3105.9
+        ],
+        "candidate": [
+          2831.21,
+          2893.08
+        ]
+      }
+    },
+    {
+      "id": "bionic-commando",
+      "exit": 0,
+      "cpu_speed_ratio": 1.093636379047038,
+      "wall_speed_ratio": 1.1100128152836795,
+      "state_equal": true,
+      "frame_equal": true,
+      "cpu_samples": {
+        "control": [
+          5454.69,
+          5422.74
+        ],
+        "candidate": [
+          5073.55,
+          4872.57
+        ]
+      }
+    },
+    {
+      "id": "zelda",
+      "exit": 0,
+      "cpu_speed_ratio": 1.0153261449620525,
+      "wall_speed_ratio": 0.9995280839983939,
+      "state_equal": true,
+      "frame_equal": true,
+      "cpu_samples": {
+        "control": [
+          4989.34,
+          4690.1
+        ],
+        "candidate": [
+          4834.51,
+          4698.83
+        ]
+      }
+    }
+  ],
+  "interpretation": "Fixed-work execution measurements only. MegaMan and Bionic Commando candidates used less CPU in both samples. Other results have noise or overlapping ranges; no universal speedup claim. Adventure Island retry had a startup diagnostic change. Neither these nor 720-frame comparisons establish full-game correctness or sustained 60FPS.",
+  "limits": [
+    "Compatible incremental refresh; legacy timing and unsupported hardware cases remain.",
+    "Shared five-family Wasm experimental versions excluded.",
+    "Retained Contra wrapper/core previously had one audio scheduling gap over 90 seconds; zero-gap audio is not qualified."
+  ],
+  "final_multiplayer": {
+    "pass": true,
+    "scope": "Real Contra separate P1/P2, guest and watcher invitations, spectator input denial, pause/resume/end, zero guest workers",
+    "fixture": "disposable local PostgreSQL and loopback TURN",
+    "cleanup_pass": true
+  }
+}

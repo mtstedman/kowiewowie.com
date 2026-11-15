@@ -6,7 +6,36 @@ const {chromium}=await import(process.env.COMBINED_PLAYWRIGHT_MODULE||'@playwrig
 const wait=(p,f,a)=>p.waitForFunction(f,a,{timeout:120000});
 test('Contra real two-player game, separate controller ports, play/watch invitations and cleanup',{timeout:300000},async()=>{
  const browsers=[],pages=[],errors=[];
- async function page(){const b=await chromium.launch({headless:true,chromiumSandbox:mode==='isolated'});browsers.push(b);const c=await b.newContext({ignoreHTTPSErrors:true,serviceWorkers:'block'});await c.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.abort());await c.addInitScript(()=>{window.__contra={frames:0,requests:[],errors:[],workers:0};const W=Worker;window.Worker=class extends W{constructor(...a){super(...a);__contra.workers++;this.addEventListener('message',({data:d})=>{if(d.type==='frame')__contra.frames=d.frames;if(d.type==='error')__contra.errors.push(d);});const send=this.postMessage.bind(this);this.postMessage=(d,...a)=>{if(d.type==='frame'){__contra.requests.push({p1:d.buttons.slice(),p2:d.buttons2.slice()});if(__contra.requests.length>1000)__contra.requests.shift();}return send(d,...a);};}};});const p=await c.newPage();pages.push(p);p.setDefaultTimeout(120000);p.on('pageerror',e=>errors.push(e.message));return p;}
+ async function page(){const b=await chromium.launch({headless:true,chromiumSandbox:mode==='isolated'});browsers.push(b);const c=await b.newContext({ignoreHTTPSErrors:true,serviceWorkers:'block'});await c.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.abort());await c.addInitScript(()=>{
+   window.__contra={frames:0,requests:[],errors:[],workers:0};
+   const W=Worker;
+   window.Worker=class extends W{constructor(...a){
+    super(...a);__contra.workers++;
+    let epoch=-1;const pending=[],held=[new Map(),new Map()];
+    this.addEventListener('message',({data:d})=>{
+     if(d.type==='frame'&&d.epoch===epoch){
+      // Observe real worker acknowledgements, after each controller edge is applied.
+      while(pending.length&&pending[0].inputSeq<=d.appliedSeq){
+       const edge=pending.shift(),sources=held[edge.seat-1];
+       if(edge.pressed){if(!sources.has(edge.source))sources.set(edge.source,edge.button);}
+       else sources.delete(edge.source);
+      }
+      const ports=held.map(sources=>Array.from({length:8},(_,b)=>[...sources.values()].includes(b)));
+      __contra.frames=d.frames;
+      __contra.requests.push({p1:ports[0],p2:ports[1],appliedSeq:d.appliedSeq});
+      if(__contra.requests.length>1000)__contra.requests.shift();
+     }
+     if(d.type==='error')__contra.errors.push(d);
+    });
+    const send=this.postMessage.bind(this);
+    this.postMessage=(d,...a)=>{
+     if(d.type==='sync'){epoch=d.epoch;pending.length=0;held.forEach(s=>s.clear());}
+     if(d.type==='input'&&d.epoch===epoch)pending.push({...d});
+     if(d.type==='stop'){pending.length=0;held.forEach(s=>s.clear());}
+     return send(d,...a);
+    };
+   }};
+  });const p=await c.newPage();pages.push(p);p.setDefaultTimeout(120000);p.on('pageerror',e=>errors.push(e.message));return p;}
  const host=await page();let guest,watcher;
  async function frames(n){const end=await host.evaluate(n=>__contra.frames+n,n);await wait(host,end=>__contra.frames>=end||__contra.errors.length,end);assert.deepEqual(await host.evaluate(()=>__contra.errors),[]);}
  async function key(p,key,action){await p.keyboard.down(key);try{await action();}finally{await p.keyboard.up(key);}}

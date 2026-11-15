@@ -36,14 +36,21 @@ export function createMachine(options={}) {
  }
  function captureNMI(){if(facade.nmiRaised||facade.nmiPending){nmiQueued=true;facade.nmiRaised=false;facade.nmiPending=false;metrics.nmiEdges++;}}
  function sync(){if(!cpu||busy)return;captureNMI();if(nmiQueued){cpu.requestNMI();nmiQueued=false;}cpu.setIRQ(Boolean((nes.papu.frameIrqEnabled&&nes.papu.frameIrqActive)||nes.papu.dmc.irqGenerated));}
- function clockTo(target){
-  int(target,cycles,Number.MAX_SAFE_INTEGER-8192,'clock target');if(target-cycles>8192)bad('CLOCK_LIMIT','Clock advance exceeds bound');
-  while(cycles<target){
+ // cycles starts at zero; its only mutation after reset is cycleBody's ++.
+ // Both entries guard the original MAX_SAFE_INTEGER-8192 boundary first.
+ function cycleBody(){
    gateSupported();nes.ppu.advanceDots(3);dmaDmc.tick();nes.papu.clockFrameCounter(1);cycles++;facade._cpuCycleBase=cycles;captureNMI();
    if(frameReset&&cycles>=frameReset.at){const p=nes.papu;p.countSequence=frameReset.mode;p.frameCycleCounter=0;p.frameStep=0;if(frameReset.mode){p.clockQuarterFrame();p.clockHalfFrame();}frameReset=null;}
    if(nes.ppu.frameEnded){nes.ppu.frameEnded=false;nes.controllers[1].clock();nes.controllers[2].clock();nes.ppu.startFrame();}
    if(mmc&&!active()){nes.ppu.cntsToAddress();base.setPPUAddress(nes.ppu.vramAddress&16383);}
-  }
+ }
+ function clockOne(){
+  if(cycles>=Number.MAX_SAFE_INTEGER-8192)bad('BAD_ARGUMENT','clock target');
+  cycleBody();
+ }
+ function clockTo(target){
+  int(target,cycles,Number.MAX_SAFE_INTEGER-8192,'clock target');if(target-cycles>8192)bad('CLOCK_LIMIT','Clock advance exceeds bound');
+  while(cycles<target)cycleBody();
  }
  function completeClock(t){clockTo(t);base.advanceCPUClock(t);metrics.clockCompletions++;}
  function idle(n){clockTo(cycles+n);if(mmc)base.advanceCPUClock(cycles);}
@@ -93,7 +100,7 @@ export function createMachine(options={}) {
   facade=Object.seal(f);
   nes={cpu:facade,opts:{sampleRate,emulateSound:true,onAudioSample:audioSample,onBatteryRamWrite(){}},ui:{writeFrame(p){if(p.length!==61440)bad('DEVICE_VIDEO','Framebuffer length');video.set(p);frames++;},updateStatus(){}},controllers:{1:new Controller(),2:new Controller()},rom:{VERTICAL_MIRRORING:0,HORIZONTAL_MIRRORING:1,FOURSCREEN_MIRRORING:2,SINGLESCREEN_MIRRORING:3,SINGLESCREEN_MIRRORING2:4,vromCount:getCHR().length/4096}};
   nes.mmap=new DeviceRegisters(nes);nes.ppu=new PPU(nes);nes.papu=new PAPU(nes);base=createFactoryBus({read:readIO,write:writeIO,peek:peekIO});
-   dma=createDMA({cycle:()=>cycles,tick:()=>clockTo(cycles+1),read(a){gateSupported();const v=base.read(a);facade.dataBus=v;return v;},writeCPU:(a,v)=>writeCPU(a,v,cycles),writeOam(v){nes.mmap.regWrite(0x2004,v);},getBus:()=>facade.dataBus,setBus:v=>{facade.dataBus=v;}});
+   dma=createDMA({cycle:()=>cycles,tick:clockOne,read(a){gateSupported();const v=base.read(a);facade.dataBus=v;return v;},writeCPU:(a,v)=>writeCPU(a,v,cycles),writeOam(v){nes.mmap.regWrite(0x2004,v);},getBus:()=>facade.dataBus,setBus:v=>{facade.dataBus=v;}});
    dmaDmc=installDMC(nes.papu.dmc,dma,()=>cycles);
   const b={read(a){facade.instrBusCycles++;const v=dma.readCPU(a);dmaCpuCycles++;return v;},write(a,v,t){facade.instrBusCycles++;if(t!==cycles)bad('BAD_TIMING','CPU write clock mismatch');dma.writeCPU(a,v);dmaCpuCycles++;},peek:base.peek,mapPRG:a=>base.mapPRG(a),getMapperState:()=>base.getMapperState()};
   if(mmc){b.getCPUClock=()=>base.getCPUClock();b.advanceCPUClock=completeClock;}bus=composeFactoryBus(base,{dmaClock:()=>({cycle:cycles,accesses:dmaCpuCycles}),read:b.read,write:b.write,peek:b.peek,...(mmc?{advanceCPUClock:b.advanceCPUClock}:{})});

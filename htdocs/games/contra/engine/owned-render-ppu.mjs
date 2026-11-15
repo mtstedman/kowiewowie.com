@@ -214,6 +214,7 @@ export function installOwnedDotPPU(nes,bus,peek,write,capture){
  // This graph is borrowed only by synchronous lexical consumers. It is not a snapshot.
  const live={abi:'owned-renderer-js/1',closure:{},current:current.map(s=>({...s})),maskQueue,maskTrace,edgeTrace,maskStats,access,oam:null,device:{},cpu:{},palette:{},bulk:bulk()};
  const deviceKeys=deviceFields.filter(k=>Object.hasOwn(p,k)),cpuKeys=cpuFields.filter(k=>Object.hasOwn(cpu,k));
+ const bulkKeys=Object.keys(live.bulk),paletteKeys=['imgPalette','sprPalette'];
  function borrowState(){
   live.closure.v=v;live.closure.t=t;live.closure.fineX=fineX;live.closure.first=first;live.closure.dot=dot;live.closure.odd=odd;live.closure.lastClear=lastClear;live.closure.lo=lo;live.closure.hi=hi;live.closure.al=al;live.closure.ah=ah;live.closure.nt=nt;live.closure.at=at;live.closure.pl=pl;live.closure.ph=ph;live.closure.addr=addr;live.closure.fetchKind=fetchKind;live.closure.addressPending=addressPending;live.closure.incrementPending=incrementPending;live.closure.maskPending=maskPending;live.closure.lastRead=lastRead;live.closure.lastX=lastX;live.closure.lastY=lastY;live.closure.attrShift=attrShift;live.closure.carryDummy=carryDummy;live.closure.fetchReads=fetchReads;live.closure.busLow=busLow;live.closure.attributeFill=attributeFill;live.closure.renderPrevious=renderPrevious;live.closure.maskRequested=maskRequested;live.closure.maskWanted=maskWanted;live.closure.edgeRemaining=edgeRemaining;live.closure.droppedEdgeTrace=droppedEdgeTrace;live.closure.maskPendingLeft=maskPendingLeft;
   for(let i=0;i<8;i++)Object.assign(live.current[i],current[i]);
@@ -224,15 +225,16 @@ export function installOwnedDotPPU(nes,bus,peek,write,capture){
  }
  function restoreBorrowed(s){
    if(s?.abi!=='owned-renderer-js/1')throw Error('Renderer state ABI mismatch');
-   for(const [k,a] of Object.entries(live.bulk)){const b=s.bulk[k];if(a!==b)restoreArray(a,b);}
+   for(const k of bulkKeys){const a=live.bulk[k],b=s.bulk[k];if(a!==b)restoreArray(a,b);}
    ({v,t,fineX,first,dot,odd,lastClear,lo,hi,al,ah,nt,at,pl,ph,addr,fetchKind,addressPending,incrementPending,maskPending,lastRead,lastX,lastY,attrShift,carryDummy,fetchReads,busLow,attributeFill,renderPrevious,maskRequested,maskWanted,edgeRemaining,droppedEdgeTrace,maskPendingLeft}=s.closure);
    for(let i=0;i<8;i++)Object.assign(current[i],s.current[i]);
    replaceRows(maskQueue,s.maskQueue);replaceRows(maskTrace,s.maskTrace);replaceRows(edgeTrace,s.edgeTrace);
    Object.assign(maskStats,s.maskStats);Object.assign(access,s.access);
-   oamTransfer.restoreBorrowed(s.oam);Object.assign(p,s.device);Object.assign(cpu,s.cpu);cpu.mem[0x2002]=s.status;
+   oamTransfer.restoreBorrowed(s.oam);
+   Object.assign(p,s.device);Object.assign(cpu,s.cpu);cpu.mem[0x2002]=s.status;
    p.palTable.currentEmph=s.palette.currentEmph;
    if(s.palette.curTable!==undefined&&p.palTable.curTable!==s.palette.curTable)restoreArray(p.palTable.curTable,s.palette.curTable);
-   for(const k of ['imgPalette','sprPalette'])if(s.palette[k]!==undefined&&p[k]!==s.palette[k])restoreArray(p[k],s.palette[k]);
+   for(const k of paletteKeys)if(s.palette[k]!==undefined&&p[k]!==s.palette[k])restoreArray(p[k],s.palette[k]);
  }
  const bridge=Object.freeze({
   borrowState,restoreBorrowed,registerIn(name,codec){p.scanline=codec.get('scanline');p.curX=codec.get('x');if(name==='readStatusRegister'){v=codec.get('v');t=codec.get('t');fineX=codec.get('fine_x');first=Boolean(codec.get('first'));cpu.mem[0x2002]=codec.get('status');}else p.sramAddress=codec.get('sram_address');},registerOut(name,codec){if(name==='readStatusRegister'){codec.set('first',first);codec.set('status',cpu.mem[0x2002]);}else codec.set('sram_address',p.sramAddress);},

@@ -4,7 +4,7 @@ namespace Wowie\Api;
 final class NetplayPolicy {
  public const VERSION='romjs-cartridge-roles/1';
  public const BINDING='game-network-binding/1';
- private const DIGEST='50ffa535b6b80c5a8eaaeb7f05e30cf61efcb62f9d45df3096d9dbe9f4dd239d';
+ private const DIGEST='1efde4af321b242f65b2333c95f8a43aa25d3546404b1ee33338a8c4361143c5';
  public static function deny(string $code='invalid_contract',int $status=422): never {throw new ApiException($status,$code,'Netplay request rejected.');}
  public static function package(mixed $id,mixed $artifact): array {
   if(!is_string($id)||!is_string($artifact)||!preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/',$id)||strlen($id)>64||!preg_match('/\A[a-f0-9]{64}\z/',$artifact))self::deny();

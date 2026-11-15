@@ -33,13 +33,18 @@ export function createMachine(options={}) {
  }
  function captureNMI(){if(facade.nmiRaised||facade.nmiPending){nmiQueued=true;nmiSerial++;facade.nmiRaised=false;facade.nmiPending=false;metrics.nmiEdges++;}}
  function sync(){captureNMI();}
- function clockTo(target){
-  int(target,cycles,Number.MAX_SAFE_INTEGER-8192,'clock target');if(target-cycles>8192)bad('CLOCK_LIMIT','Clock advance exceeds bound');
-  while(cycles<target){
+ function cycleBody(){
    gateSupported();nes.ppu.advanceDots(3);nes.papu.clockFrameCounter(1);cycles++;facade._cpuCycleBase=cycles;captureNMI();
    if(frameReset&&cycles>=frameReset.at){const p=nes.papu;p.countSequence=frameReset.mode;p.frameCycleCounter=0;p.frameStep=0;if(frameReset.mode){p.clockQuarterFrame();p.clockHalfFrame();}frameReset=null;}
    if(nes.ppu.frameEnded){nes.ppu.frameEnded=false;nes.controllers[1].clock();nes.controllers[2].clock();nes.ppu.startFrame();}
-  }
+ }
+ function clockOne(){
+  if(cycles>=Number.MAX_SAFE_INTEGER-8192)bad('BAD_ARGUMENT','clock target');
+  cycleBody();
+ }
+ function clockTo(target){
+  int(target,cycles,Number.MAX_SAFE_INTEGER-8192,'clock target');if(target-cycles>8192)bad('CLOCK_LIMIT','Clock advance exceeds bound');
+  while(cycles<target)cycleBody();
  }
  function completeClock(t){clockTo(t);base.advanceCPUClock(t);metrics.clockCompletions++;}
  function idle(n){clockTo(cycles+n);if(mmc)base.advanceCPUClock(cycles);}
@@ -80,9 +85,9 @@ export function createMachine(options={}) {
   nes.mmap=new DeviceRegisters(nes);nes.ppu=new PPU(nes);nes.papu=new PAPU(nes);base=createBus({read:readIO,write:writeIO,peek:peekIO});
    const irqLine=()=>Boolean((nes.papu.frameIrqEnabled&&nes.papu.frameIrqActive)||nes.papu.dmc.irqGenerated||base.getIRQ?.());
    bus=composeBus(base,{
-    readCycle(a){facade.instrBusCycles++;gateSupported();const location=base.codeLocation(a),value=base.read(a);facade.dataBus=value;clockTo(cycles+1);if(mmc)base.advanceCPUClock(cycles);return {value,location,elapsed:1};},
-     readDataCycle(a){facade.instrBusCycles++;gateSupported();const value=base.read(a);facade.dataBus=value;clockTo(cycles+1);if(mmc)base.advanceCPUClock(cycles);return {value,location:null,elapsed:1};},
-    writeCycle(a,v){facade.instrBusCycles++;writeCPU(a,v,cycles);clockTo(cycles+1);if(mmc)base.advanceCPUClock(cycles);return 1;},
+    readCycle(a){facade.instrBusCycles++;gateSupported();const location=base.codeLocation(a),value=base.read(a);facade.dataBus=value;clockOne();if(mmc)base.advanceCPUClock(cycles);return {value,location,elapsed:1};},
+     readDataCycle(a){facade.instrBusCycles++;gateSupported();const value=base.read(a);facade.dataBus=value;clockOne();if(mmc)base.advanceCPUClock(cycles);return {value,location:null,elapsed:1};},
+    writeCycle(a,v){facade.instrBusCycles++;writeCPU(a,v,cycles);clockOne();if(mmc)base.advanceCPUClock(cycles);return 1;},
     getInterruptLines:()=>({irq:irqLine(),nmiSerial})
    });
   nes.mmap.load=a=>{const v=base.read(a);facade.dataBus=v;return v;};

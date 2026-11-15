@@ -1,0 +1,16 @@
+{
+  "name": "wowiekowie.com",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.13.0",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test:arcade": "node --experimental-vm-modules --test tests/arcade-ui.test.mjs tests/combined-integration.test.mjs tests/combined-followup.test.mjs tests/cartridge-library.test.mjs tests/shared-connection-repair.test.mjs tests/zelda-release.test.mjs tests/arcade-runtime-harness.test.mjs tests/contra-release.test.mjs tests/arcade-worker-streaming.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

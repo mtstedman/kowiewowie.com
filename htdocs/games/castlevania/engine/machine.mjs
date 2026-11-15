@@ -118,7 +118,7 @@ export function createMachine(options={}) {
  function step(trace=true){
   healthy();try{
    const before=cycles;facade.instrBusCycles=0;facade.apuCatchupCycles=0;facade._cpuCycleBase=cycles;stepWrites=[];sync();
-   const pc=cpu.getState().pc,mappingBefore=trace?base.getMapperState():null,physicalPC=pc>=32768?base.mapPRG(pc):null;
+   const pc=cpu.getPC(),mappingBefore=trace?base.getMapperState():null,physicalPC=pc>=32768?base.mapPRG(pc):null;
    busy=true;let r;try{r=cpu.step();}finally{busy=false;}if(!mmc)clockTo(before+r.cycles);
    if(r.kind==='instruction'){metrics.translatedInstructions++;const bank=physicalPC===null?0:physicalPC>>>14,index=mmc?(pc<49152?bank:metadata.prgBanks+bank):ux?(pc<49152?bank:metadata.prgBanks):0;metrics.bankInstructions[index]++;}else if(r.kind==='nmi')metrics.nmiEntries++;else if(r.kind==='irq')metrics.irqEntries++;
    drain();sync();if(trace){invariant();return {kind:r.kind,pc:r.pc,cycles:cycles-before,physicalPC,mappingBefore,mappingAfter:base.getMapperState(),writes:stepWrites.map(w=>({...w}))};}

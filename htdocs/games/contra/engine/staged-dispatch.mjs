@@ -14,10 +14,10 @@ export function createStagedSession({exports:e,bridge,p,cpu,bus,storage,fixedMem
   bus.advancePPUClock?.(currentDot());
  }
  const report={threeCalls:0,backend:'js',reason:'not-entered',calls:0,events:[],registerFast:{readStatusRegister:0,sramWrite:0,writeSRAMAddress:0}};
+ // Membership is invariant for this session, including custom bridge fallback.
+ const owned=new Set(['scanline','curX','vblankPending','sramAddress','spritesFound','sprite0InSecondary','hitSpr0','f_bgVisibility','f_spVisibility','f_bgClipping','f_spClipping','f_spriteSize','f_bgPatternTable','f_spPatternTable','f_dispType','f_addrInc','vramAddress','vramTmpAddress','firstWrite','regFH','cntFV','cntV','cntH','cntVT','cntHT','regFV','regV','regH','regVT','regHT']);
  function publish(){
   codec.read(sidecar);
-  // Host-owned fields may change between calls (captureNMI/frameEnded).
-  const owned=new Set(['scanline','curX','vblankPending','sramAddress','spritesFound','sprite0InSecondary','hitSpr0','f_bgVisibility','f_spVisibility','f_bgClipping','f_spClipping','f_spriteSize','f_bgPatternTable','f_spPatternTable','f_dispType','f_addrInc','vramAddress','vramTmpAddress','firstWrite','regFH','cntFV','cntV','cntH','cntVT','cntHT','regFV','regV','regH','regVT','regHT']);
   for(const k of Object.keys(sidecar.device))if(!owned.has(k))sidecar.device[k]=p[k];
   for(const k of Object.keys(sidecar.cpu))sidecar.cpu[k]=cpu[k];
   bridge.restoreBorrowed(sidecar);bus.advancePPUClock?.(sidecar.closure.dot);
