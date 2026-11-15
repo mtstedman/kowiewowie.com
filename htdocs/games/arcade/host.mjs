@@ -89,13 +89,13 @@ export class GameHost {
  input(e){return this.active?this.localInput(this.active,e):false;}
  control(action){
   const r=this.active;insist(r?.loaded&&!r.closing&&!this.closed&&!this.poisoned,'No ready package');insist(['start','pause','resume','reset'].includes(action),'Unknown lifecycle action');
-  if(['guest','spectator'].includes(r.state.role)){insist(action==='start'&&r.provider&&r.state.phase==='active','This role cannot control the game');return attempt(()=>r.provider.enableAudio());}
+  if(['guest','spectator'].includes(r.state.role)){insist(action==='start'&&r.provider&&(r.state.phase==='active'||r.state.role==='guest'&&r.state.phase==='reconnecting'&&Boolean(this.media())),'This role cannot control the game');return attempt(()=>r.provider.enableAudio());}
   insist(this.permitted(r,false),'Controls unavailable during this session state');if(action==='pause'||action==='reset')this.release(action,r);
   return attempt(()=>r.adapter[action]()).then(()=>this.emit(),e=>{if(r===this.active&&!r.closing){this.release('lifecycle-error',r);this.message=String(e.message||e).slice(0,200);this.emit();}throw e;});
  }
  suspend(reason='focus-loss'){const r=this.active;this.release(reason,r);if(r?.adapter&&!r.closing)attempt(()=>r.adapter.pause()).catch(()=>{if(r===this.active&&!r.closing){this.poisoned=true;this.emit();}});}
  state(r,value,initial=false){
-  const next=validateState(value,initial?null:r.state),previous=r.state;const changed=next.role!==previous.role||next.phase!==previous.phase||next.epoch!==previous.epoch;if(changed){const localContinues=['solo','host'].includes(previous.role)&&['solo','host'].includes(next.role)&&!inactive(previous)&&!inactive(next);if(localContinues)this.releaseRemote(r);else this.release('session-transition',r);}r.state=next;
+  const next=validateState(value,initial?null:r.state),previous=r.state;const changed=next.role!==previous.role||next.phase!==previous.phase||next.epoch!==previous.epoch;if(changed){const localContinues=['solo','host'].includes(previous.role)&&['solo','host'].includes(next.role)&&!inactive(previous)&&!inactive(next);if(localContinues)this.releaseRemote(r);else this.release('session-transition',r);}r.state=next;r.adapter?.setSessionState?.(next);
   if(next.role==='guest'||next.role==='spectator'||inactive(next))attempt(()=>r.adapter.pause()).catch(()=>this.fault(r));this.emit();return next;
  }
  fault(r){if(r!==this.active||r.closing||r.faulting)return;r.faulting=true;r.state=Object.freeze({...r.state,role:'spectator',phase:'incompatible',watch:'unavailable',play:'unavailable',message:'Sharing is incompatible. Return to the library to reconnect.'});this.release('binding-error',r);attempt(()=>r.adapter?.pause()).catch(()=>{});r.faulting=false;this.emit();}
@@ -115,7 +115,7 @@ export class GameHost {
   try{await cancellable(attempt(()=>r.provider[kind==='watch'?'inviteWatch':'invitePlay'](Object.freeze({package:r.pkg,epoch,signal:r.abort.signal}))),r.abort.signal);if(r===this.active&&!r.closing&&!r.abort.signal.aborted&&epoch===r.state.epoch)this.state(r,r.provider.getState());return r===this.active&&!r.closing&&epoch===r.state.epoch;}
   catch{if(r===this.active&&!r.closing)this.fault(r);return false;}finally{r.pending=false;this.emit();}
  }
- media(){const r=this.active;if(!r?.provider||r.closing||!['guest','spectator'].includes(r.state.role)||r.state.phase!=='active')return null;try{const media=r.provider.getMedia();exact(media,['video','audio']);insist(media.video?.nodeType===1&&media.video.tagName==='VIDEO'&&media.audio?.nodeType===1&&['AUDIO','VIDEO'].includes(media.audio.tagName),'A shared stream requires game video and audio');r.media.add(media.video);r.media.add(media.audio);return media;}catch{this.fault(r);return null;}}
+ media(){const r=this.active;if(!r?.provider||r.closing||!['guest','spectator'].includes(r.state.role)||(r.state.phase!=='active'&&!(r.state.role==='guest'&&r.state.phase==='reconnecting')))return null;try{const media=r.provider.getMedia();if(media===null)return null;exact(media,['video','audio']);insist(media.video?.nodeType===1&&media.video.tagName==='VIDEO'&&media.audio?.nodeType===1&&['AUDIO','VIDEO'].includes(media.audio.tagName),'A shared stream requires game video and audio');r.media.add(media.video);r.media.add(media.audio);return media;}catch{this.fault(r);return null;}}
  shutdown(r,reason='dispose'){
   if(!r)return Promise.resolve();if(r.disposal)return r.disposal;
   let resolve,reject;r.disposal=new Promise((yes,no)=>{resolve=yes;reject=no;});r.disposal.catch(()=>{});

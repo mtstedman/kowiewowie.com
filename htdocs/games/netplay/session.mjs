@@ -66,9 +66,34 @@ export async function joinParticipant(value,record,{video,onEvent=()=>{},signal}
  const auth={room:record.room,credential:record.credential,...a},held=new Map(),blocked=new Set();let enabled=false,epoch=0,closed=false,peer,unlisten=()=>{};
  const state=()=>{const s=zero(b);for(const control of held.values())s[control]=true;return s;};
  const clear=()=>{for(const source of held.keys())blocked.add(source);held.clear();epoch++;if(epoch>Number.MAX_SAFE_INTEGER)throw Error('UI generation exhausted');};
- const getState=()=>Object.freeze({version:1,packageId:b.packageId,artifactDigest:b.artifactDigest,role:a.participant_role==='watch'?'spectator':'guest',phase:closed?'ended':peer?.healthy()&&peer.peerLive?'active':'reconnecting',epoch,assignment:a,inputEnabled:!closed&&a.capabilities.input&&enabled&&peer.permitted()});
+  // Connection evidence and decoded-picture evidence are deliberately separate.
+  // A fresh authenticated disabled-input pulse can arrive before any video frame.
+  const connectionAvailable=()=>Boolean(!closed&&peer&&!peer.closed&&peer.peerLive&&peer.healthy()&&now()-peer.lastServer<15000&&a.capabilities.video&&a.capabilities.audio);
+  const hostPaused=()=>Boolean(a.participant_role==='play'&&connectionAvailable()&&peer.challenge&&!enabled&&!video.error&&!(video.srcObject?.getTracks()||[]).some(t=>t.kind==='video'&&t.readyState==='ended'));
+  let pictureStream=null,pictureTrack=null,picturePC=null,decodedPicture=false,pictureFrozen=false,unwatchPicture=()=>{};
+  const forgetPicture=()=>{unwatchPicture();unwatchPicture=()=>{};pictureStream=pictureTrack=picturePC=null;decodedPicture=false;pictureFrozen=false;};
+  const mediaAvailable=()=>{
+   const stream=video.srcObject,track=stream?.getTracks().find(t=>t.kind==='video'&&t.readyState==='live');
+   const owned=Boolean(connectionAvailable()&&stream&&peer.media.includes(stream)&&track&&!video.error);
+   if(!owned){forgetPicture();return false;}
+   if(stream!==pictureStream||track!==pictureTrack||peer.pc!==picturePC){
+    forgetPicture();pictureStream=stream;pictureTrack=track;picturePC=peer.pc;
+    // Freeze the actual element on mute before it can render zero-information frames.
+    // Watchers retain the original live-media behavior.
+    const mute=()=>{if(a.participant_role==='play'&&decodedPicture&&connectionAvailable()&&video.srcObject===stream&&peer.pc===picturePC&&track.readyState==='live'&&!video.error){video.pause();pictureFrozen=true;}};
+    track.addEventListener?.('mute',mute);
+    unwatchPicture=()=>track.removeEventListener?.('mute',mute);
+   }
+   const frame=video.readyState>=2&&video.videoWidth>0;
+   if(frame&&!track.muted)decodedPicture=true;
+   const paused=hostPaused();
+   if(paused&&decodedPicture&&frame){if(!pictureFrozen){video.pause();pictureFrozen=true;}return true;}
+   if(!paused&&pictureFrozen&&!track.muted){pictureFrozen=false;video.play().catch(()=>safeNotify(onEvent,{type:'status',message:'Press Enable audio to start playback.'}));}
+   return Boolean(frame&&!track.muted);
+  };
+ const getState=()=>Object.freeze({version:1,packageId:b.packageId,artifactDigest:b.artifactDigest,role:a.participant_role==='watch'?'spectator':'guest',phase:closed?'ended':peer?.healthy()&&peer.peerLive?'active':'reconnecting',epoch,assignment:a,mediaAvailable:mediaAvailable(),hostPaused:hostPaused(),inputEnabled:!closed&&a.capabilities.input&&enabled&&peer.permitted()});
  const emit=()=>safeNotify(onEvent,{type:'state',state:getState()});
- peer=new t.Peer('guest',auth,{video,state,clear:()=>{clear();emit();},enabled:v=>{if(enabled!==v){enabled=v;if(!v)clear();emit();}},stopped:()=>{closed=true;enabled=false;clear();unlisten();emit();}});
+ peer=new t.Peer('guest',auth,{video,state,clear:()=>{clear();emit();},enabled:v=>{if(enabled!==v){enabled=v;if(!v)clear();emit();}},stopped:()=>{closed=true;enabled=false;forgetPicture();clear();unlisten();emit();}});
  const resume={room:record.room,participant:a.participant,credential:record.credential,session:a.session,join_id:record.join_id,joined:true};
  const release=()=>{clear();peer.sendState(zero(b),true);emit();};
  const dispose=async({leave=false}={})=>{if(closed)return {serverConfirmed:false};release();closed=true;unlisten();peer.stop('Participant closed.');if(!leave)return {serverConfirmed:false,rejoinAfterSeconds:15};try{const d=await peer.request('leave');return {serverConfirmed:d.left===true};}catch(e){return {serverConfirmed:e instanceof t.ServiceError&&e.status===410};}};
@@ -77,7 +102,7 @@ export async function joinParticipant(value,record,{video,onEvent=()=>{},signal}
   if(!e.pressed){blocked.delete(e.source);if(held.get(e.source)!==e.control)return false;held.delete(e.source);peer.sendState(state());return true;}
   if(closed||e.epoch!==epoch||!enabled||!peer.permitted()||blocked.has(e.source)||held.has(e.source)||held.size>=64)return false;held.set(e.source,e.control);peer.sendState(state());return true;
  };
- const result={version:1,packageId:b.packageId,artifactDigest:b.artifactDigest,resume,assignment:a,getState,input,release,retry:()=>peer.retry(),enableAudio:()=>{video.muted=false;return video.play();},getMedia:()=>({video,audio:video}),dispose};
+ const result={version:1,packageId:b.packageId,artifactDigest:b.artifactDigest,resume,assignment:a,getState,input,release,retry:()=>peer.retry(),enableAudio:()=>{insist(mediaAvailable(),'Shared media unavailable');video.muted=false;return hostPaused()?Promise.resolve():video.play();},getMedia:()=>({video,audio:video}),dispose};
  if(signal?.aborted){await dispose({leave:true});throw Error('Cancelled');}
  if(signal){const cancel=()=>{void dispose();};signal.addEventListener('abort',cancel,{once:true});unlisten=()=>signal.removeEventListener('abort',cancel);}
  peer.start();emit();return result;

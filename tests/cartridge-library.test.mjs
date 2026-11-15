@@ -21,8 +21,8 @@ test('exact preservation, authoritative package digests and matched catalogs',()
  const c=new Catalog();packages.forEach(p=>c.register(p));for(const p of packages){const r=c.route('/games/arcade/?package='+p.id);assert.equal(r.id,p.id);assert.equal(r.canonical,null);assert.equal(new URL(c.route(p.route).canonical,'https://fixture.invalid').pathname,'/games/arcade/');}
 });
 test('shared-copy identity migrations change only the declared shared dependency and derived metadata',()=>{
- for(const x of plan.identityMigrations){const p=packages.find(p=>p.id===x.id),{artifactDigest,...m}=p,old=structuredClone(x.original_manifest),u=x.shared_member;
- assert.equal(hash(canonical(old)),x.before);assert.equal(artifactDigest,x.after);assert.notEqual(x.before,x.after);assert.deepEqual(m.files[u],x.shared_after);old.files[u]=x.shared_after;assert.deepEqual(m,old);
+ for(const x of plan.identityMigrations){const p=packages.find(p=>p.id===x.id),{artifactDigest,...m}=p,old=structuredClone(x.original_manifest);assert(x.shared_changes.length>0);
+ assert.equal(hash(canonical(old)),x.before);assert.equal(artifactDigest,x.after);assert.notEqual(x.before,x.after);for(const {member:u,after:shared_after,before:shared_before} of x.shared_changes){assert.deepEqual(old.files[u],shared_before);assert.deepEqual(m.files[u],shared_after);old.files[u]=shared_after;}assert.deepEqual(m,old);
  const prefix='htdocs'+p.route,n=json(prefix+'network-package.json'),outer=json(prefix+'manifest.json'),bi=json(prefix+'bundle-inputs.json');assert.equal(n.artifactDigest,x.after);assert.deepEqual(n.binding,net.packages[p.id]);assert.equal(outer.artifactDigest,x.after);
  for(const [name,r] of Object.entries(bi)){const b=read(prefix+name);assert.equal(b.length,r.bytes);assert.equal(hash(b),r.sha256);}
  for(const [name,r] of Object.entries(outer.files)){const b=read(prefix+name);assert.equal(b.length,r.bytes);assert.equal(hash(b),r.sha256);}

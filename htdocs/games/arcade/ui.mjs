@@ -3,7 +3,7 @@ import {GameHost} from './host.mjs';
 import {createSharing} from './sharing.mjs';
 const sharing=createSharing();
 const $=id=>document.getElementById(id);let catalog,host,selected=null,lastPackage=null,navigation=0,pending=false,suspended=false,teardown=Promise.resolve();
-const fail=e=>{$('player-state').textContent='This game could not be opened. Try another cartridge.';};
+const fail=e=>{const message='This game could not be opened. Try another cartridge.';$('player-state').textContent=message;const receiver=document.querySelector('[data-shared-receiver-status]');if(receiver)receiver.textContent='Shared game unavailable. Return to the library or use a fresh invitation.';};
 function select(p){selected=p;for(const radio of document.querySelectorAll('input[name="package"]'))radio.checked=radio.value===p.id;$('load').textContent='Load '+p.title;$('selection-state').textContent=p.title+' · '+(p.capabilities.nativePlayers===1?'Solo':p.capabilities.mode);}
 function buttonsFor(p){$('input-buttons').replaceChildren();$('input-help').replaceChildren();for(const i of p.inputs){const b=document.createElement('button');b.textContent=i.label;b.dataset.activation=i.activation;b.setAttribute('aria-label',i.label+' game control');const source='help:'+i.id;const send=pressed=>host.input({control:i.id,source,pressed});b.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();if(send(true)){try{b.setPointerCapture(e.pointerId);}catch{send(false);}}});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,()=>send(false));b.addEventListener('click',e=>{if(e.detail===0&&!e.pointerType){send(true);send(false);}});$('input-buttons').append(b);const line=document.createElement('li');line.textContent=i.label+': '+i.hint;$('input-help').append(line);}}
 function render(s){
@@ -15,7 +15,7 @@ function render(s){
  $('player-state').textContent=s.blocked?'This game could not be closed. Reopen the arcade to continue.':s.loading?'Loading cartridge…':r?.loading?'Loading '+p.title+'…':r?.ready?(r.running?'Now playing · ':'Ready · ')+p.title:s.message==='Choose a game from the shelf.'?'':s.message.startsWith('Game unavailable:')?'This game could not be opened. Try another cartridge.':s.message;
  $('diagnostic').textContent=p?'Start enables game audio. Pause whenever you need a break.':'';$('session-state').textContent=session.message;
  const stream=['guest','spectator'].includes(session.role),ready=Boolean(r?.ready&&!s.loading&&!s.closed&&!s.blocked&&!suspended);
- $('start-game').disabled=stream?!media:!ready||!s.canControl;$('start-game').textContent=stream?'Enable audio':'Start + audio';$('resume').hidden=!ready||r.running||stream;$('resume').disabled=!s.canControl;$('pause').disabled=!ready||!r.running||!s.canControl||stream;$('reset').disabled=!p||s.loading||!s.canControl||stream;
+ $('start-game').disabled=stream?!media:!ready||!s.canControl;$('start-game').textContent=stream?'Enable audio':r?.message==='Paused'?'Resume + audio':'Start + audio';$('resume').hidden=!ready||r.running||stream;$('resume').disabled=!s.canControl;$('pause').disabled=!ready||!r.running||!s.canControl||stream;$('reset').disabled=!p||s.loading||!s.canControl||stream;
  $('change').disabled=suspended||s.closed||(!p&&!pending&&!s.loading);$('load').disabled=!selected||suspended||s.closed||s.blocked;
  for(const b of $('input-buttons').querySelectorAll('button'))b.disabled=!s.canControl||!ready||(session.role!=='guest'&&!r.running&&b.dataset.activation!=='start');
  const inviting=Boolean(p&&host.active?.provider&&!s.loading&&!s.pending&&!s.closed&&!s.blocked&&!suspended&&['solo','host'].includes(session.role)&&['inactive','active'].includes(session.phase));
@@ -69,7 +69,7 @@ try{
  const load=document.createElement('button');load.type='button';load.className='load-cartridge';load.dataset.loadPackage=p.id;load.textContent='Load game';load.setAttribute('aria-label','Load '+p.title);load.addEventListener('click',()=>void loadCartridge(p));
  choice.append(label,load);$('shelf').append(choice);}
  $('load').addEventListener('click',()=>{if(selected)void request(selected.id);});
- for(const [id,action] of [['start-game','start'],['resume','resume'],['pause','pause'],['reset','reset']])$(id).addEventListener('click',()=>{try{void host.control(action).catch(fail);}catch(e){fail(e);}});
+ for(const [id,action] of [['start-game','start'],['resume','resume'],['pause','pause'],['reset','reset']])$(id).addEventListener('click',()=>{try{void host.control(action==='start'&&['solo','host'].includes(host.snapshot().session.role)&&host.snapshot().runtime?.message==='Paused'?'resume':action).catch(fail);}catch(e){fail(e);}});
  $('change').addEventListener('click',()=>void request(null,{focus:true}));
  $('legacy-solo').addEventListener('click',()=>{const p=host.snapshot().package;if(p)void request(p.id);});
  $('invite-watch').addEventListener('click',()=>void host.invite('watch'));$('invite-play').addEventListener('click',()=>void host.invite('play'));

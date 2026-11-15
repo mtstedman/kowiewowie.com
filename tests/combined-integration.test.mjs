@@ -24,7 +24,7 @@ for(const p of packages.filter(p=>["megaman","adventure-island-2"].includes(p.id
 import {createBridge,hostAdapter} from '../htdocs/games/arcade/session-bridge.mjs';
 import {createTransport} from '../htdocs/games/netplay/transport.mjs';
 
-async function inputLifecycleLab(t,two){
+async function inputLifecycleLab(t,two,initialPaused=false){
  const original=packages[0];let pkg=original;
  if(two){const {artifactDigest,...m}=structuredClone(original);m.capabilities={...m.capabilities,nativePlayers:2,mode:'simultaneous',play:'host-p1-guest-p2'};const d=hash(canonical(m));pkg=await verifyPackage({manifest:m,artifactDigest:d},d);}
  const binding={...structuredClone(network.packages[pkg.id]),artifactDigest:pkg.artifactDigest};
@@ -35,24 +35,24 @@ async function inputLifecycleLab(t,two){
  const fingerprint=Array.from(crypto.getRandomValues(new Uint8Array(32)),v=>v.toString(16).padStart(2,'0')).join(':');
  const sdp=type=>({type,sdp:'v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\na=fingerprint:sha-256 '+fingerprint+'\r\n'+['audio','video'].map(k=>'m='+k+' 9 UDP/TLS/RTP/SAVPF 96\r\na='+(type==='offer'?'sendonly':'recvonly')+'\r\n').join('')+'m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\na=sctp-port:5000\r\n'});
  let clock=10000,serial=0,host,guest,peer,channel;
- const intervals=new Map(),timeouts=new Map(),queue=[],packets=[],saved=new Map(),storage=new Map();
+ const intervals=new Map(),timeouts=new Map(),queue=[],packets=[],saved=new Map(),storage=new Map(),connections=[],mediaElements=[];
  const turn=()=>new Promise(resolve=>setImmediate(resolve));
  const globals={
   performance:{now:()=>clock},
   setInterval:fn=>{const id=++serial;intervals.set(id,fn);return id;},clearInterval:id=>intervals.delete(id),
   setTimeout:fn=>{const id=++serial;timeouts.set(id,fn);return id;},clearTimeout:id=>timeouts.delete(id),
-  document:{hidden:false,createElement:()=>({nodeType:1,tagName:'VIDEO',setAttribute(){},play:async()=>{},pause(){},remove(){},srcObject:null})},
+  document:{hidden:false,createElement:()=>{const v={nodeType:1,tagName:'VIDEO',setAttribute(){},play:async function(){this.paused=false;},pause(){this.paused=true;},remove(){},srcObject:null,readyState:0,videoWidth:0,paused:true};mediaElements.push(v);return v;}},
   location:{origin:'https://127.0.0.1:9443',pathname:'/games/arcade/',search:''},history:{state:null,replaceState(){}},
   sessionStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
   MediaStream:class{constructor(tracks=[]){this.tracks=tracks;}getTracks(){return this.tracks;}addTrack(track){this.tracks.push(track);}removeTrack(track){this.tracks=this.tracks.filter(t=>t!==track);}},
   RTCPeerConnection:class{
-   constructor(config){this.config=config;this.connectionState='connected';this.iceGatheringState='complete';}
+   constructor(config){connections.push(this);this.config=config;this.connectionState='connected';this.iceGatheringState='complete';}
    getConfiguration(){return this.config;}setConfiguration(config){this.config=config;}
    getTransceivers(){return [{direction:'recvonly'},{direction:'recvonly'}];}
    async setRemoteDescription(value){
     this.remoteDescription=value;
     channel={label:'game-input-v3',ordered:true,maxRetransmits:null,maxPacketLifeTime:null,readyState:'open',bufferedAmount:0,
-     send:text=>{const d=JSON.parse(text);packets.push({type:d.type,release:d.release,epoch:d.epoch,controls:d.controls});queue.push(()=>peer.receive(text));},
+     send:text=>{const d=JSON.parse(text);packets.push({type:d.type,release:d.release,epoch:d.epoch,controls:d.controls});const target=peer,recipient=peer.dc;queue.push(()=>{if(!target.closed&&target.dc===recipient&&recipient?.readyState==='open')target.receive(text);});},
      close(){this.readyState='closed';}};
     this.ondatachannel({channel});channel.onopen();
    }
@@ -89,9 +89,9 @@ async function inputLifecycleLab(t,two){
  const lease=host.bindSession({version:1,packageId:pkg.id,artifactDigest:pkg.artifactDigest,getState:()=>hostState,subscribe:()=>()=>{},inviteWatch(){},invitePlay(){},sendInput(){return false;},releaseInputs(){peer?.barrier();},enableAudio(){},getMedia(){throw Error('Host media');},dispose(){}});
  const adapter=hostAdapter(pkg,binding,lease,()=>hostState,()=>host.snapshot().runtime);adapter.admit(assigned);
  const transport=createTransport(binding);
- peer=new transport.Peer('host',{...assigned,room:record.room,credential:fixtureHex(32)},{enabled:()=>true,clearRemote:()=>adapter.release(assigned.participant),remote:values=>adapter.remote(assigned.participant,assigned.session,assigned.player,values)});
+ peer=new transport.Peer('host',{...assigned,room:record.room,credential:fixtureHex(32)},{enabled:()=>!initialPaused,clearRemote:()=>adapter.release(assigned.participant),remote:values=>adapter.remote(assigned.participant,assigned.session,assigned.player,values)});
  peer.pc={connectionState:'connected',close(){this.connectionState='closed';}};
- peer.dc={readyState:'open',bufferedAmount:0,send:text=>queue.push(()=>channel.onmessage({data:text})),close(){this.readyState='closed';}};
+ peer.dc={readyState:'open',bufferedAmount:0,send:text=>{const target=channel;queue.push(()=>{if(target?.readyState==='open'&&typeof target.onmessage==='function')target.onmessage({data:text});});},close(){this.readyState='closed';}};
  peer.peerLive=true;peer.suspended=false;peer.barrier();
  assert(host.input({control:'a',source:'host-a',pressed:true}));
  guest=await makeHost(receiverHeld);
@@ -107,7 +107,7 @@ async function inputLifecycleLab(t,two){
  }
  async function beat(){clock+=250;for(const fn of [...intervals.values()])fn();peer.lastServer=clock;peer.pulse();await drain();}
  for(let i=0;i<3;i++)await beat();
- assert.equal(guest.snapshot().session.role,'guest');assert.equal(guest.snapshot().session.phase,'active');assert.equal(guest.snapshot().canControl,true);
+ if(initialPaused){assert.equal(guest.snapshot().session.role,'guest');assert.equal(guest.snapshot().session.phase,'reconnecting');assert.equal(guest.snapshot().canControl,false);}else{assert.equal(guest.snapshot().session.role,'guest');assert.equal(guest.snapshot().session.phase,'active');assert.equal(guest.snapshot().canControl,true);}
  const input=(pressed,control='right',source='guest-right')=>guest.input({control,source,pressed});
  function check(remote){
   assert.equal(held.size,remote?2:1);const local=held.get('local:host-a');assert(local);assert.equal(local.control,'a');assert.equal(local.seat,1);assert.equal(local.role,'host');
@@ -115,7 +115,7 @@ async function inputLifecycleLab(t,two){
   if(remote){assert(forwarded);assert.equal(forwarded.control,'right');assert.equal(forwarded.seat,two?2:1);assert.equal(forwarded.role,'guest');}else assert.equal(forwarded,undefined);
   assert.equal(receiverHeld.size,0,'Receiver must forward inputs without running its game adapter');
  }
- return {host,guest,peer,queue,packets,input,check,beat,drain,intervals};
+ return {host,guest,peer,queue,packets,input,check,beat,drain,intervals,timeouts,bridge,connections,mediaElements};
 }
 for(const two of [false,true])test('provider barriers settle and physical release rearms '+(two?'independent P1/P2':'shared P1')+' input',{timeout:10000},async t=>{
  const lab=await inputLifecycleLab(t,two),{guest,peer,input,beat,drain,check,packets,queue}=lab;
@@ -142,3 +142,86 @@ for(const two of [false,true])test('provider barriers settle and physical releas
 });
 
 import './receiver-input.test.mjs';
+
+// Controlled browser/relay boundaries; actual bridge, session and input transport.
+// These additions do not replace any existing assertion above.
+test('paused connected receiver retains authenticated media and audio without input authority',{timeout:10000},async t=>{
+ const lab=await inputLifecycleLab(t,false),{guest,peer,input,beat,drain,bridge,connections,mediaElements}=lab;
+ const pc=connections[0],video=mediaElements.find(v=>v.srcObject);
+ assert(pc&&video);assert.equal(guest.media(),null,'No fabricated video before a track/frame is available');
+ const track={kind:'video',readyState:'live',muted:false,stop(){this.readyState='ended';}};
+ pc.ontrack({track});video.readyState=2;video.videoWidth=256;await beat();
+ const original=guest.media();assert.equal(original.video,video);const connection=pc;
+ assert(input(true));await drain();lab.check(true);
+ peer.cb.enabled=()=>false;peer.cb.clearRemote();await beat();await beat();
+ assert.equal(guest.snapshot().session.phase,'reconnecting');assert.equal(guest.snapshot().canControl,false);
+ assert.match(guest.snapshot().session.message,/Connected—host paused\/away/);
+ assert.equal(guest.media().video,video);assert.equal(connections[0],connection);
+ assert.equal(input(true,'b','blocked-while-away'),false);lab.check(false);
+ // A muted live track does not erase a previously authenticated decoded picture.
+ track.muted=true;await beat();assert.equal(guest.media().video,video);assert.equal(video.paused,true);
+ assert.match(guest.snapshot().session.message,/Connected—host paused\/away/);
+ await guest.control('start');assert.equal(video.muted,false);assert.equal(video.paused,true);
+ for(const action of ['pause','resume','reset'])await assert.rejects(async()=>guest.control(action));
+ const stale=guest.snapshot().session.epoch;
+ track.muted=false;peer.cb.enabled=()=>true;await beat();await beat();
+ assert.equal(guest.snapshot().session.phase,'active');assert.equal(guest.snapshot().canControl,true);
+ assert(guest.snapshot().session.epoch>stale);assert.equal(guest.media().video,video);assert.equal(connections.length,1);
+ assert.equal(video.paused,false);
+ assert.equal(input(true),false,'Held source remains retired across the pause');assert(input(false));assert(input(true));await drain();lab.check(true);
+ assert.equal(bridge.provider.sendInput({control:'b',source:'stale',pressed:true,epoch:stale,role:'guest',seat:1}),false);
+ input(false);await drain();
+ pc.connectionState='connecting';await beat();assert.equal(guest.media(),null);
+ assert.doesNotMatch(guest.snapshot().session.message,/Connected—host paused/);
+ assert.equal(input(true,'b','connecting'),false);
+ pc.connectionState='connected';peer.cb.enabled=()=>false;await beat();
+ track.readyState='ended';await beat();assert.equal(guest.media(),null);assert.match(guest.snapshot().session.message,/Connecting/);
+ track.readyState='live';video.readyState=0;await beat();assert.equal(guest.media(),null);
+ video.readyState=2;await beat();assert.equal(guest.media().video,video);
+ // An authenticated signaling rejection traverses the real terminal cleanup.
+ globalThis.fetch=async()=>new Response(JSON.stringify({error:'stale_session'}),{status:409});
+ for(const [id,fn] of [...lab.timeouts]){lab.timeouts.delete(id);fn();}
+ await drain();await beat();
+ assert.equal(guest.snapshot().session.phase,'ended');assert.equal(guest.media(),null);
+ assert.equal(video.srcObject,null);assert.equal(track.readyState,'ended');assert.equal(pc.connectionState,'closed');
+ assert.equal(input(true,'b','revoked'),false);await guest.unload();assert.equal(lab.intervals.size,0);
+});
+test('joining an already paused host reports connection before the first frame and resumes the same peer',{timeout:10000},async t=>{
+ const lab=await inputLifecycleLab(t,false,true),{guest,peer,input,beat,drain,bridge,connections,mediaElements}=lab;
+ const pc=connections[0],video=mediaElements.find(v=>v.srcObject),stream=video.srcObject;
+ const track={kind:'video',readyState:'live',muted:true,stop(){this.readyState='ended';}};
+ pc.ontrack({track});await beat();await beat();
+ assert.equal(pc.connectionState,'connected');assert.equal(video.readyState,0);assert.equal(video.videoWidth,0);
+ assert.equal(guest.snapshot().session.phase,'reconnecting');assert.equal(guest.snapshot().canControl,false);
+ assert.match(guest.snapshot().session.message,/Connected—host paused\/away/);
+ assert.match(guest.snapshot().session.message,/Ask the host to Resume/);
+ assert.equal(guest.media(),null);assert.equal(bridge.provider.getMedia(),null);
+ assert.equal(input(true,'b','no-frame'),false);lab.check(false);
+ await assert.rejects(async()=>guest.control('start'));
+ for(const action of ['pause','resume','reset'])await assert.rejects(async()=>guest.control(action));
+ // Muted-track metadata is not evidence of an actual received picture.
+ video.readyState=2;video.videoWidth=256;await beat();assert.equal(guest.media(),null);
+ video.readyState=0;video.videoWidth=0;
+ const stale=guest.snapshot().session.epoch;
+ peer.cb.enabled=()=>true;track.muted=false;video.readyState=2;video.videoWidth=256;await beat();await beat();
+ assert.equal(guest.snapshot().session.phase,'active');assert.equal(guest.snapshot().canControl,true);
+ assert(guest.snapshot().session.epoch>stale);assert.equal(connections.length,1);assert.equal(connections[0],pc);
+ assert.equal(guest.media().video,video);assert.equal(video.srcObject,stream);
+ assert.equal(bridge.provider.sendInput({control:'b',source:'old',pressed:true,epoch:stale,role:'guest',seat:1}),false);
+ assert(input(true));await drain();lab.check(true);assert(input(false));await drain();lab.check(false);
+ peer.cb.enabled=()=>false;await beat();track.muted=true;await beat();
+ assert.equal(guest.media().video,video);assert.equal(video.paused,true);assert.equal(guest.snapshot().canControl,false);
+ const originalStream=video.srcObject;video.srcObject=new MediaStream([track]);await beat();
+ assert.equal(guest.media(),null,'An unowned stream cannot borrow decoded-picture evidence');
+ video.srcObject=originalStream;await beat();assert.equal(guest.media(),null,'Restored muted stream needs new decoded evidence');
+ track.muted=false;await beat();assert.equal(guest.media().video,video);
+ // The fake service does not renew the receiving authorization lease during beats.
+ for(let i=0;i<65;i++)await beat();
+ assert.equal(guest.media(),null);assert.doesNotMatch(guest.snapshot().session.message,/Connected—host paused/);
+ assert.equal(input(true,'b','stale-lease'),false);await assert.rejects(async()=>guest.control('start'));
+ globalThis.fetch=async()=>new Response(JSON.stringify({error:'stale_session'}),{status:409});
+ for(const [id,fn] of [...lab.timeouts]){lab.timeouts.delete(id);fn();}
+ await drain();await beat();assert.equal(guest.snapshot().session.phase,'ended');assert.equal(guest.media(),null);
+ assert.equal(video.srcObject,null);assert.equal(track.readyState,'ended');assert.equal(pc.connectionState,'closed');
+ await guest.unload();assert.equal(lab.intervals.size,0);
+});
