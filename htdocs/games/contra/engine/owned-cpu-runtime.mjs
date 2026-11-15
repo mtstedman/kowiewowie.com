@@ -147,6 +147,7 @@ function makeCPUInternal(bus,blocks,info,capability){
  const eligible=capability===factoryCapability&&factoryTablesProven&&info===factoryMetadata&&blocks===B&&[0,2].includes(info.mapper)&&record&&bus.peek===record.peek&&bus.mapPRG===record.mapPRG&&bus.getMapperState===record.getMapperState;
  // Factory bus construction validates UxROM bank count against PRG length and board policy; NROM has one context.
  const preflight=eligible?{bits:new Uint8Array((banked?info.prgBanks:1)*4096),hits:0,misses:0,validated:0,peekBytes:0,skippedBytes:0,resets:0}:null;
+ const denseDispatch=eligible?getFactoryDenseDispatch():null;
  mapping();
  const s={a:0,x:0,y:0,sp:0,p:36,pc:0,cycles:0,instructions:0};let irq=false,nmiLine=false,nmiPending=false,irqMask=4,hold=false,busy=false,startCycle=0;
  const timed=typeof bus.dmaClock==='function';let coreStart=0;
@@ -165,7 +166,7 @@ function makeCPUInternal(bus,blocks,info,capability){
   if(!hold&&(nmiPending||(irq&&!irqMask))){const nmi=nmiPending;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return kindOnly?(nmi?'nmi':'irq'):{kind:nmi?'nmi':'irq',pc,cycles:timed?s.cycles-startCycle:7};}
   if(pc<32768)bad('MUTABLE_CODE_UNSUPPORTED','Execution outside immutable PRG',pc);
   const m=mapping();if(banked)mapped(pc,m);
-  let entry=mmc?blocks[(pc<49152?0:info.prgBanks)+(pc<49152?m.low:m.high)][pc]:banked?blocks[pc<49152?m.bank:info.prgBanks][pc]:blocks[pc];
+  let entry=denseDispatch?(banked?(pc<49152?denseDispatch.lower[m.bank][pc-32768]:denseDispatch.fixed[pc-49152]):denseDispatch.nrom[pc-32768]):mmc?blocks[(pc<49152?0:info.prgBanks)+(pc<49152?m.low:m.high)][pc]:banked?blocks[pc<49152?m.bank:info.prgBanks][pc]:blocks[pc];
   if(entry&&entry.cross)entry=entry.cross[m.high];
   if(!entry){const op=fetchByte(pc,m,true);bad(info.officialOpcodes.includes(op)?'MISSING_TRANSLATION':'UNSUPPORTED_OPCODE','No translated instruction at '+pc+' (opcode '+op+')',pc);}
    // Per CPU: proven frozen imported tables select exactly one entry for
@@ -217,3 +218,45 @@ export function createFactoryCPU(bus){return makeCPUInternal(bus,B,factoryMetada
 export function preflightStats(cpu){const f=factoryCPUStats.get(cpu);return f?f():null;}
 // Admission uses actual factory identities and source proof, never caller flags.
 export function getFactoryExecution(cpu){return factoryExecutions.get(cpu)??null;}
+
+
+// No public admission flags. Called only after existing factory eligibility.
+let factoryDenseDispatch;
+function getFactoryDenseDispatch(){
+ if(factoryDenseDispatch===undefined)factoryDenseDispatch=factoryTablesProven?buildDenseDispatch(B,factoryMetadata):null;
+ return factoryDenseDispatch;
+}
+function buildDenseDispatch(tables,info){
+ // Null prototypes rule out inherited entries/getters changing after copying.
+ // Source proof has already excluded proxies and accessor construction.
+ function tableOK(t,lo,hi){
+  if(!t||typeof t!=='object'||Object.getPrototypeOf(t)!==null||!Object.isFrozen(t))return false;
+  for(const k of Reflect.ownKeys(t)){
+   if(typeof k!=='string'||!/^(?:0|[1-9][0-9]*)$/.test(k))return false;
+   const p=Number(k),d=Object.getOwnPropertyDescriptor(t,k);
+   if(!Number.isSafeInteger(p)||p<lo||p>=hi||!Object.hasOwn(d,'value'))return false;
+  }
+  return true;
+ }
+ function pack(t,lo,hi){
+  // Start empty and append every slot: no holes or out-of-range reads.
+  // A private null prototype also excludes inherited indexed setters.
+  const a=[];Object.setPrototypeOf(a,null);
+  for(let pc=lo;pc<hi;pc++)a[a.length]=t[pc];
+  return Object.freeze(a);
+ }
+ if(info.mapper===0){
+  if(!tableOK(tables,32768,65536))return null;
+  return Object.freeze({nrom:pack(tables,32768,65536)});
+ }
+ const n=info.prgBanks;
+ if(info.mapper!==2||![4,8,16].includes(n)||!Array.isArray(tables)||!Object.isFrozen(tables)||tables.length!==n+1)return null;
+ // Validate ALL tables before allocating; unsupported geometry keeps old lookup.
+ for(let b=0;b<=n;b++){
+  const d=Object.getOwnPropertyDescriptor(tables,String(b));
+  if(!d||!Object.hasOwn(d,'value')||!tableOK(d.value,b===n?49152:32768,b===n?65536:49152))return null;
+ }
+ const lower=[];Object.setPrototypeOf(lower,null);
+ for(let b=0;b<n;b++)lower[lower.length]=pack(tables[b],32768,49152);
+ return Object.freeze({lower:Object.freeze(lower),fixed:pack(tables[n],49152,65536)});
+}

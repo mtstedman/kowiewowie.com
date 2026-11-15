@@ -7,7 +7,7 @@ const pin=b=>({bytes:b.length,sha256:hash(b)});
 export const actualRead=p=>readFileSync(new URL(p,root));
 export function verifyContraAddition(read=actualRead){
  const raw=read('tests/contra-addition.json');
- assert.equal(hash(raw),'92d145b27fad78b77e9d67a3638a70de9af741ec5f503f9c7287c67afd055f33');
+ assert.equal(hash(raw),'533f336660d655510a26585c3633239646a01c70d7e24d34d3c8e20ef400d595');
  const r=JSON.parse(raw);assert.equal(r.format,'cartridge-addition/1');
  for(const [p,c] of Object.entries(r.changes)){
   assert.deepEqual(pin(read(p)),c.after,p);
