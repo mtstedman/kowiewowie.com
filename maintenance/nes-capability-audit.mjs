@@ -35,7 +35,7 @@ export function auditCapabilities(root){
   function visit(url){if(reachable.has(url))return;insist(Array.isArray(graph[url]),'Missing executable: '+url);reachable.add(url);for(const edge of graph[url])visit(edge.target);}
   visit(p.entry);
   insist(reachable.has(selected.entry.path),'Selected engine is not consumed: '+p.id);
-  const shared=['nes-adapter.mjs','nes-gamepad.mjs','nes-touch-dpad.mjs','worker-stream-host.mjs','worker-stream-consumer.mjs','worker-stream-producer.mjs'];
+  const shared=['nes-adapter.mjs','nes-gamepad.mjs','nes-touch-dpad.mjs','worker-stream-host.mjs','worker-stream-consumer.mjs','worker-stream-producer.mjs','checkpoint-store.mjs'];
   const missing=shared.filter(name=>!reachable.has('/games/arcade/'+name));
   insist(missing.length===0,'Missing shared upgrades: '+p.id+' '+missing.join(', '));
   const battery=c.requirements.battery;

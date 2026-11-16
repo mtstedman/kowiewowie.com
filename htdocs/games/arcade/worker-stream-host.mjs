@@ -1,7 +1,8 @@
 import {createConsumer} from './worker-stream-consumer.mjs';
 // Authenticated UI lifecycle derivation; emulation and media pacing are unchanged.
 export function createRuntime({root,onState=()=>{},WorkerClass=Worker,workerURL}){
-let closed=false,runtimeFrame=0;
+let closed=false,runtimeFrame=0,checkpointRequest=null;
+function cancelCheckpoint(reason){if(!checkpointRequest)return;const r=checkpointRequest;checkpointRequest=null;clearTimeout(r.timer);r.reject(Error(reason));}
 // Aggregate controller edges each occupy a frame. Sources overlap by OR.
 // Repeats and duplicate releases are idempotent. Overflow stops explicitly.
 class SampledInput {
@@ -87,6 +88,7 @@ function pump(){
    pumpTimer=setTimeout(pump,12);
  }
  function enqueue(d){
+  if(lastCycles===null){measuredAt=performance.now();measuredCycles=d.cycles;measuredFrames=presented;}
   const now=clock(),duration=d.audio.length?d.audio.length/2/48000:
     lastCycles===null?1/60.0988:(d.cycles-lastCycles)/CPU_HZ;
   // Rebase after a real underrun, never stretch samples or accumulate stale work.
@@ -124,6 +126,7 @@ function clearInputs(){
 }
 function advanceEpoch(){if(epoch>=Number.MAX_SAFE_INTEGER)throw Error('Session identity exhausted; reload page');epoch++;stream.reset(-1);}
 function fail(e){
+  cancelCheckpoint("Game stopped");
   netplay?.end("Host runtime stopped; sharing ended.");
   running=false;ready=false;loading=false;stream.reset(-1);clearInputs();rebase();
   clearTimeout(timer);timer=null;pending=null;synced=-1;
@@ -152,6 +155,7 @@ function wire(type,extra={},transfer=[]){
  }
  function pause(reason='Paused'){
   if(closed)return;
+  cancelCheckpoint('Save operation interrupted');
   autoRender=false;
   try{advanceEpoch();}catch(e){fail(e.message);return;}
   running=false;clearInputs();rebase();notice='';last=-Infinity;
@@ -168,7 +172,7 @@ function sound(samples,at){
 }
 function start(withAudio=true){
   if(closed)return;
-  if(!ready||document.hidden)return;
+  if(!ready||document.hidden||checkpointRequest)return;
   if(!running){running=true;last=-Infinity;notice='';rebase();show('Starting…');sync();pump();}
   if(!withAudio||!running)return;
   audioUnlocked=true;
@@ -188,6 +192,12 @@ function receive(w,d){
     autoRender=false;sync();return;
   }
   if(!d||d.epoch!==epoch)return;
+   if(d.type==='checkpoint'||d.type==='checkpoint-error'){
+    const r=checkpointRequest;if(!r||r.epoch!==epoch||r.seq!==d.seq)return;
+    checkpointRequest=null;clearTimeout(r.timer);
+    if(d.type==='checkpoint-error'){r.reject(Error(d.message||'Save operation failed'));return;}
+    lastCycles=null;rebase();if(d.rgba instanceof Uint8ClampedArray&&d.rgba.length===256*240*4)ctx.putImageData(new ImageData(d.rgba,256,240),0,0);show('Paused. Use Resume to continue.');r.resolve(d.record);return;
+   }
    if(d.type==='error'){fail((d.code||'RUNTIME')+': '+d.message);return;}
    if(d.type==='synced'){
     if(!pending||d.seq!==pending.seq)return;
@@ -199,6 +209,7 @@ function receive(w,d){
  
 function reset(){
   if(closed)return;
+  cancelCheckpoint("Game reset");
   netplay?.end("Host reset; sharing ended.");
   try{advanceEpoch();}catch(e){fail(e.message);return;}
   running=false;ready=false;loading=true;autoRender=true;audioUnlocked=false;audioClockActive=false;bufferTarget=BUFFER_SECONDS;clearInputs();lastCycles=null;presented=0;fps=0;speed=0;rebase();notice='';
@@ -240,7 +251,7 @@ function tick(timestamp){
 
 let disposed=null;
 function dispose(){
- if(disposed)return disposed;closed=true;running=false;ready=false;loading=false;autoRender=false;
+ if(disposed)return disposed;cancelCheckpoint('Game unloaded');closed=true;running=false;ready=false;loading=false;autoRender=false;
  const failures=[],tryIt=fn=>{try{fn();}catch(e){failures.push(e);}};
  tryIt(clearInputs);clearTimeout(timer);clearTimeout(pumpTimer);timer=pumpTimer=null;cancelAnimationFrame(runtimeFrame);
  const oldWorker=worker;worker=null;tryIt(()=>{if(oldWorker){oldWorker.onmessage=oldWorker.onerror=oldWorker.onmessageerror=null;oldWorker.terminate();}});
@@ -248,6 +259,14 @@ function dispose(){
  const oldAudio=ac;ac=null;audioUnlocked=false;audioClockActive=false;tryIt(()=>{if(oldAudio)oldAudio.onstatechange=null;master?.disconnect();});master=null;
  disposed=Promise.resolve().then(async()=>{if(oldAudio&&oldAudio.state!=='closed')await oldAudio.close();if(failures.length)throw failures[0];});return disposed;
 }
-const api=Object.freeze({reset,start,pause,dispose,releaseAll:clearInputs,held:b=>input.hasButton(b),clearRemote:()=>{remoteInput.clear();remoteInput2.clear();},input:(source,b,pressed,seat=1)=>{if(closed)return false;if(source.startsWith('remote:')){const q=seat===2?remoteInput2:remoteInput;if(!pressed){q.release(source);return true;}if(!ready||!running)return false;try{return q.press(source,b);}catch(e){q.clear();fail(e.message);return false;}}if(seat!==1)return false;if(pressed)return down(source,b);up(source);return true;},snapshot:()=>Object.freeze({ready,running,loading,closed,message:status.textContent,bufferTarget,stream:stream.snapshot()}),audio:()=>({context:ac,node:master})});
+function checkpoint(type,record){
+ if(closed||!ready||checkpointRequest)return Promise.reject(Error('Game is not ready for a save operation'));
+ pause('Saving / loading…');
+ return new Promise((resolve,reject)=>{
+  checkpointRequest={epoch,seq:seq+1,resolve,reject,timer:setTimeout(()=>cancelCheckpoint('Save operation timed out'),120000)};
+  try{wire(type,{record});}catch(e){cancelCheckpoint(e.message);}
+ });
+}
+const api=Object.freeze({exportCheckpoint:()=>checkpoint('checkpoint-export'),importCheckpoint:record=>checkpoint('checkpoint-import',record),reset,start,pause,dispose,releaseAll:clearInputs,held:b=>input.hasButton(b),clearRemote:()=>{remoteInput.clear();remoteInput2.clear();},input:(source,b,pressed,seat=1)=>{if(closed)return false;if(source.startsWith('remote:')){const q=seat===2?remoteInput2:remoteInput;if(!pressed){q.release(source);return true;}if(!ready||!running)return false;try{return q.press(source,b);}catch(e){q.clear();fail(e.message);return false;}}if(seat!==1)return false;if(pressed)return down(source,b);up(source);return true;},snapshot:()=>Object.freeze({ready,running,loading,closed,message:status.textContent,bufferTarget,stream:stream.snapshot()}),audio:()=>({context:ac,node:master})});
 runtimeFrame=requestAnimationFrame(tick);return api;
 }

@@ -6,7 +6,7 @@ import {loadExactModule} from './arcade-runtime-module-loader.mjs';
 import {batteryContract,workerTransport} from './arcade-runtime-protocol.mjs';
 const sourceRoot=fileURLToPath(new URL('../',import.meta.url));
 const sourcePins=JSON.parse(readFileSync(new URL('./arcade-runtime-source-pins.json',import.meta.url),'utf8')).files;
-export async function runtimeHarness(path,{storage:providedStorage,flushMode='auto'}={}){
+export async function runtimeHarness(path,{storage:providedStorage,flushMode='auto',now=()=>1000}={}){
  let sequence=0,frame=0,audioCloses=0,battery=null;
  const timers=new Map(),timerDelays=new Map(),rafs=new Map(),contexts=[],nodes=new Map(),saved=new Map();
  const storage=providedStorage||{getItem:k=>saved.get(k)??null,setItem:(k,v)=>{saved.set(k,String(v));},removeItem:k=>saved.delete(k)};
@@ -19,7 +19,7 @@ export async function runtimeHarness(path,{storage:providedStorage,flushMode='au
   close(){audioCloses++;this.state='closed';return Promise.resolve();}
  }
  const context=vm.createContext({document:{hidden:false,hasFocus:()=>true},window:{AudioContext:Audio},Worker,URL,console,
-  performance:{now:()=>1000},localStorage:storage,Uint8Array,Uint8ClampedArray,Float32Array,ImageData:class{},
+  performance:{now},localStorage:storage,Uint8Array,Uint8ClampedArray,Float32Array,ImageData:class{},
   setTimeout:(f,ms)=>{const id=++sequence;timers.set(id,f);timerDelays.set(id,ms);return id;},
   clearTimeout:id=>{timerDelays.delete(id);return timers.delete(id);},
   requestAnimationFrame:f=>{const id=++frame;rafs.set(id,f);return id;},cancelAnimationFrame:id=>rafs.delete(id),

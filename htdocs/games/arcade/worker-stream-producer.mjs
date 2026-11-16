@@ -45,6 +45,17 @@ export function createProducer({machine,post,schedule,cancel,afterFrame=()=>{}})
     post({type:'synced',epoch,seq});return;
    }
    if(d.epoch!==epoch)throw Error('Release barrier required');seq=d.seq;
+   if(d.type==='checkpoint-export'||d.type==='checkpoint-import'){
+    // The preceding sync barrier cancels production and releases both players.
+    if(credits||timer!==null)throw Error('Checkpoint requires a paused release barrier');
+    try{
+     if(d.type==='checkpoint-import'){machine.importCheckpoint(d.record);clear();lastCycles=null;time=0;leases.clear();pool.length=0;audioPool.length=0;}
+     const record=d.type==='checkpoint-export'?machine.exportCheckpoint():undefined;
+     const rgba=d.type==='checkpoint-import'?machine.getRGBA():undefined;
+     post({type:'checkpoint',epoch,seq,record,frames:machine.getState().frames,rgba},rgba?[rgba.buffer]:[]);
+    }catch(e){post({type:'checkpoint-error',epoch,seq,message:String(e.message||e)});}
+    return;
+   }
    if(d.type==='stop'){stop();clear();return;}
    if(d.type==='input'){
     if(!integer(d.inputSeq,1)||d.inputSeq!==inputSeq+1||typeof d.source!=='string'||!d.source.length||d.source.length>256||![1,2].includes(d.seat)||!integer(d.button)||d.button>7||typeof d.pressed!=='boolean')throw Error('Invalid input update');

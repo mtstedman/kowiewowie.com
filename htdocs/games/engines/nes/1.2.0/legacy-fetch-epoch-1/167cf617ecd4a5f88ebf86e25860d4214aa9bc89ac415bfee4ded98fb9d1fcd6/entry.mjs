@@ -1,0 +1,9 @@
+import {instantiate as F0} from "../../common/2f0c2fa65cf51c71da65036fb9821fa6f891f6659eb70536bcc8c38ab8279a94.mjs";
+import {instantiate as F1} from "../../common/3ed0cd44c5ce57799c74a3b7eb60bbba824dec99f5ad362976018108637d06ca.mjs";
+import {instantiate as F2} from "../../common/f54f19b18038ccf9964c84f9afdc486527a0838d1630db69d0125016d4b0cca4.mjs";
+import {instantiate as F3} from "../../common/76477898d00a19b520dc03d4b11a0908b8021bb4050fcd2ea02ebe75215201af.mjs";
+import {admit,createMachine as instantiateMachine} from "../../composer.mjs";
+const graph={"entry":"machine.mjs","nodes":[{"dependencies":["runtime.mjs","$data"],"factory":"2f0c2fa65cf51c71da65036fb9821fa6f891f6659eb70536bcc8c38ab8279a94","key":"compiled.mjs"},{"dependencies":[],"factory":"76477898d00a19b520dc03d4b11a0908b8021bb4050fcd2ea02ebe75215201af","key":"devices.mjs"},{"dependencies":["runtime.mjs","compiled.mjs","devices.mjs"],"factory":"f54f19b18038ccf9964c84f9afdc486527a0838d1630db69d0125016d4b0cca4","key":"machine.mjs"},{"dependencies":[],"factory":"3ed0cd44c5ce57799c74a3b7eb60bbba824dec99f5ad362976018108637d06ca","key":"runtime.mjs"}]};
+const factories=Object.freeze({"2f0c2fa65cf51c71da65036fb9821fa6f891f6659eb70536bcc8c38ab8279a94":F0,"3ed0cd44c5ce57799c74a3b7eb60bbba824dec99f5ad362976018108637d06ca":F1,"f54f19b18038ccf9964c84f9afdc486527a0838d1630db69d0125016d4b0cca4":F2,"76477898d00a19b520dc03d4b11a0908b8021bb4050fcd2ea02ebe75215201af":F3});
+const abi="legacy-fetch-epoch/1";
+export function createMachine(cartridge,options={}){if(JSON.stringify(cartridge.requirements)!==JSON.stringify({"abi":"legacy-fetch-epoch/1","battery":false,"board":"UNROM","compiler":"fetch-epoch-2","mapper":2,"region":"ntsc"})||cartridge.metadata?.mapper!==2||cartridge.metadata?.board!=="UNROM")throw Error("UNSUPPORTED_ENGINE_ABI");return instantiateMachine(admit(cartridge,graph,abi),options,factories,abi);}

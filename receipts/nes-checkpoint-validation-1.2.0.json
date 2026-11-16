@@ -1,0 +1,265 @@
+{
+  "format": "nes-checkpoint-validation/1",
+  "release": "1.2.0",
+  "source_commit": "88a63cc611057cfe147f94dc6203ed005ea196dd",
+  "recorded": "2026-11-16T05:05:10.689802+00:00",
+  "pass": true,
+  "unit_tests": 111,
+  "games": [
+    "megaman",
+    "castlevania",
+    "ikari-warriors",
+    "adventure-island-2",
+    "bionic-commando",
+    "zelda",
+    "contra"
+  ],
+  "short_continuation": [
+    {
+      "id": "megaman",
+      "pass": true,
+      "checkpoint_bytes": 1788407,
+      "nodes": 1715,
+      "continuation_frames": 60
+    },
+    {
+      "id": "castlevania",
+      "pass": true,
+      "checkpoint_bytes": 1731538,
+      "nodes": 1715,
+      "continuation_frames": 60
+    },
+    {
+      "id": "ikari-warriors",
+      "pass": true,
+      "checkpoint_bytes": 1516973,
+      "nodes": 1715,
+      "continuation_frames": 60
+    },
+    {
+      "id": "adventure-island-2",
+      "pass": true,
+      "checkpoint_bytes": 2250787,
+      "nodes": 1656,
+      "continuation_frames": 60
+    },
+    {
+      "id": "bionic-commando",
+      "pass": true,
+      "checkpoint_bytes": 1462708,
+      "nodes": 1741,
+      "continuation_frames": 60
+    },
+    {
+      "id": "zelda",
+      "pass": true,
+      "checkpoint_bytes": 2182227,
+      "nodes": 1770,
+      "continuation_frames": 60
+    },
+    {
+      "id": "contra",
+      "pass": true,
+      "checkpoint_bytes": 1735426,
+      "nodes": 1903,
+      "continuation_frames": 60
+    }
+  ],
+  "long_continuation": [
+    {
+      "id": "megaman",
+      "pass": true,
+      "warmup_frames": 240,
+      "continuation_frames": 120,
+      "reset_continuation_frames": 10,
+      "checkpoint_bytes": 1788424
+    },
+    {
+      "id": "castlevania",
+      "pass": true,
+      "warmup_frames": 240,
+      "continuation_frames": 120,
+      "reset_continuation_frames": 10,
+      "checkpoint_bytes": 1883565
+    },
+    {
+      "id": "ikari-warriors",
+      "pass": true,
+      "warmup_frames": 240,
+      "continuation_frames": 120,
+      "reset_continuation_frames": 10,
+      "checkpoint_bytes": 1661574
+    },
+    {
+      "id": "adventure-island-2",
+      "pass": true,
+      "warmup_frames": 240,
+      "continuation_frames": 120,
+      "reset_continuation_frames": 10,
+      "checkpoint_bytes": 2249471
+    },
+    {
+      "id": "bionic-commando",
+      "pass": true,
+      "warmup_frames": 240,
+      "continuation_frames": 120,
+      "reset_continuation_frames": 10,
+      "checkpoint_bytes": 1546541
+    },
+    {
+      "id": "zelda",
+      "pass": true,
+      "warmup_frames": 240,
+      "continuation_frames": 120,
+      "reset_continuation_frames": 10,
+      "checkpoint_bytes": 2184259
+    },
+    {
+      "id": "contra",
+      "pass": true,
+      "warmup_frames": 240,
+      "continuation_frames": 120,
+      "reset_continuation_frames": 10,
+      "checkpoint_bytes": 1735613
+    }
+  ],
+  "browser": [
+    {
+      "id": "megaman",
+      "save": true,
+      "load": true,
+      "persisted_across_reload": true,
+      "resumed": true,
+      "spectator_blocked": true
+    },
+    {
+      "id": "adventure-island-2",
+      "save": true,
+      "load": true,
+      "persisted_across_reload": true,
+      "resumed": true,
+      "spectator_blocked": true
+    },
+    {
+      "id": "castlevania",
+      "save": true,
+      "load": true,
+      "persisted_across_reload": true,
+      "resumed": true,
+      "spectator_blocked": true
+    },
+    {
+      "id": "ikari-warriors",
+      "save": true,
+      "load": true,
+      "persisted_across_reload": true,
+      "resumed": true,
+      "spectator_blocked": true
+    },
+    {
+      "id": "bionic-commando",
+      "save": true,
+      "load": true,
+      "persisted_across_reload": true,
+      "resumed": true,
+      "spectator_blocked": true
+    },
+    {
+      "id": "zelda",
+      "save": true,
+      "load": true,
+      "persisted_across_reload": true,
+      "resumed": true,
+      "spectator_blocked": true
+    },
+    {
+      "id": "contra",
+      "save": true,
+      "load": true,
+      "persisted_across_reload": true,
+      "resumed": true,
+      "spectator_blocked": true
+    }
+  ],
+  "actual_page": [
+    "same-page cartridge loading",
+    "save/load",
+    "persistent save across page reload",
+    "resume"
+  ],
+  "identity": "Exact ROM, mapper identity, engine graph and checkpoint format. No cross-version migration is claimed.",
+  "storage": "One explicit IndexedDB save per game per browser, bounded payload and SHA-256 corruption check. Existing Zelda battery persistence retained.",
+  "atomicity": "Restore hydrates a fresh machine; parse, shape, identity and state-validation failures leave the current machine intact.",
+  "performance": [
+    {
+      "game": "contra",
+      "candidate_worker_cpu_ratio": 1.0193003358328623,
+      "same_work": true
+    },
+    {
+      "game": "bionic-commando",
+      "candidate_worker_cpu_ratio": 1.0039197885852809,
+      "same_work": true
+    }
+  ],
+  "tested_core_matches_release": true,
+  "measured_worker_dependencies_match_release": true,
+  "evidence": {
+    "input-save-03.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/input-save-03.json",
+      "sha256": "24e513e2e726f8a85a924e22dd043d5d7496bb44b6038c2801cf20fb1e8d7fc0"
+    },
+    "assembly-save-03.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/assembly-save-03.log",
+      "sha256": "961de6aaee23657fbf6679a658eb6f4055b5902891cc70201af77fe2d18829e2"
+    },
+    "checkpoint-11/run.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/checkpoint-11/run.log",
+      "sha256": "5ca141c8153b00e8ccc6d461df865a47bf2ffd7b84b28a7bb411f101044c8408"
+    },
+    "checkpoint-12/long.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/checkpoint-12/long.log",
+      "sha256": "90f03c8943c6f167678f958081aefae02b62d94832d5e34c6478303befb5ddff"
+    },
+    "checkpoint-browser-03.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/checkpoint-browser-03.log",
+      "sha256": "5112bf8e295174b38ce6120f699241b52d48d0f33aa0731ebf05fa8d579e77a6"
+    },
+    "checkpoint-full-ui-result-02/result.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/checkpoint-full-ui-result-02/result.json",
+      "sha256": "99488b97c0589e808e0fbb5f26cb75b610affb820bbafcd94663cb62366f823d"
+    },
+    "save-03-arcade-tests.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/save-03-arcade-tests.log",
+      "sha256": "9616184cf696d299ce6deb50d1436cd5de10d935ef58df5794662fe7450472d8"
+    },
+    "save-03-typecheck.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/save-03-typecheck.log",
+      "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+    },
+    "save-03-capability-audit.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/save-03-capability-audit.json",
+      "sha256": "d0341065f03b67545c36bcf2c44087bd86435efb465317535e8aadd154aef4b8"
+    },
+    "save-03-release-regression.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/save-03-release-regression.log",
+      "sha256": "773cfa47b7c22f91b915002b6d4a19f2c95fb4c08b05266c087d3571e2dee925"
+    },
+    "save-cpu-protocol-01.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/save-cpu-protocol-01.json",
+      "sha256": "6dc108f663e10f81de57714082c784b30411b10a229a5f0e99f726439120a5de"
+    },
+    "save-cpu-summary-01.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/save-cpu-summary-01.json",
+      "sha256": "1ef35751946cdbabdb39cc23492851cd3aab480392e29dda6ce1e416c5a69014"
+    }
+  },
+  "limits": [
+    "Fixed input continuation checks are not full-game or hardware equivalence qualification.",
+    "No universal sustained 60 FPS claim. CPU timings isolate worker execution from runnable wait.",
+    "No additional experimental Wasm family or unsupported mapper is promoted by this release.",
+    "Successor release regression used --single; no extra successor-of-successor build was run."
+  ],
+  "build_session_note": "Assembler emitted its completed release receipt; the terminal session later reported exit 143. Independent release regression, full local gate, exact core/worker byte checks and browser validation passed on the emitted artifact.",
+  "whitespace_note": "git diff --check reports pre-existing whitespace in one unchanged content-addressed factory and an immutable historical host snapshot. Both are byte-identical to source release 1.1.0 and intentionally preserved."
+}
