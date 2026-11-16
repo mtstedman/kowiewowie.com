@@ -14,7 +14,7 @@ export function createProducer({machine,post,schedule,cancel,afterFrame=()=>{}})
  let generation=0;
  let epoch=-1,seq=0,inputSeq=0,appliedSeq=0,timer=null,closed=false,failed=false;
  let credits=0,produced=0,time=0,lastCycles=null,nextId=0;
- const leases=new Map(),pool=[],held=[new Map(),new Map()];
+ const leases=new Map(),pool=[],audioPool=[],held=[new Map(),new Map()];
  const queues=Array.from({length:16},()=>[]),values=Array(16).fill(false);
  function release(){for(let p=1;p<=2;p++)for(let b=0;b<8;b++)machine.setButton(p,b,false);}
  function stop(){generation++;if(timer!==null)cancel(timer);timer=null;credits=0;}
@@ -26,7 +26,8 @@ export function createProducer({machine,post,schedule,cancel,afterFrame=()=>{}})
    for(let i=0;i<16;i++){if(queues[i].length){const edge=queues[i].shift();values[i]=edge.value;}machine.setButton(1+(i>>3),i%8,values[i]);}
    appliedSeq=Math.min(inputSeq,...queues.filter(q=>q.length).map(q=>q[0].seq-1));
    const result=machine.frame({maxSteps:20000,maxCycles:40000,maxMs:60000});
-   const rgba=machine.getRGBA(pool.pop()),audio=machine.takeAudio(),{frames,cycles}=result.state;
+   const audioBytes=machine.audioLength?.()*4,audioIndex=audioPool.findIndex(b=>b.byteLength===audioBytes);
+   const rgba=machine.getRGBA(pool.pop()),audio=machine.takeAudio(audioIndex<0?undefined:audioPool.splice(audioIndex,1)[0]),{frames,cycles}=result.state;
    if(!(rgba instanceof Uint8ClampedArray)||rgba.byteLength!==RGBA_BYTES||rgba.byteOffset!==0||rgba.buffer.byteLength!==RGBA_BYTES||!(audio instanceof Float32Array)||audio.length%2||audio.length>96000||audio.byteOffset!==0||audio.buffer.byteLength!==audio.byteLength||rgba.buffer===audio.buffer||!integer(frames)||!integer(cycles)||lastCycles!==null&&cycles<=lastCycles)throw Error('Malformed machine output');
    const duration=audio.length?audio.length/96000:lastCycles===null?1/60.0988:(cycles-lastCycles)/1789772.7272727273;
    if(!(duration>0&&duration<=.2))throw Error('Invalid frame duration');
@@ -40,7 +41,7 @@ export function createProducer({machine,post,schedule,cancel,afterFrame=()=>{}})
    if(!d||!integer(d.epoch)||!integer(d.seq,1))throw Error('Invalid transport identity');
    if(d.epoch<epoch||d.seq<=seq)return;
    if(d.type==='sync'){
-    stop();epoch=d.epoch;seq=d.seq;clear();inputSeq=appliedSeq=0;time=0;lastCycles=null;leases.clear();pool.length=0;
+    stop();epoch=d.epoch;seq=d.seq;clear();inputSeq=appliedSeq=0;time=0;lastCycles=null;leases.clear();pool.length=0;audioPool.length=0;
     post({type:'synced',epoch,seq});return;
    }
    if(d.epoch!==epoch)throw Error('Release barrier required');seq=d.seq;
@@ -57,7 +58,7 @@ export function createProducer({machine,post,schedule,cancel,afterFrame=()=>{}})
    if(d.type==='grant'){
     const returned=d.returns??[];
     if(!integer(d.count,1)||d.count>4||!Array.isArray(returned)||returned.length>CAPACITY)throw Error('Invalid grant batch');
-    const ids=new Set(),buffers=new Set(pool);
+    const ids=new Set(),buffers=new Set([...pool,...audioPool]);
     for(const r of returned){
      const lease=r&&leases.get(r.id);
      if(!lease||lease.epoch!==epoch||ids.has(r.id)||!(r.rgba instanceof ArrayBuffer)||r.rgba.byteLength!==RGBA_BYTES||!(r.audio instanceof ArrayBuffer)||r.audio.byteLength!==lease.audioBytes||r.rgba===r.audio||buffers.has(r.rgba)||buffers.has(r.audio))throw Error('Invalid buffer ownership');
@@ -65,11 +66,11 @@ export function createProducer({machine,post,schedule,cancel,afterFrame=()=>{}})
     }
     if(credits+leases.size-returned.length+d.count>CAPACITY)throw Error('Credit overflow');
     // Validate every return and the resulting capacity before committing the batch.
-    for(const r of returned){leases.delete(r.id);pool.push(r.rgba);}
+    for(const r of returned){leases.delete(r.id);pool.push(r.rgba);if(audioPool.length===CAPACITY)audioPool.shift();audioPool.push(r.audio);}
     credits+=d.count;wake();return;
    }
    throw Error('Unknown transport message');
   }catch(e){error(e);}
  }
- return {receive,dispose(){closed=true;stop();scheduler?.dispose();clear();leases.clear();pool.length=0;},snapshot:()=>({epoch,credits,outstanding:leases.size,produced,inputSeq,appliedSeq,failed,scheduled:timer!==null})};
+ return {receive,dispose(){closed=true;stop();scheduler?.dispose();clear();leases.clear();pool.length=0;audioPool.length=0;},snapshot:()=>({epoch,credits,outstanding:leases.size,produced,inputSeq,appliedSeq,failed,scheduled:timer!==null})};
 }

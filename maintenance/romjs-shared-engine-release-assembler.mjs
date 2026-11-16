@@ -22,9 +22,10 @@ function semver(s){ok(typeof s==='string'&&/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(
 function walk(n,fn){if(!n||typeof n!=='object')return; if(typeof n.type==='string')fn(n);for(const [k,v] of Object.entries(n)){if(k==='start'||k==='end')continue;if(Array.isArray(v))v.forEach(x=>walk(x,fn));else if(v&&typeof v==='object')walk(v,fn);}}
 let parse;
 const ast=t=>parse(t,{ecmaVersion:'latest',sourceType:'module'});
-function edges(text,path){const tree=ast(text),result=[];function add(n){ok(typeof n.value==='string'&&n.value.startsWith('.')&&!/[\\?#%]/.test(n.value),'Unsupported executable dependency: '+path);const target=posix.normalize(posix.join(posix.dirname(path),n.value));web(target);ok(/\.(mjs|js)$/.test(target),'Unsupported non-JS dependency');result.push({start:n.start,end:n.end,original:text.slice(n.start,n.end),target});}
+const edgeCache=new Map();
+function edges(text,path){const identity=path+':'+hash(text);if(edgeCache.has(identity))return edgeCache.get(identity);const tree=ast(text),result=[];function add(n){ok(typeof n.value==='string'&&n.value.startsWith('.')&&!/[\\?#%]/.test(n.value),'Unsupported executable dependency: '+path);const target=posix.normalize(posix.join(posix.dirname(path),n.value));web(target);ok(/\.(mjs|js)$/.test(target),'Unsupported non-JS dependency');result.push({start:n.start,end:n.end,original:text.slice(n.start,n.end),target});}
 for(const n of tree.body)if(n.type==='ImportDeclaration'||n.type==='ExportAllDeclaration'||n.type==='ExportNamedDeclaration'&&n.source){ok(!n.attributes?.length&&!n.assertions?.length,'Import attributes unsupported');add(n.source);}
-walk(tree,n=>{ok(n.type!=='ImportExpression','Dynamic imports unsupported in composed closure');if(n.type==='NewExpression'&&n.callee.type==='Identifier'&&n.callee.name==='URL'){const [a,b]=n.arguments;if(b?.type==='MemberExpression'&&b.object.type==='MetaProperty'&&b.property.name==='url'){ok(a?.type==='Literal','Nonliteral import.meta URL');add(a);}}});return result.sort((a,b)=>a.start-b.start);}
+walk(tree,n=>{ok(n.type!=='ImportExpression','Dynamic imports unsupported in composed closure');if(n.type==='NewExpression'&&n.callee.type==='Identifier'&&n.callee.name==='URL'){const [a,b]=n.arguments;if(b?.type==='MemberExpression'&&b.object.type==='MetaProperty'&&b.property.name==='url'){ok(a?.type==='Literal','Nonliteral import.meta URL');add(a);}}});const sorted=Object.freeze(result.sort((a,b)=>a.start-b.start).map(Object.freeze));edgeCache.set(identity,sorted);return sorted;}
 function patch(text,edits){let end=text.length;for(const e of edits.sort((a,b)=>b.start-a.start)){ok(e.start>=0&&e.end<=end&&e.end>e.start,'Invalid patch span');text=text.slice(0,e.start)+e.text+text.slice(e.end);end=e.start;}return text;}
 function factoryShape(text){const t=ast(text);ok(t.body.every(n=>n.type!=='ImportDeclaration'&&n.type!=='ExportAllDeclaration'&&!n.source),'Factory must be self contained');const exp=t.body.filter(n=>n.type==='ExportNamedDeclaration');ok(exp.length===1&&exp[0].declaration?.type==='FunctionDeclaration'&&exp[0].declaration.id.name==='instantiate'&&exp[0].declaration.params.length===1,'Unsupported engine factory ABI');return t;}
 function compatible(m,r){ok(m.format==='nes-engine/1'&&m.abi===r.abi&&m.capabilities?.execution===r.abi&&['mapper','region','compiler'].every(k=>equal(m.capabilities[k],r[k])),'UNSUPPORTED_ENGINE_ABI');}
@@ -34,7 +35,7 @@ The exact executing assembler ships as maintenance/romjs-shared-engine-release-a
 
 Run: node maintenance/romjs-shared-engine-release-assembler.mjs < /external/release-input.json
 
-Input JSON fields: root (current emitted modular site), output_directory (fresh disjoint directory), source_inventory (external JSON file), source_inventory_sha256, acorn_module, acorn_sha256, release (increasing stable same-major semver), edits ([{path,before_sha256,file,sha256}]). All SHA256 values must be independently trusted lowercase hex. An edit path is the CURRENT /games/engines/nes/<release>/common/<hash>.mjs or composer.mjs URL; file is the external edited source file. Never use the pre-extraction baseline.
+Input JSON fields: root (current emitted modular site), output_directory (fresh disjoint directory), source_inventory (external JSON file), source_inventory_sha256, acorn_module, acorn_sha256, release (increasing stable same-major semver), edits ([{path,before_sha256,file,sha256}]). Optional support_additions adds pinned new tests/maintenance .mjs files under the same path restrictions. Optional support_edits can also update package.json scripts while preserving dependencies and other fields. Optional support_edits uses pinned edits for existing tests/maintenance .mjs files (excluding history and this assembler, which is copied from the executing source). Optional shell_additions accepts [{path,file,sha256}] for new /games/arcade/*.mjs modules reachable from the final authenticated package graphs. Optional shell_edits uses the same edit schema for existing executable package members outside cartridge and engine trees, plus the authenticated loader. Shell changes are validated before mutation and included in package graphs, bindings and immutable history. All SHA256 values must be independently trusted lowercase hex. An edit path is the CURRENT /games/engines/nes/<release>/common/<hash>.mjs or composer.mjs URL; file is the external edited source file. Never use the pre-extraction baseline.
 
 Inventory format: {"format":"nes-release-source/1","files":{"relative/path":{"bytes":123,"sha256":"<trusted SHA256>"}}}. Cover every regular source file exactly, including maintenance scripts and history. Regenerate and authenticate this inventory before EACH release; do not reuse an earlier inventory. Supply a fresh output path for every run.
 
@@ -77,7 +78,7 @@ read=p=>{key(p);if(Object.hasOwn(r.added,p))return undefined;const c=r.changes[p
 return {base,baseBytes,previous,preMigration:verifyMigration(read,exists,baseBytes)};
 }
 async function main(input){
-keys(input,['root','output_directory','source_inventory','source_inventory_sha256','acorn_module','acorn_sha256','release','edits']);
+keys(input,['root','output_directory','source_inventory','source_inventory_sha256','acorn_module','acorn_sha256','release','edits','shell_edits','shell_additions','support_edits','support_additions']);
 const root=absolute(input.root);ok(lstatSync(root).isDirectory(),'Root directory required');
 const out=resolve(input.output_directory);ok(!existsSync(out)&&!inside(root,out)&&!inside(out,root)&&out!==root,'Output must be fresh and disjoint');absolute(dirname(out));
 const inventoryPath=absolute(input.source_inventory);ok(!inside(root,inventoryPath)&&!inside(out,inventoryPath),'Inventory must be external');
@@ -149,6 +150,40 @@ ok(Array.isArray(audit)&&audit.length===games.length&&new Set(audit.map(g=>g.id)
 for(const g of games){const a=audit.find(a=>a.id===g.row.id);ok(a&&a.abi===g.engine.abi&&equal(a.requirements,g.cart.requirements)&&a.artifactDigest===g.envelope.artifactDigest&&equal(a.engineManifest,g.side.binding.engineManifest)&&a.nativePlayers===g.m.capabilities.nativePlayers&&a.play===g.m.capabilities.play&&obj(a.board),'Current compatibility audit mismatch');const cartFiles=Object.fromEntries(paths.filter(p=>p.startsWith(g.base+'cartridge/')).map(p=>[p,inventory.files[p]]));ok(equal(a.cartridgeFiles,cartFiles),'Compatibility cartridge inventory mismatch');}
 ok(obj(runtimePins)&&obj(runtimePins.files),'Invalid runtime source pins');
 for(const [p,expected]of Object.entries(runtimePins.files)){key(p);let matched=Object.hasOwn(inventory.files,p)&&equal(inventory.files[p],expected);if(!matched){const b=history.preMigration(p);matched=b!==undefined&&equal(pin(b),expected);}ok(matched,'Runtime source pin mismatch: '+p);}
+// Shell changes are authenticated against the same source and recorded in history.
+// They may update existing executable package members, never cartridge or engine bytes.
+const shellReceipts=[],shellPaths=new Set(),shellEdits=input.shell_edits??[];
+ok(Array.isArray(shellEdits)&&shellEdits.length<=64,'At most 64 shell edits');
+const shellAllowed=new Set(['/games/arcade/authenticated-loader.mjs',...games.flatMap(g=>Object.keys(g.side.moduleGraph))]);
+for(const e of shellEdits){
+ keys(e,['path','before_sha256','file','sha256']);web(e.path);
+ ok(shellAllowed.has(e.path)&&!e.path.startsWith('/games/engines/')&&!e.path.includes('/cartridge/')&&!e.path.endsWith('/composition-entry.mjs')&&!e.path.endsWith('/netplay-binding.mjs'),'Unsupported shell edit');
+ ok(!shellPaths.has(e.path),'Duplicate shell edit');shellPaths.add(e.path);
+ const before=source(web(e.path));ok(hex(e.before_sha256)&&hash(before)===e.before_sha256,'Before hash mismatch: '+e.path);
+ const f=absolute(e.file);ok(!inside(root,f)&&!inside(out,f),'Edited source must be external');
+ const b=readFile(f);ok(hex(e.sha256)&&hash(b)===e.sha256,'Edited source hash mismatch');ok(!b.equals(before),'Edit must change bytes');ast(decode(b));
+ put(web(e.path),b);shellReceipts.push({path:e.path,before:pin(before),file:f,after:pin(b)});
+}
+const shellAdditions=input.shell_additions??[];ok(Array.isArray(shellAdditions)&&shellAdditions.length<=32,'At most 32 shared module additions');
+const addedShellPaths=new Set();
+for(const e of shellAdditions){
+ keys(e,['path','file','sha256']);web(e.path);ok(/^\/games\/arcade\/[a-z0-9-]+\.mjs$/.test(e.path),'Only shared arcade module additions supported');
+ ok(!present.has(web(e.path))&&!addedShellPaths.has(e.path),'Shared module already exists');addedShellPaths.add(e.path);
+ const f=absolute(e.file);ok(!inside(root,f)&&!inside(out,f),'Added source must be external');const b=readFile(f);ok(hex(e.sha256)&&hash(b)===e.sha256,'Added source hash mismatch');ast(decode(b));put(web(e.path),b);
+}
+const supportEdits=input.support_edits??[];ok(Array.isArray(supportEdits)&&supportEdits.length<=32,'At most 32 support edits');
+const supportPaths=new Set();
+for(const e of supportEdits){
+ keys(e,['path','before_sha256','file','sha256']);key(e.path);ok((e.path==='package.json'||/^(tests|maintenance)\/[a-zA-Z0-9_./-]+\.mjs$/.test(e.path))&&!e.path.includes('history')&&e.path!=='maintenance/romjs-shared-engine-release-assembler.mjs','Unsupported support edit');
+ ok(!supportPaths.has(e.path),'Duplicate support edit');supportPaths.add(e.path);const before=source(e.path);ok(hex(e.before_sha256)&&hash(before)===e.before_sha256,'Before hash mismatch: '+e.path);
+ const f=absolute(e.file);ok(!inside(root,f)&&!inside(out,f),'Edited source must be external');const bytes=readFile(f);ok(hex(e.sha256)&&hash(bytes)===e.sha256,'Edited source hash mismatch');if(e.path==='package.json'){const old=JSON.parse(decode(before)),next=JSON.parse(decode(bytes));ok(equal({...old,scripts:undefined},{...next,scripts:undefined}),'Package support edit may only change scripts');ok(obj(next.scripts)&&Object.values(next.scripts).every(v=>typeof v==='string'),'Package scripts');}else ast(decode(bytes));put(e.path,bytes);
+}
+const supportAdditions=input.support_additions??[];ok(Array.isArray(supportAdditions)&&supportAdditions.length<=32,'At most 32 support additions');
+for(const e of supportAdditions){
+ keys(e,['path','file','sha256']);key(e.path);ok(/^(tests|maintenance)\/[a-zA-Z0-9_./-]+\.mjs$/.test(e.path)&&!e.path.includes('history')&&e.path!=='maintenance/romjs-shared-engine-release-assembler.mjs','Unsupported support addition');
+ ok(!present.has(e.path)&&!supportPaths.has(e.path),'Support module already exists');supportPaths.add(e.path);
+ const f=absolute(e.file);ok(!inside(root,f)&&!inside(out,f),'Added source must be external');const bytes=readFile(f);ok(hex(e.sha256)&&hash(bytes)===e.sha256,'Added source hash mismatch');ast(decode(bytes));put(e.path,bytes);
+}
 const selected=new Map(),newEngines={},consumed=new Set();
 for(const [selector,s]of Object.entries(registry.selections)){
 const requirements=JSON.parse(selector);ok(canonical(requirements)===selector,'Noncanonical selector');const em=JSON.parse(decode(authReceipt(s.manifest)));authReceipt(s.entry);compatible(em,requirements);ok(s.manifest.path.startsWith(oldBase)&&s.entry.path===posix.dirname(s.manifest.path)+'/entry.mjs','Unsupported engine layout');ok(equal(releaseManifest.engines[s.manifest.path],{bytes:s.manifest.bytes,sha256:s.manifest.sha256}),'Release selection mismatch');
@@ -175,6 +210,7 @@ const files={};for(const url of Object.keys(g.m.files)){if(url.startsWith(oldBas
 const manifest={...g.m,files},artifactDigest=hash(canonical(manifest));ok(Object.keys(files).length<=1024&&Object.values(files).reduce((n,p)=>n+p.bytes,0)<=268435456,'Package ceiling exceeded');ok(artifactDigest!==g.envelope.artifactDigest,'Composed identity did not change');putJSON(g.packagePath,{...g.envelope,manifest,artifactDigest});g.row.artifactDigest=artifactDigest;
 const currentBinding=network.packages[g.row.id];network.packages[g.row.id]={...currentBinding,artifactDigest};if(g.legacy!==null)putJSON(g.networkPath,{...g.legacy,artifactDigest,binding:network.packages[g.row.id]});
 gameReceipts.push({id:g.row.id,requirements:g.cart.requirements,before:g.envelope.artifactDigest,after:artifactDigest,previousLegacyDigest:g.legacy===null?null:g.legacy.artifactDigest,engineBefore:g.selection.manifest,engineAfter:choice.manifest,compositionEntryBefore:inventory.files[compositionEntry],compositionEntryAfter:pin(get(compositionEntry))});}
+for(const path of addedShellPaths)ok(games.some(g=>Object.hasOwn(json(g.sidePath).moduleGraph,path)),'Unused shared module addition: '+path);
 putJSON(catalogPath,catalog);putJSON(clientPath,network);put(serverPath,get(clientPath));put(phpPath,php.replace(phpPins[0][0],"private const DIGEST='"+hash(get(serverPath))+"'"));
 for(const g of games){const a=audit.find(a=>a.id===g.row.id);a.previousArtifactDigest=g.envelope.artifactDigest;a.artifactDigest=g.row.artifactDigest;a.engineManifest=selected.get(g.selector).manifest;}
 putJSON(auditPath,audit);
@@ -187,7 +223,7 @@ put('maintenance/ENGINE-RELEASE.md',MAINTENANCE_USAGE);
 // Prepare all output only after authentication and assembly succeed. Old releases remain byte-identical.
 const changed={},added={},preserved={};for(const p of paths){const before=inventory.files[p],after=pin(get(p));if(equal(before,after))preserved[p]=after;else {ok(!p.startsWith('htdocs'+oldBase),'Immutable historical release changed');ok(!p.split('/').includes('cartridge'),'Cartridge byte changed');changed[p]={before,after};}}for(const [p,b]of changes)if(!Object.hasOwn(inventory.files,p))added[p]=pin(b);
 const receiptPath='receipts/engine-release-'+input.release+'.json';ok(!Object.hasOwn(inventory.files,receiptPath),'Release receipt already exists');
-const report={format:'nes-engine-assembly-receipt/1',mode:'STANDARD',release:input.release,sourceInventory:{path:inventoryPath,...pin(inventoryBytes)},parser:pin(parserBytes),edits:editReceipts,games:gameReceipts,changed,preserved,added,executedTests:[],checks:['exact authenticated source tree','current package and engine closures','exact ABI/capability/profile selectors','current arcade/client/server identity equality','authenticated and refreshed optional legacy envelopes only when present','collective mandatory source dependency preflight','preserved cartridge trees and old releases'],remainingGates:['Execute neutral source edit and import the actual emitted new engine/composition','Execute rejection tests for before/source hash mismatch and incompatible ABI','Browser authenticated loader/bootstrap and worker loading','PHP current and superseded binding replay'],limits:{sourceBytes:1073741824,memberBytes:67108864,generatedBytes:268435456,packageBytes:268435456,packageFiles:1024}};
+const report={format:'nes-engine-assembly-receipt/1',mode:'STANDARD',release:input.release,sourceInventory:{path:inventoryPath,...pin(inventoryBytes)},parser:pin(parserBytes),edits:editReceipts,shellEdits:shellReceipts,shellAdditions:shellAdditions,supportEdits,games:gameReceipts,changed,preserved,added,executedTests:[],checks:['exact authenticated source tree','current package and engine closures','exact ABI/capability/profile selectors','current arcade/client/server identity equality','authenticated and refreshed optional legacy envelopes only when present','collective mandatory source dependency preflight','preserved cartridge trees and old releases'],remainingGates:['Execute neutral source edit and import the actual emitted new engine/composition','Execute rejection tests for before/source hash mismatch and incompatible ABI','Browser authenticated loader/bootstrap and worker loading','PHP current and superseded binding replay'],limits:{sourceBytes:1073741824,memberBytes:67108864,generatedBytes:268435456,packageBytes:268435456,packageFiles:1024}};
 const regressionPath='tests/engine-release-'+input.release+'.mjs';ok(!Object.hasOwn(inventory.files,regressionPath),'Release regression already exists');
 put(regressionPath,REGRESSION);added[regressionPath]=pin(get(regressionPath));
 putJSON(receiptPath,report);
@@ -312,7 +348,7 @@ const tree=parser.parse(text,{ecmaVersion:'latest',sourceType:'module'}),fn=tree
 const edited=Buffer.from(text.slice(0,fn.body.start+1)+'/* successor neutral probe */'+text.slice(fn.body.start+1)),editFile=join(temp,'factory.mjs');writeFileSync(editFile,edited,{flag:'wx'});
 const inventory={format:'nes-release-source/1',files:Object.fromEntries(files(out).map(p=>{const b=read(out,p);return [p,{bytes:b.length,sha256:hash(b)}];}))},inventoryBytes=Buffer.from(JSON.stringify(inventory)),inventoryFile=join(temp,'inventory.json');writeFileSync(inventoryFile,inventoryBytes,{flag:'wx'});
 const version=input.release.split('.').map(Number);version[2]++;assert.ok(Number.isSafeInteger(version[2]));
-const second={...input,root:out,output_directory:join(temp,'site'),source_inventory:inventoryFile,source_inventory_sha256:hash(inventoryBytes),release:version.join('.'),edits:[{path:currentURL,before_sha256:hash(bytes),file:editFile,sha256:hash(edited)}]},secondInput=join(temp,'input.json');writeFileSync(secondInput,JSON.stringify(second),{flag:'wx'});
+const second={...input,root:out,output_directory:join(temp,'site'),source_inventory:inventoryFile,source_inventory_sha256:hash(inventoryBytes),release:version.join('.'),shell_edits:[],shell_additions:[],support_edits:[],support_additions:[],edits:[{path:currentURL,before_sha256:hash(bytes),file:editFile,sha256:hash(edited)}]},secondInput=join(temp,'input.json');writeFileSync(secondInput,JSON.stringify(second),{flag:'wx'});
 const shipped=join(out,'maintenance/romjs-shared-engine-release-assembler.mjs');
 const assembled=spawnSync(process.execPath,[shipped],{input:JSON.stringify(second),encoding:'utf8',maxBuffer:1048576});assert.ifError(assembled.error);assert.equal(assembled.status,0,assembled.stderr);
 const checked=spawnSync(process.execPath,[join(second.output_directory,'tests/engine-release-'+second.release+'.mjs'),shipped,secondInput,'--single'],{encoding:'utf8',maxBuffer:1048576});assert.ifError(checked.error);assert.equal(checked.status,0,checked.stderr);

@@ -1,0 +1,106 @@
+{
+  "format": "nes-runtime-validation/1",
+  "release": "1.1.0",
+  "baseline": "2d07698a12ea44715a676e8fda00408361b1e0b5",
+  "authorship": "Direct operator implementation; coordinator used only to verify one authored cartridge-tool invocation.",
+  "checks": {
+    "arcade_tests": 104,
+    "typecheck": true,
+    "strict_browser_games": 7,
+    "browser_lifecycle_games": 7,
+    "exact_state_rgba_pcm_frames_per_game": 720,
+    "release_integrity": true,
+    "current_capability_audit": true
+  },
+  "performance": {
+    "scope": "Serial Chromium ABBA; 360 warmup and 240 measured frames each pass through each variant shared transport; dedicated-worker CPU isolated from runnable wait. Not a sustained real-time or full-game qualification.",
+    "games": [
+      {
+        "id": "megaman",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.7640997190804304
+      },
+      {
+        "id": "adventure-island-2",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.8304091039452745
+      },
+      {
+        "id": "castlevania",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.7274763719828246
+      },
+      {
+        "id": "ikari-warriors",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.7272305055122799
+      },
+      {
+        "id": "bionic-commando",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.8226389340916184
+      },
+      {
+        "id": "zelda",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.8021554232093956
+      },
+      {
+        "id": "contra",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.9932798587938501
+      }
+    ]
+  },
+  "red_team": {
+    "wasm": "Rejected mapper scalar-alias experiment: 1.374x worker CPU. Original MMC3 Wasm vs JS through same transport: 1.024x. Neither supports promoting that implementation or a universal Wasm conclusion.",
+    "saves": "Shared battery persistence shipped; universal full-machine checkpoints remain separate work. Inspection snapshots are not accepted as save states.",
+    "mappers": "Only current exact registered execution tuples qualify. NROM/MMC5 experiments remain unadmitted."
+  },
+  "evidence": {
+    "parity-summary.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/parity-summary.json",
+      "sha256": "b5da1d4e1a3c6a6207a698c16bb85bcc2b35755434c50429b3dd43d5740d65f5"
+    },
+    "arcade-tests-04.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/arcade-tests-04.log",
+      "sha256": "e82239e909c7ae9714bfbf42847951cab44826a2178572198c053f535c6a3603"
+    },
+    "typecheck-04.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/typecheck-04.log",
+      "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+    },
+    "browser-03.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/browser-03.log",
+      "sha256": "ebff685982108d5f414dd958491b132a83c02270b5b90f2ebe4eaf90a3a24efe"
+    },
+    "browser-smoke-03/receipt.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/browser-smoke-03/receipt.json",
+      "sha256": "22e2fb0284112e8164d41effda87640a190289ec8f3c73f8b76a05d87c8be182"
+    },
+    "release-regression-04.log": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/release-regression-04.log",
+      "sha256": "ca70beb74837cfc777c0cdd4d23854458fd5185f8536d3462b8faad19555df90"
+    },
+    "capabilities-04.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/capabilities-04.json",
+      "sha256": "966ceb521b4b662de6f77f18a50b998447c1d8e7e53bb7b69bf836e20e49d379"
+    },
+    "owner-assembler-tree-04.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/owner-assembler-tree-04.json",
+      "sha256": "61cc7f594bfe33be89569d873b5c9db058b575579fb4531c161b3ba5167d7f44"
+    },
+    "owner-cartridge-test-01.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/owner-cartridge-test-01.json",
+      "sha256": "75e61223dd9dbf7579baf6a6499c1280b228fc16ad6ea0109885eca04887f7a7"
+    },
+    "coordinator-cartridge-test-01.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/coordinator-cartridge-test-01.json",
+      "sha256": "717b5e69ad81a4bf40a7575829170d19742d066ec5cc22e5409fe3d056ff9974"
+    },
+    "site-stream-summary-01.json": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/direct-runtime-fixes-20261116/site-stream-summary-01.json",
+      "sha256": "71a9670d47c0b18a937a89706d548b2ac07ee721a8efd6a65a1ab20d6c3ca903"
+    }
+  }
+}

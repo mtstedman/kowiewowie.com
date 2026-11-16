@@ -79,9 +79,9 @@ trap cleanup EXIT
 
 printf 'Deploying wowiekowie.com at %s\n' "${REVISION:0:12}"
 
-git -C "$REPO_ROOT" archive "$REVISION" \
-    htdocs api includes database docs tests package.json package-lock.json tsconfig.json \
-    | tar -x -C "$release_dir"
+# The NES checks authenticate retained release receipts and maintenance sources.
+# Validate the complete committed tree before installing the public directories.
+git -C "$REPO_ROOT" archive "$REVISION" | tar -x -C "$release_dir"
 printf '%s\n' "$REVISION" >"$release_dir/htdocs/.deployment-revision"
 
 while IFS= read -r -d '' php_file; do
@@ -91,6 +91,8 @@ done < <(find "$release_dir/htdocs" "$release_dir/api" "$release_dir/includes" "
 php "$release_dir/docs/postgres/db-version-minter.php" --validate
 "$NPM" --prefix "$release_dir" ci --no-audit --no-fund
 "$NPM" --prefix "$release_dir" run typecheck
+"$NPM" --prefix "$release_dir" run test:arcade
+"$NODE" "$release_dir/maintenance/nes-capability-audit.mjs" "$release_dir"
 "$NODE" "$release_dir/tests/collectibles-inventory.test.mjs"
 php "$release_dir/tests/public-ux-accessibility.php"
 php "$release_dir/tests/public-page-security.php"

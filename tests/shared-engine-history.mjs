@@ -1,26 +1,11 @@
-import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-const root=new URL('../',import.meta.url);
-const hash=b=>createHash('sha256').update(b).digest('hex');
-const pin=b=>({bytes:b.length,sha256:hash(b)});
-export const receiptSHA="50e258f13eabcb0a1c44ce00b3145c75727ca9c63881189b522a82dbdaf77bf4";
-const rawRead=p=>readFileSync(new URL(p,root));
-export function verifySharedEngineMigration(read=rawRead,exists=p=>existsSync(new URL(p,root))){
- const raw=read('receipts/shared-engine-migration.json');assert.equal(hash(raw),receiptSHA);
- const r=JSON.parse(raw);assert.equal(r.format,'shared-engine-migration/1');
- for(const [p,c]of Object.entries(r.changes)){assert.deepEqual(pin(read(p)),c.after,p);assert.deepEqual(pin(read(c.original)),c.before,c.original);}
- for(const [p,c]of Object.entries(r.added))assert.deepEqual(pin(read(p)),c,p);
- for(const [p,c]of Object.entries(r.deleted)){assert.equal(exists(p),false,p);assert.deepEqual(pin(read(c.original)),c.before,c.original);}
- return r;
-}
-export function sharedEngineHistoricalRead(read=rawRead,exists){
- const r=verifySharedEngineMigration(read,exists);
- return p=>{
-  if(Object.hasOwn(r.added,p)){const e=Error('File did not exist before shared-engine migration: '+p);e.code='ENOENT';throw e;}
-  const c=r.changes[p]||r.deleted[p];if(!c)return read(p);
-  const b=read(c.original);assert.deepEqual(pin(b),c.before,p);return b;
- };
-}
-// Apply this successor layer before the existing coreHistoricalRead function.
+import * as base from './engine-history-base-da79e95b5dbfe1cf77cb332c402512bddf29adc978858872f3100a44c919c76e.mjs';
+const root=new URL('../',import.meta.url),hash=b=>createHash('sha256').update(b).digest('hex'),pin=b=>({bytes:b.length,sha256:hash(b)}),same=(a,b)=>a.bytes===b.bytes&&a.sha256===b.sha256;
+export const receiptSHA=base.receiptSHA;
+export const maintenanceHead={"bytes":36960,"path":"receipts/engine-release-history-1.1.0.json","sha256":"8f638bf75a4641841494e97d76dcd2b01b9fa2c49c5dbc1eb5264208645fc47c"};
+function prior(read,exists){let h=maintenanceHead;while(h){const raw=read(h.path);if(!same(pin(raw),h))throw Error('Maintenance history receipt mismatch');const r=JSON.parse(raw);if(r.format!=='nes-engine-maintenance-history/1')throw Error('Maintenance history format');const nextRead=read,nextExists=exists;for(const [p,c]of Object.entries(r.changes)){if(!same(pin(read(p)),c.after)||!same(pin(read(c.original)),c.before))throw Error('Maintenance changed mismatch: '+p);}for(const [p,c]of Object.entries(r.added))if(!same(pin(read(p)),c))throw Error('Maintenance added mismatch: '+p);read=p=>{if(Object.hasOwn(r.added,p)){const e=Error('No prior file: '+p);e.code='ENOENT';throw e;}const c=r.changes[p];return nextRead(c?c.original:p);};exists=p=>!Object.hasOwn(r.added,p)&&(Object.hasOwn(r.changes,p)||nextExists(p));h=r.previous;}return {read,exists};}
+export function releasePriorView(read=p=>readFileSync(new URL(p,root)),exists=p=>existsSync(new URL(p,root))){return prior(read,exists);}
+export function verifySharedEngineMigration(read,exists){const v=releasePriorView(read,exists);return base.verifySharedEngineMigration(v.read,v.exists);}
+export function sharedEngineHistoricalRead(read,exists){const v=releasePriorView(read,exists);return base.sharedEngineHistoricalRead(v.read,v.exists);}
 export async function historicalRead(){const {coreHistoricalRead}=await import('./core-refresh-history.mjs');return coreHistoricalRead(sharedEngineHistoricalRead());}

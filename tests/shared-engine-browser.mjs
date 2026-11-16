@@ -175,6 +175,9 @@ try{
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Worker ready timeout: '+id)),30000);worker=new Worker(url,{type:'module'});worker.onmessage=({data})=>{if(data.type==='battery-await-init'){worker.postMessage({type:'battery-init',record:null});}else if(data.type==='ready'){clearTimeout(timer);resolve();}else if(data.type==='error'){clearTimeout(timer);reject(Error(data.message));}};worker.onerror=e=>{clearTimeout(timer);reject(Error(e.message));};});
    }finally{worker?.terminate();graph?.dispose();check(owned.size===0,'Worker Blob cleanup');URL.createObjectURL=create;URL.revokeObjectURL=revoke;}
   },id);
+  // A fresh realm must fetch bytes. A warm verified-byte cache may safely retain
+  // the previously authenticated bytes even if the server later changes.
+  await page.reload();
   tamper='/games/'+id+'/cartridge/data.mjs';
   const rejected=await page.evaluate(async id=>{const {verifyPackage,importAdapter}=await import('/games/arcade/package.mjs');const rows=await (await fetch('/games/arcade/catalog.json')).json(),r=rows.find(r=>r.id===id),p=await verifyPackage(await (await fetch(r.manifest)).json(),r.artifactDigest);try{await importAdapter(p,new AbortController().signal);return false;}catch(e){return /integrity|limit/i.test(e.message);}},id);
   assert.equal(rejected,true,id+' tampered bytes rejected');tamper=null;
