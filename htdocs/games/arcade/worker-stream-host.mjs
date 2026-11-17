@@ -1,5 +1,5 @@
 import {createConsumer} from './worker-stream-consumer.mjs';
-// Authenticated UI lifecycle derivation; emulation and media pacing are unchanged.
+// Authenticated UI lifecycle, transport, and audio/video scheduling.
 export function createRuntime({root,onState=()=>{},WorkerClass=Worker,workerURL}){
 let closed=false,runtimeFrame=0,checkpointRequest=null;
 function cancelCheckpoint(reason){if(!checkpointRequest)return;const r=checkpointRequest;checkpointRequest=null;clearTimeout(r.timer);r.reject(Error(reason));}
@@ -43,7 +43,7 @@ let worker=null,ready=false,loading=false,running=false,pending=null,timer=null;
 let epoch=0,seq=0,synced=-1,last=-Infinity,ac=null,audioNext=0,notice='';
 let autoRender=false,audioUnlocked=false,master=null,fadeIn=true,audioClockActive=false;
 const CPU_HZ=1789772.7272727273,BUFFER_SECONDS=.08;
-let mediaNext=0,pumpTimer=null,videoQueue=[],lastCycles=null;
+let mediaNext=0,pumpTimer=null,videoQueue=[],lastCycles=null,primeMedia=true;
 let measuredAt=0,measuredCycles=0,measuredFrames=0,presented=0,speed=0,fps=0;
 let renderOffset=null,renderWall=null,statusAt=0,bufferTarget=BUFFER_SECONDS;
 const freeVideo=[];
@@ -76,7 +76,7 @@ function syncAudioClock(){
   pump();
 }
 function rebase(){
-  silence();for(const frame of videoQueue)recycle(frame);videoQueue=[];mediaNext=clock()+.012;renderOffset=null;renderWall=null;
+  silence();for(const frame of videoQueue)recycle(frame);videoQueue=[];primeMedia=true;mediaNext=clock()+.012;renderOffset=null;renderWall=null;
   measuredAt=performance.now();measuredCycles=lastCycles??0;measuredFrames=presented;
   clearTimeout(pumpTimer);pumpTimer=null;
 }
@@ -92,6 +92,8 @@ function pump(){
   const now=clock(),duration=d.audio.length?d.audio.length/2/48000:
     lastCycles===null?1/60.0988:(d.cycles-lastCycles)/CPU_HZ;
   // Rebase after a real underrun, never stretch samples or accumulate stale work.
+  // Prime once after a lifecycle barrier so initial playback has the configured lead.
+  if(primeMedia){mediaNext=Math.max(mediaNext,now+bufferTarget);primeMedia=false;}
   if(mediaNext<now){bufferTarget=Math.min(.2,bufferTarget+.02);mediaNext=now+.012;fadeIn=true;}
   sound(d.audio,mediaNext);
   videoQueue.push({at:mediaNext,rgba:d.rgba,audio:d.audio,frames:d.frames,transport:d});

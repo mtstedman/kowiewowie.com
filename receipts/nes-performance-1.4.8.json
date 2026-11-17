@@ -1,0 +1,396 @@
+{
+  "format": "nes-performance-qualification/1",
+  "release": "1.4.8",
+  "baselineRelease": "1.4.7",
+  "baselineCommit": "43799eace153aaf9e128e09390af15ba9a0546e6",
+  "steady60Qualified": false,
+  "changes": [
+    "MMC3 owned instruction fetch and deferred mapper publication",
+    "Owned PPU register transfers, private position publication and codec descriptor reuse",
+    "Derived sprite row selection cache and batched sprite shifts with exact observation boundaries",
+    "Initial audio/video lead primed once after each lifecycle barrier",
+    "Reproducible owned PPU native kernel source and build command"
+  ],
+  "limitations": [
+    "Contra is still CPU-bound on this host; 60 FPS and uninterrupted audio are not established.",
+    "Adventure Island averages near 60 FPS but still has audio gaps.",
+    "Unrelated host workloads can affect CPU frequency/cache/SMT contention even when runnable wait is small.",
+    "Browser inputs eventually reach Contra game-over; the 90-second sample includes that screen.",
+    "Experimental checkpoint identities were rebound only inside the lab; public save identity checks remain strict.",
+    "No newly supplied ROM was converted or published in this release."
+  ],
+  "differential": {
+    "allNineGames": [
+      {
+        "id": "megaman",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "adventure-island-2",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "castlevania",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "ikari-warriors",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "bionic-commando",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "zelda",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "contra",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "castlevania-3",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "double-dragon-ii",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      }
+    ],
+    "finalContraSpriteBatch": [
+      {
+        "id": "contra",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      }
+    ],
+    "scope": "Exact state, PCM and RGBA each frame, plus save/load replay.",
+    "evidence": [
+      {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/selected-parity.json",
+        "sha256": "f051a6d8acf19055bbeb38f00bdfb36d2e6f096c6a225ea622c7f05f1ef266d1"
+      },
+      {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/shiftbatch-parity.json",
+        "sha256": "f4a00b318a6af07516a7a1032b1d8e9af8bc5f530db6053b9b9612a8e7294161"
+      }
+    ]
+  },
+  "nativeBuild": {
+    "source_sha256": "0d876f242f074684f4f9ce6160436cd2b04c09040732ddd31da6272383a45de6",
+    "wasm_sha256": "6d3923a8e9d204f67a162b89d90e8d74624e924340aabd55a2630c694e8e39d6",
+    "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+    "compilerArgs": [
+      "-Wl,--export=ppu_invalidate_pixel_cache",
+      "--target=wasm32-unknown-unknown",
+      "-std=c11",
+      "-O3",
+      "-ffreestanding",
+      "-fno-builtin",
+      "-nostdlib",
+      "-Wl,--no-entry",
+      "-Wl,--export-memory",
+      "-Wl,--fatal-warnings",
+      "-Wl,--initial-memory=524288",
+      "-Wl,--max-memory=524288",
+      "-Wl,--export=ppu_sprite_layout_count",
+      "-Wl,--export=ppu_sprite_layout_value",
+      "-Wl,--export=ppu_record_layout_count",
+      "-Wl,--export=ppu_record_layout_value",
+      "-Wl,--export=ppu_abi",
+      "-Wl,--export=ppu_complete",
+      "-Wl,--export=ppu_state",
+      "-Wl,--export=ppu_state_size",
+      "-Wl,--export=ppu_layout_count",
+      "-Wl,--export=ppu_layout_value",
+      "-Wl,--export=ppu_oam_layout_count",
+      "-Wl,--export=ppu_oam_layout_value",
+      "-Wl,--export=ppu_primary_offset",
+      "-Wl,--export=ppu_secondary_offset",
+      "-Wl,--export=ppu_frame_offset",
+      "-Wl,--export=ppu_oam_offset",
+      "-Wl,--export=ppu_initialize",
+      "-Wl,--export=ppu_scroll_increment",
+      "-Wl,--export=ppu_sprite_address",
+      "-Wl,--export=ppu_reverse_byte",
+      "-Wl,--export=ppu_primary_read",
+      "-Wl,--export=ppu_oam_tick",
+      "-Wl,--export=ppu_oam_transition",
+      "-Wl,--export=ppu_oam_finish",
+      "-Wl,--export=ppu_oam_trace_offset",
+      "-Wl,--export=ppu_oam_record_size",
+      "-Wl,--export=ppu_stage_begin",
+      "-Wl,--export=ppu_stage_resume",
+      "-Wl,--export=ppu_stage_three",
+      "-Wl,--export=ppu_stage_ack",
+      "-Wl,--export=ppu_stage_abort",
+      "-Wl,--export=ppu_advance_dots"
+    ]
+  },
+  "spriteBatchPairedTrials": {
+    "plan": {
+      "purpose": "Compare final native candidate against batching sprite updates within three-dot calls, then test startup audio priming on Adventure Island. Preserve exact emulated cadence/PCM. No performance thresholds selected after results.",
+      "benchmark": {
+        "warmup": 180,
+        "frames": 600,
+        "order": [
+          "native",
+          "shiftbatch",
+          "shiftbatch",
+          "native"
+        ],
+        "affinity": "CPU 2",
+        "measure": "main thread CPU and runnable wait"
+      },
+      "browser": {
+        "game": "adventure-island-2",
+        "seconds": 90,
+        "baseline": "browser-adventure-validated",
+        "audio": "80ms initial scheduling lead; unchanged subsequent underrun recovery; no pitch or frame skipping"
+      },
+      "acceptance": "Accept sprite batching only if both paired comparisons improve CPU and exact parity/tests pass. Accept startup priming only if audio gaps decrease without broken lifecycle or meaningful FPS loss; disclose latency."
+    },
+    "results": [
+      {
+        "id": "contra",
+        "frames": 600,
+        "wallMs": 11234.632684,
+        "cpuMs": 11233.097,
+        "mainCpuMs": 10865.478447,
+        "runnableWaitMs": 369.401001
+      },
+      {
+        "id": "contra",
+        "frames": 600,
+        "wallMs": 10079.770956,
+        "cpuMs": 10079.445,
+        "mainCpuMs": 9743.558289,
+        "runnableWaitMs": 333.109231
+      },
+      {
+        "id": "contra",
+        "frames": 600,
+        "wallMs": 11077.741955999998,
+        "cpuMs": 11073.825,
+        "mainCpuMs": 10693.426783,
+        "runnableWaitMs": 385.058144
+      },
+      {
+        "id": "contra",
+        "frames": 600,
+        "wallMs": 12016.758039,
+        "cpuMs": 11930.759,
+        "mainCpuMs": 11515.303851,
+        "runnableWaitMs": 432.183984
+      }
+    ]
+  },
+  "browser": {
+    "adventure-island-2": {
+      "pass": false,
+      "seconds": 90,
+      "presented_fps": 59.75875007200093,
+      "emulated_fps": 59.9244796483365,
+      "audio_gaps": 23,
+      "late_audio": 1,
+      "frame_intervals": {
+        "p50": 16.699999928474426,
+        "p95": 17.399999976158142,
+        "p99": 18.899999976158142,
+        "max": 50,
+        "over25": 20,
+        "over50": 0
+      },
+      "skipped_emulated_frames": 9,
+      "errors": [],
+      "lifecycle": {
+        "pause": true,
+        "save_load": true,
+        "resume": true,
+        "reset": true
+      },
+      "audio_gap_ms": 354.3750000084537,
+      "max_audio_gap_ms": 24.854166666669425,
+      "worker_cpu_fraction": 0.9425016723694857,
+      "worker_runnable_wait_fraction": 0.0010865089949411836,
+      "evidence": {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/browser-adventure-primed/result.json",
+        "sha256": "2da8e8aa294adc8e61deecb8f860d094732dc16934dabe3952d9d2f59bb633b6"
+      }
+    },
+    "contra": {
+      "pass": false,
+      "seconds": 90,
+      "presented_fps": 58.850504432879596,
+      "emulated_fps": 59.03468869448505,
+      "audio_gaps": 95,
+      "late_audio": 2,
+      "frame_intervals": {
+        "p50": 16.699999928474426,
+        "p95": 17.399999976158142,
+        "p99": 33.39999997615814,
+        "max": 133.29999995231628,
+        "over25": 76,
+        "over50": 7
+      },
+      "skipped_emulated_frames": 6,
+      "errors": [],
+      "lifecycle": {
+        "pause": true,
+        "save_load": true,
+        "resume": true,
+        "reset": true
+      },
+      "audio_gap_ms": 1770.104166672422,
+      "max_audio_gap_ms": 124.70833333333553,
+      "worker_cpu_fraction": 0.9905264341725648,
+      "worker_runnable_wait_fraction": 0.0003804030486799791,
+      "evidence": {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/browser-contra-final/result.json",
+        "sha256": "b62737fa3c48cf0171f7bf36b8e9a1d308705810d62840fcd829f2248f6eb583"
+      }
+    }
+  },
+  "newRomInventory": {
+    "sourceDirectory": "/home/mason/repos/posse",
+    "registryRelease": "1.4.7",
+    "roms": [
+      {
+        "title": "Metroid",
+        "importedRom": "/home/mason/.local/share/posse-rom-toolchain/work/a7ca3857-7c02-4f3f-b4b5-f4715f169d35/source.nes",
+        "sha256": "88ad02b0b53012712f3c773a62073847551cec191aeda5d3ec19b22b594640eb",
+        "bytes": 131088,
+        "format": "NES 2.0",
+        "mapper": 1,
+        "submapper": 0,
+        "inspectionReport": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/new-roms-result.json",
+        "registryMapperPresent": true,
+        "executionQualified": false,
+        "conversionComplete": false
+      },
+      {
+        "title": "Super Mario Bros. 3",
+        "importedRom": "/home/mason/.local/share/posse-rom-toolchain/work/5c8b4811-8f66-4757-a916-0b2478a214aa/source.nes",
+        "sha256": "c183811f6ce3a63ec59fc949a89b02141b779814276506de561fe1f8e85c94e4",
+        "bytes": 393232,
+        "format": "NES 2.0",
+        "mapper": 4,
+        "submapper": 0,
+        "inspectionReport": "/home/mason/.local/share/posse-rom-toolchain/work/5c8b4811-8f66-4757-a916-0b2478a214aa/inspection.json",
+        "registryMapperPresent": true,
+        "executionQualified": false,
+        "conversionComplete": false
+      },
+      {
+        "title": "Mike Tyson\u2019s Punch-Out!!",
+        "importedRom": "/home/mason/.local/share/posse-rom-toolchain/work/bfd42c73-b6be-4308-835f-f842e2864a55/source.nes",
+        "sha256": "e1e7ea03309e370240e90ad80815b484e1c537107d8620e2479f8169cf237c8f",
+        "bytes": 262160,
+        "format": "NES 2.0",
+        "mapper": 9,
+        "submapper": 0,
+        "inspectionReport": "/home/mason/.local/share/posse-rom-toolchain/work/bfd42c73-b6be-4308-835f-f842e2864a55/inspection.json",
+        "registryMapperPresent": false,
+        "executionQualified": false,
+        "conversionComplete": false
+      },
+      {
+        "title": "The Guardian Legend",
+        "importedRom": "/home/mason/.local/share/posse-rom-toolchain/work/53952722-41ac-404b-a748-71452d9a062b/source.nes",
+        "sha256": "8f8bde52d3a8f7f7cc66fc33143d291114c17ca5be54e96bc8992a7d36252d61",
+        "bytes": 131088,
+        "format": "NES 2.0",
+        "mapper": 2,
+        "submapper": 2,
+        "inspectionReport": "/home/mason/.local/share/posse-rom-toolchain/work/53952722-41ac-404b-a748-71452d9a062b/inspection.json",
+        "registryMapperPresent": true,
+        "executionQualified": false,
+        "conversionComplete": false
+      }
+    ],
+    "inspectorFix": "Apply the documented default mode before required-field validation; three actual fresh worker invocations succeeded.",
+    "notes": [
+      "Mapper presence alone does not establish exact board/ABI/compiler compatibility.",
+      "All four are NES 2.0; do not silently strip their headers or infer board policy.",
+      "No new game was decompiled, rebuilt, or deployed in this inspection pass."
+    ]
+  },
+  "newRomInspectorFix": {
+    "agent": "romjs-nes-inspector-worker",
+    "digest": "be72452217d2ae57a525efdf1465b6ec0753671447fb2677fae31cc0dbdf68c8",
+    "change": "Apply documented inspect-mode default before required-field validation",
+    "deployed": "Live owner agent definition and pinned tool binding; model unchanged cheap/low."
+  },
+  "sourcePreparation": {
+    "sourceCommit": "43799eace153aaf9e128e09390af15ba9a0546e6",
+    "omitted": {
+      "node_modules": {
+        "kind": "symlink",
+        "target": "/home/mason/repos/wowiekowie.com/node_modules"
+      }
+    },
+    "regularFiles": 3911
+  },
+  "gates": {
+    "typecheck": "pass",
+    "arcadeTests": {
+      "pass": 166,
+      "fail": 0
+    },
+    "capabilityAudit": "pass",
+    "cartridgeFilesUnchanged": true,
+    "priorEngineReleaseUnchanged": true,
+    "evidence": [
+      {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/typecheck.log",
+        "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+      },
+      {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/arcade-tests.log",
+        "sha256": "1caa84d73316f1651d6ec3396f2cdd70cb81c651dc3de751f77e18f75aae583a"
+      },
+      {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/capability-audit.log",
+        "sha256": "1cb8ffc51f0a3adb209408742f6545d9ac3d6301e3773b27b7c834b792728cf0"
+      },
+      {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/final-ppu-tests.log",
+        "sha256": "e8c6261578fb3514823dc35fc8feb5d61b2404d8be648c45b7546496a57b7c12"
+      },
+      {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/contra-adventure-60-20261117/assembler-result.json",
+        "sha256": "344d01cd5ed276734feabadfe88437caa188a9d4b44d20b04e6accac0fe83895"
+      }
+    ]
+  }
+}

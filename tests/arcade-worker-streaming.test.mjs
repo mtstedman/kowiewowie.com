@@ -281,7 +281,12 @@ test('positive sub-3ms lead schedules exact contiguous PCM; real underruns recov
  const l=await audioScheduleLab();
  try{
   assert.equal(l.r.snapshot().bufferTarget,.08);
+  // A slow first worker response is startup, not an audio underrun. Schedule
+  // its unchanged PCM after the configured lead before testing steady playback.
+  l.ac.currentTime=.4;
   let end=l.frame();
+  assert.equal(l.starts.at(-1).at,l.ac.currentTime+.08);
+  assert.equal(l.r.snapshot().bufferTarget,.08);
   for(const lead of [.0029,.001,.0001,0]){l.ac.currentTime=end-lead;const previous=end;end=l.frame();assert.equal(l.starts.at(-1).at,previous,'Queued PCM must retain its exact previous end');assert.equal(l.r.snapshot().bufferTarget,.08,'Nonnegative lead never adapts');}
   for(const late of [.001,10,.002,.1,.003,1,2,3]){
    const target=l.r.snapshot().bufferTarget;

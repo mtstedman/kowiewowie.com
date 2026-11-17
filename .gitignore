@@ -12,4 +12,4 @@
 .posse-worktrees/
 
 # Node tooling (typecheck)
-node_modules/
+node_modules

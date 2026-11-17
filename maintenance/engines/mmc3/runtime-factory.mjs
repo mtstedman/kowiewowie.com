@@ -56,7 +56,7 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
  function mapCHR(a){integer(a,8191,'CHR address');let slot=(a>>>10)^((state.select&128)?4:0),bank=slot<4?(((slot<2?state.r0:state.r1)&254)+(slot&1)):(slot===4?state.r2:slot===5?state.r3:slot===6?state.r4:state.r5);return (bank&(chrData.length/1024-1))*1024+(a&1023);}
  function mirroring(){return cfg.mirroring==='mapper'?(state.mirror?'horizontal':'vertical'):cfg.mirroring.replace('fixed_','');}
  function mapNametable(a){integer(a,16383,'PPU address');if(a<8192||a>=16128)bad('BAD_ARGUMENT','Nametable address');const off=(a-8192)&4095,page=off>>>10,mode=mirroring();return (mode==='four_screen'?page:mode==='vertical'?page&1:page>>>1)*1024+(off&1023);}
- function getMapperState(){const w=windows4(state,info),en=ramEnabled();return {mapper:4,identity:info.mappingIdentity,...state,version,w0:w[0],w1:w[1],w2:w[2],w3:w[3],ramEnabled:en,ramWritable:en&&!(state.protect&64)};}
+ function getMapperState(){pullMapperStage();const w=windows4(state,info),en=ramEnabled();return {mapper:4,identity:info.mappingIdentity,...state,version,w0:w[0],w1:w[1],w2:w[2],w3:w[3],ramEnabled:en,ramWritable:en&&!(state.protect&64)};}
  function loadMapperState(v){const q=valid4(v,info),next={};for(const k of S4)next[k]=q[k];bump();state=next;refreshPRG();}
  function getCPUClock(){return state.clock;}
  function advanceCPUClock(t){integer(t,Number.MAX_SAFE_INTEGER-8192,'CPU clock');if(t<state.clock)bad('BAD_TIMING','CPU clock backwards');state.clock=t;}
@@ -74,9 +74,9 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
  function irqClock(){const old=state.counter,manual=state.reload;state.counter=old===0||manual?state.latch:old-1;if(state.counter===0&&state.enabled&&(cfg.irq_revision==='sharp-bc'||old>0||manual))state.asserted=true;state.reload=false;state.reloadBlocked=manual;}
  function advancePPUClock(t){integer(t,Number.MAX_SAFE_INTEGER-8192,'PPU clock');if(t<state.ppuDot)bad('BAD_TIMING','PPU clock backwards');if(t===state.ppuDot)return;const phase=cfg.m2_falling_dot;if(!(state.ppuAddress&4096)){const edges=Math.floor((t-1-phase)/3)-Math.floor((state.ppuDot-1-phase)/3);state.lowSamples=Math.min(3,state.lowSamples+edges);}state.ppuDot=t;bump();}
  function setPPUAddress(a,t=state.ppuDot){integer(a,16383,'PPU address');advancePPUClock(t);const high=Boolean(a&4096),was=Boolean(state.ppuAddress&4096);bump();if(high&&!was&&state.lowSamples>=3)irqClock();if(high||was)state.lowSamples=0;state.ppuAddress=a;}
- let mapperStageValid=false;
- const api={checkpointCapture:()=>({ram,sram,chrRam:chrRAM?chrData:new Uint8Array(),mapper:getMapperState()}),checkpointRestore(v){api.loadRAM(v.ram,v.sram);api.loadCHR(v.chrRam);loadMapperState(v.mapper);version=v.mapper.version;},read:a=>read(a),peek:a=>read(a,true),write,mapPRG,mapCHR,mapNametable,getMirroring:mirroring,getMapperState,loadMapperState,getCPUClock,advanceCPUClock,setPPUAddress,advancePPUClock,getPPUClock:()=>state.ppuDot,getIRQ:()=>state.asserted,peekCHR:a=>chrData[mapCHR(a)],ppuRead(a,t=state.ppuDot){integer(a,8191,'CHR address');setPPUAddress(a,t);return chrData[mapCHR(a)];},ppuWrite(a,v,t=state.ppuDot){integer(a,8191,'CHR address');byte(v);setPPUAddress(a,t);if(chrRAM)chrData[mapCHR(a)]=v;},snapshot(){return {ram:ram.slice(),prgRam:sram.slice(),chrRam:chrRAM?chrData.slice():new Uint8Array(),mapper:getMapperState()};},loadRAM(r,p){if(!(r instanceof Uint8Array)||r.length!==2048||!(p instanceof Uint8Array)||p.length!==sram.length)bad('BAD_ARGUMENT','Exact RAM arrays');bump();ram.set(r);sram.set(p);},loadCHR(r){if(!(r instanceof Uint8Array)||r.length!==(chrRAM?8192:0))bad('BAD_ARGUMENT','Exact CHR RAM');bump();if(chrRAM)chrData.set(r);}};
- if(Object.isFrozen(info)&&Object.isFrozen(cfg)&&Object.isFrozen(cfg.startup_registers))ownedBuses.set(api,{info,bindPPU(e){
+ let mapperStageValid=false,pullMapperStage=()=>{},ownedIRQ=()=>false;
+ const api={checkpointCapture:()=>({ram,sram,chrRam:chrRAM?chrData:new Uint8Array(),mapper:getMapperState()}),checkpointRestore(v){api.loadRAM(v.ram,v.sram);api.loadCHR(v.chrRam);loadMapperState(v.mapper);version=v.mapper.version;},read:a=>read(a),peek:a=>read(a,true),write,mapPRG,mapCHR,mapNametable,getMirroring:mirroring,getMapperState,loadMapperState,getCPUClock,advanceCPUClock,setPPUAddress,advancePPUClock,getPPUClock:()=>{pullMapperStage();return state.ppuDot;},getIRQ:()=>mapperStageValid?ownedIRQ():state.asserted,peekCHR:a=>chrData[mapCHR(a)],ppuRead(a,t=state.ppuDot){integer(a,8191,'CHR address');setPPUAddress(a,t);return chrData[mapCHR(a)];},ppuWrite(a,v,t=state.ppuDot){integer(a,8191,'CHR address');byte(v);setPPUAddress(a,t);if(chrRAM)chrData[mapCHR(a)]=v;},snapshot(){return {ram:ram.slice(),prgRam:sram.slice(),chrRam:chrRAM?chrData.slice():new Uint8Array(),mapper:getMapperState()};},loadRAM(r,p){if(!(r instanceof Uint8Array)||r.length!==2048||!(p instanceof Uint8Array)||p.length!==sram.length)bad('BAD_ARGUMENT','Exact RAM arrays');bump();ram.set(r);sram.set(p);},loadCHR(r){if(!(r instanceof Uint8Array)||r.length!==(chrRAM?8192:0))bad('BAD_ARGUMENT','Exact CHR RAM');bump();if(chrRAM)chrData.set(r);}};
+ if(Object.isFrozen(info)&&Object.isFrozen(cfg)&&Object.isFrozen(cfg.startup_registers))ownedBuses.set(api,{info,peek:api.peek,peekPRG:a=>rom[physicalPRG(a)],bindPPU(e){
     const chrStorage=new Uint8Array(e.memory.buffer,e.owned_chr(),262144);
     chrStorage.set(chrData);chrData=chrStorage.subarray(0,chrData.length);
     const q=new Uint32Array(e.memory.buffer,e.owned_registers(),16),m=new Uint32Array(e.memory.buffer,e.owned_mapper(),64),od=new Float64Array(e.memory.buffer,e.owned_mapper_clocks(),4);
@@ -100,10 +100,11 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
      m[16]=state.reloadBlocked?1:0;m[17]=state.enabled?1:0;m[18]=state.asserted?1:0;m[19]=cfg.irq_revision==='sharp-bc'?1:0;
      refreshMapping();return true;
     }
+    ownedIRQ=()=>Boolean(m[18]);
+    pullMapperStage=()=>{if(!mapperStageValid)return;state.ppuDot=od[0];state.ppuAddress=m[11];state.lowSamples=m[12];state.counter=m[13];state.reload=Boolean(m[15]);state.reloadBlocked=Boolean(m[16]);state.asserted=Boolean(m[18]);};
     function after(){
      const delta=od[1];if(!Number.isSafeInteger(delta)||delta<0||delta>6)throw Error('Owned MMC3 epoch invariant');
-     od[1]=0;mapperStageValid=true;version+=delta;state.ppuDot=od[0];state.ppuAddress=m[11];state.lowSamples=m[12];
-     state.counter=m[13];state.reload=Boolean(m[15]);state.reloadBlocked=Boolean(m[16]);state.asserted=Boolean(m[18]);
+     od[1]=0;mapperStageValid=true;version+=delta;
     }
     return Object.freeze({before,after,skipPreparation(reason){if(reason===1)skippedSource++;else if(reason===2)skippedAudio++;else throw Error('Private boundary reason');},mappingRefreshes:()=>mappingRefreshes,stats:()=>({
      skippedPreparations:skippedSource+skippedAudio,skippedSourcePreparations:skippedSource,skippedAudioPreparations:skippedAudio,
@@ -112,7 +113,8 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
      localMapper:4,sourceSpriteFetch:true,sourceMapperAudio:false,synchronizations,mappingRefreshMeaning:'CHR-window/mirroring cache refreshes'
     })});
    },snapshot(){const mask=info.prgBanks-1,r6=(state.r6&63)&mask,r7=(state.r7&63)&mask;return state.select&64?{w0:info.prgBanks-2,w1:r7,w2:r6,w3:info.prgBanks-1,version,clock:state.clock}:{w0:r6,w1:r7,w2:info.prgBanks-2,w3:info.prgBanks-1,version,clock:state.clock};},unchanged(m){return version===m.version&&state.clock===m.clock;}});
- for(const key of ['write','ppuRead','ppuWrite','setPPUAddress','advancePPUClock','loadRAM','loadCHR','loadMapperState']){const fn=api[key];if(fn)api[key]=function(...args){if(key!=='write'||args[0]>=8192)mapperStageValid=false;return fn.apply(this,args);};}
+ const ownedWrite=api.write;api.write=(a,v,t)=>{if(a>=8192){pullMapperStage();mapperStageValid=false;}return ownedWrite(a,v,t);};
+ for(const key of ['ppuRead','ppuWrite','setPPUAddress','advancePPUClock','loadRAM','loadCHR','loadMapperState']){const fn=api[key];if(fn)api[key]=function(...args){pullMapperStage();mapperStageValid=false;return fn.apply(this,args);};}
  return Object.freeze(api);
 }
 // Generic fixed-property lookup; no mapping result or validation is cached.
@@ -122,6 +124,9 @@ function makeCPU(bus,blocks,info){
  const mmc=true,banked=true;
  if(banked&&['mapPRG','getMapperState',...(mmc?['getCPUClock','advanceCPUClock']:[])].some(k=>typeof bus[k]!=='function'))bad('BAD_MAPPING_HOOK','Missing mapper/timing hooks');
  const owned=ownedBuses.get(bus),trusted=owned?.info===info?owned:null;
+ const fixedMapping=trusted&&['mapper','prgBanks','mappingIdentity'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(info,k)||{},'value'));
+ const purePeek=fixedMapping&&bus.peek===trusted.peek?trusted.peekPRG:null;
+
  function mapping(){
   if(trusted)return trusted.snapshot();
   const v=valid4(bus.getMapperState(),info);if(bus.getCPUClock()!==v.clock)bad('BAD_MAPPING','Clock hook mismatch');return v;
@@ -137,6 +142,8 @@ function makeCPU(bus,blocks,info){
   for(let i=0;i<comparisonKeys.length;i++){const k=comparisonKeys[i];if(v[k]!==m[k])bad('MAPPING_CHANGED','Mapping changed during fetch');}
  }
  function mapped(a,m){
+  // The private owner fixes mapPRG and its immutable metadata; only its epoch can change.
+  if(fixedMapping){unchanged(m);address(a);if(a<32768)bad('BAD_ARGUMENT','PRG address required');return;}
   unchanged(m);
   const expected=windowBank(m,((a-32768)>>>13))*8192+(a&8191);
   const actual=bus.mapPRG(a);
@@ -146,6 +153,7 @@ function makeCPU(bus,blocks,info){
  // Check the epoch before interpreting callback results. A changed mapping is
  // a stale snapshot, not evidence of a stable but incorrect physical mapping.
  function fetchByte(a,m,peek=false){
+  if(fixedMapping){unchanged(m);address(a);if(a<32768)bad('BAD_ARGUMENT','PRG address required');const value=peek?(purePeek?purePeek(a):bus.peek(a)):bus.read(a);unchanged(m);return byte(value);}
   if(banked)mapped(a,m);
   const value=peek?bus.peek(a):bus.read(a);
   if(banked){unchanged(m);mapped(a,m);}
@@ -162,9 +170,10 @@ function makeCPU(bus,blocks,info){
  function vector(a){const m=mapping(),lo=fetchByte(a,m),hi=fetchByte(a+1,m);if(banked)unchanged(m);return lo|(hi<<8);}
  function reset(){safe();busy=true;try{begin();s.sp=(s.sp-3)&255;s.p=c.norm(s.p|4);s.pc=vector(65532);addCycles(7);irqMask=4;nmiPending=false;hold=false;return snapshot();}finally{busy=false;}}
  function interrupt(a){c.r(s.pc);c.r(s.pc);c.push(s.pc>>>8,2);c.push(s.pc&255,3);c.push(c.norm(s.p),4);s.p|=4;s.pc=vector(a);irqMask=4;hold=true;addCycles(7);}
- function step(){safe();busy=true;try{
+ function step(){return executeStep(false);}
+ function executeStep(kindOnly){safe();busy=true;try{
   if(s.cycles>Number.MAX_SAFE_INTEGER-8||s.instructions>Number.MAX_SAFE_INTEGER-2)bad('COUNTER_OVERFLOW','Counter exhausted');begin();const pc=s.pc;
-  if(!hold&&(nmiPending||(irq&&!irqMask))){const nmi=nmiPending;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return {kind:nmi?'nmi':'irq',pc,cycles:7};}
+  if(!hold&&(nmiPending||(irq&&!irqMask))){const nmi=nmiPending;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return kindOnly?(nmi?'nmi':'irq'):{kind:nmi?'nmi':'irq',pc,cycles:7};}
   if(pc<32768)bad('MUTABLE_CODE_UNSUPPORTED','Execution outside immutable PRG',pc);
   const m=mapping();if(banked)mapped(pc,m);
   const window=(pc-32768)>>>13;let entry=blocks[window][windowBank(m,window)][pc];
@@ -175,11 +184,11 @@ function makeCPU(bus,blocks,info){
   if(banked)unchanged(m);
   // Semantic writes legitimately update mapping and the MMC1 clock. Do not
   // compare their final state to the pre-fetch snapshot.
-  const old=s.p;hold=false;const n=entry[1](c);s.p=c.norm(s.p);irqMask=entry[2]===1?old&4:s.p&4;if(entry[2]===2)hold=true;addCycles(n);s.instructions++;return {kind:'instruction',pc,cycles:n};
+  const old=s.p;hold=false;const n=entry[1](c);s.p=c.norm(s.p);irqMask=entry[2]===1?old&4:s.p&4;if(entry[2]===2)hold=true;addCycles(n);s.instructions++;return kindOnly?'instruction':{kind:'instruction',pc,cycles:n};
  }finally{busy=false;}}
  const now=()=>globalThis.performance?.now?.()??Date.now();
  function run(options={}){safe();if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(k=>!['maxSteps','maxCycles','maxMs'].includes(k)))bad('BAD_ARGUMENT','Invalid run options');const maxSteps=options.maxSteps??1000,maxCycles=options.maxCycles??100000,maxMs=options.maxMs??1000;integer(maxSteps,1000000,'maxSteps');integer(maxCycles,10000000,'maxCycles');integer(maxMs,5000,'maxMs');if(!maxSteps||!maxCycles||!maxMs)bad('BAD_ARGUMENT','Positive bounds required');const start=now(),initial=s.cycles;let steps=0,reason='steps';while(steps<maxSteps){if(s.cycles-initial>=maxCycles){reason='cycles';break;}if(now()-start>=maxMs){reason='time';break;}step();steps++;}return {steps,cycles:s.cycles-initial,reason,state:snapshot()};}
- const api=Object.freeze({checkpointCapture(){safe();return {s,irq,nmiLine,nmiPending,irqMask,hold,startCycle};},checkpointRestore(v){safe();setState(v.s);({irq,nmiLine,nmiPending,irqMask,hold,startCycle}=v);},bus,getState:snapshot,getPC:()=>s.pc,setState,step,run,reset,setIRQ(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean IRQ required');irq=v;},setNMI(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean NMI required');if(v&&!nmiLine)nmiPending=true;nmiLine=v;},requestNMI(){safe();nmiPending=true;},getSignals:()=>({irq,nmiLine,nmiPending,irqMask:Boolean(irqMask),hold})});reset();return api;
+ const api=Object.freeze({checkpointCapture(){safe();return {s,irq,nmiLine,nmiPending,irqMask,hold,startCycle};},checkpointRestore(v){safe();setState(v.s);({irq,nmiLine,nmiPending,irqMask,hold,startCycle}=v);},bus,getState:snapshot,getPC:()=>s.pc,setState,step,stepKind:()=>executeStep(true),run,reset,setIRQ(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean IRQ required');irq=v;},setNMI(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean NMI required');if(v&&!nmiLine)nmiPending=true;nmiLine=v;},requestNMI(){safe();nmiPending=true;},getSignals:()=>({irq,nmiLine,nmiPending,irqMask:Boolean(irqMask),hold})});reset();return api;
 }
 
 function bindOwnedPPU(base,e){const record=ownedBuses.get(base);if(!record?.bindPPU)throw Error('Unowned PPU bus');return record.bindPPU(e);}
