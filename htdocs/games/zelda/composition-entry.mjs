@@ -1,4 +1,4 @@
 import * as cartridge from "./cartridge/entry.mjs";
-import {createMachine as compose} from "../engines/nes/1.3.0/timed-mmc1-1/fe9c26b8198b378b68fd623faed34730bbfe7f6310ea2935632f75edce77650a/entry.mjs";
+import {createMachine as compose} from "../engines/nes/1.3.1/timed-mmc1-1/3d8426361ffb8b0f6b32898870c9fa13fc89b8ff2b2bcbda84ace93ad14bf843/entry.mjs";
 export const metadata=cartridge.metadata;
 export const createMachine=(options={})=>compose(cartridge,options);

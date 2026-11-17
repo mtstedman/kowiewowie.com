@@ -1,0 +1,332 @@
+{
+  "format": "nes-optimization-validation/1",
+  "closed_at": "2026-11-17T03:33:10.322784+00:00",
+  "baseline_commit": "09fb5616fcca14dfc03b2f5787264a97eaecc1ea",
+  "protocol": "/home/mason/.local/share/posse-rom-toolchain/evidence/optimization-trials-20261117/protocol.json",
+  "adopt": [
+    {
+      "candidate": "cpu-location-03",
+      "reason": "Existing bounded immutable key cache and checkpoint invalidation reused across timed MMC1 engines. Bionic port exact output and repeated worker CPU ratio 0.8945/0.8831; no target-specific routing. Zelda already uses this exact runtime."
+    }
+  ],
+  "reject": [
+    {
+      "candidate": "cpu-allocation-01",
+      "reason": "Megaman improved but shared legacy engine regressed in Castlevania and Ikari; timed Bionic also did not improve. No game-specific selection."
+    },
+    {
+      "candidate": "compiler O3/SIMD/Binaryen",
+      "reason": "O3 slower, SIMD <3% benefit; Binaryen initial benefit did not repeat and other applicable live profiles did not improve."
+    },
+    {
+      "candidate": "guarded successor links",
+      "reason": "Zelda CPU +10.3%; not promoted. This is a guarded dispatch-link prototype, not a complete multi-instruction block compiler."
+    },
+    {
+      "candidate": "larger APU calls",
+      "reason": "Synthetic two-, four-, eight-, sixteen-cycle calls differ from one-cycle PCM at interleaved sample 12. Event-bounded scheduler redesign remains unqualified; do not promote simple multi-cycle replacement."
+    },
+    {
+      "candidate": "persistent AudioWorklet ring",
+      "reason": "Exact PCM/wrap/bounds/reset passed; real playback renderer/audio CPU ratio 1.2123 with no late blocks in either path. Main scheduling alone improves but total playback cost increases; full wrapper integration not promoted."
+    }
+  ],
+  "timings": [
+    {
+      "run": "SIMD-bionic-01",
+      "game": "bionic-commando",
+      "cpu_ratio": 0.9902693908145953,
+      "exact_output": true,
+      "receipt_sha256": "00d78e94e31f11d6161e122eed2b5a04056e90066fe83eb234197eb1b2aa43b1"
+    },
+    {
+      "run": "allocation-castlevania-01",
+      "game": "castlevania",
+      "cpu_ratio": 1.123763291147473,
+      "exact_output": true,
+      "receipt_sha256": "77356308c203801c89b1652b7078d5f38ac8b208b0e89ad6b4784b0c4a4e8bef"
+    },
+    {
+      "run": "allocation-ikari-01",
+      "game": "ikari-warriors",
+      "cpu_ratio": 1.0409838748370106,
+      "exact_output": true,
+      "receipt_sha256": "f5a4f71ff4140dff4c2f08ce0c588d53340910256c0fda4281afc9d0b6d99077"
+    },
+    {
+      "run": "allocation-megaman-01",
+      "game": "megaman",
+      "cpu_ratio": 0.9087308658671922,
+      "exact_output": true,
+      "receipt_sha256": "fd046551eb5804692334489b3e0b4c39e2527c4a720b222be151f55c8aa9879e"
+    },
+    {
+      "run": "binaryen-bionic-01",
+      "game": "bionic-commando",
+      "cpu_ratio": 0.8422196687195099,
+      "exact_output": true,
+      "receipt_sha256": "1e3ef665436edd141a2cfe775444c279fbf6389e18776000ca33c2d656b1d97c"
+    },
+    {
+      "run": "binaryen-bionic-02",
+      "game": "bionic-commando",
+      "cpu_ratio": 1.037536198607455,
+      "exact_output": true,
+      "receipt_sha256": "ddce0fe68028e452dd97a00026a04af70b02ee1b2ec73872f8a336a16722acf4"
+    },
+    {
+      "run": "binaryen-island-01",
+      "game": "adventure-island-2",
+      "cpu_ratio": 1.0812931487820276,
+      "exact_output": true,
+      "receipt_sha256": "800c921955c6aeebb9a8f222776e026b5eb3194cf457ab1984da89b69ea33d17"
+    },
+    {
+      "run": "binaryen-zelda-01",
+      "game": "zelda",
+      "cpu_ratio": 1.0049477948643288,
+      "exact_output": true,
+      "receipt_sha256": "e6cfb39381b0e4d9dc8ce5d750bae20c38f0ad7c163cb5d68734d672580ada35"
+    },
+    {
+      "run": "compiler-O3-bionic-01",
+      "game": "bionic-commando",
+      "cpu_ratio": 1.0899101866666832,
+      "exact_output": true,
+      "receipt_sha256": "58d5887c48b6a71cab524fcc9b1dabe939729bba630b476d386866e83bdcb301"
+    },
+    {
+      "run": "cpu-bionic-01",
+      "game": "bionic-commando",
+      "cpu_ratio": 1.010908456477269,
+      "exact_output": true,
+      "receipt_sha256": "4fb857ee04f4b6e7d8d0936e3fcbc261e4c7e4a3f22adad0b44999c98ed5cf22"
+    },
+    {
+      "run": "dispatch-zelda-01",
+      "game": "zelda",
+      "cpu_ratio": 1.1027297246260748,
+      "exact_output": true,
+      "receipt_sha256": "a65c3d530f2e9f76613eb391872b762490c99852afc77ae2406c66ae85f8fe4b"
+    },
+    {
+      "run": "location-bionic-01",
+      "game": "bionic-commando",
+      "cpu_ratio": 0.8945282915488268,
+      "exact_output": true,
+      "receipt_sha256": "7b4294a2eb1090ee095528b78055c3db6f35a90115341af4c2d42f0f45a23922"
+    },
+    {
+      "run": "location-bionic-02",
+      "game": "bionic-commando",
+      "cpu_ratio": 0.8830603580885369,
+      "exact_output": true,
+      "receipt_sha256": "4eb31f36d0c0938491abba66d45619e864ca7142bf3fa73ef651aa69e14baa23"
+    }
+  ],
+  "audio_cpu_ratio": 1.2122589534778598,
+  "limitations": [
+    "Fixed input windows are not full-game hardware conformance or playthroughs.",
+    "Worker CPU excludes runnable wait; contention separately retained in raw samples.",
+    "Only changes meeting admission criteria enter the separate release assembly.",
+    "Inactive NROM/MMC5 compiler variants were built but not promoted or claimed browser-qualified.",
+    "No original cartridge data or translated banks changed."
+  ],
+  "release": "1.3.1",
+  "scope": {
+    "cartridge_bytes_unchanged": true,
+    "selection_changes": [
+      {
+        "selection": {
+          "abi": "legacy-fetch-epoch/1",
+          "battery": false,
+          "board": "UNROM",
+          "compiler": "fetch-epoch-2",
+          "mapper": 2,
+          "region": "ntsc"
+        },
+        "changed_factories": [],
+        "checkpoint_identity_unchanged": true
+      },
+      {
+        "selection": {
+          "abi": "legacy-fetch-epoch/1",
+          "battery": false,
+          "board": "standard",
+          "compiler": "fetch-epoch-2",
+          "mapper": 1,
+          "region": "ntsc"
+        },
+        "changed_factories": [],
+        "checkpoint_identity_unchanged": true
+      },
+      {
+        "selection": {
+          "abi": "mmc3-dot/1",
+          "battery": false,
+          "board": "standard-txrom",
+          "compiler": "fetch-epoch-2",
+          "mapper": 4,
+          "region": "ntsc"
+        },
+        "changed_factories": [],
+        "checkpoint_identity_unchanged": true
+      },
+      {
+        "selection": {
+          "abi": "owned-uxrom-abi2/1",
+          "battery": false,
+          "board": "UNROM",
+          "compiler": "fetch-epoch-2",
+          "mapper": 2,
+          "region": "ntsc"
+        },
+        "changed_factories": [],
+        "checkpoint_identity_unchanged": true
+      },
+      {
+        "selection": {
+          "abi": "timed-mmc1/1",
+          "battery": false,
+          "board": "standard",
+          "compiler": "fetch-epoch-2",
+          "mapper": 1,
+          "region": "ntsc"
+        },
+        "changed_factories": [
+          "runtime.mjs"
+        ],
+        "checkpoint_identity_unchanged": false
+      },
+      {
+        "selection": {
+          "abi": "timed-mmc1/1",
+          "battery": true,
+          "board": "SNROM",
+          "compiler": "fetch-epoch-2",
+          "mapper": 1,
+          "region": "ntsc"
+        },
+        "changed_factories": [],
+        "checkpoint_identity_unchanged": true
+      }
+    ]
+  },
+  "environment": {
+    "observed_at": "2026-11-17T03:42:31.405Z",
+    "node": "v24.17.0",
+    "chromium": "153.0.8010.12",
+    "browser_executable": "/home/mason/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell",
+    "browser_sha256": "ded93a9c9a53a1ae040f08124badcca95c938e9d5015ff340c3b5538c41bf39e",
+    "browser_mtime": "2026-10-01T14:48:19.451Z",
+    "platform": "linux",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 7 3700X 8-Core Processor",
+    "kernel": "6.8.0-147-generic"
+  },
+  "checks": [
+    {
+      "name": "identity",
+      "command": [
+        "node",
+        "--test",
+        "tests/nes-code-identity.test.mjs"
+      ],
+      "exit": 0,
+      "wall_ms": 6658,
+      "log_sha256": "8d4e272d6d13b640258034d3c4ae6505ec7f261e4cabbb4712d01fb2b7d040ee"
+    },
+    {
+      "name": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit": 0,
+      "wall_ms": 670,
+      "log_sha256": "afc2e0f3e70b95a314a939844065808843cd00bedeb1f02e723f391563877446"
+    },
+    {
+      "name": "arcade",
+      "command": [
+        "npm",
+        "run",
+        "test:arcade"
+      ],
+      "exit": 0,
+      "wall_ms": 21765,
+      "log_sha256": "25f24b2ac901931f8c0b6f0239e4036a25202da424993561a88f6c3dab9d3b32"
+    },
+    {
+      "name": "audit",
+      "command": [
+        "node",
+        "maintenance/nes-capability-audit.mjs"
+      ],
+      "exit": 0,
+      "wall_ms": 399,
+      "log_sha256": "0fc02ea9357535636fded44c446bcac92f2162559c6eb53bac102d969f10c8e3"
+    },
+    {
+      "name": "assembler",
+      "command": [
+        "node",
+        "tests/engine-release-1.3.1.mjs",
+        "maintenance/romjs-shared-engine-release-assembler.mjs",
+        "/home/mason/.local/share/posse-rom-toolchain/evidence/optimization-trials-20261117/release-input-02.json",
+        "--single"
+      ],
+      "exit": 0,
+      "wall_ms": 34963,
+      "log_sha256": "ec409e4a43d9e7d8a058ee40f855feb98ff66ab4b9526cedcc2d10bf3b04c542"
+    },
+    {
+      "name": "parity",
+      "command": [
+        "node",
+        "/home/mason/.local/share/posse-rom-toolchain/evidence/optimization-trials-20261117/site-parity.mjs",
+        "/home/mason/.local/share/posse-rom-toolchain/evidence/optimization-trials-20261117/source",
+        "/home/mason/repos/posse-workbranch/wowiekowie.com/optimization-trials"
+      ],
+      "exit": 0,
+      "wall_ms": 130704,
+      "log_sha256": "4da326b5c90efecd842c80a2d7053dd22e8a7af4e5c4daf46572b55f61b58874"
+    },
+    {
+      "name": "continuation",
+      "command": [
+        "node",
+        "tests/nes-checkpoint-continuation.mjs"
+      ],
+      "exit": 0,
+      "wall_ms": 93336,
+      "log_sha256": "f6e80e654a62505b7f63084ccc34fd9a2232d32ea0633df0bfb60333d9cdf9d1"
+    },
+    {
+      "name": "browser",
+      "command": [
+        "node",
+        "tests/shared-engine-browser.mjs"
+      ],
+      "exit": 0,
+      "wall_ms": 27667,
+      "log_sha256": "630d6a50f2c70bc98e2b93f563e6f67c6e1cd0350c8002d412f08b3d2e2ad9ee"
+    },
+    {
+      "name": "browser-saves",
+      "command": [
+        "node",
+        "tests/nes-checkpoint-browser.mjs"
+      ],
+      "exit": 0,
+      "wall_ms": 65466,
+      "log_sha256": "163eb3476d09439dd4b2302124e561beb85ceaa329be1150c57bb7f6971e70cd"
+    }
+  ],
+  "checks_passed": true,
+  "evidence_directory": "/home/mason/.local/share/posse-rom-toolchain/evidence/optimization-trials-20261117",
+  "source_inventory_sha256": "4b768a9a11dcb633b270caad1fa9dde948668a877a3e5401ef3d3d4bf69b788f",
+  "release_input_sha256": "49636d890354496c7346db22b276bd6b43d3a7327861498671004ca6ce0f21a0",
+  "save_compatibility": "Bionic Commando full checkpoints remain bound to their prior engine graph. Other six game checkpoint identities unchanged. Current-release continuation and browser persistence passed for all seven."
+}
