@@ -1,0 +1,262 @@
+{
+  "format": "nes-runtime-qualification/1",
+  "release": "1.4.4",
+  "baseRevision": "45b627e4b8053d9a8aa5310baeddf9b26a94a983",
+  "affectedGames": [
+    "double-dragon-ii",
+    "adventure-island-2"
+  ],
+  "artifactDigests": {
+    "double-dragon-ii": "c4847a23ae1fb6966f9bdb55ce39662728a056f25f8610073b5cf840f6a8c2e5",
+    "adventure-island-2": "31e8e3828712b7b2424c814832966bb707c5fe49ed971b5f0d8f9c156c900139"
+  },
+  "functionalPass": true,
+  "steady60Pass": false,
+  "scope": "Shared runtime optimization. Identical scripted CPU state, pixels and PCM; checkpoint continuation; independent DDII player inputs; 90-second before/after Chromium playback. This is not a full-game or hardware-equivalence certification.",
+  "changes": [
+    "Guarded immutable ROM dispatch cache with live opcode reads and bank identity",
+    "Single-cycle clock path and reuse of existing instruction mapping for metrics",
+    "Preserve private native mapper state across internal CPU RAM writes",
+    "MMC3 sprite-fetch continuation in Wasm, shared by both qualified MMC3 execution families"
+  ],
+  "checks": {
+    "arcadeTests": 150,
+    "typecheck": true,
+    "capabilityAuditGames": 9,
+    "ddiiExactFrames": 600,
+    "ddiiCheckpointReplayFrames": 60,
+    "adventureExactFrames": 900,
+    "adventureCheckpointReplayFrames": 60,
+    "packagedMachineFrames": 1656,
+    "independentPlayers": true,
+    "browserLifecycle": {
+      "pause": true,
+      "save_load": true,
+      "resume": true,
+      "reset": true
+    },
+    "preservation": {
+      "pass": true,
+      "allCartridgesPreserved": true,
+      "changedEngineGraphs": [
+        "adventure-island-2",
+        "double-dragon-ii"
+      ],
+      "otherSevenGraphsPreserved": true
+    }
+  },
+  "performance": {
+    "baseline": {
+      "seconds": 90,
+      "presentedFPS": 44.24847390403598,
+      "emulatedFPS": 44.25420858078642,
+      "frameIntervals": {
+        "p50": 16.700000047683716,
+        "p95": 33.800000071525574,
+        "p99": 50.09999990463257,
+        "max": 56.60000002384186,
+        "over25": 1272,
+        "over50": 46
+      },
+      "audioGaps": 1421,
+      "lateAudio": 29,
+      "worker": {
+        "sampledWallMs": 90290.567372,
+        "cpuMs": 90030.459492,
+        "runnableWaitMs": 26.519902,
+        "processors": [
+          11,
+          8,
+          0,
+          3,
+          1,
+          12,
+          13,
+          5,
+          4,
+          14,
+          7,
+          6,
+          15,
+          2
+        ]
+      },
+      "errors": []
+    },
+    "candidate": {
+      "seconds": 90,
+      "presentedFPS": 48.25300210748778,
+      "emulatedFPS": 48.25353650690855,
+      "frameIntervals": {
+        "p50": 16.700000047683716,
+        "p95": 33.5,
+        "p99": 50,
+        "max": 52.200000047683716,
+        "over25": 989,
+        "over50": 24
+      },
+      "audioGaps": 1151,
+      "lateAudio": 25,
+      "worker": {
+        "sampledWallMs": 90302.028354,
+        "cpuMs": 89997.688588,
+        "runnableWaitMs": 27.695,
+        "processors": [
+          5,
+          13,
+          12,
+          2,
+          8,
+          10,
+          1,
+          11,
+          3,
+          9,
+          0,
+          4,
+          7,
+          14,
+          6
+        ]
+      },
+      "errors": []
+    },
+    "initialCandidateWithOverlappingModuleInspection": {
+      "seconds": 90,
+      "presentedFPS": 49.93376133698875,
+      "emulatedFPS": 49.93503350235753,
+      "frameIntervals": {
+        "p50": 16.700000047683716,
+        "p95": 33.5,
+        "p99": 49.60000002384186,
+        "max": 50.39999997615814,
+        "over25": 862,
+        "over50": 15
+      },
+      "audioGaps": 1017,
+      "lateAudio": 24,
+      "worker": {
+        "sampledWallMs": 90289.427578,
+        "cpuMs": 89926.914391,
+        "runnableWaitMs": 68.469593,
+        "processors": [
+          6,
+          7,
+          5,
+          11,
+          9,
+          12,
+          4,
+          13,
+          14,
+          15,
+          0,
+          3,
+          10
+        ]
+      },
+      "errors": []
+    },
+    "fpsImprovementPercent": 9.050093370760393,
+    "scope": "Sequential headless Chromium runs on the same host from equivalent independently generated active two-player checkpoints. Worker CPU and runnable wait are measured separately; physical-core contention is not excluded. An initial candidate run overlapped six seconds of module inspection; it is retained separately. The clean repeat was declared before its result and ran without our other CPU-heavy work.",
+    "limitation": "Improved throughput, but this host still fails steady-60 playback/audio continuity criteria."
+  },
+  "saveCompatibility": "The existing strict checkpoint graph identity changes for these two games. Their previous-version save states cannot be loaded through the current public import API; newly created saves round-trip. The other seven game identities remain compatible.",
+  "rejectedExperiments": [
+    "Cached PRG window offsets: slower",
+    "Removal of JavaScript boundary precheck: slower",
+    "Cached M2 clock phase and dense dispatch array: no reliable incremental gain established"
+  ],
+  "evidence": [
+    {
+      "path": "assembler-result-reviewed.json",
+      "bytes": 1304,
+      "sha256": "b5bb97d0ef881732fec23424bf226a02a5a6fe132b6d00a8835e6220e608e170"
+    },
+    {
+      "path": "final-reviewed/compare.json",
+      "bytes": 1163,
+      "sha256": "ad23fb6bb4cf4c82ce35c02eaf94bef13e98d3d6910c369c26576afdaa9d5cd4"
+    },
+    {
+      "path": "adventure-compare.json",
+      "bytes": 544,
+      "sha256": "6ee184491fa1acb5121c26b1e94fbf9aaa5eeb53362074837168cdbea98ffa20"
+    },
+    {
+      "path": "machine-reviewed/machine-result.json",
+      "bytes": 11596,
+      "sha256": "382533025eeded9493fd228b6e3eebcb6e2a941488e8f9939daf1fc1003ab360"
+    },
+    {
+      "path": "preservation.json",
+      "bytes": 170,
+      "sha256": "1bf88d936aa0f995c448f7bd8152353454d79e2560c15d83410e9853aaa5dad2"
+    },
+    {
+      "path": "kernel-build-result.json",
+      "bytes": 1640,
+      "sha256": "17f48074c7e7dcfcd35c74e242e1719aa072bb3e8bb1ce7aff0920b14e6728b1"
+    },
+    {
+      "path": "browser-baseline/result.json",
+      "bytes": 13807,
+      "sha256": "9e725ca969368192e511d87b8b05ae1e27af00e06d1c4d6e780344e376e9ada0"
+    },
+    {
+      "path": "browser-baseline/identity.json",
+      "bytes": 181,
+      "sha256": "09249cae49e4fa86ea6dd9c1d12d260b24f3e5eb4d45add886461ec6310de16d"
+    },
+    {
+      "path": "browser-baseline/worker-cpu.json",
+      "bytes": 6463,
+      "sha256": "27f6493342a7808a3bf68be6b19bd028c45cce8ab0afe763c73b060bd7c0e9c5"
+    },
+    {
+      "path": "browser-reviewed/result.json",
+      "bytes": 13799,
+      "sha256": "60ad73f2e05fd39b5532a90649cf013156a7362c68e263359132393576ee39ed"
+    },
+    {
+      "path": "browser-reviewed/identity.json",
+      "bytes": 181,
+      "sha256": "bfd9fae34ea4cdff356b2aa3a40b14389f7b84be065e371c48f1108692a0da20"
+    },
+    {
+      "path": "browser-reviewed/worker-cpu.json",
+      "bytes": 6461,
+      "sha256": "ee55bc9bbb520a0ebf0202717324abdb9ea57dc31fb45776ce9288880a8845ff"
+    },
+    {
+      "path": "browser-reviewed-clean/result.json",
+      "bytes": 13851,
+      "sha256": "91c420e8df12e348bb4cd44fe1441b3c18e9ee07b2cfb5266535c19c7bbe7ba0"
+    },
+    {
+      "path": "browser-reviewed-clean/identity.json",
+      "bytes": 181,
+      "sha256": "bfd9fae34ea4cdff356b2aa3a40b14389f7b84be065e371c48f1108692a0da20"
+    },
+    {
+      "path": "browser-reviewed-clean/worker-cpu.json",
+      "bytes": 6468,
+      "sha256": "29d06845a66794cbc1a28eb423cd1e75918955ef0628bd480293ff28d491bd05"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 16755,
+      "sha256": "49790b36cbc277c1440bba292845dd823582b9f0f7ef818008a9504959ea6c8e"
+    },
+    {
+      "path": "typecheck.log",
+      "bytes": 37,
+      "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+    },
+    {
+      "path": "audit.log",
+      "bytes": 9762,
+      "sha256": "e9f2824e2d8dc764956052f581d4de3f0f0f3973f4f1f61de1ddf06d6cb55224"
+    }
+  ]
+}

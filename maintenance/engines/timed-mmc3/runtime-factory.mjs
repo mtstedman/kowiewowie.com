@@ -109,7 +109,8 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
      localMapper:4,sourceSpriteFetch:true,sourceMapperAudio:false,synchronizations,mappingRefreshMeaning:'CHR-window/mirroring cache refreshes'
     })});
    },snapshot(){const mask=info.prgBanks-1,r6=(state.r6&63)&mask,r7=(state.r7&63)&mask;return state.select&64?{w0:info.prgBanks-2,w1:r7,w2:r6,w3:info.prgBanks-1,version,clock:state.clock}:{w0:r6,w1:r7,w2:info.prgBanks-2,w3:info.prgBanks-1,version,clock:state.clock};},unchanged(m){return version===m.version&&state.clock===m.clock;}});
- for(const key of ['write','ppuRead','ppuWrite','setPPUAddress','advancePPUClock','loadRAM','loadCHR','loadMapperState']){const fn=api[key];if(fn)api[key]=function(...args){mapperStageValid=false;return fn.apply(this,args);};}
+ const ownedWrite=api.write;api.write=(a,v,t)=>{if(a>=8192)mapperStageValid=false;return ownedWrite(a,v,t);};
+ for(const key of ['ppuRead','ppuWrite','setPPUAddress','advancePPUClock','loadRAM','loadCHR','loadMapperState']){const fn=api[key];if(fn)api[key]=function(...args){mapperStageValid=false;return fn.apply(this,args);};}
  // Code identity is separate from mapper epochs that change on PPU dots.
  const codeListeners=new Set();let codeGeneration=0;const codeVersions=new Map();
  // romjs-live-code-identity/1: bounded private strings, live address classification.

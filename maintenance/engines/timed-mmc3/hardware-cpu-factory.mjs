@@ -16,6 +16,15 @@ function makeTimedCPU(bus,blocks,info,CPUError,limits=translationLimits){
  if(bus.readDataCycle!==undefined&&(!bus.readCycle||typeof bus.readDataCycle!=='function'))throw Error('Data-cycle hook requires a paired timed bus');
  const bad=(code,message,pc)=>{throw new CPUError(code,message,pc);};
  for(const k of ['read','write','peek','codeLocation','watchCode'])if(typeof bus[k]!=='function')bad('CODE_BUS_CONTRACT','Missing '+k);
+ const stableInfo=Object.isFrozen(info)&&['mapper','prgBanks','prgBankBytes'].every(k=>{const d=Object.getOwnPropertyDescriptor(info,k);return Boolean(d)&&Object.hasOwn(d,'value');});
+ const cacheSpan=stableInfo&&info.mapper===4&&Number.isInteger(info.prgBanks)&&info.prgBanks>=2&&info.prgBanks<=64&&info.prgBankBytes===8192?info.prgBanks*8192:0,staticCache=[];
+ const own=(o,k,v)=>Object.getOwnPropertyDescriptor(o,String(k))?.value===v;
+ function cacheStatic(pc,loc,entry,op){
+  if(!cacheSpan||loc.physical>=cacheSpan||!Object.isFrozen(blocks))return;
+  const window=(pc-32768)>>>13,parent=blocks[window],bank=Math.floor(loc.physical/8192),table=parent?.[bank];
+  if(!Object.isFrozen(parent)||!Object.isFrozen(table)||!Object.isFrozen(entry)||!Object.isFrozen(entry[0])||('cross' in entry))return;
+  if(own(blocks,window,parent)&&own(parent,bank,table)&&own(table,pc,entry)&&own(entry,0,entry[0])&&own(entry,1,entry[1])&&own(entry[0],0,op))staticCache[window*cacheSpan+loc.physical]={op,fn:entry[1]};
+ }
  const s={a:0,x:0,y:0,sp:0,p:36,pc:0,cycles:0,instructions:0};
  let busy=false,irq=false,nmiLine=false,nmiPending=false,nmiSerial=0,pendingIRQ=false,pendingNMI=false,hold=false,core=0,oldP=36,last=0,previous=0,stepStart=0,lastLocation=null;
  const cache=new Map(),pages=new Map(),recipes=new Map();let compilations=0,sourceBytes=0,hits=0,invalidations=0,mutableInstructions=0,staticInstructions=0,evictions=0;
@@ -42,8 +51,9 @@ function makeTimedCPU(bus,blocks,info,CPUError,limits=translationLimits){
   return entry;
  }
  function translated(pc,op,loc){
+  if(cacheSpan&&loc.kind==='rom'&&loc.physical<cacheSpan){const cached=staticCache[((pc-32768)>>>13)*cacheSpan+loc.physical];if(cached){if(cached.op!==op){if(!instructionSize(op))bad('UNSUPPORTED_OPCODE','Unofficial opcode '+op,pc);bad('CODE_CHANGED','Immutable translation differs',pc);}staticInstructions++;return cached.fn;}}
   const len=instructionSize(op);if(!len)bad('UNSUPPORTED_OPCODE','Unofficial opcode '+op,pc);
-  if(loc.kind==='rom'&&pc+len<=65536){const e=staticEntry(pc,loc);if(!e)bad('MISSING_TRANSLATION','Immutable source candidate missing',pc);if(!Array.isArray(e[0])||e[0][0]!==op||typeof e[1]!=='function')bad('CODE_CHANGED','Immutable translation differs',pc);staticInstructions++;return e[1];}
+  if(loc.kind==='rom'&&pc+len<=65536){const e=staticEntry(pc,loc);if(!e)bad('MISSING_TRANSLATION','Immutable source candidate missing',pc);if(!Array.isArray(e[0])||e[0][0]!==op||typeof e[1]!=='function')bad('CODE_CHANGED','Immutable translation differs',pc);cacheStatic(pc,loc,e,op);staticInstructions++;return e[1];}
   if(loc.kind!=='ram'&&!(loc.kind==='rom'&&pc+len>65536))bad('MUTABLE_CODE_UNSUPPORTED','Instruction opcode is not mapped RAM/ROM',pc);
   const raw=[op],refs=[loc];for(let i=1;i<len;i++){const a=(pc+i)&65535,q=location(a);refs.push(q);const byte=q.kind==='unmapped'?0:bus.peek(a);if(!Number.isInteger(byte)||byte<0||byte>255)bad('BUS_RESULT','Invalid code peek',a);raw.push(byte);}
   // Keys include logical PC, exact observed bytes and every physical code page.
@@ -65,7 +75,7 @@ while(cache.size>=limits.cache_entries){forget(cache.keys().next().value);evicti
   const ownedPages=[...new Set(refs.filter(q=>q.kind==='ram').map(q=>q.page))];cache.set(key,{fn,pages:ownedPages,pc,raw});for(const p of ownedPages){if(!pages.has(p))pages.set(p,new Set());pages.get(p).add(key);}return fn;
  }
  function interrupt(vector){r(s.pc);r(s.pc);c.push(s.pc>>>8);c.push(s.pc&255);vector=c.hijack(vector);c.push(c.norm(s.p));s.p|=4;const lo=r(vector),hi=r(vector+1);s.pc=lo|(hi<<8);c.end(7,true);hold=true;}
- function step(){safe();busy=true;try{start();const pc=s.pc;if(!hold&&(pendingNMI||pendingIRQ)){const nmi=pendingNMI;pendingNMI=false;pendingIRQ=false;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return {kind:nmi?'nmi':'irq',pc,cycles:s.cycles-stepStart};}hold=false;pendingIRQ=false;pendingNMI=false;const pre=location(pc);if(pre.kind==='unmapped')bad('MUTABLE_CODE_UNSUPPORTED','Opcode lies on I/O or disabled/uninstalled RAM',pc);const op=r(pc,true),loc=checkedLocation(lastLocation??pre);if(loc.kind==='ram')mutableInstructions++;const fn=translated(pc,op,loc);fn(c);s.instructions++;return {kind:'instruction',pc,cycles:s.cycles-stepStart};}finally{busy=false;}}
+ function step(trace=true){safe();busy=true;try{start();const pc=s.pc;if(!hold&&(pendingNMI||pendingIRQ)){const nmi=pendingNMI;pendingNMI=false;pendingIRQ=false;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return {kind:nmi?'nmi':'irq',pc,cycles:s.cycles-stepStart};}hold=false;pendingIRQ=false;pendingNMI=false;const pre=location(pc);if(pre.kind==='unmapped')bad('MUTABLE_CODE_UNSUPPORTED','Opcode lies on I/O or disabled/uninstalled RAM',pc);const op=r(pc,true),loc=checkedLocation(lastLocation??pre);if(loc.kind==='ram')mutableInstructions++;const fn=translated(pc,op,loc);fn(c);s.instructions++;return trace?{kind:'instruction',pc,cycles:s.cycles-stepStart}:{kind:'instruction',pc,cycles:s.cycles-stepStart,physicalPC:pre.kind==='rom'?pre.physical:null};}finally{busy=false;}}
  function reset(){safe();busy=true;try{start();r(s.pc);r(s.pc);for(let i=0;i<3;i++){r(256+s.sp);s.sp=(s.sp-1)&255;}s.p=c.norm(s.p|4);const lo=r(65532),hi=r(65533);s.pc=lo|(hi<<8);pendingIRQ=false;pendingNMI=false;nmiPending=false;hold=false;c.end(7,true);return {...s};}finally{busy=false;}}
  function setState(v){safe();if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).some(k=>!Object.hasOwn(s,k)))bad('BAD_STATE','Invalid CPU state fields');for(const [k,x]of Object.entries(v))if(!Number.isSafeInteger(x)||x<0||x>(k==='pc'?65535:['cycles','instructions'].includes(k)?Number.MAX_SAFE_INTEGER-8192:255))bad('BAD_STATE','Invalid CPU state value');Object.assign(s,v);s.p=c.norm(s.p);if('p'in v){pendingIRQ=irq&&!(s.p&4);}}
  function run(o={}){safe();if(!o||typeof o!=='object'||Object.keys(o).some(k=>!['maxSteps','maxCycles','maxMs'].includes(k)))bad('BAD_ARGUMENT','Invalid run options');const maxSteps=o.maxSteps??1000,maxCycles=o.maxCycles??100000,maxMs=o.maxMs??1000;for(const [v,max]of [[maxSteps,1000000],[maxCycles,10000000],[maxMs,5000]])if(!Number.isInteger(v)||v<1||v>max)bad('BAD_ARGUMENT','Run bound');const initial=s.cycles,t=performance.now();let steps=0,reason='steps';while(steps<maxSteps){if(s.cycles-initial>=maxCycles){reason='cycles';break;}if(performance.now()-t>=maxMs){reason='time';break;}step();steps++;}return {steps,cycles:s.cycles-initial,reason,state:{...s}};}

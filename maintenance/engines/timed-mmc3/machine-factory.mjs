@@ -48,13 +48,15 @@ function createMachine(options={}) {
  }
  function captureNMI(){if(facade.nmiRaised||facade.nmiPending){nmiQueued=true;nmiSerial++;facade.nmiRaised=false;facade.nmiPending=false;metrics.nmiEdges++;}}
  function sync(){captureNMI();}
- function clockTo(target){
-  int(target,cycles,Number.MAX_SAFE_INTEGER-8192,'clock target');if(target-cycles>8192)bad('CLOCK_LIMIT','Clock advance exceeds bound');
-  while(cycles<target){
+ function clockOne(){
+  if(cycles>=Number.MAX_SAFE_INTEGER-8192)bad('BAD_ARGUMENT','clock target');
    gateSupported();nes.ppu.advanceDots(3);nes.papu.clockFrameCounter(1);cycles++;facade._cpuCycleBase=cycles;captureNMI();
    if(frameReset&&cycles>=frameReset.at){const p=nes.papu;p.countSequence=frameReset.mode;p.frameCycleCounter=0;p.frameStep=0;if(frameReset.mode){p.clockQuarterFrame();p.clockHalfFrame();}frameReset=null;}
    if(nes.ppu.frameEnded){nes.ppu.frameEnded=false;nes.controllers[1].clock();nes.controllers[2].clock();nes.ppu.startFrame();}
-  }
+ }
+ function clockTo(target){
+  int(target,cycles,Number.MAX_SAFE_INTEGER-8192,'clock target');if(target-cycles>8192)bad('CLOCK_LIMIT','Clock advance exceeds bound');
+  while(cycles<target)clockOne();
  }
  function completeClock(t){clockTo(t);base.advanceCPUClock(t);metrics.clockCompletions++;}
  function idle(n){clockTo(cycles+n);if(mmc)base.advanceCPUClock(cycles);}
@@ -82,7 +84,7 @@ function createMachine(options={}) {
    const binding=bindOwnedPPU(base,e);installOwnedDotPPU(nes,base,ppuPeek,ppuWrite,e,binding);
   }
  function writeCPU(a,v,t,dma=false){
-  int(t,cycles,Number.MAX_SAFE_INTEGER-8192,'absolute write cycle');clockTo(t);
+  int(t,cycles,Number.MAX_SAFE_INTEGER-8192,'absolute write cycle');if(t!==cycles)clockTo(t);
   const cartridge=a>=32768,before=tracing&&cartridge?base.getMapperState():null,visible=tracing&&cartridge?base.peek(a):null;
   base.write(a,v,t);facade.dataBus=v;
   if(tracing&&!dma){const w={address:a,value:v,cycle:t,deviceCycle:cycles};stepWrites.push(w);if(stepWrites.length>8)bad('DEVICE_CONTRACT','Unexpected CPU write count');lastWrites.push(w);if(lastWrites.length>32)lastWrites.shift();}
@@ -106,9 +108,9 @@ function createMachine(options={}) {
   nes.mmap=new DeviceRegisters(nes);nes.ppu=new PPU(nes);nes.papu=new PAPU(nes);base=createBus({read:readIO,write:writeIO,peek:peekIO});
    const irqLine=()=>Boolean((nes.papu.frameIrqEnabled&&nes.papu.frameIrqActive)||nes.papu.dmc.irqGenerated||base.getIRQ?.());
    bus=composeBus(base,{
-    readCycle(a){facade.instrBusCycles++;gateSupported();const location=base.codeLocation(a),value=base.read(a);facade.dataBus=value;clockTo(cycles+1);if(mmc)base.advanceCPUClock(cycles);return {value,location,elapsed:1};},
-     readDataCycle(a){facade.instrBusCycles++;gateSupported();const value=base.read(a);facade.dataBus=value;clockTo(cycles+1);if(mmc)base.advanceCPUClock(cycles);return {value,location:null,elapsed:1};},
-    writeCycle(a,v){facade.instrBusCycles++;writeCPU(a,v,cycles);clockTo(cycles+1);if(mmc)base.advanceCPUClock(cycles);return 1;},
+    readCycle(a){facade.instrBusCycles++;gateSupported();const location=base.codeLocation(a),value=base.read(a);facade.dataBus=value;clockOne();if(mmc)base.advanceCPUClock(cycles);return {value,location,elapsed:1};},
+     readDataCycle(a){facade.instrBusCycles++;gateSupported();const value=base.read(a);facade.dataBus=value;clockOne();if(mmc)base.advanceCPUClock(cycles);return {value,location:null,elapsed:1};},
+    writeCycle(a,v){facade.instrBusCycles++;writeCPU(a,v,cycles);clockOne();if(mmc)base.advanceCPUClock(cycles);return 1;},
     getInterruptLines:()=>({irq:irqLine(),nmiSerial})
    });
   nes.mmap.load=a=>{const v=base.read(a);facade.dataBus=v;return v;};
@@ -134,9 +136,9 @@ function createMachine(options={}) {
  function step(trace=true){
   healthy();tracing=trace;try{
    const before=cycles;facade.instrBusCycles=0;facade.apuCatchupCycles=0;facade._cpuCycleBase=cycles;stepWrites.length=0;sync();
-   const pc=cpu.getPC(),mappingBefore=trace?base.getMapperState():null,physicalPC=pc>=32768?base.mapPRG(pc):null;
-   busy=true;let r;try{r=cpu.step();}finally{busy=false;}if(!mmc)clockTo(before+r.cycles);
-   if(r.kind==='instruction'){metrics.translatedInstructions++;if(physicalPC!==null){const bank=physicalPC>>>13,index=((pc-32768)>>>13)*metadata.prgBanks+bank;metrics.bankInstructions[index]++;}}else if(r.kind==='nmi')metrics.nmiEntries++;else if(r.kind==='irq')metrics.irqEntries++;
+   const pc=trace?cpu.getPC():0,mappingBefore=trace?base.getMapperState():null,physicalPC=trace&&pc>=32768?base.mapPRG(pc):null;
+   busy=true;let r;try{r=cpu.step(trace);}finally{busy=false;}if(!mmc)clockTo(before+r.cycles);
+   if(r.kind==='instruction'){metrics.translatedInstructions++;const physical=trace?physicalPC:r.physicalPC,logical=trace?pc:r.pc;if(physical!==null){const bank=physical>>>13,index=((logical-32768)>>>13)*metadata.prgBanks+bank;metrics.bankInstructions[index]++;}}else if(r.kind==='nmi')metrics.nmiEntries++;else if(r.kind==='irq')metrics.irqEntries++;
    drain();sync();if(trace){invariant();return {kind:r.kind,pc:r.pc,cycles:cycles-before,physicalPC,mappingBefore,mappingAfter:base.getMapperState(),writes:stepWrites.map(w=>({...w}))};}
   }catch(e){busy=false;fault=e.code||'DEVICE_ERROR';throw e;}finally{tracing=false;}
  }
