@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {componentPins,verifySharedComponents} from './nes-shared-components.mjs';
 import {canonical,validateManifest} from '../htdocs/games/arcade/package-contract.mjs';
 
 const hash=b=>createHash('sha256').update(b).digest('hex');
@@ -20,7 +21,7 @@ export function auditCapabilities(root){
  };
  const catalog=JSON.parse(read('/games/arcade/catalog.json')),registry=JSON.parse(read('/games/engines/nes/registry.json'));
  insist(registry.format==='nes-engine-registry/1'&&Array.isArray(catalog),'Registry/catalog format');
- const rows=[];
+ const rows=[],components=componentPins(root);
  for(const row of catalog){
   const envelope=JSON.parse(read(row.manifest)),p=validateManifest(envelope.manifest);
   insist(p.id===row.id&&envelope.artifactDigest===row.artifactDigest&&hash(canonical(p))===row.artifactDigest,'Package identity mismatch');
@@ -28,6 +29,8 @@ export function auditCapabilities(root){
   const c=JSON.parse(read(p.route+'composition.json')),selected=registry.selections[canonical(c.requirements)];
   insist(selected,'Unsupported cartridge execution contract: '+p.id);
   insist(canonical(c.binding.engineManifest)===canonical(selected.manifest),'Stale engine selection: '+p.id);
+  const engine=JSON.parse(authenticate(selected.manifest.path,selected.manifest));
+  const sharedEngineComponents=verifySharedComponents(engine,components);
   const cartridge=JSON.parse(read(c.binding.cartridgeManifest.path));
   insist(canonical(cartridge.requirements)===canonical(c.requirements),'Cartridge requirements mismatch');
   for(const pin of Object.values(c.binding))insist(canonical(p.files[pin.path])===canonical({bytes:pin.bytes,sha256:pin.sha256}),'Unbound composition member');
@@ -40,7 +43,7 @@ export function auditCapabilities(root){
   insist(missing.length===0,'Missing shared upgrades: '+p.id+' '+missing.join(', '));
   const battery=c.requirements.battery;
   if(battery)for(const name of ['battery-client.mjs','battery-codec.mjs'])insist(reachable.has('/games/arcade/'+name),'Missing shared battery component: '+p.id);
-  rows.push({id:p.id,requirements:c.requirements,engine:selected.manifest.path,sharedComponents:shared,batteryPersistence:battery,artifactDigest:row.artifactDigest});
+  rows.push({id:p.id,requirements:c.requirements,engine:selected.manifest.path,sharedComponents:shared,sharedEngineComponents,batteryPersistence:battery,artifactDigest:row.artifactDigest});
  }
  return {format:'nes-capability-audit/1',pass:true,games:rows,registeredMappers:[...new Set(Object.keys(registry.selections).map(k=>JSON.parse(k).mapper))].sort(),scope:'Authenticates current packages and verifies each selected engine and shared upgrade is actually reachable. Does not establish hardware equivalence, gameplay completeness, save-state support or performance.'};
 }

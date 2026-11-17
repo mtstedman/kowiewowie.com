@@ -35,7 +35,7 @@ The exact executing assembler ships as maintenance/romjs-shared-engine-release-a
 
 Run: node maintenance/romjs-shared-engine-release-assembler.mjs < /external/release-input.json
 
-Input JSON fields: root (current emitted modular site), output_directory (fresh disjoint directory), source_inventory (external JSON file), source_inventory_sha256, acorn_module, acorn_sha256, release (increasing stable same-major semver), edits ([{path,before_sha256,file,sha256}]). Optional support_additions adds pinned new tests/maintenance .mjs files under the same path restrictions. Optional support_edits can also update package.json scripts while preserving dependencies and other fields. Optional support_edits uses pinned edits for existing tests/maintenance .mjs files (excluding history and this assembler, which is copied from the executing source). Optional shell_additions accepts [{path,file,sha256}] for new /games/arcade/*.mjs modules reachable from the final authenticated package graphs. Optional shell_edits uses the same edit schema for existing executable package members outside cartridge and engine trees, plus the authenticated loader. Shell changes are validated before mutation and included in package graphs, bindings and immutable history. All SHA256 values must be independently trusted lowercase hex. An edit path is the CURRENT /games/engines/nes/<release>/common/<hash>.mjs or composer.mjs URL; file is the external edited source file. Never use the pre-extraction baseline.
+Input JSON fields: root (current emitted modular site), output_directory (fresh disjoint directory), source_inventory (external JSON file), source_inventory_sha256, acorn_module, acorn_sha256, release (increasing stable same-major semver), edits ([{path,before_sha256,file,sha256}]). Optional admissions accepts [{root,sha256}] for fresh nes-engine-admission/1 bundles, authenticating all new engine/cartridge members and recording catalog changes in successor history. Admission does not establish gameplay qualification. Optional support_additions adds pinned new tests/maintenance .mjs files under the same path restrictions. Optional support_edits can also update package.json scripts while preserving dependencies and other fields. Optional support_edits uses pinned edits for existing tests/maintenance .mjs files (excluding history and this assembler, which is copied from the executing source). Optional shell_additions accepts [{path,file,sha256}] for new /games/arcade/*.mjs modules reachable from the final authenticated package graphs. Optional shell_edits uses the same edit schema for existing executable package members outside cartridge and engine trees, plus the authenticated loader. Shell changes are validated before mutation and included in package graphs, bindings and immutable history. All SHA256 values must be independently trusted lowercase hex. An edit path is the CURRENT /games/engines/nes/<release>/common/<hash>.mjs or composer.mjs URL; file is the external edited source file. Never use the pre-extraction baseline.
 
 Inventory format: {"format":"nes-release-source/1","files":{"relative/path":{"bytes":123,"sha256":"<trusted SHA256>"}}}. Cover every regular source file exactly, including maintenance scripts and history. Regenerate and authenticate this inventory before EACH release; do not reuse an earlier inventory. Supply a fresh output path for every run.
 
@@ -78,7 +78,7 @@ read=p=>{key(p);if(Object.hasOwn(r.added,p))return undefined;const c=r.changes[p
 return {base,baseBytes,previous,preMigration:verifyMigration(read,exists,baseBytes)};
 }
 async function main(input){
-keys(input,['root','output_directory','source_inventory','source_inventory_sha256','acorn_module','acorn_sha256','release','edits','shell_edits','shell_additions','support_edits','support_additions']);
+keys(input,['root','output_directory','source_inventory','source_inventory_sha256','acorn_module','acorn_sha256','release','edits','shell_edits','shell_additions','support_edits','support_additions','admissions']);
 const root=absolute(input.root);ok(lstatSync(root).isDirectory(),'Root directory required');
 const out=resolve(input.output_directory);ok(!existsSync(out)&&!inside(root,out)&&!inside(out,root)&&out!==root,'Output must be fresh and disjoint');absolute(dirname(out));
 const inventoryPath=absolute(input.source_inventory);ok(!inside(root,inventoryPath)&&!inside(out,inventoryPath),'Inventory must be external');
@@ -127,7 +127,7 @@ const oldRelease=registry.release,oldBase='/games/engines/nes/'+oldRelease+'/',n
 const oldV=semver(oldRelease),newV=semver(input.release);ok(newV[0]===oldV[0]&&(newV[1]>oldV[1]||newV[1]===oldV[1]&&newV[2]>oldV[2]),'Fresh increasing compatible semver required');ok(!paths.some(p=>p.startsWith('htdocs'+newBase)),'Release URL already exists');
 const releaseManifest=JSON.parse(decode(authReceipt(registry.releaseManifest)));ok(releaseManifest.format==='nes-engine-release/1'&&releaseManifest.release===oldRelease&&obj(releaseManifest.engines),'Invalid current release');
 for(const [url,p]of Object.entries(releaseManifest.engines))authenticate(url,p);
-const editMap=new Map(),editReceipts=[];ok(Array.isArray(input.edits)&&input.edits.length>0&&input.edits.length<=64,'1..64 edits required');
+const editMap=new Map(),editReceipts=[];ok(Array.isArray(input.edits)&&(input.edits.length>0||input.admissions?.length)&&input.edits.length<=64,'1..64 edits or an admission required');
 for(const e of input.edits){keys(e,['path','before_sha256','file','sha256']);web(e.path);ok(e.path.startsWith(oldBase)&&(e.path===oldBase+'composer.mjs'||/^common\/[a-f0-9]{64}\.mjs$/.test(e.path.slice(oldBase.length))),'Only current shared factory/composer edits supported');ok(!editMap.has(e.path),'Duplicate edit');const original=source(web(e.path));ok(hex(e.before_sha256)&&hash(original)===e.before_sha256,'Before hash mismatch: '+e.path);const f=absolute(e.file);ok(!inside(root,f)&&!inside(out,f),'Edited source must be external');const b=readFile(f);ok(hex(e.sha256)&&hash(b)===e.sha256,'Edited source hash mismatch');ok(!b.equals(original),'Edit must change bytes');ast(decode(b));if(e.path!==oldBase+'composer.mjs')factoryShape(decode(b));editMap.set(e.path,b);editReceipts.push({path:e.path,before:pin(original),file:f,after:pin(b)});}
 // Validate current concrete compositions before changing the mutable registry.
 const catalogPath='htdocs/games/arcade/catalog.json',clientPath='htdocs/games/netplay/catalog.json',serverPath='includes/api/classes/netplay-catalog.json',phpPath='includes/api/classes/NetplayPolicy.php';
@@ -200,6 +200,41 @@ if(n.type==='VariableDeclaration')for(const d of n.declarations){if(d.id.name===
 ok(graphDeclarations===1,'Unsupported entry graph declaration');const newEntry=patch(oldEntry,patches);ast(newEntry);
 const core={...em,graph,files:Object.fromEntries([...factoryURLs.entries()].sort(([a],[b])=>a.localeCompare(b)))};const graphDigest=hash(canonical(core)),variant=posix.basename(posix.dirname(posix.dirname(s.manifest.path)));key(variant);const manifestURL=newBase+variant+'/'+graphDigest+'/engine-manifest.json',entryURL=posix.dirname(manifestURL)+'/entry.mjs';put(web(entryURL),newEntry);core.files[entryURL]=pin(get(web(entryURL)));core.files[newComposer]=pin(composer);putJSON(web(manifestURL),core);const choice={manifest:receipt(web(manifestURL)),entry:receipt(web(entryURL))};if(selected.has(selector))ok(equal(selected.get(selector),choice),'Ambiguous compatible selection');selected.set(selector,choice);newEngines[manifestURL]=pin(get(web(manifestURL)));}
 ok([...editMap.keys()].every(p=>consumed.has(p)),'Edit is outside the selected release closure');
+// Admit new cartridges only from a separately pinned, disjoint bundle. Existing
+// cartridges and immutable release files remain protected by put().
+const admissionReceipts=[];
+ok(input.admissions===undefined||Array.isArray(input.admissions)&&input.admissions.length<=8,'At most 8 admissions');
+for(const item of input.admissions??[]){
+ keys(item,['root','sha256']);const ar=absolute(item.root);ok(!inside(root,ar)&&!inside(out,ar)&&ar!==root&&ar!==out,'Admission must be external');
+ const raw=readFile(join(ar,'admission.json'));ok(hex(item.sha256)&&hash(raw)===item.sha256,'Admission authentication failed');const a=JSON.parse(decode(raw));
+ ok(a.format==='nes-engine-admission/1'&&a.release===input.release&&obj(a.files)&&obj(a.packageManifest)&&obj(a.cartridge)&&obj(a.binding),'Admission format');
+ const id=a.packageManifest.id;ok(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)&&!seen.has(id),'Duplicate or invalid admitted cartridge');
+ const base='htdocs/games/'+id+'/',urlBase='/games/'+id+'/',selector=canonical(a.requirements);ok(!paths.some(p=>p.startsWith(base))&&!selected.has(selector),'Admission already exists');
+ ok(a.packageManifest.route===urlBase&&a.packageManifest.entry===urlBase+'host-entry.mjs'&&a.cartridge.id===id&&equal(a.cartridge.requirements,a.requirements),'Admission identity mismatch');
+ ok(a.binding.packageId===id&&a.binding.route===urlBase&&a.binding.capabilities.nativePlayers===a.packageManifest.capabilities.nativePlayers&&a.binding.capabilities.play===a.packageManifest.capabilities.play,'Admission network policy mismatch');
+ ok(Object.keys(a.files).length<=512,'Admission file count');let bytes=0;
+ for(const [url,p]of Object.entries(a.files)){
+  const target=web(url);ok((target.startsWith(base)||url.startsWith(newBase))&&!present.has(target),'Admission escapes fresh cartridge/engine');
+  const b=readFile(join(ar,target));ok(equal(pin(b),p),'Admission member authentication: '+url);bytes+=b.length;ok(bytes<=134217728,'Admission size');
+  if(changes.has(target))ok(get(target).equals(b),'Admission collision');
+  else if(target.startsWith(base+'cartridge/')){changes.set(target,b);generated.set(target,pin(b));}
+  else put(target,b);
+ }
+ ok(a.engineManifest.startsWith(newBase)&&a.engineEntry===posix.dirname(a.engineManifest)+'/entry.mjs','Admission engine layout');
+ const em=json(web(a.engineManifest));compatible(em,a.requirements);const nodeKeys=em.graph.nodes.map(n=>n.key);
+ ok(new Set(nodeKeys).size===nodeKeys.length&&nodeKeys.includes(em.graph.entry),'Admission graph');
+ for(const n of em.graph.nodes){key(n.key);ok(hex(n.factory)&&n.dependencies.every(d=>d==='$data'||nodeKeys.includes(d)),'Admission dependency');const url=newBase+'common/'+n.factory+'.mjs',b=authenticate(url,em.files[url]);ok(hash(b)===n.factory,'Admission factory identity');factoryShape(decode(b));ok(!edges(decode(b),url).length,'Admission factory imports');}
+ const expected=[a.engineEntry,...new Set(em.graph.nodes.map(n=>newBase+'common/'+n.factory+'.mjs'))].sort();ok(equal(Object.keys(em.files).sort(),expected),'Admission engine closure');for(const [url,p]of Object.entries(em.files))authenticate(url,p);
+ em.files[newBase+'composer.mjs']=pin(get(web(newBase+'composer.mjs')));putJSON(web(a.engineManifest),em);
+ const choice={manifest:receipt(web(a.engineManifest)),entry:receipt(web(a.engineEntry))};selected.set(selector,choice);newEngines[a.engineManifest]={bytes:choice.manifest.bytes,sha256:choice.manifest.sha256};
+ const cartPath=base+'cartridge/cartridge-manifest.json';ok(equal(json(cartPath),a.cartridge),'Admission cartridge mismatch');
+ const m={...a.packageManifest,files:Object.fromEntries(Object.entries(a.files).filter(([url])=>url.startsWith(urlBase)))};
+ const row={id,manifest:urlBase+'game-package.json',artifactDigest:null},side={format:'nes-composition/1',requirements:a.requirements,binding:{cartridgeManifest:receipt(cartPath)},moduleGraph:{}};
+ const g={row,packagePath:base+'game-package.json',envelope:{manifest:m,artifactDigest:null},m,base,sidePath:base+'composition.json',side,cart:a.cartridge,selector,selection:choice,engine:em,networkPath:base+'network-package.json',legacy:null,admitted:true};
+ games.push(g);catalog.push(row);seen.add(id);network.packages[id]=a.binding;
+ audit.push({id,legacyNetworkEnvelope:false,abi:em.abi,requirements:a.requirements,board:a.cartridge.board,nativePlayers:m.capabilities.nativePlayers,play:m.capabilities.play,cartridgeFiles:Object.fromEntries(Object.keys(a.files).filter(url=>url.startsWith(urlBase+'cartridge/')).map(url=>[web(url),a.files[url]]))});
+ admissionReceipts.push({id,...pin(raw),source:a.source});
+}
 const newReleasePath=web(newBase+'release.json');putJSON(newReleasePath,{format:'nes-engine-release/1',release:input.release,engines:newEngines});putJSON(registryPath,{...registry,release:input.release,releaseManifest:receipt(newReleasePath),selections:Object.fromEntries(selected)});
 function collect(entry){const result={},active=new Set();function visit(url){ok(!active.has(url),'Unsupported executable cycle: '+url);if(Object.hasOwn(result,url))return;active.add(url);const e=edges(decode(get(web(url))),url);result[url]=e;for(const x of e)visit(x.target);active.delete(url);}visit(entry);return result;}
 const gameReceipts=[];
@@ -223,7 +258,7 @@ put('maintenance/ENGINE-RELEASE.md',MAINTENANCE_USAGE);
 // Prepare all output only after authentication and assembly succeed. Old releases remain byte-identical.
 const changed={},added={},preserved={};for(const p of paths){const before=inventory.files[p],after=pin(get(p));if(equal(before,after))preserved[p]=after;else {ok(!p.startsWith('htdocs'+oldBase),'Immutable historical release changed');ok(!p.split('/').includes('cartridge'),'Cartridge byte changed');changed[p]={before,after};}}for(const [p,b]of changes)if(!Object.hasOwn(inventory.files,p))added[p]=pin(b);
 const receiptPath='receipts/engine-release-'+input.release+'.json';ok(!Object.hasOwn(inventory.files,receiptPath),'Release receipt already exists');
-const report={format:'nes-engine-assembly-receipt/1',mode:'STANDARD',release:input.release,sourceInventory:{path:inventoryPath,...pin(inventoryBytes)},parser:pin(parserBytes),edits:editReceipts,shellEdits:shellReceipts,shellAdditions:shellAdditions,supportEdits,games:gameReceipts,changed,preserved,added,executedTests:[],checks:['exact authenticated source tree','current package and engine closures','exact ABI/capability/profile selectors','current arcade/client/server identity equality','authenticated and refreshed optional legacy envelopes only when present','collective mandatory source dependency preflight','preserved cartridge trees and old releases'],remainingGates:['Execute neutral source edit and import the actual emitted new engine/composition','Execute rejection tests for before/source hash mismatch and incompatible ABI','Browser authenticated loader/bootstrap and worker loading','PHP current and superseded binding replay'],limits:{sourceBytes:1073741824,memberBytes:67108864,generatedBytes:268435456,packageBytes:268435456,packageFiles:1024}};
+const report={format:'nes-engine-assembly-receipt/1',mode:'STANDARD',release:input.release,sourceInventory:{path:inventoryPath,...pin(inventoryBytes)},parser:pin(parserBytes),edits:editReceipts,admissions:admissionReceipts,shellEdits:shellReceipts,shellAdditions:shellAdditions,supportEdits,games:gameReceipts,changed,preserved,added,executedTests:[],checks:['exact authenticated source tree','current package and engine closures','exact ABI/capability/profile selectors','current arcade/client/server identity equality','authenticated and refreshed optional legacy envelopes only when present','collective mandatory source dependency preflight','preserved cartridge trees and old releases'],remainingGates:['Execute neutral source edit and import the actual emitted new engine/composition','Execute rejection tests for before/source hash mismatch and incompatible ABI','Browser authenticated loader/bootstrap and worker loading','PHP current and superseded binding replay'],limits:{sourceBytes:1073741824,memberBytes:67108864,generatedBytes:268435456,packageBytes:268435456,packageFiles:1024}};
 const regressionPath='tests/engine-release-'+input.release+'.mjs';ok(!Object.hasOwn(inventory.files,regressionPath),'Release regression already exists');
 put(regressionPath,REGRESSION);added[regressionPath]=pin(get(regressionPath));
 putJSON(receiptPath,report);
@@ -287,7 +322,7 @@ const fixtureRequired=fixturePreflight();assert.ok(fixtureRequired.has(retained)
 fixture.delete('htdocs'+current);assert.throws(fixturePreflight,e=>e.message==='Missing mandatory source dependencies: '+JSON.stringify(['htdocs'+current]),'Current package dependencies remain mandatory');
 const beforeFiles=files(root),afterFiles=files(out);
 const protectedPaths=beforeFiles.filter(p=>p.split('/').includes('cartridge')||/\.(nes|rom)$/i.test(p)||/(^|\/)bank-[^/]+$/.test(p));
-assert.deepEqual(afterFiles.filter(p=>p.split('/').includes('cartridge')||/\.(nes|rom)$/i.test(p)||/(^|\/)bank-[^/]+$/.test(p)),protectedPaths);
+assert(protectedPaths.every(p=>afterFiles.includes(p)),'Existing cartridge members must remain');
 for(const p of protectedPaths)assert.deepEqual(read(root,p),read(out,p),p);
 const old=json(root,'htdocs/games/engines/nes/registry.json'),next=json(out,'htdocs/games/engines/nes/registry.json');
 assert.notEqual(next.release,old.release);
@@ -297,8 +332,10 @@ assert.deepEqual(read(out,'htdocs/games/netplay/catalog.json'),read(out,'include
 assert.ok(read(out,'includes/api/classes/NetplayPolicy.php').toString().includes("private const DIGEST='"+hash(read(out,'includes/api/classes/netplay-catalog.json'))+"'"));
 let affected=0,loadedEdits=0,legacyPresent=0,legacyAbsent=0;
 for(const e of input.edits){if(!e.path.includes('/common/'))continue;const oldFactory=await import(pathToFileURL(join(root,'htdocs'+e.path)).href);const newURL='/games/engines/nes/'+input.release+'/common/'+e.sha256+'.mjs';assert.equal(hash(read(out,'htdocs'+newURL)),e.sha256);const newFactory=await import(pathToFileURL(join(out,'htdocs'+newURL)).href);assert.notEqual(Function.prototype.toString.call(newFactory.instantiate),Function.prototype.toString.call(oldFactory.instantiate),'Neutral probe must change bytes INSIDE instantiate to prove loaded code changed');loadedEdits++;}
-assert.ok(loadedEdits>0,'Supply a neutral shared factory edit, not only composer edits');
-for(const row of catalog){const p='htdocs'+row.manifest,before=json(root,p),after=json(out,p),base=dirname(p),side=json(out,base+'/composition.json'),prior=json(root,base+'/composition.json');assert.notEqual(after.artifactDigest,before.artifactDigest);assert.equal(hash(canonical(after.manifest)),after.artifactDigest);assert.equal(row.artifactDigest,after.artifactDigest);assert.equal(client.packages[row.id].artifactDigest,after.artifactDigest);const legacyPath=base+'/network-package.json',hasLegacy=existsSync(join(root,legacyPath));assert.equal(existsSync(join(out,legacyPath)),hasLegacy,'Optional legacy envelope presence changed');
+assert.ok(loadedEdits>0||input.admissions?.length,'Supply a neutral shared factory edit or an admission');
+for(const row of catalog){const p='htdocs'+row.manifest;
+if(!existsSync(join(root,p))){assert(input.admissions?.length);const fresh=json(out,p);assert.equal(fresh.artifactDigest,row.artifactDigest);for(const [url,pin]of Object.entries(fresh.manifest.files)){const b=read(out,'htdocs'+url);assert.equal(b.length,pin.bytes);assert.equal(hash(b),pin.sha256);}const m=await import(pathToFileURL(join(out,dirname(p),'composition-entry.mjs')));const machine=m.createMachine();machine.step();machine.dispose?.();continue;}
+const before=json(root,p),after=json(out,p),base=dirname(p),side=json(out,base+'/composition.json'),prior=json(root,base+'/composition.json');assert.notEqual(after.artifactDigest,before.artifactDigest);assert.equal(hash(canonical(after.manifest)),after.artifactDigest);assert.equal(row.artifactDigest,after.artifactDigest);assert.equal(client.packages[row.id].artifactDigest,after.artifactDigest);const legacyPath=base+'/network-package.json',hasLegacy=existsSync(join(root,legacyPath));assert.equal(existsSync(join(out,legacyPath)),hasLegacy,'Optional legacy envelope presence changed');
 assert.deepEqual(read(root,base+'/netplay-binding.mjs'),read(out,base+'/netplay-binding.mjs'));
 if(hasLegacy){legacyPresent++;const priorLegacy=json(root,legacyPath),legacy=json(out,legacyPath);assert.equal(legacy.artifactDigest,after.artifactDigest);assert.deepEqual(legacy.binding,client.packages[row.id]);const extras=v=>Object.fromEntries(Object.entries(v).filter(([k])=>k!=='binding'&&k!=='artifactDigest'));assert.deepEqual(extras(legacy),extras(priorLegacy));}else legacyAbsent++;
 for(const [url,pin]of Object.entries(after.manifest.files)){const b=read(out,'htdocs'+url);assert.equal(b.length,pin.bytes);assert.equal(hash(b),pin.sha256);}
@@ -310,7 +347,7 @@ assert.throws(()=>engine.createMachine({...cartridge,requirements:{...cartridge.
 const composed=await import(pathToFileURL(join(out,base,'composition-entry.mjs')).href);
 const a=composed.createMachine(),b=engine.createMachine(cartridge);assert.deepEqual(a.getState(),b.getState());assert.equal(a.checkInterpreterGuard(),true);assert.equal(b.checkInterpreterGuard(),true);a.step();b.step();assert.deepEqual(a.getState(),b.getState());a.dispose?.();b.dispose?.();if(impacted)affected++;
 }
-assert.ok(affected>0,'Edit must affect an actually composed engine');
+assert.ok(affected>0||input.admissions?.length,'Edit must affect an actually composed engine');
 assert.ok(legacyPresent>0&&legacyAbsent>0,'Integration fixture must cover both present and intentionally absent optional legacy envelopes');
 const history=await import(pathToFileURL(join(out,'tests/shared-engine-history.mjs')).href);
 history.verifySharedEngineMigration();history.sharedEngineHistoricalRead();
@@ -320,7 +357,7 @@ const priorView=history.releasePriorView();priorHistory.verifySharedEngineMigrat
 assert.throws(()=>history.verifySharedEngineMigration(p=>p===history.maintenanceHead.path?Buffer.from('{}'):read(out,p),p=>existsSync(join(out,p))),/history receipt mismatch/);
 for(const [p,expected]of Object.entries(json(out,'tests/arcade-runtime-source-pins.json').files)){const b=read(out,p);assert.equal(b.length,expected.bytes,p);assert.equal(hash(b),expected.sha256,p);}
 const audit=json(out,'compatibility-audit.json');
-for(const row of catalog){const a=audit.find(a=>a.id===row.id),base=dirname('htdocs'+row.manifest),side=json(out,base+'/composition.json');assert.equal(a.artifactDigest,row.artifactDigest);assert.deepEqual(a.engineManifest,side.binding.engineManifest);assert.deepEqual(a.requirements,side.requirements);for(const [p,expected]of Object.entries(a.cartridgeFiles)){assert.deepEqual(read(root,p),read(out,p));assert.equal(hash(read(out,p)),expected.sha256);}}
+for(const row of catalog){const a=audit.find(a=>a.id===row.id),base=dirname('htdocs'+row.manifest),side=json(out,base+'/composition.json');assert.equal(a.artifactDigest,row.artifactDigest);assert.deepEqual(a.engineManifest,side.binding.engineManifest);assert.deepEqual(a.requirements,side.requirements);for(const [p,expected]of Object.entries(a.cartridgeFiles)){if(existsSync(join(root,p)))assert.deepEqual(read(root,p),read(out,p));else assert(input.admissions?.length);assert.equal(hash(read(out,p)),expected.sha256);}}
 for(const p of beforeFiles.filter(p=>p.startsWith('receipts/')&&p!=='receipts/engine-maintenance-history.json'))assert.deepEqual(read(root,p),read(out,p),p);
 assert.deepEqual(read(out,'maintenance/romjs-shared-engine-release-assembler.mjs'),readFileSync(runner));
 // Rejection calls never run edited source and must fail before creating their output.
@@ -329,7 +366,7 @@ for(const [label,mutate,pattern]of [
 ['source',v=>{v.source_inventory_sha256='0'.repeat(64);},/Source inventory authentication failed/],
 ['edit-source',v=>{v.edits[0].sha256='0'.repeat(64);},/Edited source hash mismatch/],
 ['abi-major',v=>{v.release=(Number(old.release.split('.')[0])+1)+'.0.0';},/compatible semver/]
-]){const v=structuredClone(input);v.output_directory=join(dirname(out),'rejection-'+next.release+'-'+label);assert.ok(!existsSync(v.output_directory));mutate(v);const r=spawnSync(process.execPath,[runner],{input:JSON.stringify(v),encoding:'utf8',timeout:120000,maxBuffer:1048576});assert.ifError(r.error);assert.notEqual(r.status,0,label);assert.match(r.stderr,pattern);assert.ok(!existsSync(v.output_directory),'Rejected input created output');}
+]){if(!input.edits.length&&['before','edit-source'].includes(label))continue;const v=structuredClone(input);v.output_directory=join(dirname(out),'rejection-'+next.release+'-'+label);assert.ok(!existsSync(v.output_directory));mutate(v);const r=spawnSync(process.execPath,[runner],{input:JSON.stringify(v),encoding:'utf8',timeout:120000,maxBuffer:1048576});assert.ifError(r.error);assert.notEqual(r.status,0,label);assert.match(r.stderr,pattern);assert.ok(!existsSync(v.output_directory),'Rejected input created output');}
 // Omit several mandatory files from a virtual source tree and its authenticated inventory.
 // Keep original inventory separately to cover stale inventories as well as regenerated ones.
 const missingTemp=mkdtempSync(join(tmpdir(),'nes-engine-missing-'));
@@ -340,7 +377,7 @@ for(const p of beforeFiles){if(missingPaths.includes(p))continue;const target=jo
 for(const stale of [false,true]){const v=structuredClone(input);v.root=missingRoot;v.output_directory=join(missingTemp,stale?'stale-output':'current-output');
 if(!stale){const inv={format:'nes-release-source/1',files:Object.fromEntries(files(missingRoot).map(p=>{const b=read(missingRoot,p);return [p,{bytes:b.length,sha256:hash(b)}];}))},bytes=Buffer.from(JSON.stringify(inv));v.source_inventory=join(missingTemp,'inventory.json');writeFileSync(v.source_inventory,bytes,{flag:'wx'});v.source_inventory_sha256=hash(bytes);}
 const result=spawnSync(process.execPath,[runner],{input:JSON.stringify(v),encoding:'utf8',timeout:120000,maxBuffer:1048576});assert.ifError(result.error);assert.notEqual(result.status,0);assert.match(result.stderr,/Missing mandatory source dependencies:/);const reported=JSON.parse(result.stderr.trim().split('Missing mandatory source dependencies: ')[1]);for(const p of missingPaths)assert.ok(reported.includes(p),'Missing collective diagnostic: '+p);for(const row of catalog){const p=dirname('htdocs'+row.manifest)+'/network-package.json';if(!existsSync(join(root,p)))assert.ok(!reported.includes(p),'Optional absence reported as mandatory');}assert.ok(!existsSync(v.output_directory),'Preflight failure created output');}
-if(process.argv[4]!=='--single'){
+if(process.argv[4]!=='--single'&&input.edits.length){
 const temp=mkdtempSync(join(tmpdir(),'nes-engine-successor-')),e=input.edits.find(e=>e.path.includes('/common/'));assert.ok(e);
 const currentURL='/games/engines/nes/'+input.release+'/common/'+e.sha256+'.mjs',bytes=read(out,'htdocs'+currentURL),text=bytes.toString();
 const parserBytes=readFileSync(input.acorn_module);assert.equal(hash(parserBytes),input.acorn_sha256);const parser=await import('data:text/javascript;base64,'+parserBytes.toString('base64'));

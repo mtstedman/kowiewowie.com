@@ -43,6 +43,7 @@ function verifyInertBank(text,label){
  insist(body.length>=5,'Incomplete translated bank: '+label);
  insist(same(body[0],'const B=Object.create(null);'),'Unsupported bank declaration: '+label);
  const suffixes=[
+  'function f(e){if(e.cross){for(const v of Object.values(e.cross))f(v);Object.freeze(e.cross);}else Object.freeze(e[0]);Object.freeze(e);}',
   'function f(e){if(e.cross){for(const x of Object.values(e.cross))f(x);Object.freeze(e.cross);}else Object.freeze(e[0]);Object.freeze(e);}',
   'function f(e){if(e.cross){for(const x of e.cross)f(x);Object.freeze(e.cross);}else Object.freeze(e[0]);Object.freeze(e);}'
  ];
