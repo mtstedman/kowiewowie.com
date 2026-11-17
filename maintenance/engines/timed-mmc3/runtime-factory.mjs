@@ -53,7 +53,7 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
  function mapCHR(a){integer(a,8191,'CHR address');let slot=(a>>>10)^((state.select&128)?4:0),bank=slot<4?(((slot<2?state.r0:state.r1)&254)+(slot&1)):(slot===4?state.r2:slot===5?state.r3:slot===6?state.r4:state.r5);return (bank&(chrData.length/1024-1))*1024+(a&1023);}
  function mirroring(){return cfg.mirroring==='mapper'?(state.mirror?'horizontal':'vertical'):cfg.mirroring.replace('fixed_','');}
  function mapNametable(a){integer(a,16383,'PPU address');if(a<8192||a>=16128)bad('BAD_ARGUMENT','Nametable address');const off=(a-8192)&4095,page=off>>>10,mode=mirroring();return (mode==='four_screen'?page:mode==='vertical'?page&1:page>>>1)*1024+(off&1023);}
- function getMapperState(){const w=windows4(state,info),en=ramEnabled();return {mapper:4,identity:info.mappingIdentity,...state,version,w0:w[0],w1:w[1],w2:w[2],w3:w[3],ramEnabled:en,ramWritable:en&&!(state.protect&64)};}
+ function getMapperState(){pullMapperStage();const w=windows4(state,info),en=ramEnabled();return {mapper:4,identity:info.mappingIdentity,...state,version,w0:w[0],w1:w[1],w2:w[2],w3:w[3],ramEnabled:en,ramWritable:en&&!(state.protect&64)};}
  function loadMapperState(v){const q=valid4(v,info),next={};for(const k of S4)next[k]=q[k];bump();state=next;}
  function getCPUClock(){return state.clock;}
  function advanceCPUClock(t){integer(t,Number.MAX_SAFE_INTEGER-8192,'CPU clock');if(t<state.clock)bad('BAD_TIMING','CPU clock backwards');state.clock=t;}
@@ -71,8 +71,8 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
  function irqClock(){const old=state.counter,manual=state.reload;state.counter=old===0||manual?state.latch:old-1;if(state.counter===0&&state.enabled&&(cfg.irq_revision==='sharp-bc'||old>0||manual))state.asserted=true;state.reload=false;state.reloadBlocked=manual;}
  function advancePPUClock(t){integer(t,Number.MAX_SAFE_INTEGER-8192,'PPU clock');if(t<state.ppuDot)bad('BAD_TIMING','PPU clock backwards');if(t===state.ppuDot)return;const phase=cfg.m2_falling_dot;if(!(state.ppuAddress&4096)){const edges=Math.floor((t-1-phase)/3)-Math.floor((state.ppuDot-1-phase)/3);state.lowSamples=Math.min(3,state.lowSamples+edges);}state.ppuDot=t;bump();}
  function setPPUAddress(a,t=state.ppuDot){integer(a,16383,'PPU address');advancePPUClock(t);const high=Boolean(a&4096),was=Boolean(state.ppuAddress&4096);bump();if(high&&!was&&state.lowSamples>=3)irqClock();if(high||was)state.lowSamples=0;state.ppuAddress=a;}
- let mapperStageValid=false;
- const api={checkpointCapture:()=>({ram,sram,chrRam:chrRAM?chrData:new Uint8Array(),mapper:getMapperState()}),checkpointRestore(v){api.loadRAM(v.ram,v.sram);api.loadCHR(v.chrRam);loadMapperState(v.mapper);version=v.mapper.version;},read:a=>read(a),peek:a=>read(a,true),write,mapPRG,mapCHR,mapNametable,getMirroring:mirroring,getMapperState,loadMapperState,getCPUClock,advanceCPUClock,setPPUAddress,advancePPUClock,getPPUClock:()=>state.ppuDot,getIRQ:()=>state.asserted,peekCHR:a=>chrData[mapCHR(a)],ppuRead(a,t=state.ppuDot){integer(a,8191,'CHR address');setPPUAddress(a,t);return chrData[mapCHR(a)];},ppuWrite(a,v,t=state.ppuDot){integer(a,8191,'CHR address');byte(v);setPPUAddress(a,t);if(chrRAM)chrData[mapCHR(a)]=v;},snapshot(){return {ram:ram.slice(),prgRam:sram.slice(),chrRam:chrRAM?chrData.slice():new Uint8Array(),mapper:getMapperState()};},loadRAM(r,p){if(!(r instanceof Uint8Array)||r.length!==2048||!(p instanceof Uint8Array)||p.length!==sram.length)bad('BAD_ARGUMENT','Exact RAM arrays');bump();ram.set(r);sram.set(p);},loadCHR(r){if(!(r instanceof Uint8Array)||r.length!==(chrRAM?8192:0))bad('BAD_ARGUMENT','Exact CHR RAM');bump();if(chrRAM)chrData.set(r);}};
+ let mapperStageValid=false,pullMapperStage=()=>{},ownedIRQ=()=>false;
+ const api={checkpointCapture:()=>({ram,sram,chrRam:chrRAM?chrData:new Uint8Array(),mapper:getMapperState()}),checkpointRestore(v){api.loadRAM(v.ram,v.sram);api.loadCHR(v.chrRam);loadMapperState(v.mapper);version=v.mapper.version;},read:a=>read(a),peek:a=>read(a,true),write,mapPRG,mapCHR,mapNametable,getMirroring:mirroring,getMapperState,loadMapperState,getCPUClock,advanceCPUClock,setPPUAddress,advancePPUClock,getPPUClock:()=>{pullMapperStage();return state.ppuDot;},getIRQ:()=>mapperStageValid?ownedIRQ():state.asserted,peekCHR:a=>chrData[mapCHR(a)],ppuRead(a,t=state.ppuDot){integer(a,8191,'CHR address');setPPUAddress(a,t);return chrData[mapCHR(a)];},ppuWrite(a,v,t=state.ppuDot){integer(a,8191,'CHR address');byte(v);setPPUAddress(a,t);if(chrRAM)chrData[mapCHR(a)]=v;},snapshot(){return {ram:ram.slice(),prgRam:sram.slice(),chrRam:chrRAM?chrData.slice():new Uint8Array(),mapper:getMapperState()};},loadRAM(r,p){if(!(r instanceof Uint8Array)||r.length!==2048||!(p instanceof Uint8Array)||p.length!==sram.length)bad('BAD_ARGUMENT','Exact RAM arrays');bump();ram.set(r);sram.set(p);},loadCHR(r){if(!(r instanceof Uint8Array)||r.length!==(chrRAM?8192:0))bad('BAD_ARGUMENT','Exact CHR RAM');bump();if(chrRAM)chrData.set(r);}};
  if(Object.isFrozen(info)&&Object.isFrozen(cfg)&&Object.isFrozen(cfg.startup_registers))ownedBuses.set(api,{info,bindPPU(e){
     const chrStorage=new Uint8Array(e.memory.buffer,e.owned_chr(),262144);
     chrStorage.set(chrData);chrData=chrStorage.subarray(0,chrData.length);
@@ -97,10 +97,11 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
      m[16]=state.reloadBlocked?1:0;m[17]=state.enabled?1:0;m[18]=state.asserted?1:0;m[19]=cfg.irq_revision==='sharp-bc'?1:0;
      refreshMapping();return true;
     }
+    ownedIRQ=()=>Boolean(m[18]);
+    pullMapperStage=()=>{if(!mapperStageValid)return;state.ppuDot=od[0];state.ppuAddress=m[11];state.lowSamples=m[12];state.counter=m[13];state.reload=Boolean(m[15]);state.reloadBlocked=Boolean(m[16]);state.asserted=Boolean(m[18]);};
     function after(){
      const delta=od[1];if(!Number.isSafeInteger(delta)||delta<0||delta>6)throw Error('Owned MMC3 epoch invariant');
-     od[1]=0;mapperStageValid=true;version+=delta;state.ppuDot=od[0];state.ppuAddress=m[11];state.lowSamples=m[12];
-     state.counter=m[13];state.reload=Boolean(m[15]);state.reloadBlocked=Boolean(m[16]);state.asserted=Boolean(m[18]);
+     od[1]=0;mapperStageValid=true;version+=delta;
     }
     return Object.freeze({before,after,skipPreparation(reason){if(reason===1)skippedSource++;else if(reason===2)skippedAudio++;else throw Error('Private boundary reason');},mappingRefreshes:()=>mappingRefreshes,stats:()=>({
      skippedPreparations:skippedSource+skippedAudio,skippedSourcePreparations:skippedSource,skippedAudioPreparations:skippedAudio,
@@ -109,8 +110,8 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
      localMapper:4,sourceSpriteFetch:true,sourceMapperAudio:false,synchronizations,mappingRefreshMeaning:'CHR-window/mirroring cache refreshes'
     })});
    },snapshot(){const mask=info.prgBanks-1,r6=(state.r6&63)&mask,r7=(state.r7&63)&mask;return state.select&64?{w0:info.prgBanks-2,w1:r7,w2:r6,w3:info.prgBanks-1,version,clock:state.clock}:{w0:r6,w1:r7,w2:info.prgBanks-2,w3:info.prgBanks-1,version,clock:state.clock};},unchanged(m){return version===m.version&&state.clock===m.clock;}});
- const ownedWrite=api.write;api.write=(a,v,t)=>{if(a>=8192)mapperStageValid=false;return ownedWrite(a,v,t);};
- for(const key of ['ppuRead','ppuWrite','setPPUAddress','advancePPUClock','loadRAM','loadCHR','loadMapperState']){const fn=api[key];if(fn)api[key]=function(...args){mapperStageValid=false;return fn.apply(this,args);};}
+ const ownedWrite=api.write;api.write=(a,v,t)=>{if(a>=8192){pullMapperStage();mapperStageValid=false;}return ownedWrite(a,v,t);};
+ for(const key of ['ppuRead','ppuWrite','setPPUAddress','advancePPUClock','loadRAM','loadCHR','loadMapperState']){const fn=api[key];if(fn)api[key]=function(...args){pullMapperStage();mapperStageValid=false;return fn.apply(this,args);};}
  // Code identity is separate from mapper epochs that change on PPU dots.
  const codeListeners=new Set();let codeGeneration=0;const codeVersions=new Map();
  // romjs-live-code-identity/1: bounded private strings, live address classification.

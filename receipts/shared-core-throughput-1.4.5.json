@@ -1,0 +1,287 @@
+{
+  "format": "nes-runtime-qualification/1",
+  "release": "1.4.5",
+  "baseRevision": "f1946d9ae94e839acfe889b3d397dd6bd8d717ef",
+  "functionalPass": true,
+  "steady60Pass": false,
+  "changes": [
+    "Timed MMC3 keeps the native mapper authoritative between CPU-visible boundaries and reads the live native IRQ latch",
+    "Timed MMC1 reuses staged PPU mapping inputs until CPU writes, PPU access, or restore invalidates them"
+  ],
+  "affectedGames": [
+    "bionic-commando",
+    "zelda",
+    "double-dragon-ii"
+  ],
+  "preservedEngineGraphs": [
+    "megaman",
+    "adventure-island-2",
+    "castlevania",
+    "ikari-warriors",
+    "contra",
+    "castlevania-3"
+  ],
+  "allNineCartridgeIdentitiesPreserved": true,
+  "checks": {
+    "arcadeTests": 151,
+    "typecheck": true,
+    "capabilityAuditGames": 9,
+    "allGameParity": [
+      {
+        "id": "megaman",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "adventure-island-2",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "castlevania",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "ikari-warriors",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "bionic-commando",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "zelda",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "contra",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "castlevania-3",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "double-dragon-ii",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      }
+    ],
+    "packagedDDIIFrames": 1656,
+    "independentPlayers": true,
+    "checkpointReplay": true,
+    "browserLifecycle": {
+      "pause": true,
+      "save_load": true,
+      "resume": true,
+      "reset": true
+    }
+  },
+  "performance": {
+    "coreCPU": {
+      "bionic-commando": {
+        "baseline": [
+          7016.905091,
+          7573.436968
+        ],
+        "candidate": [
+          6946.026603,
+          7424.532516
+        ],
+        "reductionPercent": 1.5063590634903923,
+        "scope": "600 measured frames after 180 warm-up frames; identical scripted input; Node main thread pinned to CPU 7"
+      },
+      "zelda": {
+        "baseline": [
+          6904.117417,
+          7159.039494
+        ],
+        "candidate": [
+          6922.951084,
+          6994.625835
+        ],
+        "reductionPercent": 1.035187141275018,
+        "scope": "600 measured frames after 180 warm-up frames; identical scripted input; Node main thread pinned to CPU 7"
+      }
+    },
+    "browserBaseline": {
+      "presentedFPS": 49.479507043618405,
+      "emulatedFPS": 49.48164981653493,
+      "frameIntervals": {
+        "p50": 16.700000047683716,
+        "p95": 33.5,
+        "p99": 49.09999990463257,
+        "max": 51.5,
+        "over25": 904,
+        "over50": 11
+      },
+      "audioGaps": 1080,
+      "lateAudio": 20,
+      "workerCpuMs": 89970.247354,
+      "workerRunnableWaitMs": 79.211665,
+      "sampledWallMs": 90302.045204,
+      "seconds": 90
+    },
+    "browserCandidate": {
+      "presentedFPS": 58.50738070112275,
+      "emulatedFPS": 58.586330668400116,
+      "frameIntervals": {
+        "p50": 16.699999928474426,
+        "p95": 17.600000023841858,
+        "p99": 33.39999997615814,
+        "max": 50.300000071525574,
+        "over25": 131,
+        "over50": 1
+      },
+      "audioGaps": 158,
+      "lateAudio": 3,
+      "workerCpuMs": 89944.65269,
+      "workerRunnableWaitMs": 46.423202,
+      "sampledWallMs": 90304.116042,
+      "seconds": 90
+    },
+    "browserImprovementPercent": 18.24568229741228,
+    "scope": "Sequential Chromium tests from equivalent active DDII checkpoints. CPU/wait are measured for the game worker; physical-core contention is not excluded. Node figures are CPU work for scripted scenarios, not full-game 60 FPS certification."
+  },
+  "selection": {
+    "selected": [
+      "timed-mmc3 deferred mapper synchronization",
+      "timed-mmc1 cached native input synchronization"
+    ],
+    "rejected": [
+      "All five APU variants: no benefit",
+      "Extra opcode lookup hook: no reliable additional benefit",
+      "Plain MMC3 deferred synchronization: three trials per variant show no consistent benefit"
+    ],
+    "adventure": {
+      "baselineCpuMs": [
+        7704.887704,
+        8144.668113,
+        7591.862261
+      ],
+      "candidateCpuMs": [
+        8055.636225,
+        7987.669351,
+        7549.785947
+      ]
+    }
+  },
+  "saveCompatibility": "Current strict graph identity rejects previous-engine full save states for the three changed games. New saves replay exactly. Cartridge identity and battery RAM persistence are unchanged.",
+  "evidence": [
+    {
+      "path": "assembler-result-selected.json",
+      "bytes": 1334,
+      "sha256": "f7d4b0fb3d46fa560b32939bd766fc6a2f2ae984957f4601cd24bb013088bc77"
+    },
+    {
+      "path": "final/compare-all.json",
+      "bytes": 2253,
+      "sha256": "fc555e20bbf785a9f067ea8a701778f54ab01776676579d3f06a547967cc2b2c"
+    },
+    {
+      "path": "machine/machine-result.json",
+      "bytes": 11596,
+      "sha256": "1598be9a38ddb60f0488d96e40e723548999f3e9d163959d9df61b4e1254d395"
+    },
+    {
+      "path": "browser-profile/profile-summary.json",
+      "bytes": 5992,
+      "sha256": "764eba7b2d246ba1c10e4c52b7c9cf83ffce55a31b7d2d6d8e3948778c639f51"
+    },
+    {
+      "path": "browser-baseline/result.json",
+      "bytes": 13812,
+      "sha256": "a3f20dc7923f7b945fe9e14522a569dd73814d600095f8f9ad66b9df69b8afa6"
+    },
+    {
+      "path": "browser-baseline/worker-cpu.json",
+      "bytes": 6438,
+      "sha256": "f2331c0c240a97309ec29433ec5d2b4833cada3f3a1073d046c4bd2736ab9e50"
+    },
+    {
+      "path": "browser-candidate/result.json",
+      "bytes": 13808,
+      "sha256": "f2c50190421a7ef2867ecb4573ca4506791c6612c834c99581d3d22df57765b8"
+    },
+    {
+      "path": "browser-candidate/worker-cpu.json",
+      "bytes": 6434,
+      "sha256": "5526d2c6a71e88dbf72583d098bd63674bea32280a8a10d2d919817ca42efbb5"
+    },
+    {
+      "path": "cpu-placement.json",
+      "bytes": 1338,
+      "sha256": "91e2155aa0af7c785adc7095bbf1d0ec578ff2d1ca4a72b4b9620a69d6ebddc6"
+    },
+    {
+      "path": "pinned-bionic-commando-a1.json",
+      "bytes": 3196,
+      "sha256": "fd15cd687168e81e1beab94bdb876eb3515bccb1b168e5d9c0b46068ffeb69dd"
+    },
+    {
+      "path": "pinned-bionic-commando-b1.json",
+      "bytes": 3444,
+      "sha256": "731a47faea09cb7664fa3101c31e3f8fce84f677e279f7311460b2d9c2996539"
+    },
+    {
+      "path": "pinned-bionic-commando-b2.json",
+      "bytes": 3438,
+      "sha256": "5c4b1efa5e2683f50c07839a405c201c69e72982b56bbf76862b7600ae46f0ff"
+    },
+    {
+      "path": "pinned-bionic-commando-a2.json",
+      "bytes": 3189,
+      "sha256": "16807be2233871b93180d7b812a83e2d993b308a525d29f398aa7b60ad575c4d"
+    },
+    {
+      "path": "pinned-zelda-a1.json",
+      "bytes": 3179,
+      "sha256": "3b621c409a98945f8638a508a0a3a19a92a28103ddd66c8f8cd145f61ddee66b"
+    },
+    {
+      "path": "pinned-zelda-b1.json",
+      "bytes": 3428,
+      "sha256": "82c22d5c76441303fd05bcb60b99b4d322194934381a15728c054dec418b9aa1"
+    },
+    {
+      "path": "pinned-zelda-b2.json",
+      "bytes": 3427,
+      "sha256": "4c5916dacdd7af9ddb253b2c185e5f196bd70b02fb1c21a0e79373d4f341d6ea"
+    },
+    {
+      "path": "pinned-zelda-a2.json",
+      "bytes": 3179,
+      "sha256": "6c456d1939f8d9b96fb0a16eb75b9c1eb24e26dcb6967a47a5e04bea7dd1e99a"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 16886,
+      "sha256": "fc36e1050f70cc5900f36f2a5e901b90835431c01acf9907072e53cce9ad007b"
+    },
+    {
+      "path": "typecheck.log",
+      "bytes": 37,
+      "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+    },
+    {
+      "path": "audit.json",
+      "bytes": 9762,
+      "sha256": "79c3a40fb2da7d367bc596a6bd6153d85dac3e8e5d3fd316e7ab97d3e7ec0e42"
+    }
+  ]
+}
