@@ -17,7 +17,7 @@ function makeTimedCPU(bus,blocks,info,CPUError,limits=translationLimits){
  const bad=(code,message,pc)=>{throw new CPUError(code,message,pc);};
  for(const k of ['read','write','peek','codeLocation','watchCode'])if(typeof bus[k]!=='function')bad('CODE_BUS_CONTRACT','Missing '+k);
  const stableInfo=Object.isFrozen(info)&&['mapper','prgBanks','prgBankBytes'].every(k=>{const d=Object.getOwnPropertyDescriptor(info,k);return Boolean(d)&&Object.hasOwn(d,'value');});
- const cacheSpan=stableInfo&&info.mapper===4&&Number.isInteger(info.prgBanks)&&info.prgBanks>=2&&info.prgBanks<=64&&info.prgBankBytes===8192?info.prgBanks*8192:0,staticCache=[];
+ const cacheSpan=stableInfo&&info.mapper===4&&Number.isInteger(info.prgBanks)&&info.prgBanks>=2&&info.prgBanks<=64&&info.prgBankBytes===8192?info.prgBanks*8192:0,staticCache=new Array(cacheSpan*4).fill(null);
  const own=(o,k,v)=>Object.getOwnPropertyDescriptor(o,String(k))?.value===v;
  function cacheStatic(pc,loc,entry,op){
   if(!cacheSpan||loc.physical>=cacheSpan||!Object.isFrozen(blocks))return;
@@ -34,7 +34,7 @@ function makeTimedCPU(bus,blocks,info,CPUError,limits=translationLimits){
  bus.watchCode(page=>{if(page===null){invalidations+=cache.size;cache.clear();pages.clear();return;}const set=pages.get(page);if(set)for(const k of [...set]){invalidations++;forget(k);}});
  function signals(){const v=bus.getInterruptLines?.();if(v){if(typeof v.irq!=='boolean'||!Number.isSafeInteger(v.nmiSerial)||v.nmiSerial<nmiSerial)bad('SIGNAL_CONTRACT','Invalid interrupt lines');if(v.nmiSerial!==nmiSerial)nmiPending=true;nmiSerial=v.nmiSerial;}return (irq||Boolean(v?.irq)?1:0)|(nmiPending?2:0);}
  function sample(){previous=last;last=signals();}
- function advance(n){if(!Number.isSafeInteger(n)||n<1||n>8192||s.cycles+n>Number.MAX_SAFE_INTEGER-8192)bad('CYCLE_LIMIT','Invalid bus cycle duration');s.cycles+=n;core++;sample();}
+ function advance(n){if(n===1){if(s.cycles>=Number.MAX_SAFE_INTEGER-8192)bad('CYCLE_LIMIT','Invalid bus cycle duration');s.cycles++;core++;sample();return;}if(!Number.isSafeInteger(n)||n<1||n>8192||s.cycles+n>Number.MAX_SAFE_INTEGER-8192)bad('CYCLE_LIMIT','Invalid bus cycle duration');s.cycles+=n;core++;sample();}
  function r(a,code=false){a&=65535;let v;if(bus.readCycle){const z=(code||!bus.readDataCycle)?bus.readCycle(a):bus.readDataCycle(a);if(!z||!Number.isInteger(z.value)||z.value<0||z.value>255)bad('BUS_RESULT','Invalid timed read');v=z.value;lastLocation=z.location;advance(z.elapsed);}else{lastLocation=location(a);v=bus.read(a);if(!Number.isInteger(v)||v<0||v>255)bad('BUS_RESULT','Invalid read');if(bus.getCPUClock)bus.advanceCPUClock(bus.getCPUClock()+1);advance(1);}return v;}
  function w(a,v){a&=65535;v&=255;if(bus.writeCycle){const n=bus.writeCycle(a,v);advance(n);}else{const t=bus.getCPUClock?.()??s.cycles;bus.write(a,v,t);if(bus.getCPUClock)bus.advanceCPUClock(t+1);advance(1);}}
  const c={s,r,w,norm:p=>(p|32)&239,nz(v){v&=255;s.p=(s.p&125)|(v===0?2:0)|(v&128);return v;},f(mask,on){s.p=on?s.p|mask:s.p&~mask;},push(v){w(256+s.sp,v);s.sp=(s.sp-1)&255;},pop(){s.sp=(s.sp+1)&255;return r(256+s.sp);},poll(useOld=false){pendingIRQ=pendingIRQ||((previous&1)!==0&&!((useOld?oldP:s.p)&4));pendingNMI=pendingNMI||(previous&2)!==0;},hijack(vector){if(nmiPending){nmiPending=false;pendingNMI=false;return 65530;}return vector;},end(n,noPoll=false,useOld=false){if(core!==n)bad('CPU_CYCLE_CONTRACT','Emitted instruction bus cycle count differs');if(!noPoll)c.poll(useOld);s.p=c.norm(s.p);}};

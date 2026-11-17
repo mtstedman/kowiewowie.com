@@ -1,0 +1,302 @@
+{
+  "format": "nes-runtime-qualification/1",
+  "release": "1.4.6",
+  "baseRevision": "c92c3fa847d0762874c2c400ba6a9038b3dbe89c",
+  "functionalPass": true,
+  "steady60Pass": false,
+  "changes": [
+    "Shared MMC3 PPU bridge takes a short path when a staged three-dot continuation completes; native yields and all host effects remain intact",
+    "Timed MMC3 caches ROM identity strings independently of mutable RAM page epochs; generation changes and restores invalidate the cache",
+    "Timed MMC3 instruction dispatch uses a bounded preallocated array to avoid sparse dictionary lookups",
+    "Both MMC3 mapper families cache PRG window offsets and refresh on bank-register writes and restore",
+    "Timed CPU has a single-cycle advancement fast path with the same signal sampling and overflow guards"
+  ],
+  "affectedGames": [
+    "adventure-island-2",
+    "double-dragon-ii"
+  ],
+  "preservedEngineGraphs": [
+    "megaman",
+    "castlevania",
+    "ikari-warriors",
+    "bionic-commando",
+    "zelda",
+    "contra",
+    "castlevania-3"
+  ],
+  "allNineCartridgeIdentitiesPreserved": true,
+  "checks": {
+    "arcadeTests": 155,
+    "typecheck": true,
+    "capabilityAuditGames": 9,
+    "parity": [
+      {
+        "id": "double-dragon-ii",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "adventure-island-2",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      }
+    ],
+    "packagedDDIIFrames": 1656,
+    "independentPlayers": true,
+    "checkpointReplay": true,
+    "browserLifecycle": {
+      "pause": true,
+      "save_load": true,
+      "resume": true,
+      "reset": true
+    }
+  },
+  "performance": {
+    "initialCandidate": {
+      "presentedFPS": 59.90275354428581,
+      "emulatedFPS": 59.99042058080074,
+      "frameIntervals": {
+        "p50": 16.699999928474426,
+        "p95": 17,
+        "p99": 18.200000047683716,
+        "max": 35,
+        "over25": 18,
+        "over50": 0
+      },
+      "audioGaps": 19,
+      "lateAudio": 1,
+      "skippedEmulatedFrames": 15,
+      "workerCpuMs": 167651.925821,
+      "workerRunnableWaitMs": 236.349145,
+      "sampledWallMs": 180604.583205,
+      "seconds": 180
+    },
+    "browserBaseline": {
+      "presentedFPS": 57.89821078139749,
+      "emulatedFPS": 57.901032206618524,
+      "frameIntervals": {
+        "p50": 16.699999928474426,
+        "p95": 17.399999976158142,
+        "p99": 33.40000009536743,
+        "max": 50.799999952316284,
+        "over25": 187,
+        "over50": 1
+      },
+      "audioGaps": 231,
+      "lateAudio": 9,
+      "skippedEmulatedFrames": 0,
+      "workerCpuMs": 89954.93302,
+      "workerRunnableWaitMs": 21.14914,
+      "sampledWallMs": 90309.764658,
+      "seconds": 90
+    },
+    "browserCandidate": {
+      "presentedFPS": 59.84677657016091,
+      "emulatedFPS": 59.96940729625256,
+      "frameIntervals": {
+        "p50": 16.699999928474426,
+        "p95": 16.90000009536743,
+        "p99": 18.199999928474426,
+        "max": 35.09999990463257,
+        "over25": 49,
+        "over50": 0
+      },
+      "audioGaps": 57,
+      "lateAudio": 3,
+      "skippedEmulatedFrames": 25,
+      "workerCpuMs": 275181.037839,
+      "workerRunnableWaitMs": 431.243927,
+      "sampledWallMs": 300993.13421600003,
+      "seconds": 300
+    },
+    "scope": "Headless Chromium from equivalent active checkpoints. The 90-second baseline and initial 180-second candidate preceded the final refinement; the final run is 300 seconds. Runs are sequential and our CPU-heavy jobs are stopped during playback. Worker CPU and scheduler wait measured separately. Host physical-core contention remains possible. This is bounded gameplay qualification, not all scenes or devices.",
+    "placementCheck": {
+      "seconds": 180,
+      "presentedFPS": 59.7365810012235,
+      "emulatedFPS": 59.81171186731091,
+      "frameIntervals": {
+        "p50": 16.699999928474426,
+        "p95": 17,
+        "p99": 18.59999990463257,
+        "max": 50,
+        "over25": 46,
+        "over50": 0
+      },
+      "audioGaps": 56,
+      "lateAudio": 2,
+      "selectedCPU": 7,
+      "siblings": [
+        7,
+        15
+      ],
+      "logicalCPUUtilization": {
+        "7": 0.9544950670657355,
+        "15": 0.3862817915822643
+      },
+      "workerCpuMs": 170804.317263,
+      "workerRunnableWaitMs": 323.094249,
+      "scope": "Only the game worker was pinned to a core selected from a three-second prior load sample. The core was not reserved and SMT contention remains possible. Pinning did not eliminate audio underruns."
+    }
+  },
+  "selection": {
+    "selected": "candidate-10",
+    "rejected": [
+      "Native A12 saturation shortcut: no measured benefit",
+      "Extra opcode-location hook: no reliable benefit"
+    ],
+    "memory": "ROM string cache is bounded by PRG size; dispatch has four slots per PRG byte, at most 2,097,152 references for the supported geometry."
+  },
+  "saveCompatibility": "Strict graph identity rejects previous-engine full save states for Double Dragon II and Adventure Island II. New saves replay exactly. Cartridge identity and battery saves are unchanged.",
+  "evidence": [
+    {
+      "path": "source-identity.json",
+      "bytes": 911,
+      "sha256": "2fc1122fd80aca3548e068136ea7c8501b71d38eb30242812d4f66e971713d29"
+    },
+    {
+      "path": "release-input-final.json",
+      "bytes": 5356,
+      "sha256": "5b10b84737466c06938e249f31ef93d9e2f22a8fdccf1897f98aaa0a1d0ffb9d"
+    },
+    {
+      "path": "assembler-result-final.json",
+      "bytes": 1286,
+      "sha256": "f9e826909acd56f5ed95d9c3fee8ab9d834d009237d94df3a1842b9af4697b0e"
+    },
+    {
+      "path": "candidate-09/parity.json",
+      "bytes": 1300,
+      "sha256": "5505f684e6b230e6dc90fb0fbbfb9fd2f9e3ef368f759b326666c31ebbe3e3a2"
+    },
+    {
+      "path": "candidate-10/parity.json",
+      "bytes": 1593,
+      "sha256": "08a424d5a3cc013e3f529f591d40fd85950ab7d7bf6db4df38fea8a1e5f3b9c4"
+    },
+    {
+      "path": "candidate-09/bench.json",
+      "bytes": 1378,
+      "sha256": "d512baff7e9c297610b95d2cba4b161f7dfd45c119be7af540f5b8b90001c5f8"
+    },
+    {
+      "path": "candidate-09/repeat.json",
+      "bytes": 1379,
+      "sha256": "859378773b6cca59a07fa9301a58b87637a7e50de97d372ebe7ef0aa00574ab8"
+    },
+    {
+      "path": "candidate-07/control-cycle.json",
+      "bytes": 1382,
+      "sha256": "b8a0c2da998a3833a1c73d2dbf339fefde6a8a4c23e315a8e2adf70845525e57"
+    },
+    {
+      "path": "candidate-10/bench.json",
+      "bytes": 1671,
+      "sha256": "ce32d6872aedf1246979b94f3246063095f0f454cf3f5931a2acea3f0819cb51"
+    },
+    {
+      "path": "candidate-10/control.json",
+      "bytes": 1380,
+      "sha256": "47fe1579a1b37c727a92c11d1450d0a9e8c44ceb24e40725d6fc9fb8b43d8ca7"
+    },
+    {
+      "path": "browser-candidate/result.json",
+      "bytes": 26959,
+      "sha256": "810ff9c0e84532f028aa594f85bb1f1ce10ecfd3a81a2d4be5d67ad6e22e4aa1"
+    },
+    {
+      "path": "browser-candidate/worker-cpu.json",
+      "bytes": 13025,
+      "sha256": "ef058da6ff8127c35232ea3eee4a2853bebcba7e485ea70f40fc4fd1a42b1fb9"
+    },
+    {
+      "path": "baseline-01.json",
+      "bytes": 504,
+      "sha256": "09acf3937a6596c12cfd5edf6c81a41284fe16f736d04a209b35cbd72ef09721"
+    },
+    {
+      "path": "baseline-02.json",
+      "bytes": 511,
+      "sha256": "024159fa8cfe1d3d917c1753b97075e8e68e7b8361557b3416077176176e1816"
+    },
+    {
+      "path": "baseline-03.json",
+      "bytes": 505,
+      "sha256": "65ad95e5ee98afb1900a35e9986c51fff4782fb64d913cc5a57bc8f24a82b744"
+    },
+    {
+      "path": "baseline-adventure.json",
+      "bytes": 508,
+      "sha256": "db4fa7f2d1560c0359aa025afe47042c1e26b17d0e1f1542d2dfe7dbcada80e5"
+    },
+    {
+      "path": "machine-final/machine-result.json",
+      "bytes": 11589,
+      "sha256": "04b50862b5d04fad6014d6c1afb1192f7fbed5e21671264b7e8d5f59bc88b869"
+    },
+    {
+      "path": "browser-baseline/result.json",
+      "bytes": 13767,
+      "sha256": "b6dc53c8bc5f276f3e1093e25ea3a133aee8eea87abe31b3ea772142606d2117"
+    },
+    {
+      "path": "browser-baseline/worker-cpu.json",
+      "bytes": 6427,
+      "sha256": "0aa2db6dd7a677cf03cae2f7733d7de4279da0f2981e1fc00bca2f4b0f3121d0"
+    },
+    {
+      "path": "browser-final/result.json",
+      "bytes": 44605,
+      "sha256": "8078040fdb2b6b9c944355ab1199d2e3035af1d2958b265fec4df8c9f101f9ae"
+    },
+    {
+      "path": "browser-final/worker-cpu.json",
+      "bytes": 21853,
+      "sha256": "3ed344fd6b0112c2e36149b93b62d2d4c92afefee69ad59525b6a7c121c0409e"
+    },
+    {
+      "path": "focused-tests-final.log",
+      "bytes": 1347,
+      "sha256": "5f008f2c0b4c253077e247ad38d0b697826e78b47abbdc456655fc84a098c138"
+    },
+    {
+      "path": "tests-final.log",
+      "bytes": 17313,
+      "sha256": "1553887c50c1b3cd4b82b15b1c214baf47992c357966d6e87135d72f7d209dfd"
+    },
+    {
+      "path": "typecheck-final.log",
+      "bytes": 37,
+      "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+    },
+    {
+      "path": "audit-final.json",
+      "bytes": 9762,
+      "sha256": "2fbe7a4b70b14292797f1881ba89e64eb4f906c639141ecbb4d2ba460d851b4d"
+    },
+    {
+      "path": "placement.json",
+      "bytes": 4781,
+      "sha256": "cd08555908b7c87fbf11d3ed4fafb293a82c5ae2d4e66c534b595fa3fdc619bb"
+    },
+    {
+      "path": "browser-placement/result.json",
+      "bytes": 26940,
+      "sha256": "34819c53c782e515acd1f435f5b581f7ba5bd6732ad27f01e35c755edf499d18"
+    },
+    {
+      "path": "browser-placement/worker-cpu.json",
+      "bytes": 263660,
+      "sha256": "ed1a23b0b0a7860e67985c652944667aac52fe009c3aedee67db64990fd03c98"
+    },
+    {
+      "path": "browser-placement/identity.json",
+      "bytes": 181,
+      "sha256": "b9dcfad5f8b58f22d66883504d348cd095063b00f908b8a68a3879ccc78153b7"
+    }
+  ],
+  "remainingLimitations": [
+    "Audio underruns remain in both ordinary scheduling and pinned-worker measurements. Stable graphics pacing does not establish uninterrupted audio or all-game/all-device stability."
+  ]
+}

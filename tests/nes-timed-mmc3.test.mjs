@@ -12,3 +12,10 @@ test('RAM-executing MMC3 runs through the shared Wasm PPU and round-trips comple
  const checkpoint=m.exportCheckpoint();m.setButton(1,2,true);step(4);const state=m.getState(),frame=hash(m.getRGBA());m.importCheckpoint(checkpoint);m.setButton(1,2,true);step(4);assert.deepEqual(m.getState(),state);assert.equal(hash(m.getRGBA()),frame);
  assert.equal(m.getSharedPPUStats().backend,'wasm-owned-three-dot/1');m.reset();step(3);assert(!m.getState().fault);
 });
+test('MMC3 ROM identity cache preserves bank switches, fresh results and restore generations',async()=>{
+ const data=await import(new URL('games/double-dragon-ii/cartridge/entry.mjs',web)),runtime=runtimeFactory([{}]),bus=runtime.makeBus(runtime.fromHex(data.prgHex),runtime.fromHex(data.trainerHex),{},data.metadata,runtime.fromHex(data.chrHex));
+ const locations=()=>[0x8000,0xa000,0xc000,0xe000].map(a=>bus.codeLocation(a)),write=(a,v)=>bus.write(a,v,bus.getCPUClock()+2),initial=locations(),saved=structuredClone(bus.checkpointCapture());
+ const poisoned=bus.codeLocation(0x8000);poisoned.key='poison';poisoned.physical=-1;assert.deepEqual(locations(),initial);
+ for(let i=0;i<32;i++){write(0x8000,(i&1?64:0)|6);write(0x8001,i);for(const a of [0x8000,0xa000,0xc000,0xe000]){const q=bus.codeLocation(a);assert.equal(q.physical,bus.mapPRG(a));assert.equal(q.key,'rom:'+q.physical+':'+saved.codeGeneration+':0');}}
+ const mapped=locations();bus.loadRAM(saved.ram,saved.sram);assert.notDeepEqual(locations().map(q=>q.key),mapped.map(q=>q.key));bus.checkpointRestore(saved);assert.deepEqual(locations(),initial);
+});

@@ -15,3 +15,13 @@ test('MMC3 sprite continuation preserves both IRQ revisions, all M2 phases, CHR 
 test('MMC3 owned clock preserves all M2 phases at large clocks and after invalidation',()=>{
  for(const base of [0,2**32-2,2**40-2])for(let phase=0;phase<3;phase++){const ms=pair.map(([r,p])=>{const bus=r.makeBus(new Uint8Array(metadata.prgBanks*8192),new Uint8Array(),{},config('sharp-bc',phase),new Uint8Array(8192)),e=p.createOwnedInstance(),binding=r.bindOwnedPPU(bus,e),v=structuredClone(bus.checkpointCapture());v.mapper.ppuDot=base+phase;bus.checkpointRestore(v);const q=new Uint32Array(e.memory.buffer,e.owned_registers(),16),clocks=new Float64Array(e.memory.buffer,e.shared_clocks(),2);q[0]=20;q[1]=10;clocks[0]=base+phase;return {bus,e,binding};});for(let i=0;i<24;i++){for(const m of ms){if(i%4===0)m.bus.write(i%8===0?0:0xc000,i,m.bus.getCPUClock());m.binding.before();assert.equal(m.e.owned_advance(i%3+1),i%3+1);m.binding.after();}assert.deepEqual(ms[1].bus.getMapperState(),ms[0].bus.getMapperState());}}
 });
+test('MMC3 three-dot continuation matches mixed-size advances across host effects and mapper writes',()=>{
+ for(const irq of ['sharp-bc','alternate'])for(let phase=0;phase<3;phase++){
+  const ms=pair.map(x=>setup(x,config(irq,phase)));
+  for(const m of ms){for(let i=0;i<64;i++){m.p.spriteMem[i*4]=(i*5)&255;m.p.spriteMem[i*4+1]=i;m.p.spriteMem[i*4+2]=i*3;m.p.spriteMem[i*4+3]=(i*11)&255;}m.bus.write(0x2001,30,0);}
+  for(let batch=0;batch<430;batch++){
+   for(const m of ms){if(batch%29===0){m.bus.write(0x8000,batch&135,m.bus.getCPUClock());m.bus.write(0x8001,batch&127,m.bus.getCPUClock());}for(let i=0;i<80;i++)m.p.advanceDots(i%23===0?i%3:3);}
+   assert.deepEqual(ms[1].p.checkpointCapture(),ms[0].p.checkpointCapture());assert.deepEqual(ms[1].bus.getMapperState(),ms[0].bus.getMapperState());assert.deepEqual(ms[1].p.buffer,ms[0].p.buffer);assert.deepEqual(ms[1].cpu.mem,ms[0].cpu.mem);
+  }
+ }
+});

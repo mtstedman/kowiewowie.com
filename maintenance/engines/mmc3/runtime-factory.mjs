@@ -48,22 +48,26 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
  for(let i=0;i<8;i++)state['r'+i]=cfg.startup_registers[i];
  const bump=()=>{if(version>=Number.MAX_SAFE_INTEGER-8192)bad('MAPPING_OVERFLOW','Epoch exhausted');version++;};
  const ramEnabled=()=>sram.length>0&&Boolean(state.protect&128);
- function mapPRG(a){address(a);if(a<32768)bad('BAD_ARGUMENT','PRG address');const slot=(a-32768)>>>13,mask=n-1;let bank;if(slot===3)bank=n-1;else if(slot===1)bank=state.r7&63&mask;else bank=((state.select&64)?slot===0:slot===2)?n-2:state.r6&63&mask;return bank*8192+(a&8191);}
+ const prgOffsets=new Uint32Array(4);
+ function refreshPRG(){const mask=n-1,r6=(state.r6&63&mask)*8192,r7=(state.r7&63&mask)*8192;prgOffsets[0]=(state.select&64)?(n-2)*8192:r6;prgOffsets[1]=r7;prgOffsets[2]=(state.select&64)?r6:(n-2)*8192;prgOffsets[3]=(n-1)*8192;}
+ refreshPRG();
+ function physicalPRG(a){return prgOffsets[(a-32768)>>>13]+(a&8191);}
+ function mapPRG(a){address(a);if(a<32768)bad('BAD_ARGUMENT','PRG address');return physicalPRG(a); }
  function mapCHR(a){integer(a,8191,'CHR address');let slot=(a>>>10)^((state.select&128)?4:0),bank=slot<4?(((slot<2?state.r0:state.r1)&254)+(slot&1)):(slot===4?state.r2:slot===5?state.r3:slot===6?state.r4:state.r5);return (bank&(chrData.length/1024-1))*1024+(a&1023);}
  function mirroring(){return cfg.mirroring==='mapper'?(state.mirror?'horizontal':'vertical'):cfg.mirroring.replace('fixed_','');}
  function mapNametable(a){integer(a,16383,'PPU address');if(a<8192||a>=16128)bad('BAD_ARGUMENT','Nametable address');const off=(a-8192)&4095,page=off>>>10,mode=mirroring();return (mode==='four_screen'?page:mode==='vertical'?page&1:page>>>1)*1024+(off&1023);}
  function getMapperState(){const w=windows4(state,info),en=ramEnabled();return {mapper:4,identity:info.mappingIdentity,...state,version,w0:w[0],w1:w[1],w2:w[2],w3:w[3],ramEnabled:en,ramWritable:en&&!(state.protect&64)};}
- function loadMapperState(v){const q=valid4(v,info),next={};for(const k of S4)next[k]=q[k];bump();state=next;}
+ function loadMapperState(v){const q=valid4(v,info),next={};for(const k of S4)next[k]=q[k];bump();state=next;refreshPRG();}
  function getCPUClock(){return state.clock;}
  function advanceCPUClock(t){integer(t,Number.MAX_SAFE_INTEGER-8192,'CPU clock');if(t<state.clock)bad('BAD_TIMING','CPU clock backwards');state.clock=t;}
  function external(a,peek){const fn=peek?io.peek:io.read;if(!fn)bad('HARDWARE_UNIMPLEMENTED','Missing open-bus/device handler');return byte(fn(a));}
- function read(a,peek=false){address(a);if(a<8192)return ram[a&2047];if(a>=32768)return rom[mapPRG(a)];if(a>=24576&&ramEnabled())return sram[a-24576];return external(a,peek);}
+ function read(a,peek=false){address(a);if(a<8192)return ram[a&2047];if(a>=32768)return rom[physicalPRG(a)];if(a>=24576&&ramEnabled())return sram[a-24576];return external(a,peek);}
  function write(a,v,t){
   address(a);byte(v);integer(t,Number.MAX_SAFE_INTEGER-8192,'Absolute CPU write cycle');if(t<state.clock)bad('BAD_TIMING','CPU write precedes clock');
   if(a>=32768&&(a&57345)===49153&&state.reloadBlocked)bad('UNSUPPORTED_MMC3_RELOAD_GLITCH','Consecutive manual reload requires board-specific pathological behavior');
   bump();state.clock=t+1;state.lastWriteCycle=t;
   if(a<8192){ram[a&2047]=v;return;}
-  if(a>=32768){switch(a&57345){case 32768:state.select=v;break;case 32769:state['r'+(state.select&7)]=v;break;case 40960:state.mirror=v&1;break;case 40961:state.protect=v;break;case 49152:state.latch=v;break;case 49153:state.counter=0;state.reload=true;break;case 57344:state.enabled=false;state.asserted=false;break;case 57345:state.enabled=true;break;}return;}
+  if(a>=32768){switch(a&57345){case 32768:state.select=v;break;case 32769:state['r'+(state.select&7)]=v;break;case 40960:state.mirror=v&1;break;case 40961:state.protect=v;break;case 49152:state.latch=v;break;case 49153:state.counter=0;state.reload=true;break;case 57344:state.enabled=false;state.asserted=false;break;case 57345:state.enabled=true;break;}if((a&57344)===32768)refreshPRG();return;}
   if(a>=24576){if(ramEnabled()&&!(state.protect&64))sram[a-24576]=v;return;}
   if(!io.write)bad('HARDWARE_UNIMPLEMENTED','Missing device write');io.write(a,v,t);
  }

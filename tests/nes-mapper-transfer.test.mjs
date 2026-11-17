@@ -24,3 +24,13 @@ test('both MMC3 execution families expose native IRQ changes before any mapper s
   assert.deepEqual(pair[1].bus.getMapperState(),pair[0].bus.getMapperState());
  }
 });
+test('MMC3 PRG window cache preserves every supported geometry, inversion and restore',()=>{
+ for(const [oldFactory,newFactory]of [[oldTimed,timed],[oldRegular,regular]])for(const banks of [2,4,8,16,32,64]){
+  const mmc3=Object.freeze({board:'standard-txrom',irq_revision:'sharp-bc',m2_falling_dot:0,mirroring:'mapper',prg_ram:'none',reload_policy:'reject-consecutive-reload',startup_model:'explicit-banks-zero-irq',startup_select:0,startup_ram_protect:0,startup_mirroring:0,startup_registers:Object.freeze([0,2,4,5,6,7,0,1])}),info=Object.freeze({mapper:4,prgBanks:banks,prgBankBytes:8192,mappingIdentity:'prg-window-regression',mmc3}),prg=Uint8Array.from({length:banks*8192},(_,i)=>((i>>13)*7+(i&255))&255),pair=[oldFactory,newFactory].map(f=>f([{}]).makeBus(prg,new Uint8Array(),{},info,new Uint8Array(8192)));
+  const check=()=>{for(let a=0x8000;a<=0xffff;a+=257){assert.equal(pair[1].mapPRG(a),pair[0].mapPRG(a));assert.equal(pair[1].read(a),pair[0].read(a));}assert.deepEqual(pair[1].getMapperState(),pair[0].getMapperState());};
+  const saved=pair.map(b=>structuredClone(b.checkpointCapture()));
+  for(const select of [0,6,7,64,70,71,128,198,199])for(const value of [0,1,2,31,63,255]){for(const b of pair){b.write(0x8000,select,b.getCPUClock()+2);b.write(0x8001,value,b.getCPUClock()+2);}check();}
+  pair.forEach((b,i)=>b.loadMapperState(saved[i].mapper));check();pair.forEach((b,i)=>b.checkpointRestore(saved[i]));check();
+  for(const b of pair)for(const a of [-1,0x7fff,0x10000,NaN])assert.throws(()=>b.mapPRG(a));
+ }
+});

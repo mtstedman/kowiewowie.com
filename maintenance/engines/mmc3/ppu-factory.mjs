@@ -204,6 +204,12 @@ let ownedModule;
   if(!Number.isInteger(n)||n<0||n>24576)throw Error('Invalid PPU advance');if(inAdvance)throw Error('Private owned PPU reentry');
   inAdvance=true;advanceCalls++;
   try{let left=n;
+   // A full CPU cycle usually stays inside the staged native continuation.
+   // Native code still yields before every host effect and sprite boundary.
+   if(n===3&&stageActive&&!spriteRowDirty&&binding.before()){
+    ownedCalls++;const done=e.owned_advance(3);binding.after();left-=done;
+    if(left===0){syncOutput();if((p.scanline===0||p.scanline===20)&&p.curX===1)leave();boundary(0);return;}
+   }
    while(left){const x=stageActive?q[0]:p.curX,line=stageActive?q[1]:p.scanline,reason=sourceBoundary(x,line,p.f_bgVisibility||p.f_spVisibility,stageActive?state[4]:odd,stageActive?clocks[0]:dot);
     if(reason){binding.skipPreparation(reason);leave();fallbackDots++;tick(left);left--;continue;}
     if(!stageActive)enter();
