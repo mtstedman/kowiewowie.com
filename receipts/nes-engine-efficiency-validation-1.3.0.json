@@ -1,0 +1,963 @@
+{
+  "format": "nes-engine-efficiency-validation/1",
+  "release": "1.3.0",
+  "baseline_commit": "8b4f7e4efc047b84502b3ad151eb2b7dc0652aa1",
+  "at": "2026-11-17T00:06:05.833655+00:00",
+  "live_engine_changes": {
+    "timed-mmc1/1": "staged private JS/Wasm PPU state, authoritative shared arrays, save-state boundary",
+    "mmc3-dot/1": "staged PPU and mutation-invalidated mapper transfers with ordered A12/IRQ effects",
+    "owned-uxrom-abi2/1": "existing optimized emulation core retained",
+    "legacy-fetch-epoch/1": "existing scanline timing and engine retained",
+    "all": "packed RGBA output, endian fallback, bulk audio ring extraction, registry/package release 1.3.0"
+  },
+  "correctness": {
+    "unit_tests": 121,
+    "typecheck": true,
+    "capability_audit": true,
+    "all_game_parity": [
+      {
+        "id": "megaman",
+        "pass": true,
+        "frames": 360
+      },
+      {
+        "id": "adventure-island-2",
+        "pass": true,
+        "frames": 360,
+        "stats": {
+          "backend": "wasm-owned-three-dot/1",
+          "ownedSpans": 9079386,
+          "ownedDots": 26674784,
+          "ownedCalls": 9079386,
+          "fallbackDots": 5488162,
+          "advanceCalls": 10720982,
+          "hostCrossings": 0,
+          "hostEffectDots": 5488162,
+          "wasmSpriteRows": 83760,
+          "mappingRefreshes": 17,
+          "fullPipelineWasm": false,
+          "mapperScope": [
+            4
+          ],
+          "skippedPreparations": 5478016,
+          "skippedSourcePreparations": 5478016,
+          "skippedAudioPreparations": 0,
+          "localMapperReads": 33626381,
+          "yieldSourceBoundary": 5597566,
+          "yieldMapperAudioEdge": 0,
+          "yieldUnknownCHR": 0,
+          "yieldSkippedDummy": 0,
+          "yieldDirtyRow": 55840,
+          "yieldSpriteStatus": 12548,
+          "yieldNonBgPattern": 0,
+          "localMapper": 4,
+          "sourceSpriteFetch": true,
+          "sourceMapperAudio": false,
+          "synchronizations": 524383,
+          "mappingRefreshMeaning": "CHR-window/mirroring cache refreshes"
+        }
+      },
+      {
+        "id": "castlevania",
+        "pass": true,
+        "frames": 360
+      },
+      {
+        "id": "ikari-warriors",
+        "pass": true,
+        "frames": 360
+      },
+      {
+        "id": "bionic-commando",
+        "pass": true,
+        "frames": 360,
+        "stats": {
+          "backend": "wasm-owned-three-dot/1",
+          "ownedSpans": 9221611,
+          "ownedDots": 27169555,
+          "ownedCalls": 9221611,
+          "fallbackDots": 4993409,
+          "advanceCalls": 10720988,
+          "hostCrossings": 0,
+          "hostEffectDots": 4993409,
+          "wasmSpriteRows": 76220,
+          "mappingRefreshes": 2,
+          "fullPipelineWasm": false,
+          "mapperScope": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "zelda",
+        "pass": true,
+        "frames": 360,
+        "stats": {
+          "backend": "wasm-owned-three-dot/1",
+          "ownedSpans": 9173643,
+          "ownedDots": 26963634,
+          "ownedCalls": 9173643,
+          "fallbackDots": 5199318,
+          "advanceCalls": 10720984,
+          "hostCrossings": 0,
+          "hostEffectDots": 5199318,
+          "wasmSpriteRows": 79237,
+          "mappingRefreshes": 2,
+          "fullPipelineWasm": false,
+          "mapperScope": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      {
+        "id": "contra",
+        "pass": true,
+        "frames": 360
+      }
+    ],
+    "all_game_checkpoint_continuation": [
+      {
+        "id": "megaman",
+        "pass": true,
+        "warmup_frames": 240,
+        "continuation_frames": 120,
+        "reset_continuation_frames": 10,
+        "checkpoint_bytes": 1788424
+      },
+      {
+        "id": "adventure-island-2",
+        "pass": true,
+        "warmup_frames": 240,
+        "continuation_frames": 120,
+        "reset_continuation_frames": 10,
+        "checkpoint_bytes": 2249471
+      },
+      {
+        "id": "castlevania",
+        "pass": true,
+        "warmup_frames": 240,
+        "continuation_frames": 120,
+        "reset_continuation_frames": 10,
+        "checkpoint_bytes": 1883565
+      },
+      {
+        "id": "ikari-warriors",
+        "pass": true,
+        "warmup_frames": 240,
+        "continuation_frames": 120,
+        "reset_continuation_frames": 10,
+        "checkpoint_bytes": 1661574
+      },
+      {
+        "id": "bionic-commando",
+        "pass": true,
+        "warmup_frames": 240,
+        "continuation_frames": 120,
+        "reset_continuation_frames": 10,
+        "checkpoint_bytes": 1546541
+      },
+      {
+        "id": "zelda",
+        "pass": true,
+        "warmup_frames": 240,
+        "continuation_frames": 120,
+        "reset_continuation_frames": 10,
+        "checkpoint_bytes": 2183662
+      },
+      {
+        "id": "contra",
+        "pass": true,
+        "warmup_frames": 240,
+        "continuation_frames": 120,
+        "reset_continuation_frames": 10,
+        "checkpoint_bytes": 1735613
+      }
+    ],
+    "all_game_browser_saves": [
+      {
+        "id": "megaman",
+        "save": true,
+        "load": true,
+        "persisted_across_reload": true,
+        "resumed": true,
+        "spectator_blocked": true
+      },
+      {
+        "id": "adventure-island-2",
+        "save": true,
+        "load": true,
+        "persisted_across_reload": true,
+        "resumed": true,
+        "spectator_blocked": true
+      },
+      {
+        "id": "castlevania",
+        "save": true,
+        "load": true,
+        "persisted_across_reload": true,
+        "resumed": true,
+        "spectator_blocked": true
+      },
+      {
+        "id": "ikari-warriors",
+        "save": true,
+        "load": true,
+        "persisted_across_reload": true,
+        "resumed": true,
+        "spectator_blocked": true
+      },
+      {
+        "id": "bionic-commando",
+        "save": true,
+        "load": true,
+        "persisted_across_reload": true,
+        "resumed": true,
+        "spectator_blocked": true
+      },
+      {
+        "id": "zelda",
+        "save": true,
+        "load": true,
+        "persisted_across_reload": true,
+        "resumed": true,
+        "spectator_blocked": true
+      },
+      {
+        "id": "contra",
+        "save": true,
+        "load": true,
+        "persisted_across_reload": true,
+        "resumed": true,
+        "spectator_blocked": true
+      }
+    ],
+    "final_package_identity": {
+      "pass": true,
+      "scope": "Final worktree package bytes equal the all-seven parity/save/browser-tested site-02 artifacts",
+      "games": [
+        {
+          "id": "megaman",
+          "package_sha256": "f49036c4816676ee7b0ea40a9655e25d8c0bbbf1b4f4c2f236184283091932f2",
+          "members": 90
+        },
+        {
+          "id": "adventure-island-2",
+          "package_sha256": "056e2b7800cfdc5fe213516cd4d9b037feb177a20728e9bcf5643e67f64b016b",
+          "members": 104
+        },
+        {
+          "id": "castlevania",
+          "package_sha256": "60896dbbd6cc27cb679c6693003fd3e334b019a65f4d3a3790227cf8e2ff772d",
+          "members": 60
+        },
+        {
+          "id": "ikari-warriors",
+          "package_sha256": "d497730f7d5808d4cc57183765866852eb218f27a46600d79a544f7492ec8310",
+          "members": 60
+        },
+        {
+          "id": "bionic-commando",
+          "package_sha256": "24f3b264dc65ada5bdf872baf10804a336380971728c55ff94ef0e23abcfeeaf",
+          "members": 87
+        },
+        {
+          "id": "zelda",
+          "package_sha256": "e17a58eb2e39a9f2cfc1e14eeb3d911cb4834bda0c4cc205b71221ccda63259d",
+          "members": 77
+        },
+        {
+          "id": "contra",
+          "package_sha256": "a471c1b358f2f0729fa11e2853bdce02c15a8cbc0fe6e575b3ca065709420bc0",
+          "members": 72
+        }
+      ]
+    },
+    "browser_loader": [
+      {
+        "status": "passed",
+        "games": 7,
+        "checks": [
+          "generic verified-entry compatibility",
+          "strict modular graph loading",
+          "invalid inventoried composition rejection",
+          "scoped CSP configuration",
+          "blocked Blob module and Worker policies",
+          "authenticated adapter imports",
+          "all seven authenticated module workers ready",
+          "tamper rejection",
+          "Blob cleanup",
+          "generic battery initialization handshake",
+          "abort before createAdapter",
+          "abort during import",
+          "idempotent scope cleanup and listener removal"
+        ]
+      }
+    ],
+    "assembler_validation": [
+      {
+        "passed": [
+          "successor and prior migration history",
+          "current audit and runtime source pins",
+          "neutral factory source identity and loaded function body",
+          "engine and composed artifact identity",
+          "actual engine/composition import and step",
+          "all cartridge bytes",
+          "historical release bytes",
+          "package closures and current catalog equality",
+          "optional legacy presence preservation and binding refresh",
+          "collective mandatory dependency rejection",
+          "before/source/edited-source hash rejection",
+          "incompatible release and cartridge ABI rejection"
+        ],
+        "affected": 7,
+        "loadedEdits": 11,
+        "legacyPresent": 2,
+        "legacyAbsent": 5
+      }
+    ],
+    "wasm_rebuild": [
+      {
+        "family": "mmc1",
+        "pass": true,
+        "wasm_sha256": "234b3f7a0dfe314aaeae76e2e34c809d3ad1bf432915209dfbfc927e25899035"
+      },
+      {
+        "family": "mmc3",
+        "pass": true,
+        "wasm_sha256": "97464f4a35857861d6533613c50a01b830ace5005b4b237d92d80622b3368291"
+      },
+      {
+        "family": "mmc5",
+        "pass": true,
+        "wasm_sha256": "e470ce0d0e70dd3d2686cbfc997dae464af0a4f0537d212b150eba613e7f6a1a"
+      }
+    ]
+  },
+  "performance": {
+    "staged_ports_before_additive_media_changes": {
+      "adventure-island-2": {
+        "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+        "id": "adventure-island-2",
+        "transportScope": "Each variant uses its own authenticated shared transport",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.8746029811366368,
+        "rows": [
+          {
+            "tag": "control",
+            "manifest": "455c77a91a669c4237fb388da78e5d0e05bfd2e229715d40bb94fe3861764db6",
+            "worker_cpu_ms": 4561.232666,
+            "runnable_wait_ms": 44.882234,
+            "wall_ms": 4642.661381000002,
+            "state_sha256": "e24e2ec6a618949c4998d8bd4bc396077d1525f23ce07d8fbe1f7a59aa5e8d09",
+            "trace_sha256": "bec9fa2e9ca726f4c373b1f3f16dcd1881a1c54c5b3d429b8ab0dcd9e0c559cf"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "1ec6420b1be00dab5f97f2b78a1cf9a9701a685b121c3427aae4fb5f42eb52f2",
+            "worker_cpu_ms": 4100.304888,
+            "runnable_wait_ms": 30.009839,
+            "wall_ms": 4179.549996000002,
+            "state_sha256": "e24e2ec6a618949c4998d8bd4bc396077d1525f23ce07d8fbe1f7a59aa5e8d09",
+            "trace_sha256": "bec9fa2e9ca726f4c373b1f3f16dcd1881a1c54c5b3d429b8ab0dcd9e0c559cf",
+            "backend": {
+              "backend": "wasm-owned-three-dot/1",
+              "ownedSpans": 15221364,
+              "ownedDots": 44788567,
+              "ownedCalls": 15221364,
+              "fallbackDots": 8816357,
+              "advanceCalls": 17868308,
+              "hostCrossings": 0,
+              "hostEffectDots": 8816357,
+              "wasmSpriteRows": 134640,
+              "mappingRefreshes": 18,
+              "fullPipelineWasm": false,
+              "mapperScope": [
+                4
+              ],
+              "skippedPreparations": 8811265,
+              "skippedSourcePreparations": 8811265,
+              "skippedAudioPreparations": 0,
+              "localMapperReads": 55379033,
+              "yieldSourceBoundary": 9006973,
+              "yieldMapperAudioEdge": 0,
+              "yieldUnknownCHR": 0,
+              "yieldSkippedDummy": 0,
+              "yieldDirtyRow": 89760,
+              "yieldSpriteStatus": 6298,
+              "yieldNonBgPattern": 0,
+              "localMapper": 4,
+              "sourceSpriteFetch": true,
+              "sourceMapperAudio": false,
+              "synchronizations": 839517,
+              "mappingRefreshMeaning": "CHR-window/mirroring cache refreshes"
+            }
+          },
+          {
+            "tag": "candidate",
+            "manifest": "1ec6420b1be00dab5f97f2b78a1cf9a9701a685b121c3427aae4fb5f42eb52f2",
+            "worker_cpu_ms": 3992.038427,
+            "runnable_wait_ms": 27.372663,
+            "wall_ms": 4063.7248700000055,
+            "state_sha256": "e24e2ec6a618949c4998d8bd4bc396077d1525f23ce07d8fbe1f7a59aa5e8d09",
+            "trace_sha256": "bec9fa2e9ca726f4c373b1f3f16dcd1881a1c54c5b3d429b8ab0dcd9e0c559cf",
+            "backend": {
+              "backend": "wasm-owned-three-dot/1",
+              "ownedSpans": 15221364,
+              "ownedDots": 44788567,
+              "ownedCalls": 15221364,
+              "fallbackDots": 8816357,
+              "advanceCalls": 17868308,
+              "hostCrossings": 0,
+              "hostEffectDots": 8816357,
+              "wasmSpriteRows": 134640,
+              "mappingRefreshes": 18,
+              "fullPipelineWasm": false,
+              "mapperScope": [
+                4
+              ],
+              "skippedPreparations": 8811265,
+              "skippedSourcePreparations": 8811265,
+              "skippedAudioPreparations": 0,
+              "localMapperReads": 55379033,
+              "yieldSourceBoundary": 9006973,
+              "yieldMapperAudioEdge": 0,
+              "yieldUnknownCHR": 0,
+              "yieldSkippedDummy": 0,
+              "yieldDirtyRow": 89760,
+              "yieldSpriteStatus": 6298,
+              "yieldNonBgPattern": 0,
+              "localMapper": 4,
+              "sourceSpriteFetch": true,
+              "sourceMapperAudio": false,
+              "synchronizations": 839517,
+              "mappingRefreshMeaning": "CHR-window/mirroring cache refreshes"
+            }
+          },
+          {
+            "tag": "control",
+            "manifest": "455c77a91a669c4237fb388da78e5d0e05bfd2e229715d40bb94fe3861764db6",
+            "worker_cpu_ms": 4691.357926,
+            "runnable_wait_ms": 87.410664,
+            "wall_ms": 4823.293560999999,
+            "state_sha256": "e24e2ec6a618949c4998d8bd4bc396077d1525f23ce07d8fbe1f7a59aa5e8d09",
+            "trace_sha256": "bec9fa2e9ca726f4c373b1f3f16dcd1881a1c54c5b3d429b8ab0dcd9e0c559cf"
+          }
+        ]
+      },
+      "bionic-commando": {
+        "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+        "id": "bionic-commando",
+        "transportScope": "Each variant uses its own authenticated shared transport",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.9507799337581234,
+        "rows": [
+          {
+            "tag": "control",
+            "manifest": "6c16ec5505c10dacac248e9a4daed4ea10f55ca1a75c077749a3d46a9f458c38",
+            "worker_cpu_ms": 4714.152583,
+            "runnable_wait_ms": 109.311597,
+            "wall_ms": 4871.507021000001,
+            "state_sha256": "b859636f62c050b797873375aa5333ba2e07be780ba143df16270a38ccfed84a",
+            "trace_sha256": "69b0a4dfb287ec0dd112c1f77394d9c19a5be39a8f4a1f0101ef7beef91ae6ab"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "cd13001c94f152db12bedc1e5ef8c9e1ff2ba87c2ba0bc6c825f26552bd85e24",
+            "worker_cpu_ms": 4372.854932,
+            "runnable_wait_ms": 72.859979,
+            "wall_ms": 4503.735834999996,
+            "state_sha256": "b859636f62c050b797873375aa5333ba2e07be780ba143df16270a38ccfed84a",
+            "trace_sha256": "69b0a4dfb287ec0dd112c1f77394d9c19a5be39a8f4a1f0101ef7beef91ae6ab",
+            "backend": {
+              "backend": "wasm-owned-three-dot/1",
+              "ownedSpans": 15386225,
+              "ownedDots": 45336522,
+              "ownedCalls": 15386225,
+              "fallbackDots": 8268417,
+              "advanceCalls": 17868313,
+              "hostCrossings": 0,
+              "hostEffectDots": 8268417,
+              "wasmSpriteRows": 126194,
+              "mappingRefreshes": 2,
+              "fullPipelineWasm": false,
+              "mapperScope": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "tag": "candidate",
+            "manifest": "cd13001c94f152db12bedc1e5ef8c9e1ff2ba87c2ba0bc6c825f26552bd85e24",
+            "worker_cpu_ms": 4376.214165,
+            "runnable_wait_ms": 69.918768,
+            "wall_ms": 4481.507136,
+            "state_sha256": "b859636f62c050b797873375aa5333ba2e07be780ba143df16270a38ccfed84a",
+            "trace_sha256": "69b0a4dfb287ec0dd112c1f77394d9c19a5be39a8f4a1f0101ef7beef91ae6ab",
+            "backend": {
+              "backend": "wasm-owned-three-dot/1",
+              "ownedSpans": 15386225,
+              "ownedDots": 45336522,
+              "ownedCalls": 15386225,
+              "fallbackDots": 8268417,
+              "advanceCalls": 17868313,
+              "hostCrossings": 0,
+              "hostEffectDots": 8268417,
+              "wasmSpriteRows": 126194,
+              "mappingRefreshes": 2,
+              "fullPipelineWasm": false,
+              "mapperScope": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "tag": "control",
+            "manifest": "6c16ec5505c10dacac248e9a4daed4ea10f55ca1a75c077749a3d46a9f458c38",
+            "worker_cpu_ms": 4487.839157,
+            "runnable_wait_ms": 58.190443,
+            "wall_ms": 4596.756841999988,
+            "state_sha256": "b859636f62c050b797873375aa5333ba2e07be780ba143df16270a38ccfed84a",
+            "trace_sha256": "69b0a4dfb287ec0dd112c1f77394d9c19a5be39a8f4a1f0101ef7beef91ae6ab"
+          }
+        ]
+      },
+      "zelda": {
+        "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+        "id": "zelda",
+        "transportScope": "Each variant uses its own authenticated shared transport",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.8899837420874686,
+        "rows": [
+          {
+            "tag": "control",
+            "manifest": "bad7c6e645175f2e4279aa9103bedc35e11e59782885646c476b2c3efcab22d4",
+            "worker_cpu_ms": 3651.627971,
+            "runnable_wait_ms": 25.091896,
+            "wall_ms": 3727.3621540000004,
+            "state_sha256": "ec7779e18bfb1f8f44e50d65dc3310a17426f0989aa6fafb7726b8c1c878d743",
+            "trace_sha256": "a14dfeb5518d4de62e5c04b6ca2d05a4dc0fef49c374ce6722ee810aa9a2c94b"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "3c76c9624098489bee827bf5e1aa60b97bdc96f3a41156c1e95129e58df14d8d",
+            "worker_cpu_ms": 3219.821884,
+            "runnable_wait_ms": 37.013665,
+            "wall_ms": 3296.4967069999984,
+            "state_sha256": "ec7779e18bfb1f8f44e50d65dc3310a17426f0989aa6fafb7726b8c1c878d743",
+            "trace_sha256": "a14dfeb5518d4de62e5c04b6ca2d05a4dc0fef49c374ce6722ee810aa9a2c94b",
+            "backend": {
+              "backend": "wasm-owned-three-dot/1",
+              "ownedSpans": 15312911,
+              "ownedDots": 45088057,
+              "ownedCalls": 15312911,
+              "fallbackDots": 8516867,
+              "advanceCalls": 17868308,
+              "hostCrossings": 0,
+              "hostEffectDots": 8516867,
+              "wasmSpriteRows": 130008,
+              "mappingRefreshes": 2,
+              "fullPipelineWasm": false,
+              "mapperScope": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "tag": "candidate",
+            "manifest": "3c76c9624098489bee827bf5e1aa60b97bdc96f3a41156c1e95129e58df14d8d",
+            "worker_cpu_ms": 3191.694245,
+            "runnable_wait_ms": 11.154722,
+            "wall_ms": 3247.638627999997,
+            "state_sha256": "ec7779e18bfb1f8f44e50d65dc3310a17426f0989aa6fafb7726b8c1c878d743",
+            "trace_sha256": "a14dfeb5518d4de62e5c04b6ca2d05a4dc0fef49c374ce6722ee810aa9a2c94b",
+            "backend": {
+              "backend": "wasm-owned-three-dot/1",
+              "ownedSpans": 15312911,
+              "ownedDots": 45088057,
+              "ownedCalls": 15312911,
+              "fallbackDots": 8516867,
+              "advanceCalls": 17868308,
+              "hostCrossings": 0,
+              "hostEffectDots": 8516867,
+              "wasmSpriteRows": 130008,
+              "mappingRefreshes": 2,
+              "fullPipelineWasm": false,
+              "mapperScope": [
+                0,
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "tag": "control",
+            "manifest": "bad7c6e645175f2e4279aa9103bedc35e11e59782885646c476b2c3efcab22d4",
+            "worker_cpu_ms": 3552.454335,
+            "runnable_wait_ms": 10.05263,
+            "wall_ms": 3596.1485119999998,
+            "state_sha256": "ec7779e18bfb1f8f44e50d65dc3310a17426f0989aa6fafb7726b8c1c878d743",
+            "trace_sha256": "a14dfeb5518d4de62e5c04b6ca2d05a4dc0fef49c374ce6722ee810aa9a2c94b"
+          }
+        ]
+      }
+    },
+    "final_media_comparisons": {
+      "megaman": {
+        "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+        "id": "megaman",
+        "transportScope": "Each variant uses its own authenticated shared transport",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.9665671050677977,
+        "rows": [
+          {
+            "tag": "control",
+            "manifest": "d874a94f331a721c77cbf88851ed3b8c45738112ce3ead96a19b8d479cb1dfab",
+            "worker_cpu_ms": 1923.051264,
+            "runnable_wait_ms": 1.527274,
+            "wall_ms": 1960.7900609999997,
+            "state_sha256": "f9de4e58e4132188c87b0b5beeb41c6cd8933ff6191010a6a474688cbaca744f",
+            "trace_sha256": "604fcc6326a1057a171e05cdabd9e5830c4ee2171dc4c13458552c3a6bdc08ea"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "f49036c4816676ee7b0ea40a9655e25d8c0bbbf1b4f4c2f236184283091932f2",
+            "worker_cpu_ms": 1924.214624,
+            "runnable_wait_ms": 1.97655,
+            "wall_ms": 1964.1990250000017,
+            "state_sha256": "f9de4e58e4132188c87b0b5beeb41c6cd8933ff6191010a6a474688cbaca744f",
+            "trace_sha256": "604fcc6326a1057a171e05cdabd9e5830c4ee2171dc4c13458552c3a6bdc08ea"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "f49036c4816676ee7b0ea40a9655e25d8c0bbbf1b4f4c2f236184283091932f2",
+            "worker_cpu_ms": 1974.603277,
+            "runnable_wait_ms": 2.273015,
+            "wall_ms": 2013.0262570000014,
+            "state_sha256": "f9de4e58e4132188c87b0b5beeb41c6cd8933ff6191010a6a474688cbaca744f",
+            "trace_sha256": "604fcc6326a1057a171e05cdabd9e5830c4ee2171dc4c13458552c3a6bdc08ea"
+          },
+          {
+            "tag": "control",
+            "manifest": "d874a94f331a721c77cbf88851ed3b8c45738112ce3ead96a19b8d479cb1dfab",
+            "worker_cpu_ms": 2110.624081,
+            "runnable_wait_ms": 10.048382,
+            "wall_ms": 2162.1926229999954,
+            "state_sha256": "f9de4e58e4132188c87b0b5beeb41c6cd8933ff6191010a6a474688cbaca744f",
+            "trace_sha256": "604fcc6326a1057a171e05cdabd9e5830c4ee2171dc4c13458552c3a6bdc08ea"
+          }
+        ]
+      },
+      "contra": {
+        "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+        "id": "contra",
+        "transportScope": "Each variant uses its own authenticated shared transport",
+        "same_work": true,
+        "candidate_cpu_ratio": 1.0873523820085609,
+        "rows": [
+          {
+            "tag": "control",
+            "manifest": "7b7d8a131021f1e25becf4e273feb768ede4397a1071ee538f3df8bfaa013e21",
+            "worker_cpu_ms": 4215.323527,
+            "runnable_wait_ms": 3.923509,
+            "wall_ms": 4260.296928000002,
+            "state_sha256": "66f73934be09b0f15cfd883ab374fe148a0e781122bbc50561ab12c6ec2ceb05",
+            "trace_sha256": "a089d859ed03398eadf38b087cbc2ef1ff3a214e394ce0359cfc594afbdefbe7"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "a471c1b358f2f0729fa11e2853bdce02c15a8cbc0fe6e575b3ca065709420bc0",
+            "worker_cpu_ms": 4898.779343,
+            "runnable_wait_ms": 27.27078,
+            "wall_ms": 4965.372675000002,
+            "state_sha256": "66f73934be09b0f15cfd883ab374fe148a0e781122bbc50561ab12c6ec2ceb05",
+            "trace_sha256": "a089d859ed03398eadf38b087cbc2ef1ff3a214e394ce0359cfc594afbdefbe7"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "a471c1b358f2f0729fa11e2853bdce02c15a8cbc0fe6e575b3ca065709420bc0",
+            "worker_cpu_ms": 4531.689369,
+            "runnable_wait_ms": 7.092854,
+            "wall_ms": 4580.9760529999985,
+            "state_sha256": "66f73934be09b0f15cfd883ab374fe148a0e781122bbc50561ab12c6ec2ceb05",
+            "trace_sha256": "a089d859ed03398eadf38b087cbc2ef1ff3a214e394ce0359cfc594afbdefbe7"
+          },
+          {
+            "tag": "control",
+            "manifest": "7b7d8a131021f1e25becf4e273feb768ede4397a1071ee538f3df8bfaa013e21",
+            "worker_cpu_ms": 4457.549102,
+            "runnable_wait_ms": 14.581132,
+            "wall_ms": 4511.220986,
+            "state_sha256": "66f73934be09b0f15cfd883ab374fe148a0e781122bbc50561ab12c6ec2ceb05",
+            "trace_sha256": "a089d859ed03398eadf38b087cbc2ef1ff3a214e394ce0359cfc594afbdefbe7"
+          }
+        ]
+      },
+      "contra-repeat": {
+        "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+        "id": "contra",
+        "transportScope": "Each variant uses its own authenticated shared transport",
+        "same_work": true,
+        "candidate_cpu_ratio": 0.9952331289270563,
+        "rows": [
+          {
+            "tag": "control",
+            "manifest": "7b7d8a131021f1e25becf4e273feb768ede4397a1071ee538f3df8bfaa013e21",
+            "worker_cpu_ms": 4569.410329,
+            "runnable_wait_ms": 9.637925,
+            "wall_ms": 4608.685668,
+            "state_sha256": "66f73934be09b0f15cfd883ab374fe148a0e781122bbc50561ab12c6ec2ceb05",
+            "trace_sha256": "a089d859ed03398eadf38b087cbc2ef1ff3a214e394ce0359cfc594afbdefbe7"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "a471c1b358f2f0729fa11e2853bdce02c15a8cbc0fe6e575b3ca065709420bc0",
+            "worker_cpu_ms": 5826.80989,
+            "runnable_wait_ms": 57.195804,
+            "wall_ms": 5929.247170000002,
+            "state_sha256": "66f73934be09b0f15cfd883ab374fe148a0e781122bbc50561ab12c6ec2ceb05",
+            "trace_sha256": "a089d859ed03398eadf38b087cbc2ef1ff3a214e394ce0359cfc594afbdefbe7"
+          },
+          {
+            "tag": "candidate",
+            "manifest": "a471c1b358f2f0729fa11e2853bdce02c15a8cbc0fe6e575b3ca065709420bc0",
+            "worker_cpu_ms": 4844.64726,
+            "runnable_wait_ms": 11.475755,
+            "wall_ms": 4895.588904999997,
+            "state_sha256": "66f73934be09b0f15cfd883ab374fe148a0e781122bbc50561ab12c6ec2ceb05",
+            "trace_sha256": "a089d859ed03398eadf38b087cbc2ef1ff3a214e394ce0359cfc594afbdefbe7"
+          },
+          {
+            "tag": "control",
+            "manifest": "7b7d8a131021f1e25becf4e273feb768ede4397a1071ee538f3df8bfaa013e21",
+            "worker_cpu_ms": 6153.159931,
+            "runnable_wait_ms": 83.131143,
+            "wall_ms": 6278.292813,
+            "state_sha256": "66f73934be09b0f15cfd883ab374fe148a0e781122bbc50561ab12c6ec2ceb05",
+            "trace_sha256": "a089d859ed03398eadf38b087cbc2ef1ff3a214e394ce0359cfc594afbdefbe7"
+          }
+        ]
+      }
+    },
+    "isolated_pixel_conversion": {
+      "scope": "Isolated packed pixel conversion, Node, fixed full-size buffer; not a gameplay measurement",
+      "rows": [
+        {
+          "variant": "control",
+          "cpu_ms": 711.96
+        },
+        {
+          "variant": "candidate",
+          "cpu_ms": 219.655
+        },
+        {
+          "variant": "candidate",
+          "cpu_ms": 225.988
+        },
+        {
+          "variant": "control",
+          "cpu_ms": 738.446
+        }
+      ]
+    },
+    "contra_all_eight_trials_candidate_cpu_ratio": 1.0364252044690703,
+    "interpretation": "Staged-port comparisons showed approximately 5\u201313% lower worker CPU. Legacy media comparison was approximately 3% lower. Contra first comparison was 9% higher, repeat essentially even, pooled 4% higher amid large control variance; no whole-game Contra improvement or causal regression is established. Isolated identical full-frame conversion uses approximately 70% less CPU. Fixed-work results are not sustained 60 FPS or complete gameplay qualification."
+  },
+  "experimental_builds": [
+    {
+      "family": "nrom",
+      "status": "built-unqualified",
+      "output_root": "/home/mason/.local/share/posse-rom-toolchain/evidence/all-engine-efficiency-20261116/tool-build-01/nrom",
+      "mapper": 0,
+      "manifest_sha256": "09ffa2d41ab83059bdc70ee9cf3590490334bae091469eb2ac79137d8a7eb4e3",
+      "source_manifest_sha256": "b0600b607bda038ee65f2ce9c8d91cb81c65c6915e112431bba167d6dd46fd6f",
+      "bridge": "staged-private-state/1",
+      "activated": false,
+      "deployed": false
+    },
+    {
+      "family": "uxrom",
+      "status": "built-unqualified",
+      "output_root": "/home/mason/.local/share/posse-rom-toolchain/evidence/all-engine-efficiency-20261116/tool-build-01/uxrom",
+      "mapper": 2,
+      "manifest_sha256": "d13e7970bc19bbb381aeb1013758d9da06386ab13b13b5cbd16a569cee3d3040",
+      "source_manifest_sha256": "b6bfa368682329f4a1d87639154bd87f77d731863722abd24254b9db45726362",
+      "bridge": "staged-private-state/1",
+      "activated": false,
+      "deployed": false
+    },
+    {
+      "family": "mmc1",
+      "status": "built-unqualified",
+      "output_root": "/home/mason/.local/share/posse-rom-toolchain/evidence/all-engine-efficiency-20261116/tool-build-01/mmc1",
+      "mapper": 1,
+      "manifest_sha256": "45667e250db9cf163b3f8e3981ba388093293832232ed8f325a848b79af57be0",
+      "source_manifest_sha256": "a4c931c1347a2cc1901bd4ce298874d0f3a422af9e4adbc6aebbdf5cd9eaef63",
+      "bridge": "staged-private-state/1",
+      "activated": false,
+      "deployed": false
+    },
+    {
+      "family": "mmc3",
+      "status": "built-unqualified",
+      "output_root": "/home/mason/.local/share/posse-rom-toolchain/evidence/all-engine-efficiency-20261116/tool-build-01/mmc3",
+      "mapper": 4,
+      "manifest_sha256": "e9e1c73bc6c05bd86ac1764f00398c63556d157fad1a775c353992314c2fb908",
+      "source_manifest_sha256": "a7ddbb0c35fb5edbee114bd6689baec1cacb78e51be25f6bb7a1029a32a1677f",
+      "bridge": "staged-private-state/1",
+      "activated": false,
+      "deployed": false
+    },
+    {
+      "family": "mmc5",
+      "status": "built-unqualified",
+      "output_root": "/home/mason/.local/share/posse-rom-toolchain/evidence/all-engine-efficiency-20261116/tool-build-01/mmc5",
+      "mapper": 5,
+      "manifest_sha256": "dfb292c05690978cbe3faf59bfd12a8cb62d393464e4e8cda7b4ef6026becd3d",
+      "source_manifest_sha256": "1dac9943b3be8f5d812d8754c79fe8dccb98b10cc45489f35b9c5b31432203ee",
+      "bridge": "staged-private-state/1",
+      "activated": false,
+      "deployed": false
+    }
+  ],
+  "experimental_validation": {
+    "nrom_uxrom_mmc1": "180-frame exact state/PCM/RGBA and neutral tests; final builder output runtime and Wasm bytes verified identical to tested staged variants",
+    "mmc3": [
+      {
+        "status": "passed",
+        "frames": 180,
+        "stats": {
+          "backend": "wasm-owned-three-dot/1",
+          "ownedSpans": 4619519,
+          "ownedDots": 13612399,
+          "ownedCalls": 4619519,
+          "fallbackDots": 2469089,
+          "advanceCalls": 5360496,
+          "hostCrossings": 0,
+          "hostEffectDots": 2469089,
+          "wasmSpriteRows": 37680,
+          "mappingRefreshes": 17,
+          "fullPipelineWasm": false,
+          "mapperScope": [
+            4
+          ],
+          "skippedPreparations": 2469089,
+          "skippedSourcePreparations": 2469089,
+          "skippedAudioPreparations": 0,
+          "localMapperReads": 16242869,
+          "yieldSourceBoundary": 2526047,
+          "yieldMapperAudioEdge": 0,
+          "yieldUnknownCHR": 0,
+          "yieldSkippedDummy": 0,
+          "yieldDirtyRow": 25120,
+          "yieldSpriteStatus": 0,
+          "yieldNonBgPattern": 0,
+          "localMapper": 4,
+          "sourceSpriteFetch": true,
+          "sourceMapperAudio": false,
+          "synchronizations": 258085,
+          "mappingRefreshMeaning": "CHR-window/mirroring cache refreshes"
+        },
+        "scope": "Exact state, PCM and RGBA at every frame; owned coverage; not full-game proof"
+      }
+    ],
+    "mmc5": [
+      {
+        "status": "passed",
+        "frames": 180,
+        "stats": {
+          "backend": "wasm-owned-three-dot/1",
+          "ownedSpans": 4561512,
+          "ownedDots": 13386058,
+          "ownedCalls": 4561512,
+          "fallbackDots": 2695427,
+          "advanceCalls": 5360495,
+          "hostCrossings": 0,
+          "hostEffectDots": 2695427,
+          "wasmSpriteRows": 40568,
+          "mappingRefreshes": 352,
+          "fullPipelineWasm": false,
+          "mapperScope": [
+            5
+          ],
+          "ownedAudioTicks": 4461966,
+          "skippedPreparations": 2654689,
+          "skippedSourcePreparations": 2654689,
+          "skippedAudioPreparations": 0,
+          "localMapperReads": 16640230,
+          "yieldSourceBoundary": 2713497,
+          "yieldMapperAudioEdge": 0,
+          "yieldUnknownCHR": 0,
+          "yieldSkippedDummy": 40738,
+          "yieldDirtyRow": 0,
+          "yieldSpriteStatus": 0,
+          "yieldNonBgPattern": 0,
+          "localMapper": 5,
+          "sourceSpriteFetch": true,
+          "sourceMapperAudio": true,
+          "synchronizations": 2223582,
+          "mappingRefreshMeaning": "CHR-window/mirroring cache refreshes"
+        },
+        "scope": "Exact state, PCM and RGBA at every frame; owned coverage; not full-game proof"
+      }
+    ],
+    "mmc5_boundaries": [
+      {
+        "status": "passed",
+        "scope": "ordered-owned-private-construction",
+        "mapper": 5,
+        "apuCycles": 60000,
+        "stats": {
+          "backend": "wasm-owned-three-dot/1",
+          "ownedSpans": 52559,
+          "ownedDots": 154444,
+          "ownedCalls": 52559,
+          "fallbackDots": 25556,
+          "advanceCalls": 60000,
+          "hostCrossings": 0,
+          "hostEffectDots": 25556,
+          "wasmSpriteRows": 256,
+          "mappingRefreshes": 61,
+          "fullPipelineWasm": false,
+          "mapperScope": [
+            5
+          ],
+          "ownedAudioTicks": 51481,
+          "skippedPreparations": 25168,
+          "skippedSourcePreparations": 25168,
+          "skippedAudioPreparations": 0,
+          "localMapperReads": 176424,
+          "yieldSourceBoundary": 25781,
+          "yieldMapperAudioEdge": 0,
+          "yieldUnknownCHR": 1,
+          "yieldSkippedDummy": 386,
+          "yieldDirtyRow": 77,
+          "yieldSpriteStatus": 0,
+          "yieldNonBgPattern": 1,
+          "localMapper": 5,
+          "sourceSpriteFetch": true,
+          "sourceMapperAudio": true,
+          "synchronizations": 1354,
+          "mappingRefreshMeaning": "CHR-window/mirroring cache refreshes"
+        },
+        "machineParity": "requires-independent-replay"
+      }
+    ]
+  },
+  "limitations": [
+    "NROM remains a synthetic fixture, not a live cartridge selection.",
+    "MMC5 remains outside the live registry; its existing OAM/DMC overlap limitation stopped the longer baseline performance run.",
+    "Full-machine saves are tied to the exact engine graph; 1.2.0 full saves do not import into 1.3.0. Existing save records and historical engine releases are retained. Zelda battery identity is unchanged.",
+    "No claim of full-game hardware equivalence or sustained 60 FPS on every device."
+  ],
+  "evidence_directory": "/home/mason/.local/share/posse-rom-toolchain/evidence/all-engine-efficiency-20261116"
+}
