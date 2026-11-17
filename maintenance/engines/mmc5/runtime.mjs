@@ -57,6 +57,7 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:5},chr=n
  function readCPU(a,peek=false){
   address(a);if(a>=8192&&a<24576)synchronizeOwned();
   if(a<8192)return ram[a&2047];
+  if(a>=32768){const bank=win((a-32768)>>>13);if(bank>=0){const v=rom[bank*8192+(a&8191)];if(!peek){if(a===65530||a===65531)resetScan();if(pcmMode&&a<49152)pcmWrite(v);}return v;}}
   if(a>=24576){const s=selection(a);let v;if(s&128)v=rom[(s&(n-1))*8192+(a&8191)];else{const b=ramBank(s);v=b<0?external(a,peek):sram[b*8192+(a&8191)];}
    if(!peek){if(a===65530||a===65531)resetScan();if(pcmMode&&a>=32768&&a<49152)pcmWrite(v);}return v;
   }
@@ -121,11 +122,21 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:5},chr=n
   if(a<8192){if(kind==='bg'&&extended)return chrData[((((upper<<6)|(exLatch&63))*4096+(a&4095))&(chrData.length-1))];return chrData[mapCHR(a,kind==='bg'?'bg':kind==='cpu'?'cpu':'sprite')];}
   return readNametable(a,c);
  }
+ function clockEnvelopes(){
+  for(const p of pulses){if(p.length&&!(p.control&32))p.length--;if(p.start){p.start=false;p.envelope=15;p.divider=p.control&15;}else if(p.divider)p.divider--;else{p.divider=p.control&15;if(p.envelope)p.envelope--;else if(p.control&32)p.envelope=15;}}
+ }
+ // Disconnected expansion channels expose digital state, with no per-tick callback.
+ // Timer phase and envelope edges are independent between register accesses.
+ function advanceAudio(ticks){
+  if(!ticks)return;audioCycles+=ticks;
+  for(const p of pulses){if(ticks<=p.timer){p.timer-=ticks;continue;}const span=(p.period+1)*2,left=ticks-p.timer-1;p.phase=(p.phase+1+Math.floor(left/span))&7;p.timer=span-1-left%span;}
+  audioDivider+=ticks;while(audioDivider>=7424){audioDivider-=7424;clockEnvelopes();}
+ }
  function audioTick(){
   audioCycles++;
   const p0=pulses[0],p1=pulses[1];if(p0.timer===0){p0.timer=(p0.period+1)*2-1;p0.phase=(p0.phase+1)&7;}else p0.timer--;if(p1.timer===0){p1.timer=(p1.period+1)*2-1;p1.phase=(p1.phase+1)&7;}else p1.timer--;
   if(++audioDivider<7424)return;audioDivider=0;
-  for(const p of pulses){if(p.length&&!(p.control&32))p.length--;if(p.start){p.start=false;p.envelope=15;p.divider=p.control&15;}else if(p.divider)p.divider--;else{p.divider=p.control&15;if(p.envelope)p.envelope--;else if(p.control&32)p.envelope=15;}}
+  clockEnvelopes();
  }
  let ppuPhase=0;
  function ppuCpuTick(){audioTick();if(reading)idle=0;else if(++idle>=3){idle=3;inFrame=false;lastRead=-1;matches=0;}reading=false;}
@@ -174,7 +185,9 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:5},chr=n
     function before(){
      if(mapperStageValid)return true;
      synchronizations++;refreshMapping();
-     od[0]=ppuDot;od[1]=0;m[8]=5;m[9]=chrData.length-1;
+     m[40]=0;const width=1<<(3-chrMode),used=1023&~(width-1);
+     for(let slot=0;slot<8;slot++){const index=(slot&~(width-1))+width-1;if((known[index]&used)===used){m[32+slot]=mapCHR(slot*1024,'sprite');m[40]|=1<<slot;}}
+     od[0]=ppuDot;od[1]=0;m[28]=ppuDot%3;m[8]=5;m[9]=chrData.length-1;
      m[10]=ntMap;m[11]=exMode;m[12]=fillTile;m[13]=fillColor;m[14]=upper;
      m[15]=exMode===1&&Boolean(mask&24)?1:0;m[16]=exTile;m[17]=exLatch;
      m[18]=lastRead+1;m[19]=matches;m[20]=reading?1:0;m[21]=inFrame?1:0;
@@ -185,7 +198,7 @@ export function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:5},chr=n
     function after(){mapperStageValid=true;stagedPending=true;}
     function flush(){
      if(!stagedPending)return;stagedPending=false;
-     const ticks=Math.floor(od[0]/3)-Math.floor(ppuDot/3);if(ticks<0||ticks>8192)throw Error('Owned audio clock invariant');for(let i=0;i<ticks;i++)audioTick();ownedAudioTicks+=ticks;
+     const ticks=Math.floor(od[0]/3)-Math.floor(ppuDot/3);if(ticks<0||ticks>8192)throw Error('Owned audio clock invariant');advanceAudio(ticks);ownedAudioTicks+=ticks;
      mapperStageValid=true;ppuDot=od[0];ppuPhase=ppuDot%3;ppuAddress=m[25];exTile=m[16];exLatch=m[17];lastRead=m[18]-1;
      matches=m[19];reading=Boolean(m[20]);inFrame=Boolean(m[21]);line=m[22];pending=Boolean(m[24]);idle=m[27];
     }
@@ -228,7 +241,7 @@ function denseDispatch(blocks){
 }
 export function bindMachineStep(cpu){
  const step=machineSteps.get(cpu);if(!step)bad('BAD_CPU','Module-owned CPU required');
- const result={kind:'',pc:0,cycles:0};return ()=>step(result);
+ const result={kind:'',pc:0,cycles:0,physicalPC:0};return ()=>step(result);
 }
 function windowBank(m,w){switch(w){case 0:return m.w0;case 1:return m.w1;case 2:return m.w2;case 3:return m.w3;default:return undefined;}}
 export function makeCPU(bus,blocks,info){
@@ -263,7 +276,7 @@ export function makeCPU(bus,blocks,info){
  function fetchByte(a,m,peek=false){
   if(banked)mapped(a,m);
   const value=peek?bus.peek(a):bus.read(a);
-  if(banked){unchanged(m);mapped(a,m);}
+  if(banked){unchanged(m);if(!trusted)mapped(a,m);}
   return byte(value);
  }
  mapping();const dense=denseDispatch(blocks);const instructionMapping={mapper:5,identity:info.mappingIdentity,version:0,clock:0,w0:0,w1:0,w2:0,w3:0};
@@ -280,27 +293,34 @@ export function makeCPU(bus,blocks,info){
  function interrupt(a){c.r(s.pc);c.r(s.pc);c.push(s.pc>>>8,2);c.push(s.pc&255,3);c.push(c.norm(s.p),4);s.p|=4;s.pc=vector(a);irqMask=4;hold=true;addCycles(7);}
  function receipt(out,kind,pc,cycles){if(!out)return {kind,pc,cycles};out.kind=kind;out.pc=pc;out.cycles=cycles;return out;}
  const verifiedCode=new WeakMap();
+ const verifiedPages=trusted?.sourcePeek&&dense?dense.map(group=>Object.fromEntries(Object.keys(group).map(bank=>[bank,new Uint8Array(1024)]))):null;
  function step(out){safe();busy=true;try{
   if(s.cycles>Number.MAX_SAFE_INTEGER-8||s.instructions>Number.MAX_SAFE_INTEGER-2)bad('COUNTER_OVERFLOW','Counter exhausted');begin();const pc=s.pc;
   if(!hold&&(nmiPending||(irq&&!irqMask))){const nmi=nmiPending;if(nmi)nmiPending=false;interrupt(nmi?65530:65534);return receipt(out,nmi?'nmi':'irq',pc,timed?s.cycles-startCycle:7);}
   if(pc<32768)bad('MUTABLE_CODE_UNSUPPORTED','Execution outside immutable PRG',pc);
   const m=mapping(instructionMapping);if(banked)mapped(pc,m);
   const window=(pc-32768)>>>13,bank=windowBank(m,window);let entry=dense?dense[window][bank][pc&8191]:blocks[window][bank][pc];
-  if(entry&&entry.cross){const next=windowBank(m,window+1);if(next<0)bad('MUTABLE_CODE_UNSUPPORTED','Cross-window operands enter RAM',pc);entry=entry.cross[next];}
+  const crossed=Boolean(entry&&entry.cross);
+  if(crossed){const next=windowBank(m,window+1);if(next<0)bad('MUTABLE_CODE_UNSUPPORTED','Cross-window operands enter RAM',pc);entry=entry.cross[next];}
   if(!entry){const op=fetchByte(pc,m,true);bad(info.officialOpcodes.includes(op)?'MISSING_TRANSLATION':'UNSUPPORTED_OPCODE','No translated instruction at '+pc+' (opcode '+op+')',pc);}
   // Only immutable entries and the exact owned ROM peek can reuse verification.
   // Actual cycle-bearing reads below always execute, including DMA and PCM effects.
-  const codeKey=(bank*65536+pc)*129+(window<3?windowBank(m,window+1)+1:0);
-  const verified=trusted?.sourcePeek?verifiedCode.get(entry):null;
-  if(verified?.key!==codeKey){
+  const page=!crossed&&verifiedPages?verifiedPages[window][bank]:null,slot=(pc&8191)>>>3,bit=1<<(pc&7);
+  const codeKey=page?0:(bank*65536+pc)*129+(window<3?windowBank(m,window+1)+1:0);
+  const verified=page?Boolean(page[slot]&bit):trusted?.sourcePeek&&verifiedCode.get(entry)?.key===codeKey;
+  if(!verified){
    for(let i=0;i<entry[0].length;i++)if(fetchByte(pc+i,m,true)!==entry[0][i])bad('CODE_CHANGED','Peek differs from source',pc);
-   if(trusted?.sourcePeek&&Object.isFrozen(entry)&&Object.isFrozen(entry[0]))verifiedCode.set(entry,{key:codeKey});
+   if(trusted?.sourcePeek&&Object.isFrozen(entry)&&Object.isFrozen(entry[0])){if(page)page[slot]|=bit;else verifiedCode.set(entry,{key:codeKey});}
   }
-  for(let i=0;i<(entry[3]??entry[0].length);i++)if(fetchByte(pc+i,m)!==entry[0][i])bad('CODE_CHANGED','Fetch differs from source',pc);
+  if(verified){
+   // The immutable entry's address range was checked during source verification.
+   // Each real read still runs, validates its byte and checks callback mutations.
+   for(let i=0;i<(entry[3]??entry[0].length);i++){const value=bus.read(pc+i);unchanged(m);if(byte(value)!==entry[0][i])bad('CODE_CHANGED','Fetch differs from source',pc);}
+  }else{for(let i=0;i<(entry[3]??entry[0].length);i++)if(fetchByte(pc+i,m)!==entry[0][i])bad('CODE_CHANGED','Fetch differs from source',pc);}
   if(banked)unchanged(m);
   // Semantic writes legitimately update mapping and the MMC1 clock. Do not
   // compare their final state to the pre-fetch snapshot.
-  const old=s.p;hold=false;const n=entry[1](c);s.p=c.norm(s.p);irqMask=entry[2]===1?old&4:s.p&4;if(entry[2]===2)hold=true;addCycles(n);s.instructions++;return receipt(out,'instruction',pc,timed?s.cycles-startCycle:n);
+  if(out)out.physicalPC=bank*8192+(pc&8191);const old=s.p;hold=false;const n=entry[1](c);s.p=c.norm(s.p);irqMask=entry[2]===1?old&4:s.p&4;if(entry[2]===2)hold=true;addCycles(n);s.instructions++;return receipt(out,'instruction',pc,timed?s.cycles-startCycle:n);
  }finally{busy=false;}}
  function run(options={}){safe();if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(k=>!['maxSteps','maxCycles','maxMs'].includes(k)))bad('BAD_ARGUMENT','Invalid run options');const maxSteps=options.maxSteps??1000,maxCycles=options.maxCycles??100000,maxMs=options.maxMs??1000;integer(maxSteps,1000000,'maxSteps');integer(maxCycles,10000000,'maxCycles');integer(maxMs,5000,'maxMs');if(!maxSteps||!maxCycles||!maxMs)bad('BAD_ARGUMENT','Positive bounds required');const now=()=>globalThis.performance?.now?.()??Date.now(),start=now(),initial=s.cycles;let steps=0,reason='steps';while(steps<maxSteps){if(s.cycles-initial>=maxCycles){reason='cycles';break;}if(now()-start>=maxMs){reason='time';break;}step();steps++;}return {steps,cycles:s.cycles-initial,reason,state:snapshot()};}
  const api=Object.freeze({checkpointCapture(){safe();return {s,irq,nmiLine,nmiPending,irqMask,hold,startCycle,coreStart};},checkpointRestore(v){safe();setState(v.s);({irq,nmiLine,nmiPending,irqMask,hold,startCycle,coreStart}=v);},bus,getState:snapshot,getPC:()=>s.pc,setState,step:()=>step(),run,reset,setIRQ(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean IRQ required');irq=v;},setNMI(v){safe();if(typeof v!=='boolean')bad('BAD_ARGUMENT','Boolean NMI required');if(v&&!nmiLine)nmiPending=true;nmiLine=v;},requestNMI(){safe();nmiPending=true;},getSignals:()=>({irq,nmiLine,nmiPending,irqMask:Boolean(irqMask),hold})});machineSteps.set(api,step);reset();return api;

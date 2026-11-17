@@ -14,11 +14,13 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
  let v=0,t=0,fineX=0,first=true,dot=0,odd=false,lastClear=-1,lo=0,hi=0,al=0,ah=0,nt=0,at=0,pl=0,ph=0,addr=0,fetchKind=0,skippedDummy=false;
  first=true;dot=bus.getPPUClock();lastClear=-1;
  const q=new Uint32Array(e.memory.buffer,e.owned_registers(),16);
+ const spriteNext=new Uint32Array(e.memory.buffer,e.owned_sprite_next(),64),spriteInit=new Uint32Array(e.memory.buffer,e.owned_sprite_init(),32);
+ function enterSprites(){for(let i=0;i<8;i++){const sp=next[i],j=i*8,k=i*4;spriteNext[j]=sp.lo;spriteNext[j+1]=sp.hi;spriteNext[j+2]=sp.x;spriteNext[j+3]=sp.attr;spriteNext[j+4]=sp.zero?1:0;spriteNext[j+5]=sp.valid?1:0;spriteNext[j+6]=sp.address;spriteInit[k]=(i<found?1:0)|(ids[i]===0?2:0);spriteInit[k+1]=secondary[k+3];spriteInit[k+2]=secondary[k+2];spriteInit[k+3]=spriteAddress(i);}}
+ function leaveSprites(){for(let i=0;i<8;i++){const sp=next[i],j=i*8;sp.lo=spriteNext[j];sp.hi=spriteNext[j+1];sp.x=spriteNext[j+2];sp.attr=spriteNext[j+3];sp.zero=Boolean(spriteNext[j+4]);sp.valid=Boolean(spriteNext[j+5]);sp.address=spriteNext[j+6];}}
  const rowInput=new Uint32Array(e.memory.buffer,e.shared_sprite_input(),48);
  const rowOutput=new Uint32Array(e.memory.buffer,e.shared_sprite_row(),256);
  const colors=new Uint32Array(e.memory.buffer,e.owned_colors(),64);
  let fallbackDots=0,advanceCalls=0,ownedCalls=0,inAdvance=false;
- function sourceBoundary(d,line,render,boundaryOdd,clock){return ((line==0&&d==1)||(line==20&&d==1)||d==340||(line==20&&d==339&&boundaryOdd&&render)||(render&&line>=20&&line<=260&&d>=257&&d<=320))?1:0;}
  function refreshColors(){for(let i=0;i<64;i++)colors[i]=p.palTable.getEntry(i);}
  refreshColors();
  Object.defineProperty(p,'getSharedPPUStats',{configurable:true,value:()=>({backend:'wasm-owned-three-dot/1',ownedSpans:e.owned_span_count(),ownedDots:e.owned_dot_count(),ownedCalls,fallbackDots,advanceCalls,hostCrossings:0,hostEffectDots:fallbackDots,wasmSpriteRows:e.shared_sprite_rows(),mappingRefreshes:binding.mappingRefreshes(),fullPipelineWasm:false,mapperScope:[5],...(binding.stats?.()??{})})});
@@ -43,7 +45,7 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
   if(p.scanline===20)return;
   secondary.fill(255);ids.fill(-1);found=0;const y=p.scanline-21,height=p.f_spriteSize?16:8;
   // Active-render OAM writes are rejected below, so this bounded scan sees stable primary OAM.
-  for(let i=0;i<64;i++){const row=y-p.spriteMem[i*4];if(row<0||row>=height)continue;if(found===8){p.setStatusFlag(p.STATUS_SLSPRITECOUNT,true);break;}secondary.set(p.spriteMem.subarray(i*4,i*4+4),found*4);ids[found]=i;found++;}
+  for(let i=0;i<64;i++){const row=y-p.spriteMem[i*4];if(row<0||row>=height)continue;if(found===8){counters();p.setStatusFlag(p.STATUS_SLSPRITECOUNT,true);break;}secondary.set(p.spriteMem.subarray(i*4,i*4+4),found*4);ids[found]=i;found++;}
   p.secondaryOAM.set(secondary);p.spritesFound=found;p.sprite0InSecondary=ids[0]===0;
  }
  function spriteAddress(slot){const i=slot*4,tile=secondary[i+1],attr=secondary[i+2],height=p.f_spriteSize?16:8;let row=((p.scanline===20?255:p.scanline-21)-secondary[i])&(height-1);if(attr&128)row=height-1-row;return p.f_spriteSize?((tile&1)<<12)|((tile&254)<<4)|((row&8)<<1)|(row&7):(p.f_spPatternTable<<12)|(tile<<4)|(row&7);}
@@ -52,14 +54,14 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
   const mask=0x8000>>>fineX,visibleBG=p.f_bgVisibility&&(x>=8||p.f_bgClipping),bg=visibleBG?((lo&mask?1:0)|(hi&mask?2:0)):0,ba=(al&mask?1:0)|(ah&mask?2:0);
   let sp=0,sa=0,behind=false,zero=false;
    if(p.f_spVisibility&&(x>=8||p.f_spClipping)){if(spriteRowDirty)prepareSpriteRow();const packed=spriteRow[x];sp=packed&3;sa=(packed>>>2)&3;behind=Boolean(packed&16);zero=Boolean(packed&32);}
-  if(bg&&sp&&zero&&x!==255){p.setStatusFlag(p.STATUS_SPRITE0HIT,true);p.hitSpr0=true;}
+  if(bg&&sp&&zero&&x!==255){counters();p.setStatusFlag(p.STATUS_SPRITE0HIT,true);p.hitSpr0=true;}
   let index=sp&&(!bg||!behind)?16+(sa<<2)+sp:bg?(ba<<2)+bg:0;
   if(!rendering()&&(v&0x3f00)===0x3f00){index=v&31;if((index&19)===16)index&=15;}
   p.buffer[y*256+x]=color(index);
  }
  function boundary(remaining){
-  if(p.scanline===0&&p.curX===1&&p.vblankPending)p._fireVblankSet(cpu,remaining);
-  if(p.scanline===20&&p.curX===1&&lastClear!==dot){lastClear=dot;p._fireVblankClear(cpu,remaining<=1);}
+  if(p.scanline===0&&p.curX===1&&p.vblankPending){counters();p._fireVblankSet(cpu,remaining);}
+  if(p.scanline===20&&p.curX===1&&lastClear!==dot){lastClear=dot;counters();p._fireVblankClear(cpu,remaining<=1);}
  }
  function tick(remaining){
   boundary(remaining);const d=p.curX,line=p.scanline,run=active();
@@ -94,7 +96,6 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
   dot++;bus.advancePPUClock(dot);
   if(line===20&&d===339&&odd&&rendering()){skippedDummy=true;p.curX=0;p.scanline=21;const a=current;current=next;next=a;spriteRowDirty=true;}
   else if(++p.curX===341){p.curX=0;if(line===261){p.scanline=0;p.vblankPending=true;odd=!odd;}else{p.scanline++;if(line>=20&&line<=260){const a=current;current=next;next=a;spriteRowDirty=true;}}}
-  counters();
  }
  function syncInput(){
   q[0]=p.curX;q[1]=p.scanline;q[2]=p.f_bgVisibility;q[3]=p.f_spVisibility;
@@ -103,21 +104,21 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
  }
  function syncOutput(){p.curX=q[0];p.scanline=q[1];}
  let stageActive=false,entries=0,exits=0;
- function leave(){if(!stageActive)return;v=state[0];t=state[1];fineX=state[2];first=Boolean(state[3]);odd=Boolean(state[4]);lo=state[5];hi=state[6];al=state[7];ah=state[8];nt=state[9];at=state[10];pl=state[11];ph=state[12];addr=state[13];fetchKind=state[14];skippedDummy=Boolean(state[15]);dot=clocks[0];lastClear=clocks[1];syncOutput();stageActive=false;exits++;counters();}
- function enter(){state[0]=v;state[1]=t;state[2]=fineX;state[3]=first;state[4]=odd;state[5]=lo;state[6]=hi;state[7]=al;state[8]=ah;state[9]=nt;state[10]=at;state[11]=pl;state[12]=ph;state[13]=addr;state[14]=fetchKind;state[15]=skippedDummy;clocks[0]=dot;clocks[1]=lastClear;syncInput();stageActive=true;entries++;}
+ function leave(){if(!stageActive)return;leaveSprites();v=state[0];t=state[1];fineX=state[2];first=Boolean(state[3]);odd=Boolean(state[4]);lo=state[5];hi=state[6];al=state[7];ah=state[8];nt=state[9];at=state[10];pl=state[11];ph=state[12];addr=state[13];fetchKind=state[14];skippedDummy=Boolean(state[15]);dot=clocks[0];lastClear=clocks[1];syncOutput();stageActive=false;exits++;counters();}
+ function enter(){enterSprites();state[0]=v;state[1]=t;state[2]=fineX;state[3]=first;state[4]=odd;state[5]=lo;state[6]=hi;state[7]=al;state[8]=ah;state[9]=nt;state[10]=at;state[11]=pl;state[12]=ph;state[13]=addr;state[14]=fetchKind;state[15]=skippedDummy;clocks[0]=dot;clocks[1]=lastClear;syncInput();stageActive=true;entries++;}
  p.advanceDots=n=>{
   if(!Number.isInteger(n)||n<0||n>24576)throw Error('Invalid PPU advance');if(inAdvance)throw Error('Private owned PPU reentry');
   inAdvance=true;advanceCalls++;
   try{let left=n;
-   while(left){const x=stageActive?q[0]:p.curX,line=stageActive?q[1]:p.scanline,reason=sourceBoundary(x,line,p.f_bgVisibility||p.f_spVisibility,stageActive?state[4]:odd,stageActive?clocks[0]:dot);
-    if(reason){binding.skipPreparation(reason);leave();fallbackDots++;tick(left);left--;continue;}
+   while(left){
+    // The owned kernel returns before every host-effect boundary.
     if(!stageActive)enter();
     if(spriteRowDirty&&q[1]>=21&&q[1]<=260&&q[0]>=1&&q[0]<=256&&q[3]&&(q[0]>=9||q[5])){leave();prepareSpriteRow();enter();}
     q[15]=spriteRowDirty?1:0;
     let done=0;if(binding.before()){ownedCalls++;done=e.owned_advance(Math.min(3,left));binding.after();}
     if(done){left-=done;}else{leave();fallbackDots++;tick(left);left--;}
    }
-   if(stageActive)syncOutput();
+   if(stageActive)syncOutput();else counters();
    if((p.scanline===0||p.scanline===20)&&p.curX===1)leave();boundary(0);
   }finally{inAdvance=false;}
  };

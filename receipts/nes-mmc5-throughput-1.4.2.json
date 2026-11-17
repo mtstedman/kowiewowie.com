@@ -1,0 +1,370 @@
+{
+  "steady_playback_qualification": "failed_under_shared_host_contention",
+  "format": "nes-mmc5-throughput-validation/1",
+  "release": "1.4.2",
+  "baseline_commit": "092f4407ad9361de05bc629fa7dc48407b3c6059",
+  "scope": "Castlevania III active gameplay on this shared host in headless Chromium. The strict zero-underrun playback qualification failed under competing CPU sibling workloads; this report does not claim it passed. Original NTSC CPU/PPU/audio clocks retained. Not a whole-game or all-device performance guarantee.",
+  "changes": [
+    "Wasm sprite-fetch continuation with exact mapper read strobes and checkpoint copyback",
+    "MMC5-specific Wasm mapper branches and integer clock phase, O3 build, and single kernel-owned boundary check",
+    "Cached immutable PRG-window reads and instruction-source verification; warmed immutable fetches retain all reads and mapping-first error checks",
+    "Private instruction receipt reuses physical PC; single-cycle DMA clock avoids generic clock-loop overhead",
+    "Exact bulk advancement of disconnected MMC5 pulse digital state"
+  ],
+  "games": [
+    {
+      "id": "megaman",
+      "cartridge_unchanged": true,
+      "engine_graph_changed": false
+    },
+    {
+      "id": "adventure-island-2",
+      "cartridge_unchanged": true,
+      "engine_graph_changed": false
+    },
+    {
+      "id": "castlevania",
+      "cartridge_unchanged": true,
+      "engine_graph_changed": false
+    },
+    {
+      "id": "ikari-warriors",
+      "cartridge_unchanged": true,
+      "engine_graph_changed": false
+    },
+    {
+      "id": "bionic-commando",
+      "cartridge_unchanged": true,
+      "engine_graph_changed": false
+    },
+    {
+      "id": "zelda",
+      "cartridge_unchanged": true,
+      "engine_graph_changed": false
+    },
+    {
+      "id": "contra",
+      "cartridge_unchanged": true,
+      "engine_graph_changed": false
+    },
+    {
+      "id": "castlevania-3",
+      "cartridge_unchanged": true,
+      "engine_graph_changed": true
+    }
+  ],
+  "correctness": {
+    "pass": true,
+    "frames": 1200,
+    "active_start": 1800,
+    "exact_state_pcm_rgba": true,
+    "checkpoint_boundary_steps": 17,
+    "checkpoint_replay": 120
+  },
+  "graphics": {
+    "pass": true,
+    "configurations": 16,
+    "checks": 14400,
+    "dotsPerConfiguration": 179100,
+    "scope": "CHR modes 0-3, 8/16-pixel sprites, normal/extended attributes, arbitrary mid-sprite boundaries; exact PPU hidden state, mapper, frame pixels and status."
+  },
+  "digital_audio": {
+    "pass": true,
+    "steps": 10000,
+    "scope": "Exact digital pulse state across randomized control/period/length writes, zero/one/max-size batches, divider edges and checkpoint restore."
+  },
+  "paired_cpu_baseline_to_first_candidate": {
+    "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+    "id": "castlevania-3",
+    "transportScope": "Original packages authenticated; explicitly pinned experiment overlays replace factories. Transport unchanged. Not release authentication.",
+    "same_work": true,
+    "candidate_cpu_ratio": 0.8303047892404923,
+    "rows": [
+      {
+        "tag": "control",
+        "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+        "worker_cpu_ms": 3430.854926,
+        "runnable_wait_ms": 0.207938,
+        "wall_ms": 3463.1022089999988,
+        "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+        "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+      },
+      {
+        "tag": "candidate",
+        "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+        "worker_cpu_ms": 2977.849454,
+        "runnable_wait_ms": 0.051607,
+        "wall_ms": 3012.261360999997,
+        "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+        "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+      },
+      {
+        "tag": "candidate",
+        "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+        "worker_cpu_ms": 2905.65283,
+        "runnable_wait_ms": 0.10734,
+        "wall_ms": 2945.037550000001,
+        "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+        "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+      },
+      {
+        "tag": "control",
+        "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+        "worker_cpu_ms": 3655.099967,
+        "runnable_wait_ms": 0.202558,
+        "wall_ms": 3695.3847500000047,
+        "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+        "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+      }
+    ]
+  },
+  "paired_cpu_followups": [
+    {
+      "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+      "id": "castlevania-3",
+      "transportScope": "Original packages authenticated; explicitly pinned experiment overlays replace factories. Transport unchanged. Not release authentication.",
+      "same_work": true,
+      "candidate_cpu_ratio": 0.9251631907077749,
+      "rows": [
+        {
+          "tag": "control",
+          "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+          "worker_cpu_ms": 3090.70188,
+          "runnable_wait_ms": 0.185288,
+          "wall_ms": 3129.412109000001,
+          "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+          "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+        },
+        {
+          "tag": "candidate",
+          "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+          "worker_cpu_ms": 2823.331561,
+          "runnable_wait_ms": 0.114887,
+          "wall_ms": 2862.5162420000015,
+          "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+          "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+        },
+        {
+          "tag": "candidate",
+          "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+          "worker_cpu_ms": 2850.493678,
+          "runnable_wait_ms": 0.144591,
+          "wall_ms": 2879.708523000001,
+          "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+          "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+        },
+        {
+          "tag": "control",
+          "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+          "worker_cpu_ms": 3042.081283,
+          "runnable_wait_ms": 0.09042,
+          "wall_ms": 3079.5065209999957,
+          "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+          "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+        }
+      ]
+    },
+    {
+      "scope": "360 warmup and 240 measured fixed-input frames through actual ordered-credit producer in Chromium. Worker CPU isolated from runnable wait. Not real-time playback/audio qualification.",
+      "id": "castlevania-3",
+      "transportScope": "Original packages authenticated; explicitly pinned experiment overlays replace factories. Transport unchanged. Not release authentication.",
+      "same_work": true,
+      "candidate_cpu_ratio": 0.9213202283263247,
+      "rows": [
+        {
+          "tag": "control",
+          "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+          "worker_cpu_ms": 2835.018271,
+          "runnable_wait_ms": 0.151754,
+          "wall_ms": 2877.2181579999997,
+          "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+          "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+        },
+        {
+          "tag": "candidate",
+          "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+          "worker_cpu_ms": 2705.737497,
+          "runnable_wait_ms": 0.134473,
+          "wall_ms": 2747.1809730000023,
+          "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+          "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+        },
+        {
+          "tag": "candidate",
+          "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+          "worker_cpu_ms": 2708.49135,
+          "runnable_wait_ms": 0.120507,
+          "wall_ms": 2746.5444089999946,
+          "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+          "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+        },
+        {
+          "tag": "control",
+          "manifest": "5ba550ac04c5c87995e2b1c735215bd333015aa7a57f97496ab9fd9c9d685088",
+          "worker_cpu_ms": 3041.579985,
+          "runnable_wait_ms": 0.089798,
+          "wall_ms": 3079.2296669999996,
+          "state_sha256": "1c0e244d29c3e0a2beb47f483ca51384aea6aa67eab5360e2382a01c3783f460",
+          "trace_sha256": "dd3120ccf5c691c4e676f2c3b81ca60c606889bf44052db8a7e95bae0f6b8d53"
+        }
+      ]
+    }
+  ],
+  "rejected_playback": {
+    "candidate": 9,
+    "reason": "Brief production slowdowns caused audio gaps",
+    "evidence": "release-diagnostic/playback.json"
+  },
+  "playback": {
+    "pass": false,
+    "scope": "Active gameplay from authenticated checkpoint; actual presented frames, audio scheduling, production and RAF timing. Headless Chromium on this host.",
+    "seconds": 120,
+    "audio": "running",
+    "draws": 7209,
+    "presented_fps": 59.86119312128973,
+    "emulated_fps": 59.992974244698665,
+    "frame_intervals": {
+      "p50": 16.699999928474426,
+      "p95": 16.800000071525574,
+      "p99": 16.899999976158142,
+      "max": 49.89999997615814,
+      "over25": 15,
+      "over50": 0
+    },
+    "raf_intervals": {
+      "p50": 16.69999999999709,
+      "p99": 16.80000000000291,
+      "max": 16.80000000000291
+    },
+    "skipped_emulated_frames": 10,
+    "audio_gaps": 19,
+    "late_audio": 2,
+    "errors": [],
+    "lifecycle": {
+      "pause": true,
+      "save_load": true,
+      "resume": true,
+      "reset": true
+    }
+  },
+  "remaining_issue": {
+    "strict_playback_qualified": false,
+    "observed": "Other Python, Chrome and video-processing tasks ran on the sibling hardware thread during underrun bursts; game worker runnable wait was negligible. No other workloads were paused or modified.",
+    "evidence": "release-owners/worker-cpu.json",
+    "fixed_placement_result": {
+      "pass": false,
+      "scope": "Active gameplay from authenticated checkpoint; actual presented frames, audio scheduling, production and RAF timing. Headless Chromium on this host.",
+      "seconds": 75,
+      "audio": "running",
+      "draws": 4515,
+      "presented_fps": 59.79053444570967,
+      "emulated_fps": 59.93083782645277,
+      "frame_intervals": {
+        "p50": 16.699999928474426,
+        "p95": 17.100000023841858,
+        "p99": 18.399999976158142,
+        "max": 50.199999928474426,
+        "over25": 13,
+        "over50": 1
+      },
+      "raf_intervals": {
+        "p50": 16.69999999999709,
+        "p99": 16.80000000000291,
+        "max": 16.80000000000291
+      },
+      "skipped_emulated_frames": 6,
+      "audio_gaps": 13,
+      "late_audio": 0,
+      "errors": [],
+      "lifecycle": {
+        "pause": true,
+        "save_load": true,
+        "resume": true,
+        "reset": true
+      }
+    }
+  },
+  "checks": {
+    "typecheck": "passed",
+    "arcade_tests": 138,
+    "arcade_failures": 0,
+    "capability_audit": "passed",
+    "reproducible_wasm": "byte-identical"
+  },
+  "checkpoint_compatibility": "Other cartridge engine graphs are unchanged. Castlevania III saves from older engine identities require a new save.",
+  "evidence_root": "/home/mason/.local/share/posse-rom-toolchain/evidence/mmc5-steady-20261117/",
+  "evidence": {
+    "release-browser-02/result.json": {
+      "sha256": "30c87df8b8ca68026512f287666b508eba63e3ff959a7784554b111312320a0e",
+      "bytes": 18286
+    },
+    "release-browser-02/trace.json": {
+      "sha256": "d16a6914590828fe5d845f7ff1ba12648e8aa19a31eb80b2a7930db9ea3e607a",
+      "bytes": 961445
+    },
+    "candidate-13/comparison-full.json": {
+      "sha256": "342d20a12f4c6c4b5e41b2d6f22fd95f65197f7ac3c9854cdce5cf9c56ce0004",
+      "bytes": 130
+    },
+    "candidate-13/ppu-parity.json": {
+      "sha256": "9405235238985f013c239f0e0643b41b1bbe3ac839a972d7ef011c33a9b112da",
+      "bytes": 241
+    },
+    "candidate-06/audio-batch-parity.json": {
+      "sha256": "5d29f805cea552695bbd41c5a11479953aa8726e93d733df811c40f4dca0687a",
+      "bytes": 176
+    },
+    "candidate-09/cpu/summary.json": {
+      "sha256": "9c85ce2dfa38ed319a82bc92a186a5425b2af74ef3322e22901e72333cd9fcb9",
+      "bytes": 6463
+    },
+    "rebuild-check-02/build.json": {
+      "sha256": "f22bf99500dc978a1f46e59bb19d85fbcfb663bfb5a5c866d8dda9c4fe6b2ab5",
+      "bytes": 1895
+    },
+    "candidate-12/fetch-guards.json": {
+      "sha256": "cbbf9221779278894b9206b438d225ccd1f258b9ee7e7aea53a721ba4a377166",
+      "bytes": 168
+    },
+    "candidate-12/cpu-vs-09/summary.json": {
+      "sha256": "531afc1d687d5c42bd919a23b4500b8b21cc575c41242f5b7b5b0258eeef75f8",
+      "bytes": 6453
+    },
+    "candidate-13/cpu-vs-12/summary.json": {
+      "sha256": "2d129162752daab4f6a6f285158b4b378e0d78f4bf4c1d195e95337ebb119b40",
+      "bytes": 6436
+    },
+    "release-diagnostic/playback.json": {
+      "sha256": "f03980919f0b540c14c3f82a7371c30d1cac8772ec8c26b2b44cb6c08540c04a",
+      "bytes": 13742
+    },
+    "release-placement/worker-cpu.json": {
+      "sha256": "c57289525d15186233e887d14fa5e902f6453d5380bb3d0098e7cbf057eeeb5c",
+      "bytes": 534768
+    },
+    "release-owners/worker-cpu.json": {
+      "sha256": "a1f63fe15d505b854c23ce4c593508c4b114a8d9c122937a7582fec81894967a",
+      "bytes": 344319
+    },
+    "release-owners/worker.json": {
+      "sha256": "1f1dc33b9a163843c4948fda873dadf8df3b6a4060f87314f244053a417cc233",
+      "bytes": 96
+    },
+    "release-owners/result.json": {
+      "sha256": "26c39c048afee931d5ee816f55b82773ed9bfde6a9a5899cbbc59ccc0f7db5a2",
+      "bytes": 11731
+    },
+    "arcade-tests-02.log": {
+      "sha256": "00efe29449092806c1d988700dbb11fce8b5460e89b2eba1af3aacad511d12c5",
+      "bytes": 15421
+    },
+    "typecheck-02.log": {
+      "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696",
+      "bytes": 37
+    },
+    "audit-02.json": {
+      "sha256": "9e40adcfe3fb086fa6054a73c1e61ee3348b2cb82f8f433c8350c3c630f4138c",
+      "bytes": 8753
+    }
+  }
+}
