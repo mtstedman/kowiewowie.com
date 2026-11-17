@@ -110,6 +110,11 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
   if(!Number.isInteger(n)||n<0||n>24576)throw Error('Invalid PPU advance');if(inAdvance)throw Error('Private owned PPU reentry');
   inAdvance=true;advanceCalls++;
   try{let left=n;
+   // Complete a staged CPU-cycle span directly; native yields retain host effects.
+   if(n===3&&stageActive&&!spriteRowDirty&&binding.before()){
+    ownedCalls++;const done=e.owned_advance(3);binding.after();left-=done;
+    if(left===0){syncOutput();if((p.scanline===0||p.scanline===20)&&p.curX===1)leave();boundary(0);return;}
+   }
    while(left){
     // The owned kernel returns before every host-effect boundary.
     if(!stageActive)enter();

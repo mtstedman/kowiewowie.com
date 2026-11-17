@@ -96,7 +96,7 @@ function makeBus(prg,trainer=new Uint8Array(),io={},info={mapper:4},chr=new Uint
      synchronizations++;
      if(version>Number.MAX_SAFE_INTEGER-8208||state.ppuDot>Number.MAX_SAFE_INTEGER-8208)return false;
      od[0]=state.ppuDot;od[1]=0;m[8]=4;m[9]=chrData.length-1;
-     m[10]=cfg.m2_falling_dot;m[11]=state.ppuAddress;m[12]=state.lowSamples;
+     m[10]=cfg.m2_falling_dot;m[20]=(state.ppuDot+2-cfg.m2_falling_dot)%3;m[11]=state.ppuAddress;m[12]=state.lowSamples;
      m[13]=state.counter;m[14]=state.latch;m[15]=state.reload?1:0;
      m[16]=state.reloadBlocked?1:0;m[17]=state.enabled?1:0;m[18]=state.asserted?1:0;m[19]=cfg.irq_revision==='sharp-bc'?1:0;
      refreshMapping();return true;

@@ -1,0 +1,1210 @@
+{
+  "format": "nes-runtime-qualification/1",
+  "release": "1.4.7",
+  "baseRevision": "9e2d1da0de35ae0becee29d7ac447bde6c0f046e",
+  "functionalPass": false,
+  "changedEnginesFunctionalPass": true,
+  "steady60Pass": false,
+  "changes": [
+    "Both MMC3 runtimes seed a derived native M2 phase counter, avoiding repeated floating-point division while preserving A12 timing, invalidation and checkpoint restore",
+    "Timed MMC3 binds immutable direct timed bus hooks once; mutable and accessor buses retain live lookup and all result/clock checks",
+    "MMC5 reuses the staged three-dot continuation path with native yields before host effects"
+  ],
+  "affectedGames": [
+    "adventure-island-2",
+    "castlevania-3",
+    "double-dragon-ii"
+  ],
+  "preservedEngineGraphs": [
+    "megaman",
+    "castlevania",
+    "ikari-warriors",
+    "bionic-commando",
+    "zelda",
+    "contra"
+  ],
+  "allNineCartridgeIdentitiesPreserved": true,
+  "checks": {
+    "startupParity": [
+      {
+        "id": "megaman",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "adventure-island-2",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "castlevania",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "ikari-warriors",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "bionic-commando",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "zelda",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "contra",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "castlevania-3",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "double-dragon-ii",
+        "pass": true,
+        "frames": 600,
+        "replay": 30
+      }
+    ],
+    "activeGameplayParity": [
+      {
+        "id": "megaman",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "adventure-island-2",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "castlevania",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "ikari-warriors",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "bionic-commando",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "zelda",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "contra",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "castlevania-3",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      },
+      {
+        "id": "double-dragon-ii",
+        "pass": true,
+        "functionalPass": true,
+        "frames": 600,
+        "replay": 30
+      }
+    ],
+    "parityScope": "Initial all-nine cold-start/seed comparison used the global experimental overlay; MMC1 experiments were subsequently rejected. Active comparison uses exactly the selected factories and the same verified gameplay state for control and treatment, with test-only identity/prototype rebinding. No public save migration.",
+    "packagedDDIIFrames": 1656,
+    "independentPlayers": true,
+    "checkpointReplay": true,
+    "typecheck": true,
+    "arcadeTests": 157,
+    "capabilityAuditGames": 9,
+    "browserGames": 9
+  },
+  "performance": {
+    "benchmarks": [
+      {
+        "id": "megaman",
+        "selected": false,
+        "baseline": {
+          "id": "megaman",
+          "frames": 600,
+          "wallMs": 5133.245016999999,
+          "cpuMs": 5322.987,
+          "mainCpuMs": 5132.307722,
+          "runnableWaitMs": 0.304223
+        },
+        "candidate": {
+          "id": "megaman",
+          "frames": 600,
+          "wallMs": 5473.489395,
+          "cpuMs": 5652.149,
+          "mainCpuMs": 5468.516609,
+          "runnableWaitMs": 1.677056
+        },
+        "mainCpuChangePercent": 6.5508325924966915
+      },
+      {
+        "id": "adventure-island-2",
+        "selected": true,
+        "baseline": {
+          "id": "adventure-island-2",
+          "frames": 600,
+          "wallMs": 7718.0312890000005,
+          "cpuMs": 7864.163,
+          "mainCpuMs": 7717.069077,
+          "runnableWaitMs": 0.465924
+        },
+        "candidate": {
+          "id": "adventure-island-2",
+          "frames": 600,
+          "wallMs": 7492.748799,
+          "cpuMs": 7655.489,
+          "mainCpuMs": 7492.506775,
+          "runnableWaitMs": 0.254477
+        },
+        "mainCpuChangePercent": -2.909942878045335
+      },
+      {
+        "id": "castlevania",
+        "selected": false,
+        "baseline": {
+          "id": "castlevania",
+          "frames": 600,
+          "wallMs": 4692.313205,
+          "cpuMs": 5033.913,
+          "mainCpuMs": 4691.776813,
+          "runnableWaitMs": 0.164759
+        },
+        "candidate": {
+          "id": "castlevania",
+          "frames": 600,
+          "wallMs": 4844.853875,
+          "cpuMs": 5167.78,
+          "mainCpuMs": 4841.674329,
+          "runnableWaitMs": 0.631712
+        },
+        "mainCpuChangePercent": 3.1948986913585387
+      },
+      {
+        "id": "ikari-warriors",
+        "selected": false,
+        "baseline": {
+          "id": "ikari-warriors",
+          "frames": 600,
+          "wallMs": 3733.8122590000003,
+          "cpuMs": 3932.161,
+          "mainCpuMs": 3734.033673,
+          "runnableWaitMs": 0.105218
+        },
+        "candidate": {
+          "id": "ikari-warriors",
+          "frames": 600,
+          "wallMs": 4049.185776,
+          "cpuMs": 4224.043,
+          "mainCpuMs": 4042.229724,
+          "runnableWaitMs": 6.223933
+        },
+        "mainCpuChangePercent": 8.253703045810745
+      },
+      {
+        "id": "bionic-commando",
+        "selected": false,
+        "baseline": {
+          "id": "bionic-commando",
+          "frames": 600,
+          "wallMs": 6965.588461000001,
+          "cpuMs": 7172.273,
+          "mainCpuMs": 6951.273599,
+          "runnableWaitMs": 1.899823
+        },
+        "candidate": {
+          "id": "bionic-commando",
+          "frames": 600,
+          "wallMs": 7200.793812999999,
+          "cpuMs": 7434.985,
+          "mainCpuMs": 7190.948994,
+          "runnableWaitMs": 1.082026
+        },
+        "mainCpuChangePercent": 3.4479349947393656
+      },
+      {
+        "id": "zelda",
+        "selected": false,
+        "baseline": {
+          "id": "zelda",
+          "frames": 600,
+          "wallMs": 6862.78182,
+          "cpuMs": 7043.279,
+          "mainCpuMs": 6845.683592,
+          "runnableWaitMs": 1.336666
+        },
+        "candidate": {
+          "id": "zelda",
+          "frames": 600,
+          "wallMs": 7072.769708,
+          "cpuMs": 7256.519,
+          "mainCpuMs": 7055.153516,
+          "runnableWaitMs": 2.385826
+        },
+        "mainCpuChangePercent": 3.0598832269255194
+      },
+      {
+        "id": "contra",
+        "selected": false,
+        "baseline": {
+          "id": "contra",
+          "frames": 600,
+          "wallMs": 11359.699592,
+          "cpuMs": 12106.735,
+          "mainCpuMs": 11347.454289,
+          "runnableWaitMs": 4.52826
+        },
+        "candidate": {
+          "id": "contra",
+          "frames": 600,
+          "wallMs": 11037.278905,
+          "cpuMs": 11781.976,
+          "mainCpuMs": 11034.660957,
+          "runnableWaitMs": 0.462478
+        },
+        "mainCpuChangePercent": -2.7565066492774015
+      },
+      {
+        "id": "castlevania-3",
+        "selected": true,
+        "baseline": {
+          "id": "castlevania-3",
+          "frames": 600,
+          "wallMs": 8134.1598250000025,
+          "cpuMs": 8640.647,
+          "mainCpuMs": 8132.570825,
+          "runnableWaitMs": 0.387384
+        },
+        "candidate": {
+          "id": "castlevania-3",
+          "frames": 600,
+          "wallMs": 7664.524867,
+          "cpuMs": 8061.537,
+          "mainCpuMs": 7660.327752,
+          "runnableWaitMs": 1.052584
+        },
+        "mainCpuChangePercent": -5.806811685528723
+      },
+      {
+        "id": "double-dragon-ii",
+        "selected": true,
+        "baseline": {
+          "id": "double-dragon-ii",
+          "frames": 600,
+          "wallMs": 8920.405653000002,
+          "cpuMs": 9734.323,
+          "mainCpuMs": 8860.520354,
+          "runnableWaitMs": 2.980829
+        },
+        "candidate": {
+          "id": "double-dragon-ii",
+          "frames": 600,
+          "wallMs": 8757.120036,
+          "cpuMs": 9766.616,
+          "mainCpuMs": 8698.395635,
+          "runnableWaitMs": 0.258377
+        },
+        "mainCpuChangePercent": -1.8297426395145089
+      }
+    ],
+    "browsers": [
+      {
+        "id": "megaman",
+        "functionalPass": true,
+        "steady60Pass": true,
+        "seconds": 60,
+        "presentedFPS": 60.002491797832135,
+        "emulatedFPS": 60.10522152680392,
+        "frameIntervals": {
+          "p50": 16.699999928474426,
+          "p95": 17,
+          "p99": 18.100000023841858,
+          "max": 22.90000009536743,
+          "over25": 0,
+          "over50": 0
+        },
+        "audioGaps": 0,
+        "lateAudio": 0,
+        "skippedEmulatedFrames": 5,
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "error": null,
+        "workerCpuMs": 47623.016159,
+        "workerRunnableWaitMs": 59.655793,
+        "sampledWallMs": 60209.54721599999
+      },
+      {
+        "id": "adventure-island-2",
+        "functionalPass": true,
+        "steady60Pass": false,
+        "seconds": 60,
+        "presentedFPS": 50.450767725502736,
+        "emulatedFPS": 50.47450688494188,
+        "frameIntervals": {
+          "p50": 16.700000047683716,
+          "p95": 33.40000009536743,
+          "p99": 34.60000002384186,
+          "max": 66.60000002384186,
+          "over25": 550,
+          "over50": 4
+        },
+        "audioGaps": 641,
+        "lateAudio": 15,
+        "skippedEmulatedFrames": 0,
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "error": null,
+        "workerCpuMs": 60191.397936,
+        "workerRunnableWaitMs": 7.16327,
+        "sampledWallMs": 60207.944882
+      },
+      {
+        "id": "castlevania",
+        "functionalPass": false,
+        "steady60Pass": false,
+        "seconds": null,
+        "presentedFPS": null,
+        "emulatedFPS": null,
+        "frameIntervals": null,
+        "audioGaps": null,
+        "lateAudio": null,
+        "skippedEmulatedFrames": null,
+        "lifecycle": null,
+        "error": "Stopped: UNSUPPORTED_DMA_COLLISION: OAM and DMC overlap. Reset to retry.",
+        "workerCpuMs": 21386.98875,
+        "workerRunnableWaitMs": 77.842736,
+        "sampledWallMs": 29022.145578000003
+      },
+      {
+        "id": "ikari-warriors",
+        "functionalPass": true,
+        "steady60Pass": true,
+        "seconds": 60,
+        "presentedFPS": 60.002426018910164,
+        "emulatedFPS": 60.098630209726586,
+        "frameIntervals": {
+          "p50": 16.699999928474426,
+          "p95": 16.899999976158142,
+          "p99": 17.799999952316284,
+          "max": 21,
+          "over25": 0,
+          "over50": 0
+        },
+        "audioGaps": 0,
+        "lateAudio": 0,
+        "skippedEmulatedFrames": 4,
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "error": null,
+        "workerCpuMs": 40794.896005,
+        "workerRunnableWaitMs": 79.317372,
+        "sampledWallMs": 60201.03705199999
+      },
+      {
+        "id": "bionic-commando",
+        "functionalPass": true,
+        "steady60Pass": false,
+        "seconds": 60,
+        "presentedFPS": 58.90534102790749,
+        "emulatedFPS": 58.98077891177296,
+        "frameIntervals": {
+          "p50": 16.699999928474426,
+          "p95": 17.199999928474426,
+          "p99": 33.39999997615814,
+          "max": 50.10000002384186,
+          "over25": 65,
+          "over50": 2
+        },
+        "audioGaps": 76,
+        "lateAudio": 7,
+        "skippedEmulatedFrames": 3,
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "error": null,
+        "workerCpuMs": 58935.83297,
+        "workerRunnableWaitMs": 24.558718,
+        "sampledWallMs": 60200.696425
+      },
+      {
+        "id": "zelda",
+        "functionalPass": false,
+        "steady60Pass": false,
+        "seconds": null,
+        "presentedFPS": null,
+        "emulatedFPS": null,
+        "frameIntervals": null,
+        "audioGaps": null,
+        "lateAudio": null,
+        "skippedEmulatedFrames": null,
+        "lifecycle": null,
+        "error": "Stopped: UNSUPPORTED_DMA_COLLISION: OAM and DMC overlap. Reset to retry.",
+        "workerCpuMs": 21705.288051,
+        "workerRunnableWaitMs": 36.325707,
+        "sampledWallMs": 22019.598706999997
+      },
+      {
+        "id": "contra",
+        "functionalPass": true,
+        "steady60Pass": false,
+        "seconds": 60,
+        "presentedFPS": 42.078089491923215,
+        "emulatedFPS": 42.099317173663835,
+        "frameIntervals": {
+          "p50": 16.799999952316284,
+          "p95": 48.89999997615814,
+          "p99": 50.10000002384186,
+          "max": 150.10000002384186,
+          "over25": 928,
+          "over50": 47
+        },
+        "audioGaps": 1019,
+        "lateAudio": 29,
+        "skippedEmulatedFrames": 0,
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "error": null,
+        "workerCpuMs": 60176.784913,
+        "workerRunnableWaitMs": 22.6252,
+        "sampledWallMs": 60210.57782400001
+      },
+      {
+        "id": "castlevania-3",
+        "functionalPass": true,
+        "steady60Pass": false,
+        "seconds": 60,
+        "presentedFPS": 59.96936744766852,
+        "emulatedFPS": 60.117910819563235,
+        "frameIntervals": {
+          "p50": 16.699999928474426,
+          "p95": 17.399999976158142,
+          "p99": 18.399999976158142,
+          "max": 33.40000009536743,
+          "over25": 2,
+          "over50": 0
+        },
+        "audioGaps": 3,
+        "lateAudio": 0,
+        "skippedEmulatedFrames": 4,
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "error": null,
+        "workerCpuMs": 54600.120716,
+        "workerRunnableWaitMs": 92.527298,
+        "sampledWallMs": 60216.827597999996
+      },
+      {
+        "id": "double-dragon-ii",
+        "functionalPass": true,
+        "steady60Pass": false,
+        "seconds": 180,
+        "presentedFPS": 59.781055690833654,
+        "emulatedFPS": 59.88601000110847,
+        "frameIntervals": {
+          "p50": 16.699999928474426,
+          "p95": 17.299999952316284,
+          "p99": 18.799999952316284,
+          "max": 50,
+          "over25": 41,
+          "over50": 0
+        },
+        "audioGaps": 46,
+        "lateAudio": 1,
+        "skippedEmulatedFrames": 15,
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "error": null,
+        "workerCpuMs": 171599.417309,
+        "workerRunnableWaitMs": 238.746524,
+        "sampledWallMs": 180579.451289
+      }
+    ],
+    "baseline": [
+      {
+        "id": "adventure-island-2",
+        "functionalPass": true,
+        "steady60Pass": false,
+        "seconds": 60,
+        "presentedFPS": 50.01578571309882,
+        "emulatedFPS": 50.01661681621801,
+        "frameIntervals": {
+          "p50": 16.700000047683716,
+          "p95": 33.40000009536743,
+          "p99": 33.60000002384186,
+          "max": 50.199999928474426,
+          "over25": 587,
+          "over50": 2
+        },
+        "audioGaps": 690,
+        "lateAudio": 6,
+        "skippedEmulatedFrames": 0,
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "error": null,
+        "workerCpuMs": 60173.958286,
+        "workerRunnableWaitMs": 7.908682,
+        "sampledWallMs": 60191.166577
+      },
+      {
+        "id": "castlevania",
+        "functionalPass": false,
+        "steady60Pass": false,
+        "seconds": null,
+        "presentedFPS": null,
+        "emulatedFPS": null,
+        "frameIntervals": null,
+        "audioGaps": null,
+        "lateAudio": null,
+        "skippedEmulatedFrames": null,
+        "lifecycle": null,
+        "error": "Stopped: UNSUPPORTED_DMA_COLLISION: OAM and DMC overlap. Reset to retry.",
+        "workerCpuMs": 21528.593297,
+        "workerRunnableWaitMs": 42.647703,
+        "sampledWallMs": 29023.286689
+      },
+      {
+        "id": "zelda",
+        "functionalPass": false,
+        "steady60Pass": false,
+        "seconds": null,
+        "presentedFPS": null,
+        "emulatedFPS": null,
+        "frameIntervals": null,
+        "audioGaps": null,
+        "lateAudio": null,
+        "skippedEmulatedFrames": null,
+        "lifecycle": null,
+        "error": "Stopped: UNSUPPORTED_DMA_COLLISION: OAM and DMC overlap. Reset to retry.",
+        "workerCpuMs": 20652.738814,
+        "workerRunnableWaitMs": 14.072638,
+        "sampledWallMs": 21017.345951
+      }
+    ],
+    "scope": "Sequential Node and headless Chromium runs on this host. CPU and runnable wait measured for the tested thread, independently of total system load. Physical-core/SMT contention remains possible. Unchanged-engine differences expose host/JIT variability; small deltas are not universal speedup claims. Browser seeds visually verified in gameplay; Node benchmarks use the fixed startup route except active DDII/CVIII seeds. Not full-game or all-device certification."
+  },
+  "selection": {
+    "rejected": [
+      "MMC1 staged-three-dot and frozen-hook experiments: exact parity passed, but the initial measured candidate was about 3% slower for both games; no demonstrated benefit"
+    ],
+    "deferred": [
+      "MMC1 immutable ROM instruction-dispatch cache deserves separate qualification, not included here"
+    ]
+  },
+  "saveCompatibility": "Strict graph identity rejects older full states for Adventure Island II, Castlevania III and Double Dragon II. Saves from unchanged graphs remain compatible. Cartridge identities and battery saves are unchanged.",
+  "remainingLimitations": [
+    {
+      "id": "adventure-island-2",
+      "functionalPass": true,
+      "error": null,
+      "presentedFPS": 50.450767725502736,
+      "audioGaps": 641,
+      "lateAudio": 15,
+      "p99": 34.60000002384186
+    },
+    {
+      "id": "castlevania",
+      "functionalPass": false,
+      "error": "Stopped: UNSUPPORTED_DMA_COLLISION: OAM and DMC overlap. Reset to retry.",
+      "presentedFPS": null,
+      "audioGaps": null,
+      "lateAudio": null,
+      "p99": null
+    },
+    {
+      "id": "bionic-commando",
+      "functionalPass": true,
+      "error": null,
+      "presentedFPS": 58.90534102790749,
+      "audioGaps": 76,
+      "lateAudio": 7,
+      "p99": 33.39999997615814
+    },
+    {
+      "id": "zelda",
+      "functionalPass": false,
+      "error": "Stopped: UNSUPPORTED_DMA_COLLISION: OAM and DMC overlap. Reset to retry.",
+      "presentedFPS": null,
+      "audioGaps": null,
+      "lateAudio": null,
+      "p99": null
+    },
+    {
+      "id": "contra",
+      "functionalPass": true,
+      "error": null,
+      "presentedFPS": 42.078089491923215,
+      "audioGaps": 1019,
+      "lateAudio": 29,
+      "p99": 50.10000002384186
+    },
+    {
+      "id": "castlevania-3",
+      "functionalPass": true,
+      "error": null,
+      "presentedFPS": 59.96936744766852,
+      "audioGaps": 3,
+      "lateAudio": 0,
+      "p99": 18.399999976158142
+    },
+    {
+      "id": "double-dragon-ii",
+      "functionalPass": true,
+      "error": null,
+      "presentedFPS": 59.781055690833654,
+      "audioGaps": 46,
+      "lateAudio": 1,
+      "p99": 18.799999952316284
+    }
+  ],
+  "regressionFindings": "The broader gameplay sweep reproduces unsupported OAM/DMC overlap in unchanged Castlevania and Zelda engines on both releases. These failures remain unresolved; the release is not a global gameplay or steady-60 pass. Low throughput and audio gaps remain as individually recorded.",
+  "evidence": [
+    {
+      "path": "global-plan.json",
+      "bytes": 530,
+      "sha256": "12cdd538d9c9d28eef8fd45faabd4b994625a40f14ae565c7d04655a6ba8c180"
+    },
+    {
+      "path": "global-parity.json",
+      "bytes": 3640,
+      "sha256": "96cee555d23289ac514f1ac43e271e66b65bbeb67bfcc1ac1d1cd8b20362b4fb"
+    },
+    {
+      "path": "active-global-parity.json",
+      "bytes": 3023,
+      "sha256": "41879ecbfc6ae50339f5836791230fd86888442c36b554a50fa011551a0f8c3c"
+    },
+    {
+      "path": "lab-active.mjs",
+      "bytes": 4264,
+      "sha256": "1d3959f35d9a93958bca40db46b40d84c9df272c18675a0bde576356e66f8648"
+    },
+    {
+      "path": "selected-overlay.json",
+      "bytes": 952,
+      "sha256": "e5d41472e16fc44d41447978d6a832e6855ef1ea0c23f25fa05b203fabc44673"
+    },
+    {
+      "path": "selected-sources.json",
+      "bytes": 1419,
+      "sha256": "f86381d7fcb2902cb65407396bd0d8a89ac75024155d6c119c222807352098cd"
+    },
+    {
+      "path": "release-input.json",
+      "bytes": 6501,
+      "sha256": "ddb47917aac391594d8e3297d03ac77b082646dfe45672fada0e39e3c64d82a7"
+    },
+    {
+      "path": "assembler-result.json",
+      "bytes": 1276,
+      "sha256": "41c7bb8663b90e1b4778a59e4f121ae20ee830f7994ce69ba19d749b1e36653b"
+    },
+    {
+      "path": "typecheck-final.log",
+      "bytes": 37,
+      "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+    },
+    {
+      "path": "tests-final.log",
+      "bytes": 17526,
+      "sha256": "88c54450d7950bff636af0c3d2d7b266f8e2af0a585d1e3989eeb04eadf5a3ef"
+    },
+    {
+      "path": "audit-final.json",
+      "bytes": 9762,
+      "sha256": "4f09b21f784f1df5ba030cb38bc53d6a7bf24c81c8cd629f572426578fd6e937"
+    },
+    {
+      "path": "machine-final/machine-result.json",
+      "bytes": 11590,
+      "sha256": "3ff1a9bdc01174cef6f59c65fc99880d3f666690d799a7e76742742f9ed8d12e"
+    },
+    {
+      "path": "browser-active-plan.json",
+      "bytes": 2763,
+      "sha256": "aef9c6f4ec0926b24bf20b1bbf24d3f653b2d429e5a50f4a24401c7f755930e5"
+    },
+    {
+      "path": "browser-active-remaining-plan.json",
+      "bytes": 2763,
+      "sha256": "aef9c6f4ec0926b24bf20b1bbf24d3f653b2d429e5a50f4a24401c7f755930e5"
+    },
+    {
+      "path": "browser-global.mjs",
+      "bytes": 10074,
+      "sha256": "7ebde3db691381a1ba9341eceb0a814d59f9641bb973166ade89e0f880bbdc2e"
+    },
+    {
+      "path": "browser-global-robust.mjs",
+      "bytes": 10331,
+      "sha256": "8fdf852030c29e9fe5bf83f8b233a05e34739fb50c17e1bbb5aca5b898c9997a"
+    },
+    {
+      "path": "advance-seed.mjs",
+      "bytes": 853,
+      "sha256": "e779b58ec6724cf3586942e2a074cc154e73e28c8e670363b29a3cc5a48cb384"
+    },
+    {
+      "path": "seed-games.mjs",
+      "bytes": 1168,
+      "sha256": "8c129aad46589ae8a59a8047f2da8a959c9f07ff602ee080d70bd7267c86ce32"
+    },
+    {
+      "path": "baseline-check.mjs",
+      "bytes": 1173,
+      "sha256": "6e71480e0018c6fb645c2ac905a6fa688d878a5f6fef5a0d8b90c4f8e085eff2"
+    },
+    {
+      "path": "browser-active-all.log",
+      "bytes": 1641,
+      "sha256": "bb41524ae747ef3aba4739e4552f5f3790a6c64cbc249c372a15e365a77d7f29"
+    },
+    {
+      "path": "browser-active-remaining.log",
+      "bytes": 1639,
+      "sha256": "4c3fe86d5199c569dc70dad5165fea57a65704d71dd579d0555576a0eb8c3882"
+    },
+    {
+      "path": "bench-megaman-baseline.json",
+      "bytes": 499,
+      "sha256": "f7a4ca5e0f14dd0a9086027d4f3fc4d1bf6608d786f36046c8e14f25b6c9a85a"
+    },
+    {
+      "path": "bench-megaman-global.json",
+      "bytes": 2908,
+      "sha256": "f28fb13141d70073b4a4c92bd6eabee229817d5bc32e29c29d1a62326cfcf7fa"
+    },
+    {
+      "path": "browser-active-megaman.log",
+      "bytes": 791,
+      "sha256": "924a07551bfc6af458e7e375d0857b6d35335565b9965176769a65e6a98e7099"
+    },
+    {
+      "path": "browser-active-megaman/identity.json",
+      "bytes": 181,
+      "sha256": "2c18cf9f0ca30f3729dd69e7c943c04711aef6ca490b5c59e4f3f60b09f6dd8d"
+    },
+    {
+      "path": "browser-active-megaman/worker-cpu.json",
+      "bytes": 4352,
+      "sha256": "6690206dd8e67369316bb23c97d325960df6cdaf8f673c37d6a3c216c61e640f"
+    },
+    {
+      "path": "browser-active-megaman/result.json",
+      "bytes": 9473,
+      "sha256": "739f3aae43223dd1d874593c53b7c063862b372573b1fde53fc41481e6d2827e"
+    },
+    {
+      "path": "bench-adventure-island-2-baseline.json",
+      "bytes": 511,
+      "sha256": "9005533d5b0129be51f2db9d9ee56d61cb17ccb20b86b9d6f519ad9df8f7eda3"
+    },
+    {
+      "path": "bench-adventure-island-2-global.json",
+      "bytes": 2919,
+      "sha256": "2fa5c1335bd94bacb76b78a2ef5e43af5b2220e97bcc843c8b388380dfbf97e2"
+    },
+    {
+      "path": "browser-active-adventure-island-2.log",
+      "bytes": 783,
+      "sha256": "9bec670417f6523e07995aa6f5885bfb52cae86b3f1c3341cb990d49340837d7"
+    },
+    {
+      "path": "browser-active-adventure-island-2/identity.json",
+      "bytes": 181,
+      "sha256": "89604cab28637dc9c1fd41801fc1091f35f21c96dbbe2a2b4708391680278943"
+    },
+    {
+      "path": "browser-active-adventure-island-2/worker-cpu.json",
+      "bytes": 4345,
+      "sha256": "22b7252e49fc55bad286e62892b00b9c800f4207cac0b34e5cd0c09e1dacc845"
+    },
+    {
+      "path": "browser-active-adventure-island-2/result.json",
+      "bytes": 9555,
+      "sha256": "8871dae9fa57bddda17cf86aff44b76818109a919233a6021c41a16c3ac17f89"
+    },
+    {
+      "path": "bench-castlevania-baseline.json",
+      "bytes": 497,
+      "sha256": "e10fc8b33399e0d66e4995d852e869a0bb2b58bbaab0c4028aa111a371137842"
+    },
+    {
+      "path": "bench-castlevania-global.json",
+      "bytes": 2911,
+      "sha256": "fee65e259716ff31e484190928e230f9c74b6608039783d6982f1534e45e11a5"
+    },
+    {
+      "path": "browser-active-castlevania.log",
+      "bytes": 693,
+      "sha256": "46c12e74ee0a3f58b30a6af52cb6ba1c3cc51e5cf727f7b819afed8e4487ce5e"
+    },
+    {
+      "path": "browser-active-castlevania/identity.json",
+      "bytes": 181,
+      "sha256": "306536a1806282a30965a34ee409667230e214f5be79239dd81c2d2143fbf70f"
+    },
+    {
+      "path": "browser-active-castlevania/worker-cpu.json",
+      "bytes": 2194,
+      "sha256": "0a3818e0b483121e054c0a1351bf61c1880cf81f08beadc1dd913bf84663f3f0"
+    },
+    {
+      "path": "bench-ikari-warriors-baseline.json",
+      "bytes": 507,
+      "sha256": "bf6686aea64eb9a5556236bfc3f218afa6456f7bf56c71c32808311a039bb96e"
+    },
+    {
+      "path": "bench-ikari-warriors-global.json",
+      "bytes": 2915,
+      "sha256": "c72109825404f4f5e9dd37b70fc235ddd91ad5e8ae743d04e35a84c18184c14a"
+    },
+    {
+      "path": "browser-active-ikari-warriors.log",
+      "bytes": 792,
+      "sha256": "a4be067cfb73bdfcb09614ddf64ff1b7779e11e2da1a145ce1bc711b84f865ae"
+    },
+    {
+      "path": "browser-active-ikari-warriors/identity.json",
+      "bytes": 181,
+      "sha256": "3ac19c41991768d92c937aff349bf8f07a1097666834a5cfaeef5cad591a0e89"
+    },
+    {
+      "path": "browser-active-ikari-warriors/worker-cpu.json",
+      "bytes": 4335,
+      "sha256": "8797fb376350b29a2c554103f23a891e4fcd1167f4fe7f9a6cf0a61b9013dc30"
+    },
+    {
+      "path": "browser-active-ikari-warriors/result.json",
+      "bytes": 9513,
+      "sha256": "a8f4cbc45f7991e6242c950d26dd8c9ae5e14c8731082fc154f37f4c3c72abc3"
+    },
+    {
+      "path": "bench-bionic-commando-baseline.json",
+      "bytes": 507,
+      "sha256": "42f9962ebad23ab037b129ee87bcd9a91f960582a7f5dbdfcc06139a783f0596"
+    },
+    {
+      "path": "bench-bionic-commando-global.json",
+      "bytes": 2922,
+      "sha256": "625a95188f1341cc64c50aca22a88259e3c5d0d78a0dd191c43fb5e37be0a2f6"
+    },
+    {
+      "path": "browser-active-bionic-commando.log",
+      "bytes": 785,
+      "sha256": "152e6cf9a47d25f83c27c7d0ed3129afd8cf19a1a4600b7ef9434250787eeca5"
+    },
+    {
+      "path": "browser-active-bionic-commando/identity.json",
+      "bytes": 181,
+      "sha256": "968613dab539e36d6c1e55d089f56e7b36e44eebfa8b73f4ea862d7a69ef9d97"
+    },
+    {
+      "path": "browser-active-bionic-commando/worker-cpu.json",
+      "bytes": 4340,
+      "sha256": "e7f757ad9b4fc55de9da49fb43173d88937baff230d828ac442183086392bc89"
+    },
+    {
+      "path": "browser-active-bionic-commando/result.json",
+      "bytes": 9540,
+      "sha256": "1375b5bab6d648d40c047a93fc875f1f1f352fc3831d8c308e20fae655e6761a"
+    },
+    {
+      "path": "bench-zelda-baseline.json",
+      "bytes": 490,
+      "sha256": "c4982e5fbb8983f46f9a61e63759882275002e8b59bf541cb1ca5c43b7d8dfa8"
+    },
+    {
+      "path": "bench-zelda-global.json",
+      "bytes": 2906,
+      "sha256": "b014ff9a685a045c1e8f6964e06fa96b653d98bcdcfc1e323f4774a8651aa51b"
+    },
+    {
+      "path": "browser-active-zelda.log",
+      "bytes": 648,
+      "sha256": "b715fa3848cc395ff65cd026d22c111c29f33bc8b5aae49cd9cf3e341e2dbc2d"
+    },
+    {
+      "path": "browser-active-zelda/identity.json",
+      "bytes": 181,
+      "sha256": "5c99d8e831bdf1b4f37b8b361e3964955c57993d7608c662df495c1c91ec69fd"
+    },
+    {
+      "path": "browser-active-zelda/worker-cpu.json",
+      "bytes": 1870,
+      "sha256": "947ffea0ba184cb7d8f94d109f59a55ecbd4f986f7c0a753c1259f653992a16f"
+    },
+    {
+      "path": "browser-active-zelda/failure.json",
+      "bytes": 351770,
+      "sha256": "2a271bb9d1e7792bb0ffe993be60921ccd57c372ef772acf238e526d991ac182"
+    },
+    {
+      "path": "bench-contra-baseline.json",
+      "bytes": 494,
+      "sha256": "352ef5a63c04734abd9a6c6cd73c094ccb4cbb08a2540a54d8dd4f144318dc9c"
+    },
+    {
+      "path": "bench-contra-global.json",
+      "bytes": 2910,
+      "sha256": "f95fc0dbce1771140fc17fec40293ce25e670b7a3b620eb86adc80ffb717a03e"
+    },
+    {
+      "path": "browser-active-contra.log",
+      "bytes": 785,
+      "sha256": "a05efd5951aecb395049c479aaa0a62632f00f05e7b61b7c475767090c036264"
+    },
+    {
+      "path": "browser-active-contra/identity.json",
+      "bytes": 181,
+      "sha256": "ba6b3d15cef44940c005a5920ff5b4a4c25ed71d8c86e5860ad99df4fb29e8b8"
+    },
+    {
+      "path": "browser-active-contra/worker-cpu.json",
+      "bytes": 4318,
+      "sha256": "00746d674945ac776ad970faeb38318c885e3db52793d8aa3c5f3d3288499dfd"
+    },
+    {
+      "path": "browser-active-contra/result.json",
+      "bytes": 9475,
+      "sha256": "5cbb0249bc07c4ceabd05a732a1e056e8a65ca2f54657859b007aa7ee2ae3b87"
+    },
+    {
+      "path": "bench-castlevania-3-baseline.json",
+      "bytes": 506,
+      "sha256": "2c4a71e9c166ad4d9c20eef08b2ab05584875dbac79001f10183b11384629788"
+    },
+    {
+      "path": "bench-castlevania-3-global.json",
+      "bytes": 2914,
+      "sha256": "e6ff6b61fca84226dd851584e9a71389d7e8e4415d201cce56aa79c143b761dd"
+    },
+    {
+      "path": "browser-active-castlevania-3.log",
+      "bytes": 792,
+      "sha256": "8fd7b22faa1ef7ba0262fe12a994981bec5f749eef8d224327f889a9e31fcc16"
+    },
+    {
+      "path": "browser-active-castlevania-3/identity.json",
+      "bytes": 181,
+      "sha256": "d2abee6af97f32faa2872d416bd50dc6bfdfcbb7bd58a344866f7f4d82f7f6b3"
+    },
+    {
+      "path": "browser-active-castlevania-3/worker-cpu.json",
+      "bytes": 4377,
+      "sha256": "d44d2ec3e9d308336612a822691bb98dee19c4455da9582475cbc39e6bfe512b"
+    },
+    {
+      "path": "browser-active-castlevania-3/result.json",
+      "bytes": 9702,
+      "sha256": "b425499eef1296b671422cc2b68f4533d59e0af4ad069d5f3f222f72ed8f4d4b"
+    },
+    {
+      "path": "bench-double-dragon-ii-baseline.json",
+      "bytes": 508,
+      "sha256": "9cbaaa12d42aa068591c862b389d38e6606337851d1b9f4c955435e9801b30ef"
+    },
+    {
+      "path": "bench-double-dragon-ii-global.json",
+      "bytes": 2917,
+      "sha256": "165572472f7b2682612e836354ffa75688276dedcd60514a9e701e2f3018efe5"
+    },
+    {
+      "path": "browser-active-double-dragon-ii.log",
+      "bytes": 2035,
+      "sha256": "adbf213ff44ba8fbff76725cefa648bc42ae3bfb28c6a76ce91359bb4b6618cd"
+    },
+    {
+      "path": "browser-active-double-dragon-ii/identity.json",
+      "bytes": 181,
+      "sha256": "0a1c5c9f4cd4818c5f0777d431fb0023a76cde360b456d9249186f60859fffaf"
+    },
+    {
+      "path": "browser-active-double-dragon-ii/worker-cpu.json",
+      "bytes": 13031,
+      "sha256": "5eb928a9a6de9ba0fc090cb6578d2f5923e1d0764a5334c65766f06caed4c109"
+    },
+    {
+      "path": "browser-active-double-dragon-ii/result.json",
+      "bytes": 27063,
+      "sha256": "3a6e0ede9c0e93e6d9e5856aa4b5e0ee23332cc56eb958c31cee0d573656eda2"
+    },
+    {
+      "path": "browser-baseline-adventure-island-2.log",
+      "bytes": 782,
+      "sha256": "8416671c0884b18ddd64216dd1ba62875b97051ffdc0c18b093b632f6205a8a4"
+    },
+    {
+      "path": "browser-baseline-adventure-island-2/identity.json",
+      "bytes": 181,
+      "sha256": "3fddb1d000243fe6d1e652f08ba79def829952242273f55e783aa63fba47c79e"
+    },
+    {
+      "path": "browser-baseline-adventure-island-2/worker-cpu.json",
+      "bytes": 4319,
+      "sha256": "e2ec23584e7b416534ea0cdfac5270f22c418ab5281cc13ec3454c6f16f10b0c"
+    },
+    {
+      "path": "browser-baseline-adventure-island-2/result.json",
+      "bytes": 9492,
+      "sha256": "c961653cc214f4d53ade7857fd01a921c0dfac83f35225c052094b94918079de"
+    },
+    {
+      "path": "browser-baseline-castlevania.log",
+      "bytes": 699,
+      "sha256": "a4e494a964f3e5cd1d2dd13092fcfef858ffb1d5d2f3afb223547cf1d143f595"
+    },
+    {
+      "path": "browser-baseline-castlevania/identity.json",
+      "bytes": 181,
+      "sha256": "246ca1da92a61e7389eeb82d18fb789b06b821e5337ecf7bba2911c4c7b1060b"
+    },
+    {
+      "path": "browser-baseline-castlevania/worker-cpu.json",
+      "bytes": 2181,
+      "sha256": "af1f6d25260c50c8d023a80ffe269e2578ac5e7a8b0a6673349cea3d3b6434f9"
+    },
+    {
+      "path": "browser-baseline-castlevania/failure.json",
+      "bytes": 530282,
+      "sha256": "c8321b83bcd4ccba2ecdc7c767188a52c65e200247dd77a72d544d4b79d37999"
+    },
+    {
+      "path": "browser-baseline-zelda.log",
+      "bytes": 648,
+      "sha256": "2c92f876a33f9b60486b7c264a273a9a164c5d933d6ebdeb5146529502b5d677"
+    },
+    {
+      "path": "browser-baseline-zelda/identity.json",
+      "bytes": 181,
+      "sha256": "377062d85f03ff801ed75deed6a5761ff77b15f593fc8c54e01d3ab95f16f7d0"
+    },
+    {
+      "path": "browser-baseline-zelda/worker-cpu.json",
+      "bytes": 1901,
+      "sha256": "e6581686134528c044196092d4cf09f67a51b944ea56664cc42efe35a2252e5e"
+    },
+    {
+      "path": "browser-baseline-zelda/failure.json",
+      "bytes": 375574,
+      "sha256": "49eb6a3ce7ce032b643638c7d2dc8fdd4bc953b1d40ed7a49a22bbd6047af401"
+    },
+    {
+      "path": "whitespace-verification.json",
+      "bytes": 671,
+      "sha256": "0b8f2922a8f815ea8ecaf0f7ebe1d0e8d1f78c71bba682c60436cfcf23da1acb"
+    },
+    {
+      "path": "seed-next.mjs",
+      "bytes": 912,
+      "sha256": "5a3227d2fad5324e92ec83d8e8f8631a0a78d996a8063a6311822b286dc7d050"
+    },
+    {
+      "path": "seed-next2.mjs",
+      "bytes": 711,
+      "sha256": "1e69392797d87a6f87fac3f4e050237721b641e037b4d20d44f0fb874ac53c43"
+    },
+    {
+      "path": "seed-next3.mjs",
+      "bytes": 654,
+      "sha256": "50a89b7e216d821280862f281ca839ddb7e38b3e7a4285ba6f69f9fd72aec483"
+    },
+    {
+      "path": "start-plan.json",
+      "bytes": 60,
+      "sha256": "cb6904bded6a476c082cbebd11dbda767c44d02f2c71b8678c775eaa20cfd576"
+    },
+    {
+      "path": "name-plan.json",
+      "bytes": 93,
+      "sha256": "9d1cc2cc963c847394ef3a3424b1e4553478698f7e6fa6bd749728da05742fa7"
+    },
+    {
+      "path": "wait-plan.json",
+      "bytes": 28,
+      "sha256": "d8c920174df41649a49cb325e1d36acdde2bf4de9b194ec7145dc559e439aad3"
+    },
+    {
+      "path": "a-plan.json",
+      "bytes": 60,
+      "sha256": "a990a73b8b87e4ebc32cd08d1ed62b5ae4afc8dc64d21afd83196985ad95212b"
+    },
+    {
+      "path": "menu-end-plan.json",
+      "bytes": 198,
+      "sha256": "012403a08ae7aa41d9ce9719a7c7c0b43e07d8fafdbf485ddf49210055f60491"
+    }
+  ],
+  "evidenceRoot": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-audio-global-20261117/",
+  "harnessCorrection": "The initial Mega Man title-screen run was excluded from gameplay results. All final browser seeds were visually checked in gameplay; startup recipes and checkpoints are retained under the evidence root."
+}
