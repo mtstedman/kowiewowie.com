@@ -1,0 +1,121 @@
+{
+  "format": "nes-game-qualification/1",
+  "release": "1.4.3",
+  "id": "double-dragon-ii",
+  "romSha256": "f6bf0d786168133ce5640a1e983d6cb2386261932798fbafb0dd809c05f51985",
+  "artifactDigest": "355431ce9e4042b091fb04aa9bd6b31980e54531da12670a9121772acf330a31",
+  "functionalPass": true,
+  "steady60Pass": false,
+  "scope": "Exact-ROM native independent P1/P2 frame comparison, complete-machine checkpoint replay, 12000-frame scripted soak and 90-second Chromium shared-shell playback. Not a full playthrough or hardware-equivalence certification.",
+  "provenance": {
+    "compilerManifest": "231bd17eaeb311903d0c7477f81a7f839f3d2e8733e258b691e0f09a82e2401a",
+    "admission": {
+      "path": "admission-05/admission.json",
+      "bytes": 18447,
+      "sha256": "2451d12ef5bdcd3ea21cc220a9f03bae06a8c91f84685f8c2dbb9afe05fb5388"
+    },
+    "posseCompilerRun": {
+      "path": "compiler-agent-result.json",
+      "bytes": 2335,
+      "sha256": "75e934928976b09acb879a8ca5d02404748dcefbe66f167b06d1ec986576e804"
+    },
+    "note": "The fresh plain MMC3 compiler output does not support RAM execution. Publication retains the authenticated Posse timed translation and composes it with the new timed MMC3 shared engine."
+  },
+  "checks": {
+    "arcadeTests": 145,
+    "typecheck": true,
+    "capabilityAuditGames": 9,
+    "independentPlayers": true,
+    "referenceFrameHashes": {
+      "neutral": "c304485112e05383c83d2a3cd69307bad8dd0f33eb82e4041064067eccd9865f",
+      "p1-left": "64993e006333ac7799dbe401f6164d94e0ebcddf61e518e93c5b48bead59050f",
+      "p2-left": "86136976b9bbff158379edce36da022ff3e9891fe9c9735c62ac33064bf7bd89"
+    },
+    "checkpointReplay": true,
+    "longRun": {
+      "frames": 12000,
+      "last": {
+        "step": 12000,
+        "frames": 13356,
+        "fault": null,
+        "translation": {
+          "compilations": 17,
+          "sourceBytes": 2076,
+          "hits": 254,
+          "invalidations": 74744,
+          "cacheEntries": 0,
+          "mutableInstructions": 74998,
+          "staticInstructions": 133611908,
+          "evictions": 0,
+          "sourceSpecialized": true
+        }
+      }
+    },
+    "browserLifecycle": {
+      "pause": true,
+      "save_load": true,
+      "resume": true,
+      "reset": true
+    },
+    "existingEightEngineGraphsAndCartridgeIdentitiesPreserved": true
+  },
+  "performance": {
+    "seconds": 90,
+    "presentedFPS": 42.07918325864022,
+    "emulatedFPS": 42.08668461891671,
+    "frameIntervals": {
+      "p50": 16.700000047683716,
+      "p95": 34.799999952316284,
+      "p99": 50.10000002384186,
+      "max": 53.800000071525574,
+      "over25": 1439,
+      "over50": 67
+    },
+    "audioGaps": 1556,
+    "lateAudio": 39,
+    "errors": [],
+    "limitation": "This test host did not meet real-time playback: approximately 42 FPS with audio discontinuities. No steady 60 FPS claim."
+  },
+  "evidence": [
+    {
+      "path": "machine-05/machine-result.json",
+      "bytes": 11590,
+      "sha256": "1cd7d425889a52e6f0fec6a11b11ad9c3c71ca44904ee5c4e4fcfe91800d8bf9"
+    },
+    {
+      "path": "soak-result.json",
+      "bytes": 4757,
+      "sha256": "e1bed00c57b12f83d0174ad22f8b9983c72665bc9c98c54545b5254e56787f4c"
+    },
+    {
+      "path": "browser-01/result.json",
+      "bytes": 13836,
+      "sha256": "4a7707b65c777391c18d773da9f744c9d4c0536c94d664fb6f75e9f6d9676750"
+    },
+    {
+      "path": "browser-01/identity.json",
+      "bytes": 181,
+      "sha256": "b01b7be90d091b914299eef7f2bf88f2176f1db92b2fd1e918c15a160f6a135f"
+    },
+    {
+      "path": "capability-audit.json",
+      "bytes": 9762,
+      "sha256": "445c4ad471df0cb010495759e66a137afeecce91fe44546e371bc488dbfce932"
+    },
+    {
+      "path": "arcade-tests.log",
+      "bytes": 16186,
+      "sha256": "371c37435dadc41c7d23f4bde7fc109f0d305107ebe3d03849021a070b3d6d51"
+    },
+    {
+      "path": "typecheck.log",
+      "bytes": 37,
+      "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+    },
+    {
+      "path": "assembler-test-02.json",
+      "bytes": 1384,
+      "sha256": "6c3fe77c21df8ce1b34585110c8b869858fb6745446b043fe873fca8e2e8daa3"
+    }
+  ]
+}

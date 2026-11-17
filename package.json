@@ -5,7 +5,7 @@
   "packageManager": "npm@11.13.0",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "test:arcade": "node --experimental-vm-modules --test tests/arcade-ui.test.mjs tests/combined-integration.test.mjs tests/combined-followup.test.mjs tests/cartridge-library.test.mjs tests/shared-connection-repair.test.mjs tests/zelda-release.test.mjs tests/arcade-runtime-harness.test.mjs tests/contra-release.test.mjs tests/arcade-worker-streaming.test.mjs tests/core-refresh.test.mjs tests/shared-engine-integration.test.mjs tests/nes-audit-fixes.test.mjs tests/nes-cartridge-build.test.mjs tests/nes-checkpoint.test.mjs tests/nes-engine-efficiency.test.mjs tests/nes-code-identity.test.mjs tests/nes-mmc5.test.mjs tests/nes-shared-components.test.mjs tests/nes-mmc5-throughput.test.mjs",
+    "test:arcade": "node --experimental-vm-modules --test tests/arcade-ui.test.mjs tests/combined-integration.test.mjs tests/combined-followup.test.mjs tests/cartridge-library.test.mjs tests/shared-connection-repair.test.mjs tests/zelda-release.test.mjs tests/arcade-runtime-harness.test.mjs tests/contra-release.test.mjs tests/arcade-worker-streaming.test.mjs tests/core-refresh.test.mjs tests/shared-engine-integration.test.mjs tests/nes-audit-fixes.test.mjs tests/nes-cartridge-build.test.mjs tests/nes-checkpoint.test.mjs tests/nes-engine-efficiency.test.mjs tests/nes-code-identity.test.mjs tests/nes-mmc5.test.mjs tests/nes-shared-components.test.mjs tests/nes-mmc5-throughput.test.mjs tests/nes-timed-mmc3.test.mjs tests/nes-translation-reuse.test.mjs",
     "audit:nes": "node maintenance/nes-capability-audit.mjs",
     "test:nes-saves": "node tests/nes-checkpoint-continuation.mjs"
   },

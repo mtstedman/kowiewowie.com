@@ -211,7 +211,7 @@ for(const item of input.admissions??[]){
  const id=a.packageManifest.id;ok(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)&&!seen.has(id),'Duplicate or invalid admitted cartridge');
  const base='htdocs/games/'+id+'/',urlBase='/games/'+id+'/',selector=canonical(a.requirements);ok(!paths.some(p=>p.startsWith(base))&&!selected.has(selector),'Admission already exists');
  ok(a.packageManifest.route===urlBase&&a.packageManifest.entry===urlBase+'host-entry.mjs'&&a.cartridge.id===id&&equal(a.cartridge.requirements,a.requirements),'Admission identity mismatch');
- ok(a.binding.packageId===id&&a.binding.route===urlBase&&a.binding.capabilities.nativePlayers===a.packageManifest.capabilities.nativePlayers&&a.binding.capabilities.play===a.packageManifest.capabilities.play,'Admission network policy mismatch');
+ ok(a.binding.packageId===id&&a.binding.route===urlBase&&a.binding.capabilities.nativePlayers===a.packageManifest.capabilities.nativePlayers&&a.binding.capabilities.play===(a.packageManifest.capabilities.play==='host-p1-guest-p2'?'independent':a.packageManifest.capabilities.play),'Admission network policy mismatch');
  ok(Object.keys(a.files).length<=512,'Admission file count');let bytes=0;
  for(const [url,p]of Object.entries(a.files)){
   const target=web(url);ok((target.startsWith(base)||url.startsWith(newBase))&&!present.has(target),'Admission escapes fresh cartridge/engine');
