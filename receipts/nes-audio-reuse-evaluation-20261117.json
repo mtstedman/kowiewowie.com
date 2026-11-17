@@ -1,0 +1,77 @@
+{
+  "format": "nes-audio-reuse-evaluation/1",
+  "promoted": false,
+  "scope": "Triangle waveform interpolation table reused until its timer period changes; no completed music or PCM replay. Existing pulse/noise/DMC output reuse remains.",
+  "correctness": {
+    "all_games": 8,
+    "frames_each": 360,
+    "exact_state_pcm_rgba": true,
+    "legal_periods_and_phase_endpoints_exact": true,
+    "dedicated_pcm_gating_period_panning_regression_passed": true
+  },
+  "initial": {
+    "summaries": [
+      {
+        "id": "zelda",
+        "ratio": 0.9699592497359895,
+        "same_work": true
+      },
+      {
+        "id": "castlevania-3",
+        "ratio": 0.9712034347887555,
+        "same_work": true
+      }
+    ]
+  },
+  "reversed_repeat": {
+    "summaries": [
+      {
+        "id": "zelda",
+        "ratio": 0.9631749612262999,
+        "same_work": true
+      },
+      {
+        "id": "castlevania-3",
+        "ratio": 1.0220087558185589,
+        "same_work": true
+      }
+    ]
+  },
+  "remaining_families": {
+    "summaries": [
+      {
+        "id": "megaman",
+        "ratio": 1.0560583721911594,
+        "same_work": true
+      },
+      {
+        "id": "ikari-warriors",
+        "ratio": 1.0476571420784122,
+        "same_work": true
+      },
+      {
+        "id": "contra",
+        "ratio": 1.0494110684392244,
+        "same_work": true
+      }
+    ]
+  },
+  "decision": "Do not enable globally: the wider screen found approximately 4.8\u20135.6% higher worker CPU in legacy, MMC3 and owned UxROM execution paths. Timed MMC1 remains a promising candidate for narrower tuning. User requested small overall gains; the broader evidence does not establish an overall gain across engine families.",
+  "implementation": "Candidate and focused regression retained outside production. Prepared 1.4.2 assembly was not executed; qualified release remains 1.4.1.",
+  "identity": {
+    "baseline_source": "8ec416eb832e45f7fbe5315562c8917ae1776ae5eb624e20b60786e295f77e5a",
+    "candidate_source": "7f5b77a471b63647153f394d8ad33f8bc5948f6f734036cf8d264fe4fb1b6352",
+    "candidate_factory": "a874988e1ae94ca58055d2f1d9287e0155b15d504a4da046782b6bbf5114c088",
+    "scope": "Reuse triangle interpolation waveform by exact period; clocks, phase, gates, mixer and filters unchanged",
+    "cases": [
+      "all eight games exact state/PCM/RGBA over 360 frames",
+      "all legal timer periods and phase endpoints arithmetic equivalence"
+    ],
+    "performanceSet": [
+      "zelda",
+      "castlevania-3"
+    ],
+    "promotion": "Require identical outputs, valid checkpoints and repeatable worker CPU improvement without material regression"
+  },
+  "evidence_root": "/home/mason/.local/share/posse-rom-toolchain/evidence/mmc5-live-20261117/audio-reuse-01"
+}
