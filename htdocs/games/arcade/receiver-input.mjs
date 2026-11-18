@@ -22,11 +22,13 @@ export function receiverModule(options={}){
 export function mountReceiverInputs(ctx,{getState=()=>null,stream=()=>null}={}){
  const doc=ctx.controls.ownerDocument,win=doc.defaultView;
  const declared=new Map(ctx.package.inputs.filter(i=>i.kind==='button').map(i=>[i.id,i]));
+ const extended=['x','y','l','r'].every(id=>declared.has(id));
+ const keys=extended?{...KEYS,KeyZ:'b',KeyX:'a',KeyA:'y',KeyS:'x',KeyQ:'l',KeyW:'r'}:KEYS;
  const root=doc.createElement('section'),help=doc.createElement('p'),pad=doc.createElement('div'),directions=doc.createElement('div'),actions=doc.createElement('div'),status=doc.createElement('p');
  root.id='receiver-controls';root.className='receiver-controls';root.tabIndex=0;root.hidden=true;root.setAttribute('role','region');root.setAttribute('aria-label','Shared game controls');
  help.id='receiver-input-help';help.className='quiet';root.setAttribute('aria-describedby',help.id);
  const descriptions=[];
- for(const [id,key] of [['up','Up arrow'],['down','Down arrow'],['left','Left arrow'],['right','Right arrow'],['a','Z'],['b','X'],['select','Shift'],['start','Enter']])if(declared.has(id))descriptions.push(declared.get(id).label+': '+key);
+ for(const [id,key] of [['up','Up arrow'],['down','Down arrow'],['left','Left arrow'],['right','Right arrow'],['a',extended?'X':'Z'],['b',extended?'Z':'X'],['x','S'],['y','A'],['l','Q'],['r','W'],['select','Shift'],['start','Enter']])if(declared.has(id))descriptions.push(declared.get(id).label+': '+key);
  help.textContent='Focus the shared screen or this controller for keyboard and gamepad input. '+descriptions.join(' · ')+'. Touch buttons can be held together. After switching away, release controls before pressing again.';
  pad.className='receiver-pad touch-overlay';pad.setAttribute('role','group');pad.setAttribute('aria-label','Shared game touch controls');
  directions.className='touch-dpad';actions.className='receiver-actions';pad.append(directions,actions);
@@ -80,11 +82,11 @@ export function mountReceiverInputs(ctx,{getState=()=>null,stream=()=>null}={}){
   if(!p){clearPad();status.textContent=devices.length?'Controller has no standard mapping. Use standard/XInput mode, keyboard or touch.':'Connect a standard controller and press a button to detect it.';return;}
   const identity=p.index+':'+p.id;
   if(identity!==padIdentity){clearPad();padIdentity=identity;padIndex=p.index;}
-  status.textContent='Standard controller connected. D-pad / left stick: directions; bottom face: A; right or left face: B; View: Select; Menu: Start. Only this package’s declared controls are enabled.';
+  status.textContent=extended?'Standard controller connected. Bottom/right/left/top face: B/A/Y/X; shoulders: L/R; View: Select; Menu: Start.':'Standard controller connected. D-pad / left stick: directions; bottom face: A; right or left face: B; View: Select; Menu: Start. Only this package’s declared controls are enabled.';
   const button=n=>Boolean(p.buttons?.[n]?.pressed||p.buttons?.[n]?.value>.5);
   const x=Number.isFinite(p.axes?.[0])?p.axes[0]:0,y=Number.isFinite(p.axes?.[1])?p.axes[1]:0;
   [-y,y,-x,x].forEach((value,i)=>{stick[i]=value>(stick[i]?.30:.45);});
-  const values={a:button(0),b:button(1)||button(2),select:button(8),start:button(9),up:button(12)||stick[0],down:button(13)||stick[1],left:button(14)||stick[2],right:button(15)||stick[3]};
+  const values={...(extended?{a:button(1),b:button(0),x:button(3),y:button(2),l:button(4),r:button(5)}:{a:button(0),b:button(1)||button(2)}),select:button(8),start:button(9),up:button(12)||stick[0],down:button(13)||stick[1],left:button(14)||stick[2],right:button(15)||stick[3]};
   const held=Object.keys(values).filter(id=>declared.has(id)&&values[id]);
   for(const [source,item] of [...physical])if(item.kind==='gamepad'&&!held.includes(item.control))up(source);
   if(!usable()){cancel(true);return;}
@@ -110,10 +112,10 @@ export function mountReceiverInputs(ctx,{getState=()=>null,stream=()=>null}={}){
   listen(b,'click',e=>{if(e.detail===0&&!e.pointerType){sync();const source='receiver:activation:'+id;if(down(source,id,'activation'))up(source);else physical.delete(source);}});
  }
  listen(win,'keydown',e=>{
-  if(!Object.hasOwn(KEYS,e.code)||!declared.has(KEYS[e.code])||e.repeat||e.isComposing||e.ctrlKey||e.altKey||e.metaKey||interactive(e.target))return;
-  sync();if(!usable())return;e.preventDefault();down('receiver:k:'+e.code,KEYS[e.code],'keyboard');
+  if(!Object.hasOwn(keys,e.code)||!declared.has(keys[e.code])||e.repeat||e.isComposing||e.ctrlKey||e.altKey||e.metaKey||interactive(e.target))return;
+  sync();if(!usable())return;e.preventDefault();down('receiver:k:'+e.code,keys[e.code],'keyboard');
  });
- listen(win,'keyup',e=>{if(Object.hasOwn(KEYS,e.code))up('receiver:k:'+e.code);});
+ listen(win,'keyup',e=>{if(Object.hasOwn(keys,e.code))up('receiver:k:'+e.code);});
  listen(doc,'focusout',()=>queueMicrotask(()=>{if(!closed&&!focused())cancel(true);}));
  listen(win,'blur',()=>cancel(true));listen(doc,'visibilitychange',()=>{if(doc.hidden)cancel(true);});
  listen(win,'gamepaddisconnected',e=>{if(e.gamepad?.index===padIndex)clearPad();});

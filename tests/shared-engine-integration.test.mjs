@@ -19,6 +19,7 @@ test('current shared-engine packages authenticate complete cartridge, engine and
   assert.equal(pin(Buffer.from(canonical(m))).sha256,row.artifactDigest);assert.equal(p.artifactDigest,row.artifactDigest);
   assert.equal(net.packages[row.id].artifactDigest,row.artifactDigest);
   for(const [path,expected]of Object.entries(m.files))assert.deepEqual(pin(read('htdocs'+path)),expected,path);
+  if(m.platform!=='NES')continue;
   const base='htdocs/games/'+row.id+'/',composition=json(base+'composition.json'),cart=json(base+'cartridge/cartridge-manifest.json');
   assert.deepEqual(composition.requirements,cart.requirements);
   for(const r of Object.values(composition.binding))assert.deepEqual(m.files[r.path],{bytes:r.bytes,sha256:r.sha256});

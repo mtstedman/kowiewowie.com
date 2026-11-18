@@ -74,3 +74,18 @@ test('receiver mappings use declared IDs, never human hints, and unknown buttons
  const f=receiverFixture(t,['fire']);f.screen.focus();f.key('keydown','ArrowRight');f.setPads([f.pad]);f.step();f.pad.buttons[15].pressed=true;f.step();assert.equal(f.calls.length,0);
  const b=f.button('fire');f.fire(b,'pointerdown',{button:0,pointerId:1,pointerType:'touch'});assert.deepEqual(f.calls.at(-1),{source:'receiver:p:1',control:'fire',pressed:true});f.fire(b,'lostpointercapture',{pointerId:1});assert.equal(f.calls.at(-1).pressed,false);
 });
+
+
+test('extended descriptor controller keeps all four face buttons and shoulders independent',t=>{
+ const f=receiverFixture(t,['a','b','x','y','l','r','select','start','up','down','left','right']);
+ f.screen.focus();
+ for(const [code,control] of [['KeyZ','b'],['KeyX','a'],['KeyA','y'],['KeyS','x'],['KeyQ','l'],['KeyW','r']]){
+  f.key('keydown',code);assert.equal(f.calls.at(-1).control,control);assert.equal(f.calls.at(-1).pressed,true);f.key('keyup',code);assert.equal(f.calls.at(-1).pressed,false);
+ }
+ f.setPads([f.pad]);f.step();
+ for(const [index,control]of [[0,'b'],[1,'a'],[2,'y'],[3,'x'],[4,'l'],[5,'r']]){
+  const before=f.calls.length;f.pad.buttons[index].pressed=true;f.step();
+  assert.deepEqual(f.calls.slice(before).filter(e=>e.pressed).map(e=>e.control),[control]);
+  f.pad.buttons[index].pressed=false;f.step();assert.equal(f.calls.at(-1).control,control);assert.equal(f.calls.at(-1).pressed,false);
+ }
+});

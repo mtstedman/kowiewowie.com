@@ -1,0 +1,10 @@
+Posse SNES includes modified Snes9x source. See LICENSE for the full
+license, upstream.json for the exact revision and original source hashes, and
+provenance.json for the Posse build inputs and artifact identities.
+Original copyright notices in the source files remain intact.
+
+The frontend port originated in @wasm-gaming/snes9x-wasm 0.3.1, git revision
+3ceceaa1d8dde676d8ab02179ee56489341672f1. That package declares MIT but shipped
+no standalone wrapper license at that revision. This declaration does not
+replace or relicense Snes9x. The original binary is retained only in historical
+validation archives, outside this runtime package.

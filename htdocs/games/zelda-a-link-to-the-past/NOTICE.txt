@@ -1,0 +1,3 @@
+The Legend of Zelda: A Link to the Past — Nintendo. Original cartridge content is unchanged.
+Posse SNES runtime attribution and license records: /games/engines/snes/NOTICE and /games/engines/snes/LICENSE.
+This package identifies the supplied ROM by SHA-256; emulator validation does not change ownership of game content.

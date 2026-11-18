@@ -69,6 +69,7 @@ test('touch controller preserves live held state without rewriting unchanged att
 test('all selected engines bound deadline polling by 32 instructions and reuse exact PCM buffers',async()=>{
  const catalog=JSON.parse(source('htdocs/games/arcade/catalog.json'));
  for(const row of catalog){
+  if(JSON.parse(source('htdocs'+row.manifest)).manifest.platform!=='NES')continue;
   const {createMachine}=await import(pathToFileURL(root+'/htdocs/games/'+row.id+'/composition-entry.mjs'));
   const machine=createMachine(),original=globalThis.performance;let calls=0;
   try{

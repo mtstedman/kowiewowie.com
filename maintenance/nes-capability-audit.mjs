@@ -26,6 +26,7 @@ export function auditCapabilities(root){
   const envelope=JSON.parse(read(row.manifest)),p=validateManifest(envelope.manifest);
   insist(p.id===row.id&&envelope.artifactDigest===row.artifactDigest&&hash(canonical(p))===row.artifactDigest,'Package identity mismatch');
   for(const [url,pin]of Object.entries(p.files))authenticate(url,pin);
+  if(p.platform!=='NES')continue;
   const c=JSON.parse(read(p.route+'composition.json')),selected=registry.selections[canonical(c.requirements)];
   insist(selected,'Unsupported cartridge execution contract: '+p.id);
   insist(canonical(c.binding.engineManifest)===canonical(selected.manifest),'Stale engine selection: '+p.id);

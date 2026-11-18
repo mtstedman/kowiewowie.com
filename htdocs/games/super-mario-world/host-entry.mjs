@@ -1,0 +1,4 @@
+import {createSNESAdapter} from '/games/arcade/snes-adapter.mjs';
+const config={"rom":{"path":"/games/super-mario-world/source.sfc","bytes":524288,"sha256":"0838e531fe22c077528febe14cb3ff7c492f1f5fa8de354192bdff7137c27f5b"},"metadata":{"mapping":"lorom","romBytes":524288,"ramBytes":2048,"nvramBytes":2048,"region":"ntsc","romSha256":"0838e531fe22c077528febe14cb3ff7c492f1f5fa8de354192bdff7137c27f5b"},"core":{"loader":{"path":"/games/engines/snes/posse-snes.cjs","bytes":64682,"sha256":"0970d8ce46aeeafbead9696b545ab5c9da2da9a44f9c1acd502cc8b143e21a56"},"wasm":{"path":"/games/engines/snes/posse-snes.wasm","bytes":2185357,"sha256":"0e694cf9d404408ca45b817dcf4fc6478480802bc1b1f84cfc633152d656470c"}}};
+export const version=1;
+export function createAdapter(ctx){return createSNESAdapter(ctx,config);}

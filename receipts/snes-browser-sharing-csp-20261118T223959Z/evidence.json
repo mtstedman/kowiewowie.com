@@ -1,0 +1,204 @@
+{
+  "format": "snes-browser-sharing-evidence/1",
+  "passed": true,
+  "command": "python3 tests/snes-sharing-lab.py browser --browser-mode=trusted-local",
+  "sources": {
+    "deploy/nginx/wowiekowie.com.conf": {
+      "bytes": 3778,
+      "sha256": "fe81388c011de5651af517c4cfd8cfa8298304c47447636fcb91b6824401bba6"
+    },
+    "htdocs/games/arcade/arcade.css": {
+      "bytes": 11639,
+      "sha256": "b99b15102d2197cdf53c78460acd7a4917a0794dfeee313a6fa408e55c3d1f55"
+    },
+    "htdocs/games/arcade/catalog.json": {
+      "bytes": 2592,
+      "sha256": "ac3580490c79b6cf6fa7765aaab0da8487afd6625e9af054d8d1d40ff2b4cedf"
+    },
+    "htdocs/games/arcade/host.mjs": {
+      "bytes": 17871,
+      "sha256": "b5d1ef5b4cc5260a550e675fc637b00ae5991390e2406a295a00c24b1eaa5841"
+    },
+    "htdocs/games/arcade/index.html": {
+      "bytes": 3673,
+      "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+    },
+    "htdocs/games/arcade/receiver-input.mjs": {
+      "bytes": 10098,
+      "sha256": "5ba9e320086acce67fa5ea1f484ea8262ab0ddb4a9b754c1589f0fe73d5528e8"
+    },
+    "htdocs/games/arcade/session-bridge.mjs": {
+      "bytes": 15214,
+      "sha256": "442798f5abc5c1d752933b67cba5b3c071f82579b1627f54f5d6a2f2d0b015cb"
+    },
+    "htdocs/games/arcade/snes-adapter.mjs": {
+      "bytes": 7336,
+      "sha256": "d12e89dbb0c84489f50e290cc19f79b6cab4ad2c146d62e15eb52522ba01bb5d"
+    },
+    "htdocs/games/arcade/snes-input.mjs": {
+      "bytes": 2379,
+      "sha256": "3d41f0fca7226b984700e908efaf0ae9fe59f3999e1f4e25d8502d53b6be059b"
+    },
+    "htdocs/games/arcade/snes-runtime.mjs": {
+      "bytes": 6981,
+      "sha256": "d894ad4c2a02d537b1c2391719b2032ce3e77e115eb8032b71a3a414577bf483"
+    },
+    "htdocs/games/arcade/snes-storage.mjs": {
+      "bytes": 1147,
+      "sha256": "fb9b8956ea44b845104859ec9a812d03cf682d8aa89028d2edad916ad660f115"
+    },
+    "htdocs/games/arcade/ui.mjs": {
+      "bytes": 12935,
+      "sha256": "5387c62a3ae70fdd293505946ea5d35b08048ded7821bed427b403723576e75f"
+    },
+    "htdocs/games/engines/snes/LICENSE": {
+      "bytes": 7047,
+      "sha256": "70efeee282d82a6e9d26aeed5466d08c632369858371dc6a4644c8dcedc2be78"
+    },
+    "htdocs/games/engines/snes/NOTICE": {
+      "bytes": 640,
+      "sha256": "05acd035f3af7fa042a0b6274e5b4cad46bde7f96bded5f924fb3d4239ce19c9"
+    },
+    "htdocs/games/engines/snes/posse-snes.cjs": {
+      "bytes": 64682,
+      "sha256": "0970d8ce46aeeafbead9696b545ab5c9da2da9a44f9c1acd502cc8b143e21a56"
+    },
+    "htdocs/games/engines/snes/posse-snes.wasm": {
+      "bytes": 2185357,
+      "sha256": "0e694cf9d404408ca45b817dcf4fc6478480802bc1b1f84cfc633152d656470c"
+    },
+    "htdocs/games/engines/snes/provenance.json": {
+      "bytes": 15085,
+      "sha256": "ec0f66891ff617dd9b2fcd42ed61eff5f5217cdddfd70a9ab5b7a8bc532f1dc1"
+    },
+    "htdocs/games/engines/snes/runner.mjs": {
+      "bytes": 6478,
+      "sha256": "5ec20b001099d22a1ff078261565597b935b6e4c13be6f05744dabf208874ec0"
+    },
+    "htdocs/games/engines/snes/upstream.json": {
+      "bytes": 12430,
+      "sha256": "a8d9571edb111168377efb1c65a1637bd6c820dd0cb15e493f0a69d73aaeded3"
+    },
+    "htdocs/games/engines/snes/worker.mjs": {
+      "bytes": 1188,
+      "sha256": "d1433acb984c5a81e7fe32018b8e61094086f979a4bfe25e8be50263ee86184e"
+    },
+    "htdocs/games/super-mario-world/NOTICE.txt": {
+      "bytes": 301,
+      "sha256": "a2d65f6bbed4199c12dc00fe8de8071dcb852379ae8427565735d0ce277e4771"
+    },
+    "htdocs/games/super-mario-world/USAGE.md": {
+      "bytes": 555,
+      "sha256": "6350b3b626a6cbb84a581057db31e1a0e9e2bd4da6eff90e5c04704632079983"
+    },
+    "htdocs/games/super-mario-world/cartridge.json": {
+      "bytes": 766,
+      "sha256": "7e09e4dc9bcdb75ceaf5ce3a23a756a1dde9a78f1a1d6b06351cb3758b96dd72"
+    },
+    "htdocs/games/super-mario-world/game-package.json": {
+      "bytes": 4991,
+      "sha256": "60c15d0ec45e46b97a9def8d66a8b7645dd2db715b5fd8386bedf2009183e823"
+    },
+    "htdocs/games/super-mario-world/host-entry.mjs": {
+      "bytes": 802,
+      "sha256": "99277bac1f5f2094fa0dd8726fcde2ddbd5fda01320489f5aa554b446ae0c864"
+    },
+    "htdocs/games/super-mario-world/index.html": {
+      "bytes": 425,
+      "sha256": "50ce211432091972de20695b53ca1f16a71c123cc26e6c82c9859f7e463ac28b"
+    },
+    "htdocs/games/super-mario-world/netplay-snes-adapter.mjs": {
+      "bytes": 62,
+      "sha256": "4ebc7e8c3807c984b325c4dbf5bf945656c41ac08368686dcc435b66f9156fc6"
+    },
+    "htdocs/games/super-mario-world/source.sfc": {
+      "bytes": 524288,
+      "sha256": "0838e531fe22c077528febe14cb3ff7c492f1f5fa8de354192bdff7137c27f5b"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/NOTICE.txt": {
+      "bytes": 323,
+      "sha256": "f03ecf0b46652ad8f2bba705279531d6e1f1bf7e94664a0da9cec85dab5549bf"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/USAGE.md": {
+      "bytes": 530,
+      "sha256": "f7ce53a56070aee4639b5596724f47377cb97bc621abf96995c53959003c44a4"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/cartridge.json": {
+      "bytes": 799,
+      "sha256": "235f52d433c68e3c0ae0c4b4afb1347a8a7d0ea6705c42e1f5e792110446d82b"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/game-package.json": {
+      "bytes": 5086,
+      "sha256": "2d1b7e5fa77abbc6474ccf70b703a8208e174f6a1c21988156c36ff678587f4c"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/host-entry.mjs": {
+      "bytes": 811,
+      "sha256": "ef1c18328fb2cd638d6411e4a97e01a216e897c4a523d7bd7b76f62af14211e0"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/index.html": {
+      "bytes": 446,
+      "sha256": "8b6e43853e6199d2c96c09c08f962385532ca0fc5b670713c1e37da9d75d4c71"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/netplay-snes-adapter.mjs": {
+      "bytes": 62,
+      "sha256": "4ebc7e8c3807c984b325c4dbf5bf945656c41ac08368686dcc435b66f9156fc6"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/source.sfc": {
+      "bytes": 1048576,
+      "sha256": "66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb"
+    },
+    "includes/api/classes/NetplayPolicy.php": {
+      "bytes": 3561,
+      "sha256": "35a1e18b0b1fc108bcacc4e8b9f8bacc8c3172826a46982f46e2c4ab2d23d945"
+    },
+    "tests/snes-browser-policy.mjs": {
+      "bytes": 919,
+      "sha256": "afb021a013f0c3e820821fa761e2a1827e02f76eec622c489d87fdf0b3dce030"
+    },
+    "tests/snes-sharing-lab.py": {
+      "bytes": 11116,
+      "sha256": "b438034be0aa5c17c0e2cef2c71ed2978e44ceb6b649c7aab5eb1f7b4d64d197"
+    },
+    "tests/snes-sharing-server.mjs": {
+      "bytes": 2033,
+      "sha256": "ac7c0caa736c52763dd46c0ace94ca9273c39551850111384f93e7db749a4844"
+    },
+    "tests/snes-sharing.browser.mjs": {
+      "bytes": 9255,
+      "sha256": "72f208d49ef2e113918ded5677873398f0abdc33d58243a88da9720c78c0573f"
+    }
+  },
+  "evidence": {
+    "receipt.json": {
+      "bytes": 807,
+      "sha256": "1e8d7ab335070ffe52aa5eb28f5b8da3444da43a58ee9ab5f47e392ed5b3792f"
+    },
+    "browser.tap": {
+      "bytes": 352,
+      "sha256": "8415c1dc2d7038849a4d2f4f9a9519af47134abf60918b6462d185b79c0b2892"
+    },
+    "browser.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "browser-mode.json": {
+      "bytes": 184,
+      "sha256": "4ce9214cbcccc0f7ad2ce9e155dbeda671eaec001dbdf9334e3270e748976b95"
+    },
+    "snes-sharing.json": {
+      "bytes": 2234,
+      "sha256": "8c504ebb9624a30c347363d6b9d1e242274b7f3c61d1e890ffa57f61c0f4f268"
+    },
+    "smw-luigi-map.png": {
+      "bytes": 14814,
+      "sha256": "12f61dad7b12927a9b7fd12f95e67c8f0211726374e5442c7f61a785ab73aca7"
+    },
+    "smw-remote-luigi-level.png": {
+      "bytes": 10083,
+      "sha256": "1f691646b837cd99921f07e28b77e635094a2fd51afa7f7b51806756408c8a15"
+    }
+  },
+  "supersedesForCurrentRuntime": "receipts/snes-browser-sharing-20261118T223404Z/evidence.json",
+  "scope": "Final runtime with blob worker bootstrap and absolute runner fetches, tested under exact route-specific production CSP parsed from deployed nginx source. Real SNES core, normal keyboard-driven SMW two-player menu and guest Luigi turn; host/guest input isolation, Zelda single shared hero, watcher denial, zero receiver emulator workers, non-silent decoded relay audio/video, pause/resume/end/unload. Audio energy must exceed 0.000001; each receiver must decode more than 10 video frames. Disposable loopback TLS/PostgreSQL/TURN; focus emulation keeps fixture tabs active. Trusted-local browser mode does not claim browser sandbox validation. Not WAN reliability, physical controller hardware or full-game qualification.",
+  "snapshotNote": "Lab augments its copied catalog with an unused diagnostic package. SNES manifest and member hashes match final source. No credentials or database content copied. Prior evidence remains unchanged as historical validation of preceding runtime."
+}

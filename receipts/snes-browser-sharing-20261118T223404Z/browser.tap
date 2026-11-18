@@ -1,0 +1,10 @@
+✔ super-mario-world: real relay video/audio, correct shared controls, pause/resume and cleanup (74498.918508ms)
+✔ zelda-a-link-to-the-past: real relay video/audio, correct shared controls, pause/resume and cleanup (29427.539815ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 104379.05163

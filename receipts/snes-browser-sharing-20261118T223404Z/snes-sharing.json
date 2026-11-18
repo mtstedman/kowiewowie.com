@@ -1,0 +1,89 @@
+{
+  "format": "snes-browser-sharing/1",
+  "reports": [
+    {
+      "id": "super-mario-world",
+      "passed": true,
+      "watcherMedia": {
+        "inbound": [
+          {
+            "kind": "audio",
+            "totalSamplesReceived": 19680,
+            "totalAudioEnergy": 0.001213266357230694
+          },
+          {
+            "kind": "video",
+            "framesDecoded": 15
+          }
+        ],
+        "relay": true
+      },
+      "guestMedia": {
+        "inbound": [
+          {
+            "kind": "audio",
+            "totalSamplesReceived": 20160,
+            "totalAudioEnergy": 0.000604456153729963
+          },
+          {
+            "kind": "video",
+            "framesDecoded": 11
+          }
+        ],
+        "relay": true
+      },
+      "remoteSeat": 2,
+      "independentNativePlayers": true,
+      "receiverWorkers": 0,
+      "watcherInputDenied": true,
+      "extendedShoulderVerified": true,
+      "pauseResume": true,
+      "cleanup": true,
+      "gameplayScreenshots": [
+        "smw-luigi-map.png",
+        "smw-remote-luigi-level.png"
+      ]
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "passed": true,
+      "watcherMedia": {
+        "inbound": [
+          {
+            "kind": "audio",
+            "totalSamplesReceived": 19200,
+            "totalAudioEnergy": 0.00829546028095252
+          },
+          {
+            "kind": "video",
+            "framesDecoded": 18
+          }
+        ],
+        "relay": true
+      },
+      "guestMedia": {
+        "inbound": [
+          {
+            "kind": "audio",
+            "totalSamplesReceived": 136320,
+            "totalAudioEnergy": 0.000053234043245226206
+          },
+          {
+            "kind": "video",
+            "framesDecoded": 111
+          }
+        ],
+        "relay": true
+      },
+      "remoteSeat": 1,
+      "independentNativePlayers": false,
+      "receiverWorkers": 0,
+      "watcherInputDenied": true,
+      "extendedShoulderVerified": true,
+      "pauseResume": true,
+      "cleanup": true,
+      "gameplayScreenshots": []
+    }
+  ],
+  "scope": "Real emulation, browser inputs and loopback authenticated relay; focus emulation keeps fixture tabs active. Not wide-area network quality or complete gameplay."
+}

@@ -1,0 +1,23 @@
+{
+  "format": "combined-lab-receipt/1",
+  "mode": "browser",
+  "run": true,
+  "pass": true,
+  "job": "/tmp/combined-lab-qdq3o8cl",
+  "production_access": false,
+  "browser_mode_requested": "trusted-local",
+  "browser_mode_effective": "trusted-local",
+  "sandbox_validated": false,
+  "host_security_changed": false,
+  "browser_receipt": "/tmp/combined-lab-qdq3o8cl/browser.tap",
+  "scope": "Real SNES game streams and controls in independent browser contexts, disposable PostgreSQL and authenticated loopback TURN; not WAN qualification",
+  "browser_launch": {
+    "format": "combined-browser-mode/1",
+    "requested": "trusted-local",
+    "effective": "trusted-local",
+    "chromium_sandbox_requested": false,
+    "sandbox_validated": false,
+    "host_security_changed": false
+  },
+  "cleanup_pass": true
+}

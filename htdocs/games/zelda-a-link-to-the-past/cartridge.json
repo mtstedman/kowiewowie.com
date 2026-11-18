@@ -1,0 +1,29 @@
+{
+  "format": "snes-cartridge/1",
+  "id": "zelda-a-link-to-the-past",
+  "title": "The Legend of Zelda: A Link to the Past",
+  "year": "1991",
+  "publisher": "Nintendo",
+  "nativePlayers": 1,
+  "metadata": {
+    "system": "snes",
+    "abi": "snes-runner/1",
+    "romSha256": "66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb",
+    "sourceSha256": "66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb",
+    "title": "THE LEGEND OF ZELDA",
+    "mapping": "lorom",
+    "mapMode": 32,
+    "fastRom": false,
+    "cartridgeType": 2,
+    "enhancement": "none",
+    "region": "ntsc",
+    "regionCode": 1,
+    "romBytes": 1048576,
+    "ramBytes": 8192,
+    "battery": true,
+    "nvramBytes": 8192,
+    "copierHeaderBytes": 0,
+    "checksum": 44813,
+    "resetVector": 32768
+  }
+}

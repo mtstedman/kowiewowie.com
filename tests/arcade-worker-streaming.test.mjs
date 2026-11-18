@@ -195,7 +195,7 @@ test('current packages cover authored modules and migration rejects current and 
  const rows=JSON.parse(read('htdocs/games/arcade/catalog.json'));
  for(const row of rows){
   const p=await verifyPackage(JSON.parse(read('htdocs'+row.manifest)),row.artifactDigest);
-  for(const name of ['host','producer','consumer'])assert(p.files['/games/arcade/worker-stream-'+name+'.mjs']);
+  if(p.platform==='NES')for(const name of ['host','producer','consumer'])assert(p.files['/games/arcade/worker-stream-'+name+'.mjs']);
   for(const [url,pin] of Object.entries(p.files)){const bytes=read('htdocs'+url);assert.equal(bytes.length,pin.bytes,url);assert.equal(hash(bytes),pin.sha256,url);}
  }
  const changed=Object.keys(migration.changes)[0];

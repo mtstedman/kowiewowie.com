@@ -9,7 +9,7 @@ const root=new URL('../',import.meta.url),sourceRoot=fileURLToPath(root);
 const files=JSON.parse(readFileSync(new URL('./arcade-runtime-source-pins.json',import.meta.url),'utf8')).files;
 const filename=p=>fileURLToPath(new URL(p,root));
 const fixture=n=>'tests/fixtures/arcade-runtime-module/'+n+'.mjs';
-const rows=JSON.parse(readFileSync(new URL('htdocs/games/arcade/catalog.json',root),'utf8'));
+const rows=JSON.parse(readFileSync(new URL('htdocs/games/arcade/catalog.json',root),'utf8')).filter(r=>JSON.parse(readFileSync(new URL('htdocs'+r.manifest,root))).manifest.platform==='NES');
 const turn=()=>new Promise(setImmediate);
 async function quiescent(h){
  await h.runtime.dispose();await h.runtime.dispose();

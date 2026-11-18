@@ -1,0 +1,29 @@
+{
+  "format": "snes-cartridge/1",
+  "id": "super-mario-world",
+  "title": "Super Mario World",
+  "year": "1990",
+  "publisher": "Nintendo",
+  "nativePlayers": 2,
+  "metadata": {
+    "system": "snes",
+    "abi": "snes-runner/1",
+    "romSha256": "0838e531fe22c077528febe14cb3ff7c492f1f5fa8de354192bdff7137c27f5b",
+    "sourceSha256": "0838e531fe22c077528febe14cb3ff7c492f1f5fa8de354192bdff7137c27f5b",
+    "title": "SUPER MARIOWORLD",
+    "mapping": "lorom",
+    "mapMode": 32,
+    "fastRom": false,
+    "cartridgeType": 2,
+    "enhancement": "none",
+    "region": "ntsc",
+    "regionCode": 1,
+    "romBytes": 524288,
+    "ramBytes": 2048,
+    "battery": true,
+    "nvramBytes": 2048,
+    "copierHeaderBytes": 0,
+    "checksum": 41178,
+    "resetVector": 32768
+  }
+}

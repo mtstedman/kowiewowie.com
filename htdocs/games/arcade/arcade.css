@@ -68,3 +68,6 @@ footer{position:relative;width:76%;margin-inline:auto}
  .cartridge-label strong{overflow-wrap:anywhere}
  .shelf-heading p{max-width:32ch}
 }
+/* SNES has four face buttons; keep the complete pad within portrait screens. */
+.snes-view .touch-actions{display:grid;grid-template-columns:repeat(2,52px);justify-content:end}
+.snes-view .touch-menu button{min-width:44px}

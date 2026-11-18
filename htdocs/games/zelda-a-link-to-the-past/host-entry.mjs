@@ -1,0 +1,4 @@
+import {createSNESAdapter} from '/games/arcade/snes-adapter.mjs';
+const config={"rom":{"path":"/games/zelda-a-link-to-the-past/source.sfc","bytes":1048576,"sha256":"66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb"},"metadata":{"mapping":"lorom","romBytes":1048576,"ramBytes":8192,"nvramBytes":8192,"region":"ntsc","romSha256":"66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb"},"core":{"loader":{"path":"/games/engines/snes/posse-snes.cjs","bytes":64682,"sha256":"0970d8ce46aeeafbead9696b545ab5c9da2da9a44f9c1acd502cc8b143e21a56"},"wasm":{"path":"/games/engines/snes/posse-snes.wasm","bytes":2185357,"sha256":"0e694cf9d404408ca45b817dcf4fc6478480802bc1b1f84cfc633152d656470c"}}};
+export const version=1;
+export function createAdapter(ctx){return createSNESAdapter(ctx,config);}
