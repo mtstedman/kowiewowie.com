@@ -28,7 +28,7 @@ for(const name of changed.filter(p=>!skip(p))){
 }
 for(const name of added.filter(p=>!skip(p))){const f=path.join(root,name);if(fs.lstatSync(f).isSymbolicLink()||!fs.statSync(f).isFile())throw Error('Added file must be regular: '+name);newFiles[name]=pin(fs.readFileSync(f));}
 if(!Object.keys(changes).length||!Object.keys(newFiles).length)throw Error('Expected reviewed changes and additions');
-const receipt={format:'nes-engine-maintenance-history/1',reason:'Add Posse SNES packages and shared twelve-button input while preserving immutable prior release records.',previous,changes,added:newFiles};
+const receipt={format:'nes-engine-maintenance-history/1',reason:process.argv[2]||'Add Posse SNES packages and shared twelve-button input while preserving immutable prior release records.',previous,changes,added:newFiles};
 const raw=Buffer.from(JSON.stringify(receipt,null,2)+'\n');fs.writeFileSync(path.join(root,receiptPath),raw,{flag:'wx'});
 const head={path:receiptPath,...pin(raw)};fs.writeFileSync(path.join(root,wrapper),previousWrapper.replace(match[0],'export const maintenanceHead='+JSON.stringify(head)+';'));
 console.log(JSON.stringify({head,changed:Object.keys(changes).length,added:Object.keys(newFiles).length,previous}));

@@ -1,0 +1,169 @@
+{
+  "format": "nes-engine-maintenance-history/1",
+  "reason": "Add emulator screenshots to all six cartridges missing shelf images and retain screenshot selection when rebuilding SNES packages.",
+  "previous": {
+    "path": "receipts/snes-site-history-20261118224021094.json",
+    "bytes": 28393,
+    "sha256": "65b2818def442d61e40fabff8fd8da08e1232926bd20f023bb45a8a234644012"
+  },
+  "changes": {
+    "htdocs/games/arcade/catalog.json": {
+      "before": {
+        "bytes": 2419,
+        "sha256": "d9ba195243eb76d60b701ed56b244837a0465c8b18fe00bca3fcba88c89d835e"
+      },
+      "after": {
+        "bytes": 2419,
+        "sha256": "fd0a60fc8d8163b44ab5cd6321b401c903748c0367b8442272d8abf23f435cd2"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/htdocs/games/arcade/catalog.json"
+    },
+    "htdocs/games/metroid/game-package.json": {
+      "before": {
+        "bytes": 9464,
+        "sha256": "0e76a9c358fdc446d06f66e94fd252816de1d8f033a94f94dba1e03cef885a5b"
+      },
+      "after": {
+        "bytes": 9610,
+        "sha256": "8a1225a8372ab6aea3992f91d9a46b0ce18bc732fb2a279bb95992d43322d909"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/htdocs/games/metroid/game-package.json"
+    },
+    "htdocs/games/mike-tysons-punch-out/game-package.json": {
+      "before": {
+        "bytes": 10398,
+        "sha256": "62ae3b13fbc7eafeda4cc2347b10bd69f994ce672617db389cef9423138a9e44"
+      },
+      "after": {
+        "bytes": 10572,
+        "sha256": "f66d3b6d7287d8037a439cdb7fd4ae884cce5fe2ffaa3c1e8bcb7d7d5db34f6a"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/htdocs/games/mike-tysons-punch-out/game-package.json"
+    },
+    "htdocs/games/netplay/catalog.json": {
+      "before": {
+        "bytes": 15702,
+        "sha256": "4af3293f200cc290bd67aa31f4856e414324d79904cac88ce41be1ac92f2e473"
+      },
+      "after": {
+        "bytes": 15702,
+        "sha256": "deb9bcbbca30b4ae979ef5f3dbf483e48aed41297bf30ff151c9d9152916e1fb"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/htdocs/games/netplay/catalog.json"
+    },
+    "htdocs/games/super-mario-bros-3/game-package.json": {
+      "before": {
+        "bytes": 21711,
+        "sha256": "410f250cf5dec6596cd7aa24590e70ff26bff670cae2c2b5dd80a7332dca03c3"
+      },
+      "after": {
+        "bytes": 21880,
+        "sha256": "83a04605495af80881d97189db4e3a576c75b382f5189c5fd1f630751656b50e"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/htdocs/games/super-mario-bros-3/game-package.json"
+    },
+    "htdocs/games/super-mario-world/game-package.json": {
+      "before": {
+        "bytes": 4991,
+        "sha256": "60c15d0ec45e46b97a9def8d66a8b7645dd2db715b5fd8386bedf2009183e823"
+      },
+      "after": {
+        "bytes": 5158,
+        "sha256": "ca6cd1c725a043fcf8aef01af6849eef3461864b77d74c744480b4f461cb53f7"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/htdocs/games/super-mario-world/game-package.json"
+    },
+    "htdocs/games/the-guardian-legend/game-package.json": {
+      "before": {
+        "bytes": 10212,
+        "sha256": "49edbbb54377785462e9aa88e461ab7ca9ebada95b09c31fb6b6b2efe4fbd72d"
+      },
+      "after": {
+        "bytes": 10383,
+        "sha256": "f4a7819680765ab4433f997b568358869b6906a763b63477841716a7d0337acc"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/htdocs/games/the-guardian-legend/game-package.json"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/game-package.json": {
+      "before": {
+        "bytes": 5086,
+        "sha256": "2d1b7e5fa77abbc6474ccf70b703a8208e174f6a1c21988156c36ff678587f4c"
+      },
+      "after": {
+        "bytes": 5267,
+        "sha256": "0fdec9b18a2ba263f29b64b09e4a01dc360fa90a05086a8969d668df7f97d94a"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/htdocs/games/zelda-a-link-to-the-past/game-package.json"
+    },
+    "includes/api/classes/NetplayPolicy.php": {
+      "before": {
+        "bytes": 3561,
+        "sha256": "ea0c8174a8c6b44d82669a76428e24eaffe64ded714b174ea54fc99c5fb768ef"
+      },
+      "after": {
+        "bytes": 3561,
+        "sha256": "db29244c4a466075d4d7504aaac697154c315bc8ebced1eee22dc788d4090530"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/includes/api/classes/NetplayPolicy.php"
+    },
+    "includes/api/classes/netplay-catalog.json": {
+      "before": {
+        "bytes": 15702,
+        "sha256": "4af3293f200cc290bd67aa31f4856e414324d79904cac88ce41be1ac92f2e473"
+      },
+      "after": {
+        "bytes": 15702,
+        "sha256": "deb9bcbbca30b4ae979ef5f3dbf483e48aed41297bf30ff151c9d9152916e1fb"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/includes/api/classes/netplay-catalog.json"
+    },
+    "maintenance/snes-site-history.mjs": {
+      "before": {
+        "bytes": 2930,
+        "sha256": "3bed03168bcead846d02333813dd38ddedd0682b762335d84de9ce991beb7347"
+      },
+      "after": {
+        "bytes": 2947,
+        "sha256": "3f73a62ff81fb32cc7da9d79f0daf43435fd8579e1c6267baa4e5574c4e197b7"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/maintenance/snes-site-history.mjs"
+    },
+    "maintenance/snes-site-packages.mjs": {
+      "before": {
+        "bytes": 7811,
+        "sha256": "b217f05e717a440f60ae076779912d68c373f02ac360d10e0251153628c6c116"
+      },
+      "after": {
+        "bytes": 7893,
+        "sha256": "cb05fe29259a418ce96512279dca18790e8362de89dd7e9a3a8b3b2c2b7e1c5c"
+      },
+      "original": "maintenance/snes-site-originals/20261118225434497/maintenance/snes-site-packages.mjs"
+    }
+  },
+  "added": {
+    "htdocs/games/metroid/gameplay.png": {
+      "bytes": 8257,
+      "sha256": "6f3bb3944b5915e60f93fd633ca6308b6bfc45598a1574857b62aafb16a0e429"
+    },
+    "htdocs/games/mike-tysons-punch-out/gameplay.png": {
+      "bytes": 6364,
+      "sha256": "e17010b3b6fc7502c70146f4385cbaed5037df8455305c9c0503308cff2e1349"
+    },
+    "htdocs/games/super-mario-bros-3/gameplay.png": {
+      "bytes": 10682,
+      "sha256": "d701b9b26e58bca76689c360856fa709889eec90209e763d780888169e0a9066"
+    },
+    "htdocs/games/super-mario-world/gameplay.png": {
+      "bytes": 18385,
+      "sha256": "36a91090ceecfa23e18c6e32d2c9447385154d7985e8783c815803a619e85371"
+    },
+    "htdocs/games/the-guardian-legend/gameplay.png": {
+      "bytes": 14135,
+      "sha256": "7406fb4bde89b948a3cfe7749dc13638408077e1255b28b4f11a0f683e71a685"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/gameplay.png": {
+      "bytes": 17182,
+      "sha256": "f7ded811fb6038a210cc1f7f4b22997db4d4ea793502ce214ec3e4d9010275ce"
+    }
+  }
+}
