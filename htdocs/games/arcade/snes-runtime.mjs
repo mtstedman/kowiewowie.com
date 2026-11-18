@@ -1,9 +1,10 @@
 import {snesSlot} from './snes-storage.mjs';
+import {createFramePacer} from './frame-pacing.mjs';
 // Bounded worker transport; one complete frame is in flight, at most 100 ms ahead.
 export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal}) {
  let worker=null,workerBootstrap=null,context=null,master=null,ready=false,running=false,closed=false,loading=false,message='Loading SNES…';
  let nextId=0,pending=new Map(),frameBusy=false,epoch=0,raf=0,audioCursor=0,video=[],sources=new Map(),nodes=new Set(),lastBattery=0,batteryBusy=false,batteryPending=null,disposal=null;
- let generated=0,presented=0,audioSamples=0,underruns=0,lastMeter=0,meterFrames=0,fps=0;
+ let generated=0,presented=0,audioSamples=0,underruns=0,lastMeter=0,fps=0;const presentation=createFramePacer();
  const draw=canvas.getContext('2d',{alpha:false});let image=null;
  function changed(){onState();}
  function releaseBootstrap(){if(workerBootstrap){URL.revokeObjectURL(workerBootstrap);workerBootstrap=null;}}
@@ -21,8 +22,15 @@ export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal
   audioSamples+=frame.audio.length;video.push({showAt:start,frame});generated++;
  }
  function pump(){if(!running||closed||frameBusy||video.length>=8||audioCursor-context.currentTime>=.085)return;frameBusy=true;const generation=epoch;rpc('frame',{pads:masks()}).then(frame=>{if(running&&!closed&&generation===epoch)accept(frame);},fail).finally(()=>{frameBusy=false;if(running&&!closed)pump();});}
- function tick(){if(!running||closed)return;raf=requestAnimationFrame(tick);const now=context.currentTime;while(video.length&&video[0].showAt<=now){const {frame}=video.shift();if(canvas.width!==frame.width||canvas.height!==frame.height){canvas.width=frame.width;canvas.height=frame.height;image=null;}if(!image)image=draw.createImageData(frame.width,frame.height);image.data.set(frame.rgba);draw.putImageData(image,0,0);presented++;meterFrames++;}
-  if(now-lastMeter>=1){message=`${(meterFrames/(now-lastMeter)).toFixed(1)} FPS`;meterFrames=0;lastMeter=now;changed();}
+ function tick(timestamp=performance.now()){if(!running||closed)return;raf=requestAnimationFrame(tick);const now=context.currentTime;
+  if(video.length&&video[0].showAt<=now&&presentation.take(timestamp)){
+   // PCM was scheduled in full when each frame arrived. A late display uses
+   // the newest due image once; superseded video never becomes a draw burst.
+   let {frame}=video.shift();while(video.length&&video[0].showAt<=now)({frame}=video.shift());
+   if(canvas.width!==frame.width||canvas.height!==frame.height){canvas.width=frame.width;canvas.height=frame.height;image=null;}
+   if(!image)image=draw.createImageData(frame.width,frame.height);image.data.set(frame.rgba);draw.putImageData(image,0,0);presented++;
+  }
+  if(now-lastMeter>=1){message=`${presentation.snapshot(timestamp).fps.toFixed(1)} FPS`;lastMeter=now;changed();}
   if(now-lastBattery>5&&!batteryBusy){lastBattery=now;flushBattery().catch(e=>{message=e.message;changed();});}pump();
  }
  function pause(){running=false;epoch++;cancelAnimationFrame(raf);sources.clear();stopAudio();changed();if(ready&&!closed)flushBattery().catch(e=>{message=e.message;changed();});}
@@ -39,7 +47,7 @@ export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal
   worker.onerror=event=>{const error=Error(event.message||'SNES worker failed');for(const wait of pending.values()){clearTimeout(wait.timer);wait.reject(error);}pending.clear();fail(error);};
   const info=await rpc('init',{config,sampleRate:context.sampleRate,battery});releaseBootstrap();if(closed)return;fps=info.fps;ready=true;message='Ready';
  }catch(error){message=error.message;throw error;}finally{loading=false;changed();}}
- async function start(){if(!ready||closed||running)return;const generation=epoch;await context.resume();if(closed||generation!==epoch)return;running=true;epoch++;lastMeter=context.currentTime;meterFrames=0;message='Running';tick();changed();}
+ async function start(){if(!ready||closed||running)return;const generation=epoch;await context.resume();if(closed||generation!==epoch)return;running=true;epoch++;presentation.resetClock();lastMeter=context.currentTime;message='Running';tick();changed();}
  async function reset(){if(!ready||closed)return;pause();await flushBattery();await rpc('reset');generated=presented=audioSamples=0;message='Ready';changed();}
  function input(source,button,pressed,seat=1){if(closed||!ready||![1,2].includes(seat)||!Number.isInteger(button)||button<0||button>11||typeof source!=='string')return false;const key=seat+':'+source+':'+button;if(!pressed){sources.delete(key);return true;}if(!running)return false;sources.set(key,{source,seat,button});return true;}
  function releaseAll(){sources.clear();}

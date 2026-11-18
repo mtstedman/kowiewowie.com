@@ -24,22 +24,24 @@ export function createNESAdapter(ctx,createRuntime,GamepadInput,TouchDPad){
  }
  function dispose(){if(disposal)return disposal;saveGeneration++;closed=true;let finish,fail;disposal=new Promise((a,b)=>{finish=a;fail=b;});const errors=[];for(const fn of [()=>abort.abort(),()=>cancelAnimationFrame(raf),releaseAll,()=>root?.remove()])try{fn();}catch(e){errors.push(e);}Promise.resolve().then(()=>runtime?.dispose()).then(()=>{if(errors.length)fail(errors[0]);else finish();},fail);return disposal;}
  async function checkpoint(load){
-  if(closed||saveBusy||!ctx.canControl()||!['solo','host'].includes(sessionRole)||!runtime.snapshot().ready)return;
+  if(closed||saveBusy||!ctx.canControl()||!['solo','host'].includes(sessionRole)||!runtime?.snapshot().ready)throw Error('Game is not ready for a save operation');
   const generation=++saveGeneration;saveBusy=true;saveStatus.textContent=load?'Loading saved game…':'Saving game…';
-  releaseAll();runtime.pause();
   const current=()=>!closed&&generation===saveGeneration&&ctx.canControl()&&['solo','host'].includes(sessionRole);
+  const requireCurrent=()=>{if(!current())throw Error('Save operation was cancelled');};
   try{
-   if(load){const record=await loadCheckpoint(p.id);if(!current())return;await runtime.importCheckpoint(record);}
-   else {const record=await runtime.exportCheckpoint();if(!current())return;await saveCheckpoint(p.id,record);}
-   if(current())saveStatus.textContent=load?'Game loaded. Use Resume to continue.':'Saved on this browser. Use Resume to continue.';
-  }catch(e){if(current())saveStatus.textContent=e.message||'Save operation failed';}
+   releaseAll();await runtime.pause();requireCurrent();
+   if(load){const record=await loadCheckpoint(p.id);requireCurrent();await runtime.importCheckpoint(record);}
+   else {const record=await runtime.exportCheckpoint();requireCurrent();await saveCheckpoint(p.id,record);}
+   requireCurrent();saveStatus.textContent=load?'Game loaded. Use Resume to continue.':'Saved on this browser. Use Resume to continue.';return true;
+  }catch(e){if(current())saveStatus.textContent=e.message||'Save operation failed';throw e;}
   finally{if(generation===saveGeneration)saveBusy=false;}
  }
+
  ctx.scope.defer(dispose);
  return {version:1,packageId:p.id,artifactDigest:p.artifactDigest,
   load(){if(ctx.signal.aborted||closed)throw Error('Cancelled');root=document.createElement('div');root.className='nes-view';root.tabIndex=0;root.setAttribute('role','region');root.setAttribute('aria-label',p.title+' game screen and controls');
    root.innerHTML='<div class="video-frame"><canvas id="nes-screen" width="256" height="240" aria-label="Game video"></canvas><output id="nes-fps" class="nes-fps" aria-label="Presented frames per second" aria-live="off" hidden></output></div><div hidden><button id="nes-start"></button><button id="nes-pause"></button><button id="nes-reset"></button><select id="nes-scale"><option value="2">2</option></select><p id="nes-status"></p></div><div id="nes-touch-overlay" class="touch-overlay" role="group" aria-label="Touch controller"><div id="nes-touch-dpad" class="touch-dpad" data-enabled="false" role="group" aria-label="Slide for directions and diagonals"><button class="dpad-up" data-direction="4" aria-label="Up" disabled>▲</button><button class="dpad-left" data-direction="6" aria-label="Left" disabled>◀</button><span class="dpad-center" aria-hidden="true"></span><button class="dpad-right" data-direction="7" aria-label="Right" disabled>▶</button><button class="dpad-down" data-direction="5" aria-label="Down" disabled>▼</button></div><div class="touch-menu"><button data-button="2" disabled>Select</button><button data-button="3" disabled>Start</button></div><div class="touch-actions"><button data-button="1" aria-label="B action" disabled>B</button><button data-button="0" aria-label="A action" disabled>A</button></div></div><div class="nes-save-controls"><button id="nes-save" type="button" disabled>Save game</button> <button id="nes-load" type="button" disabled>Load game</button><p id="nes-save-status" class="quiet" role="status">One save per game on this browser. Engine updates may require a new save.</p></div><p id="nes-controller-status" class="quiet"></p>';
-   saveButton=root.querySelector('#nes-save');loadButton=root.querySelector('#nes-load');saveStatus=root.querySelector('#nes-save-status');listen(saveButton,'click',()=>checkpoint(false));listen(loadButton,'click',()=>checkpoint(true));
+   saveButton=root.querySelector('#nes-save');loadButton=root.querySelector('#nes-load');saveStatus=root.querySelector('#nes-save-status');listen(saveButton,'click',()=>{void checkpoint(false).catch(()=>{});});listen(loadButton,'click',()=>{void checkpoint(true).catch(()=>{});});
    meter=root.querySelector('#nes-fps');controls=Array.from(root.querySelectorAll('[data-button]'),b=>[b,Number(b.dataset.button)]);
    ctx.view.append(root);runtime=createRuntime({root,onState:ctx.changed});pad=new TouchDPad(root.querySelector('#nes-touch-dpad'),{press,release});gamepad=new GamepadInput({press,release,status:text=>{root.querySelector('#nes-controller-status').textContent=text;}});
    listen(window,'keydown',e=>{if(!Object.hasOwn(keys,e.code)||!root.contains(document.activeElement)||e.target?.closest?.('button,input,select,textarea,a,summary,[contenteditable]')||e.isComposing||e.ctrlKey||e.altKey||e.metaKey)return;e.preventDefault();press('k:'+e.code,keys[e.code],e.repeat);});
@@ -48,6 +50,7 @@ export function createNESAdapter(ctx,createRuntime,GamepadInput,TouchDPad){
    listen(root,'contextmenu',e=>{if(e.target.closest('.touch-overlay'))e.preventDefault();});runtime.reset();raf=requestAnimationFrame(frame);
   },
   setSessionState(state){sessionRole=state.role;if(!['solo','host'].includes(sessionRole)){saveGeneration++;saveBusy=false;}},
+  save(){return checkpoint(false);},
   start(){if(saveBusy)return;runtime.start();if(runtime.input('host-start',3,true))runtime.input('host-start',3,false);root.focus({preventScroll:true});},
   resume(){if(saveBusy)return;runtime.start();root.focus({preventScroll:true});},pause(){releaseAll();runtime.pause();},reset(){saveGeneration++;saveBusy=false;saveStatus.textContent='';releaseAll();runtime.reset();},dispose,
   input(e){const n=buttons.indexOf(e.control),allowed=e.seat===1||(e.seat===2&&p.capabilities.nativePlayers===2&&p.capabilities.play==='host-p1-guest-p2');if(closed||n<0||!allowed)return false;return runtime.input(e.source,n,e.pressed,e.seat);},releaseSources(){runtime?.clearRemote();},releaseAll,

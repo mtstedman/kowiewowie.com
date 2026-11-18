@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "csp": "exact production nginx policy",
+  "reports": [
+    {
+      "scenario": "desktop",
+      "sameDocument": true,
+      "ajaxLibrary": true,
+      "separateViews": true,
+      "selectDelivered": true,
+      "bigger": {
+        "before": 414,
+        "after": 948
+      },
+      "cancelPreservesGame": true,
+      "storageFailurePreservesGame": true,
+      "snesSaveReload": true,
+      "nesSaveBeforeLeave": true,
+      "leaveWithoutSave": true,
+      "history": true,
+      "zeroWorkersAfterUnload": true
+    },
+    {
+      "scenario": "direct-mobile",
+      "libraryFetchedOnlyAfterUnload": true,
+      "toolbarFits": true
+    }
+  ],
+  "errors": []
+}

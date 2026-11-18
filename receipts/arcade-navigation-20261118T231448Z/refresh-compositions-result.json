@@ -1,0 +1,170 @@
+{
+  "write": true,
+  "reviewed": [
+    "htdocs/games/adventure-island-2/index.html",
+    "htdocs/games/arcade/arcade.css",
+    "htdocs/games/arcade/host.mjs",
+    "htdocs/games/arcade/index.html",
+    "htdocs/games/arcade/nes-adapter.mjs",
+    "htdocs/games/arcade/snes-adapter.mjs",
+    "htdocs/games/arcade/snes-runtime.mjs",
+    "htdocs/games/arcade/ui.mjs",
+    "htdocs/games/arcade/worker-stream-host.mjs",
+    "htdocs/games/bionic-commando/index.html",
+    "htdocs/games/castlevania-3/index.html",
+    "htdocs/games/castlevania/index.html",
+    "htdocs/games/contra/index.html",
+    "htdocs/games/double-dragon-ii/index.html",
+    "htdocs/games/ikari-warriors/index.html",
+    "htdocs/games/megaman/index.html",
+    "htdocs/games/metroid/index.html",
+    "htdocs/games/mike-tysons-punch-out/index.html",
+    "htdocs/games/super-mario-bros-3/index.html",
+    "htdocs/games/the-guardian-legend/index.html",
+    "htdocs/games/zelda/index.html",
+    "htdocs/games/arcade/frame-pacing.mjs",
+    "htdocs/games/arcade/library-view.mjs",
+    "htdocs/games/arcade/library.html"
+  ],
+  "packages": [
+    {
+      "id": "megaman",
+      "artifactDigest": "53e87ccad95dd8fe53c4147ab8813b0ef5c0e95feb316a39cc6d626f221b0c3b",
+      "updated": [
+        "/games/megaman/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "adventure-island-2",
+      "artifactDigest": "6194d146fadd7450977b24fcaae8fb58eb026068c10095082c5a5c2eb7837b38",
+      "updated": [
+        "/games/adventure-island-2/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "castlevania",
+      "artifactDigest": "165a5ad327f2805f268b3fff8f3ed9e047c265897b7266e67eb941fc96149e6f",
+      "updated": [
+        "/games/castlevania/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "ikari-warriors",
+      "artifactDigest": "ca09f2b71fa1676a122ee0ffab26a5688b0699b1b9bb8429256a370e702985ad",
+      "updated": [
+        "/games/ikari-warriors/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "bionic-commando",
+      "artifactDigest": "ad99863055a65114f32e09389c0c202fcbe036e8dc889032489a8bb237670e1d",
+      "updated": [
+        "/games/bionic-commando/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "zelda",
+      "artifactDigest": "260c99913e69c153a345cc4f6c33c286f6dde488fa42697b3133b41da598ce1f",
+      "updated": [
+        "/games/zelda/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "contra",
+      "artifactDigest": "8ae5987305d64854d3dab85629f3d8f2d158ba84341136a7d427c88bd5e92e51",
+      "updated": [
+        "/games/contra/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "castlevania-3",
+      "artifactDigest": "d43048c89cc2903202b93683dc90fef1d028ee42d8d721bd829502fc9adc2330",
+      "updated": [
+        "/games/castlevania-3/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "double-dragon-ii",
+      "artifactDigest": "b884235e60b1c345f3f3dfd66cce2a2a0cc5c463df217e16a06aa5dc9ff23c68",
+      "updated": [
+        "/games/double-dragon-ii/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "metroid",
+      "artifactDigest": "2273149254d814826e2274ef12cefdbb7b5dd369f714208a3a9f5b15d9910d18",
+      "updated": [
+        "/games/metroid/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "the-guardian-legend",
+      "artifactDigest": "7d2eb07b0559280b15e517cb0638643698c74972cd2bb8f00050f882697e9330",
+      "updated": [
+        "/games/the-guardian-legend/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "super-mario-bros-3",
+      "artifactDigest": "fa02961a83aaf5c6039c4cd462f6c46d7e514e852990b6b41cf46364ff2ead51",
+      "updated": [
+        "/games/super-mario-bros-3/composition.json"
+      ],
+      "added": []
+    },
+    {
+      "id": "mike-tysons-punch-out",
+      "artifactDigest": "dbbfad2c571ce89e99978bf2e1f7aeec6dfc6c84ba5b67ec3ae5f4d826545d2e",
+      "updated": [
+        "/games/mike-tysons-punch-out/composition.json"
+      ],
+      "added": []
+    }
+  ],
+  "sourcePins": [],
+  "outputs": [
+    "htdocs/games/megaman/composition.json",
+    "htdocs/games/megaman/game-package.json",
+    "htdocs/games/megaman/network-package.json",
+    "htdocs/games/adventure-island-2/composition.json",
+    "htdocs/games/adventure-island-2/game-package.json",
+    "htdocs/games/adventure-island-2/network-package.json",
+    "htdocs/games/castlevania/composition.json",
+    "htdocs/games/castlevania/game-package.json",
+    "htdocs/games/ikari-warriors/composition.json",
+    "htdocs/games/ikari-warriors/game-package.json",
+    "htdocs/games/bionic-commando/composition.json",
+    "htdocs/games/bionic-commando/game-package.json",
+    "htdocs/games/zelda/composition.json",
+    "htdocs/games/zelda/game-package.json",
+    "htdocs/games/contra/composition.json",
+    "htdocs/games/contra/game-package.json",
+    "htdocs/games/castlevania-3/composition.json",
+    "htdocs/games/castlevania-3/game-package.json",
+    "htdocs/games/double-dragon-ii/composition.json",
+    "htdocs/games/double-dragon-ii/game-package.json",
+    "htdocs/games/metroid/composition.json",
+    "htdocs/games/metroid/game-package.json",
+    "htdocs/games/the-guardian-legend/composition.json",
+    "htdocs/games/the-guardian-legend/game-package.json",
+    "htdocs/games/super-mario-bros-3/composition.json",
+    "htdocs/games/super-mario-bros-3/game-package.json",
+    "htdocs/games/mike-tysons-punch-out/composition.json",
+    "htdocs/games/mike-tysons-punch-out/game-package.json",
+    "htdocs/games/arcade/catalog.json",
+    "htdocs/games/netplay/catalog.json",
+    "includes/api/classes/netplay-catalog.json",
+    "includes/api/classes/NetplayPolicy.php"
+  ]
+}

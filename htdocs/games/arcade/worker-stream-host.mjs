@@ -1,4 +1,5 @@
 import {createConsumer} from './worker-stream-consumer.mjs';
+import {createFramePacer} from './frame-pacing.mjs';
 // Authenticated UI lifecycle, transport, and audio/video scheduling.
 export function createRuntime({root,onState=()=>{},WorkerClass=Worker,workerURL}){
 let closed=false,runtimeFrame=0,checkpointRequest=null;
@@ -47,7 +48,7 @@ let mediaNext=0,pumpTimer=null,videoQueue=[],lastCycles=null,primeMedia=true;
 let measuredAt=0,measuredCycles=0,measuredFrames=0,presented=0,speed=0,fps=0;
 let renderOffset=null,renderWall=null,statusAt=0,bufferTarget=BUFFER_SECONDS;
 const freeVideo=[];
-const stream=createConsumer({send:wire});
+const stream=createConsumer({send:wire}),presentation=createFramePacer();
 const clock=()=>audioClockActive?ac.currentTime:performance.now()/1000;
 function recycle(frame){if(frame)stream.recycle(frame.transport);}
 function presentationClock(timestamp){
@@ -76,7 +77,7 @@ function syncAudioClock(){
   pump();
 }
 function rebase(){
-  silence();for(const frame of videoQueue)recycle(frame);videoQueue=[];primeMedia=true;mediaNext=clock()+.012;renderOffset=null;renderWall=null;
+  presentation.resetClock();silence();for(const frame of videoQueue)recycle(frame);videoQueue=[];primeMedia=true;mediaNext=clock()+.012;renderOffset=null;renderWall=null;
   measuredAt=performance.now();measuredCycles=lastCycles??0;measuredFrames=presented;
   clearTimeout(pumpTimer);pumpTimer=null;
 }
@@ -101,7 +102,7 @@ function pump(){
   const elapsed=(performance.now()-measuredAt)/1000;
   if(elapsed>=1){
     speed=(d.cycles-measuredCycles)/CPU_HZ/elapsed;
-    fps=(presented-measuredFrames)/elapsed;
+    fps=presentation.snapshot(performance.now()).fps;
     measuredAt=performance.now();measuredCycles=d.cycles;measuredFrames=presented;
   }
 }
@@ -241,8 +242,10 @@ function tick(timestamp){
   const now=presentationClock(timestamp);let frame;
   // A small phase deadband prevents a timestamp/sample rounding wobble from
   // skipping one frame and then holding its successor at the next refresh.
-  if(videoQueue.length&&videoQueue[0].at<=now+.002)frame=videoQueue.shift();
-  while(videoQueue.length&&videoQueue[0].at<=now-.002){recycle(frame);frame=videoQueue.shift();}
+  if(videoQueue.length&&videoQueue[0].at<=now+.002&&presentation.take(timestamp)){
+    frame=videoQueue.shift();
+    while(videoQueue.length&&videoQueue[0].at<=now-.002){recycle(frame);frame=videoQueue.shift();}
+  }
   if(frame){
     ctx.putImageData(new ImageData(frame.rgba,256,240),0,0);presented++;
     recycle(frame);

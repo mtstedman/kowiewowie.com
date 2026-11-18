@@ -32,7 +32,7 @@ const inactive=s=>['connecting','reconnecting','ended','incompatible'].includes(
 export class GameHost {
  constructor(catalog,{loader,view=null,controls=null,changed=()=>{}}){this.catalog=catalog;this.loader=loader;this.view=view;this.controls=controls;this.changed=changed;this.active=null;this.queue=Promise.resolve();this.generation=0;this.transitioning=false;this.closed=false;this.poisoned=false;this.legacy=null;this.message='Choose a game from the shelf.';this.disposal=null;}
  emit(){try{this.changed(this.snapshot());}catch{}}
- snapshot(){const r=this.active?.closing?null:this.active;return Object.freeze({package:r?.pkg||null,runtime:r?.adapter?.snapshot()||null,session:r?.state||soloState(),pending:Boolean(r?.pending),loading:this.transitioning,closed:this.closed,blocked:this.poisoned,legacy:this.legacy,message:this.message,canControl:Boolean(r&&this.permitted(r,false))});}
+ snapshot(){const r=this.active?.closing?null:this.active,runtime=r?.adapter?.snapshot()||null,canControl=Boolean(r&&this.permitted(r,false));return Object.freeze({package:r?.pkg||null,runtime,session:r?.state||soloState(),pending:Boolean(r?.pending),loading:this.transitioning,closed:this.closed,blocked:this.poisoned,legacy:this.legacy,message:this.message,canControl,canSave:Boolean(canControl&&runtime?.ready&&!r.saving&&['solo','host'].includes(r.state.role)&&typeof r.adapter?.save==='function')});}
  permitted(r,remote){if(this.closed||this.poisoned||r.closing||r.awaitingSession||!r.loaded||r!==this.active||inactive(r.state))return false;if(remote)return Boolean(r.provider&&r.state.role==='host'&&r.state.phase==='active'&&seatFor(r.pkg,'guest'));return seatFor(r.pkg,r.state.role)>0&&(r.state.role!=='guest'||Boolean(r.provider&&r.state.phase==='active'));}
  load(id,options={}){return this.transition(id,options);}
  unload(reason='library'){return this.transition(null,{reason});}
@@ -92,6 +92,15 @@ export class GameHost {
   if(['guest','spectator'].includes(r.state.role)){insist(action==='start'&&r.provider&&(r.state.phase==='active'||r.state.role==='guest'&&r.state.phase==='reconnecting'&&Boolean(this.media())),'This role cannot control the game');return attempt(()=>r.provider.enableAudio());}
   insist(this.permitted(r,false),'Controls unavailable during this session state');if(action==='pause'||action==='reset')this.release(action,r);
   return attempt(()=>r.adapter[action]()).then(()=>this.emit(),e=>{if(r===this.active&&!r.closing){this.release('lifecycle-error',r);this.message=String(e.message||e).slice(0,200);this.emit();}throw e;});
+ }
+ async save(){
+  const r=this.active;insist(r?.loaded&&!r.closing&&!this.closed&&!this.poisoned,'No ready package');
+  insist(['solo','host'].includes(r.state.role)&&this.permitted(r,false),'This session cannot save the game');
+  insist(r.adapter.snapshot()?.ready,'Game is not ready to save');insist(typeof r.adapter.save==='function','This game does not support saving');insist(!r.saving,'Save already in progress');
+  r.saving=true;this.release('save',r);this.emit();
+  try{const result=await attempt(()=>r.adapter.save());insist(r===this.active&&!r.closing&&this.permitted(r,false)&&['solo','host'].includes(r.state.role),'Save operation was superseded');this.message='Game saved on this browser.';return result;}
+  catch(e){if(r===this.active&&!r.closing)this.message=String(e.message||e).slice(0,200);throw e;}
+  finally{r.saving=false;this.emit();}
  }
  suspend(reason='focus-loss'){const r=this.active;this.release(reason,r);if(r?.adapter&&!r.closing)attempt(()=>r.adapter.pause()).catch(()=>{if(r===this.active&&!r.closing){this.poisoned=true;this.emit();}});}
  state(r,value,initial=false){

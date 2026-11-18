@@ -1,0 +1,694 @@
+{
+  "format": "nes-engine-maintenance-history/1",
+  "reason": "Separate the AJAX cartridge library from the player, offer durable saves before changing games, restore prominent controls and cap actual NES/SNES presentation at 60 FPS.",
+  "previous": {
+    "path": "receipts/snes-site-history-20261118225434497.json",
+    "bytes": 6712,
+    "sha256": "7f9fd58fd98eb38510bd23f2c698c81a9414651a68af472e7c5503242a2fb705"
+  },
+  "changes": {
+    "htdocs/games/adventure-island-2/composition.json": {
+      "before": {
+        "bytes": 14236,
+        "sha256": "8451238ec84a24b60e028a7119d3ce1e78524aa73cf8caba9be1673be9db4637"
+      },
+      "after": {
+        "bytes": 14371,
+        "sha256": "2f0255f2060a31ec819fc0a5696351bcb97f1e9fd0707211d986b09c3fea87b5"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/adventure-island-2/composition.json"
+    },
+    "htdocs/games/adventure-island-2/game-package.json": {
+      "before": {
+        "bytes": 16743,
+        "sha256": "448808d78737a044148f6eb7c9a44c2542a57717853688bf3b498ac5a7fc5646"
+      },
+      "after": {
+        "bytes": 17110,
+        "sha256": "3b7586bbbb9b73b15aec1113c9316c8d93084bc3e0c8f2a2261094eec088cd81"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/adventure-island-2/game-package.json"
+    },
+    "htdocs/games/adventure-island-2/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/adventure-island-2/index.html"
+    },
+    "htdocs/games/adventure-island-2/network-package.json": {
+      "before": {
+        "bytes": 1185,
+        "sha256": "17e61c1c70a9adabaf8921643a803033deb6e4057924b91e5f734d6789271d4b"
+      },
+      "after": {
+        "bytes": 1185,
+        "sha256": "fb89966e2e69a436da34ac4556446fbbbfe64517b7f68dfbc93e4c023015abbb"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/adventure-island-2/network-package.json"
+    },
+    "htdocs/games/arcade/arcade.css": {
+      "before": {
+        "bytes": 11639,
+        "sha256": "b99b15102d2197cdf53c78460acd7a4917a0794dfeee313a6fa408e55c3d1f55"
+      },
+      "after": {
+        "bytes": 12187,
+        "sha256": "2e3c700ba876f08ffb38cf5d384e613774f7dec9d50776d96050df4219cec0f1"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/arcade.css"
+    },
+    "htdocs/games/arcade/catalog.json": {
+      "before": {
+        "bytes": 2419,
+        "sha256": "fd0a60fc8d8163b44ab5cd6321b401c903748c0367b8442272d8abf23f435cd2"
+      },
+      "after": {
+        "bytes": 2419,
+        "sha256": "bbccaaf859e01075701f5dbd887a69e742e09ba15e40dda13e3eef4bbc1b99f6"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/catalog.json"
+    },
+    "htdocs/games/arcade/host.mjs": {
+      "before": {
+        "bytes": 17871,
+        "sha256": "b5d1ef5b4cc5260a550e675fc637b00ae5991390e2406a295a00c24b1eaa5841"
+      },
+      "after": {
+        "bytes": 18881,
+        "sha256": "528e2af39124421b7f2769ca8a32f631b21e5ebe86d76e6c488b349ec213f69b"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/host.mjs"
+    },
+    "htdocs/games/arcade/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/index.html"
+    },
+    "htdocs/games/arcade/nes-adapter.mjs": {
+      "before": {
+        "bytes": 8836,
+        "sha256": "32f957360e9fcf88ee414a52ca925db9d7a865cacb7702195cb0969bbaffdd83"
+      },
+      "after": {
+        "bytes": 9095,
+        "sha256": "a9a7ec26faa8f550844812b88d12ec49acd2a61b7cd0f49e09ab56ee881415db"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/nes-adapter.mjs"
+    },
+    "htdocs/games/arcade/snes-adapter.mjs": {
+      "before": {
+        "bytes": 7336,
+        "sha256": "d12e89dbb0c84489f50e290cc19f79b6cab4ad2c146d62e15eb52522ba01bb5d"
+      },
+      "after": {
+        "bytes": 7687,
+        "sha256": "700ff1964177af5fde87ff57a6008ac4ad728b27ee948a6f33658bf0002219a7"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/snes-adapter.mjs"
+    },
+    "htdocs/games/arcade/snes-runtime.mjs": {
+      "before": {
+        "bytes": 6981,
+        "sha256": "d894ad4c2a02d537b1c2391719b2032ce3e77e115eb8032b71a3a414577bf483"
+      },
+      "after": {
+        "bytes": 7339,
+        "sha256": "d218920700f006bb4124684ec5dcc3c09f3a6ff1976574d754e8037413576b0b"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/snes-runtime.mjs"
+    },
+    "htdocs/games/arcade/ui.mjs": {
+      "before": {
+        "bytes": 12935,
+        "sha256": "5387c62a3ae70fdd293505946ea5d35b08048ded7821bed427b403723576e75f"
+      },
+      "after": {
+        "bytes": 14047,
+        "sha256": "18706b4c950a4a1989777cd580bdf5c156392a5c35c2bb13bf7b04667ad2702c"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/ui.mjs"
+    },
+    "htdocs/games/arcade/worker-stream-host.mjs": {
+      "before": {
+        "bytes": 16066,
+        "sha256": "0a0c8addcac5bbb02df8b2f98cb484ba5a187120f59c58007ab08185549967fe"
+      },
+      "after": {
+        "bytes": 16229,
+        "sha256": "61e001db537703e317dde5ca6f7dc4c30ec39fe1513aa03785365cf01d327817"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/arcade/worker-stream-host.mjs"
+    },
+    "htdocs/games/bionic-commando/composition.json": {
+      "before": {
+        "bytes": 12174,
+        "sha256": "95070d630b20fd08364cf21a93bf3b7528a9a4cbcc50fac0ec10df2773d3d401"
+      },
+      "after": {
+        "bytes": 12309,
+        "sha256": "5049021883631bc77544b15241454c71d83fea85b76ec76062470ddca58903c8"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/bionic-commando/composition.json"
+    },
+    "htdocs/games/bionic-commando/game-package.json": {
+      "before": {
+        "bytes": 14302,
+        "sha256": "c332fb068a96944adc4e3afefa3723ddc66c7f5a968bfe4ab2e228493cc42ec1"
+      },
+      "after": {
+        "bytes": 14669,
+        "sha256": "cdf9a68f8929cc4f2f118da6a4b21277a17b38aa6ad2d028d946798aa86ad382"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/bionic-commando/game-package.json"
+    },
+    "htdocs/games/bionic-commando/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/bionic-commando/index.html"
+    },
+    "htdocs/games/castlevania-3/composition.json": {
+      "before": {
+        "bytes": 27920,
+        "sha256": "a30829ca67cfedbb84d47f232467a0e2e142423ed485b2b7989129609013a6b0"
+      },
+      "after": {
+        "bytes": 28055,
+        "sha256": "2bc874ec97255e00502d9c252d155efd4c725f8d203f38e2090687a913069027"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/castlevania-3/composition.json"
+    },
+    "htdocs/games/castlevania-3/game-package.json": {
+      "before": {
+        "bytes": 25813,
+        "sha256": "e30480ae2efe667fa9f4dd44c4583ac0b808c8d6beacdf91648741c61587df2a"
+      },
+      "after": {
+        "bytes": 27645,
+        "sha256": "0e1ba5ecedb1db735a0f9c8718288c3e49189644fec07de70e0fd877c4abcab8"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/castlevania-3/game-package.json"
+    },
+    "htdocs/games/castlevania-3/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/castlevania-3/index.html"
+    },
+    "htdocs/games/castlevania/composition.json": {
+      "before": {
+        "bytes": 6592,
+        "sha256": "be6a2ca40e662f4726a0f2f1801bd68fb0ac14076ff336eeec7cb6bab0cb8c9b"
+      },
+      "after": {
+        "bytes": 6727,
+        "sha256": "43ce00d98b7f84307a2751a17af31716728be50872f71b3edbfb75f22968579e"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/castlevania/composition.json"
+    },
+    "htdocs/games/castlevania/game-package.json": {
+      "before": {
+        "bytes": 10023,
+        "sha256": "eb7661f148269b0a14bd27fa95c5ac75ca743d6535c87364e19bec128842392a"
+      },
+      "after": {
+        "bytes": 10390,
+        "sha256": "4cc6b4391bbc02db234825e3242d354c56b1589b6156702b9d51108f533f2cd9"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/castlevania/game-package.json"
+    },
+    "htdocs/games/castlevania/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/castlevania/index.html"
+    },
+    "htdocs/games/contra/composition.json": {
+      "before": {
+        "bytes": 10190,
+        "sha256": "29b4ca918235d162a4573905226f8399056ba4fa3cff0a7cb55544222e0dab94"
+      },
+      "after": {
+        "bytes": 10325,
+        "sha256": "4ecfccdff5f443eaf901265b5de72e4e0d08b9751645ec86dc1bf3803192b4c7"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/contra/composition.json"
+    },
+    "htdocs/games/contra/game-package.json": {
+      "before": {
+        "bytes": 12186,
+        "sha256": "e16cdb86d94e72958be43752371f7effbf4bc0458b3c85dabc94920b54bef86f"
+      },
+      "after": {
+        "bytes": 12553,
+        "sha256": "2a4475b34251cb781566049de63af6de8730c54a1178be7cbee86d7b38cf5e49"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/contra/game-package.json"
+    },
+    "htdocs/games/contra/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/contra/index.html"
+    },
+    "htdocs/games/double-dragon-ii/composition.json": {
+      "before": {
+        "bytes": 15076,
+        "sha256": "efa2ad8eba8336a4783068e77bffe54f0135024f683d01475f10603be34789f2"
+      },
+      "after": {
+        "bytes": 15211,
+        "sha256": "e60ee85b6d14bf6f4733a869144504a3d8a5ce9d1ddf08fa90124837627ca410"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/double-dragon-ii/composition.json"
+    },
+    "htdocs/games/double-dragon-ii/game-package.json": {
+      "before": {
+        "bytes": 14968,
+        "sha256": "80107351892ad7dff93bbb8c79b3b5770ec3cfe282296f1d62b0233190240fe1"
+      },
+      "after": {
+        "bytes": 16800,
+        "sha256": "5f274168d7ec376997a3bdc79dbfd4d1d6c6255091c2de87964c93bddeecb379"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/double-dragon-ii/game-package.json"
+    },
+    "htdocs/games/double-dragon-ii/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/double-dragon-ii/index.html"
+    },
+    "htdocs/games/ikari-warriors/composition.json": {
+      "before": {
+        "bytes": 6700,
+        "sha256": "2524da6705799fd621e3f73497337983f6cb2bfe5a78a722870ed54c8539b74c"
+      },
+      "after": {
+        "bytes": 6835,
+        "sha256": "b660087600889ffc74354956cd0da0d71985ab11840ad77a0af4a4fea6bcd818"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/ikari-warriors/composition.json"
+    },
+    "htdocs/games/ikari-warriors/game-package.json": {
+      "before": {
+        "bytes": 10139,
+        "sha256": "b08115970766911c44e9cf3f6fd6d7e2841705dffc14c527c52494e8834719dc"
+      },
+      "after": {
+        "bytes": 10506,
+        "sha256": "d19b51a362eab2bd8dc87a63509178c824c479798822a26e5deacbb2ab379a89"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/ikari-warriors/game-package.json"
+    },
+    "htdocs/games/ikari-warriors/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/ikari-warriors/index.html"
+    },
+    "htdocs/games/megaman/composition.json": {
+      "before": {
+        "bytes": 10185,
+        "sha256": "419100d856eaa7479dc3753aa68f309c725bb22f51ec669027c73df4c14c97cb"
+      },
+      "after": {
+        "bytes": 10320,
+        "sha256": "076f9f9d3d05446c82001525dc60271f7973d984494b175bc4055006db71c07c"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/megaman/composition.json"
+    },
+    "htdocs/games/megaman/game-package.json": {
+      "before": {
+        "bytes": 14047,
+        "sha256": "5820e9d41787b2d5ad856f72577d94a4bd0e2077d150f58971b17bebe7845a33"
+      },
+      "after": {
+        "bytes": 14414,
+        "sha256": "78803b64c8b312b771fa2de343cd6f286522e14d5a365b73cd8a03d3b97a1872"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/megaman/game-package.json"
+    },
+    "htdocs/games/megaman/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/megaman/index.html"
+    },
+    "htdocs/games/megaman/network-package.json": {
+      "before": {
+        "bytes": 1152,
+        "sha256": "692ff532e0a3a0352f4297595621f61f7f3b9871dbded9fe3498e4a6041434bb"
+      },
+      "after": {
+        "bytes": 1152,
+        "sha256": "d83b0cda9927244ba3c4025a597b7d098cfc97f453506cf25df042d351f74a88"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/megaman/network-package.json"
+    },
+    "htdocs/games/metroid/composition.json": {
+      "before": {
+        "bytes": 9010,
+        "sha256": "bc4dd78752f1f069fc7fb0de6d7d3708f177605f584c47c38d8248a2ad600558"
+      },
+      "after": {
+        "bytes": 9145,
+        "sha256": "29e6b170390a03dd60a456abfd3fc2aca5e2d0362989c44dba61c529775c9593"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/metroid/composition.json"
+    },
+    "htdocs/games/metroid/game-package.json": {
+      "before": {
+        "bytes": 9610,
+        "sha256": "8a1225a8372ab6aea3992f91d9a46b0ce18bc732fb2a279bb95992d43322d909"
+      },
+      "after": {
+        "bytes": 11442,
+        "sha256": "99b75978a8e9663f5b05d77249b1aac81f7e224c8ef04f3150072070e6ad3c9f"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/metroid/game-package.json"
+    },
+    "htdocs/games/metroid/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/metroid/index.html"
+    },
+    "htdocs/games/mike-tysons-punch-out/composition.json": {
+      "before": {
+        "bytes": 10160,
+        "sha256": "4b58ea21684815f8c71d041f0a5a19f8cb034d497e14d4e8ffa9129be2fae23f"
+      },
+      "after": {
+        "bytes": 10295,
+        "sha256": "7f4006ae07ec818de97615f9d7b5fd8ce8a2a4957cd0d28c9e6d3404a33e06e1"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/mike-tysons-punch-out/composition.json"
+    },
+    "htdocs/games/mike-tysons-punch-out/game-package.json": {
+      "before": {
+        "bytes": 10572,
+        "sha256": "f66d3b6d7287d8037a439cdb7fd4ae884cce5fe2ffaa3c1e8bcb7d7d5db34f6a"
+      },
+      "after": {
+        "bytes": 12404,
+        "sha256": "09bc2bda3b4aa45180d15de64e919914cbd5ba7a9fdb4d1675fbbdff56307cf5"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/mike-tysons-punch-out/game-package.json"
+    },
+    "htdocs/games/mike-tysons-punch-out/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/mike-tysons-punch-out/index.html"
+    },
+    "htdocs/games/netplay/catalog.json": {
+      "before": {
+        "bytes": 15702,
+        "sha256": "deb9bcbbca30b4ae979ef5f3dbf483e48aed41297bf30ff151c9d9152916e1fb"
+      },
+      "after": {
+        "bytes": 15702,
+        "sha256": "a038b847b925107a4b8480ad788624c04fabcf124639059e79d887d15e4ad776"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/netplay/catalog.json"
+    },
+    "htdocs/games/super-mario-bros-3/composition.json": {
+      "before": {
+        "bytes": 23851,
+        "sha256": "e527d2bc4f7b46a1b68f4a39aa2b6193533abd02a8426858e3c62e3e4b74f36c"
+      },
+      "after": {
+        "bytes": 23986,
+        "sha256": "99a700d74683dc7f31706f69a5951f34e178bef7e9353045dee687b92e346694"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/super-mario-bros-3/composition.json"
+    },
+    "htdocs/games/super-mario-bros-3/game-package.json": {
+      "before": {
+        "bytes": 21880,
+        "sha256": "83a04605495af80881d97189db4e3a576c75b382f5189c5fd1f630751656b50e"
+      },
+      "after": {
+        "bytes": 23712,
+        "sha256": "c9ec5d0f39560b098958dd53635c06d6811d02768580cb2a45229e50420cefd5"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/super-mario-bros-3/game-package.json"
+    },
+    "htdocs/games/super-mario-bros-3/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/super-mario-bros-3/index.html"
+    },
+    "htdocs/games/super-mario-world/game-package.json": {
+      "before": {
+        "bytes": 5158,
+        "sha256": "ca6cd1c725a043fcf8aef01af6849eef3461864b77d74c744480b4f461cb53f7"
+      },
+      "after": {
+        "bytes": 6618,
+        "sha256": "52009b4e3cce3d2c8dca532e4d1436e2122479461c68b4efc1734123782125c7"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/super-mario-world/game-package.json"
+    },
+    "htdocs/games/the-guardian-legend/composition.json": {
+      "before": {
+        "bytes": 10656,
+        "sha256": "cd37cd7a0159f91b13b12e54551d6d5b0ea2dbbc7e981fdbcb6bc6f8ea6f902e"
+      },
+      "after": {
+        "bytes": 10791,
+        "sha256": "aea95899fbcd0b8e4bbf676c97a07af3fb47a7e19de32a72906880624c40a500"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/the-guardian-legend/composition.json"
+    },
+    "htdocs/games/the-guardian-legend/game-package.json": {
+      "before": {
+        "bytes": 10383,
+        "sha256": "f4a7819680765ab4433f997b568358869b6906a763b63477841716a7d0337acc"
+      },
+      "after": {
+        "bytes": 12215,
+        "sha256": "8e959c5d353b2d03715d041402d7cebda73488e965d4d145af1949210b7db33c"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/the-guardian-legend/game-package.json"
+    },
+    "htdocs/games/the-guardian-legend/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/the-guardian-legend/index.html"
+    },
+    "htdocs/games/zelda-a-link-to-the-past/game-package.json": {
+      "before": {
+        "bytes": 5267,
+        "sha256": "0fdec9b18a2ba263f29b64b09e4a01dc360fa90a05086a8969d668df7f97d94a"
+      },
+      "after": {
+        "bytes": 6727,
+        "sha256": "a1965a7ccadef267eb185386d6d43d9546a273772eaef687c4cb558fd822fc2c"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/zelda-a-link-to-the-past/game-package.json"
+    },
+    "htdocs/games/zelda/composition.json": {
+      "before": {
+        "bytes": 9833,
+        "sha256": "8c648e5bc251962d21e7e1261f1b7c279b4d575380813612e68aa50b720fea20"
+      },
+      "after": {
+        "bytes": 9968,
+        "sha256": "afc3e13a172ea6180ca94b386b7953049679b2e355ec5346dc7b4a7c918cc966"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/zelda/composition.json"
+    },
+    "htdocs/games/zelda/game-package.json": {
+      "before": {
+        "bytes": 12321,
+        "sha256": "3a1d18f76281c8c576133c636e0c2d23bca06d68906f12f40d14051343a08a9b"
+      },
+      "after": {
+        "bytes": 12688,
+        "sha256": "8b19541c1852ac1c4b87189225681de64106086990d71c518e2c1291ae246f3b"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/zelda/game-package.json"
+    },
+    "htdocs/games/zelda/index.html": {
+      "before": {
+        "bytes": 3673,
+        "sha256": "616454fc956db7ba4ef749e048bc95d22c3cdcc9a7841fbd202689c2110bfa36"
+      },
+      "after": {
+        "bytes": 3876,
+        "sha256": "289d6a0cdbe8346335d16d085d7cc1ea497616bf7602d3228b63bfa652baff20"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/htdocs/games/zelda/index.html"
+    },
+    "includes/api/classes/NetplayPolicy.php": {
+      "before": {
+        "bytes": 3561,
+        "sha256": "db29244c4a466075d4d7504aaac697154c315bc8ebced1eee22dc788d4090530"
+      },
+      "after": {
+        "bytes": 3561,
+        "sha256": "185447a860f80a8b0c5bec4140d94bc3772e5759e35346d51c93832b0c4c76cc"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/includes/api/classes/NetplayPolicy.php"
+    },
+    "includes/api/classes/netplay-catalog.json": {
+      "before": {
+        "bytes": 15702,
+        "sha256": "deb9bcbbca30b4ae979ef5f3dbf483e48aed41297bf30ff151c9d9152916e1fb"
+      },
+      "after": {
+        "bytes": 15702,
+        "sha256": "a038b847b925107a4b8480ad788624c04fabcf124639059e79d887d15e4ad776"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/includes/api/classes/netplay-catalog.json"
+    },
+    "maintenance/snes-site-packages.mjs": {
+      "before": {
+        "bytes": 7893,
+        "sha256": "cb05fe29259a418ce96512279dca18790e8362de89dd7e9a3a8b3b2c2b7e1c5c"
+      },
+      "after": {
+        "bytes": 7934,
+        "sha256": "a4017f097eec560b6daefb0e32c0591454814e0d2c7bb403bcf86d9a21844659"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/maintenance/snes-site-packages.mjs"
+    },
+    "package.json": {
+      "before": {
+        "bytes": 1572,
+        "sha256": "a93f85536985b2fb9d5acc5320664d9d1ca4d4e3c4c16746bf97248fb5018939"
+      },
+      "after": {
+        "bytes": 1670,
+        "sha256": "288991bd158629fbfac27cff12eea08ed3d2ba590156c69d7909846c4bcd788a"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/package.json"
+    },
+    "tests/arcade-runtime-source-pins.json": {
+      "before": {
+        "bytes": 270540,
+        "sha256": "27f6c28b9ed522c4db1e472e37bfeff2637d13596b1c459a0292a92520672afe"
+      },
+      "after": {
+        "bytes": 271578,
+        "sha256": "f12ccea5b2a4d4fdd6d7620149cd09de677689f172a06752b1786eb3600a7d23"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/tests/arcade-runtime-source-pins.json"
+    },
+    "tests/arcade-ui.test.mjs": {
+      "before": {
+        "bytes": 16361,
+        "sha256": "4b99f178281a8a11c11a7792bc632ffc6e7e06977edd0ab9c7ea63f54871ecb9"
+      },
+      "after": {
+        "bytes": 16928,
+        "sha256": "42ef55bf82efd8ff6814dd45301f703ff18aea03ae72b08ab250e265d0363d56"
+      },
+      "original": "maintenance/snes-site-originals/20261118231439430/tests/arcade-ui.test.mjs"
+    }
+  },
+  "added": {
+    "htdocs/games/arcade/frame-pacing.mjs": {
+      "bytes": 1351,
+      "sha256": "b5c94eb3ae657eb10aeacf011ee90f7900ec53e92ebd02e275e7aa8a59ccc1b0"
+    },
+    "htdocs/games/arcade/library-view.mjs": {
+      "bytes": 3629,
+      "sha256": "65293c3851366ed55b6f850789fcd2451f1c1b69ab1f752f2e9a8b2798534bcd"
+    },
+    "htdocs/games/arcade/library.html": {
+      "bytes": 453,
+      "sha256": "cd61c1fc808144619bfaf27f627f97755f383114ddf446a7924b3fde1fab48d7"
+    },
+    "maintenance/arcade-refresh-packages.mjs": {
+      "bytes": 9476,
+      "sha256": "6109d487c24f520f4c43a57ceebca96ac0d5be9d81aa84d57abe6a2b727daaea"
+    },
+    "tests/arcade-frame-pacing.test.mjs": {
+      "bytes": 7351,
+      "sha256": "3bb213d183e34f79264817c2032114c13af093c9f5517587a1f1c7b07923f69a"
+    },
+    "tests/arcade-navigation.browser.mjs": {
+      "bytes": 9411,
+      "sha256": "660b200617bc2a0aaf7c39f76d13e124d575eda1b45414d6572c33dd919457f2"
+    },
+    "tests/arcade-save-adapters.test.mjs": {
+      "bytes": 4252,
+      "sha256": "3b38a89334fc1cb46c51f4d7038d2a02a13002d6408f37d7b1ecc610cbd0e8df"
+    },
+    "tests/arcade-save.test.mjs": {
+      "bytes": 4159,
+      "sha256": "7448911eb6b073cacb035de40bf8ecd6bb51b25cd817a0a3ba0a1cd86f093467"
+    }
+  }
+}

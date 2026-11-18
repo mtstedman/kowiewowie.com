@@ -1,0 +1,405 @@
+{
+  "write": true,
+  "reviewed": [
+    "htdocs/games/adventure-island-2/index.html",
+    "htdocs/games/arcade/arcade.css",
+    "htdocs/games/arcade/host.mjs",
+    "htdocs/games/arcade/index.html",
+    "htdocs/games/arcade/nes-adapter.mjs",
+    "htdocs/games/arcade/snes-adapter.mjs",
+    "htdocs/games/arcade/snes-runtime.mjs",
+    "htdocs/games/arcade/ui.mjs",
+    "htdocs/games/arcade/worker-stream-host.mjs",
+    "htdocs/games/bionic-commando/index.html",
+    "htdocs/games/castlevania-3/index.html",
+    "htdocs/games/castlevania/index.html",
+    "htdocs/games/contra/index.html",
+    "htdocs/games/double-dragon-ii/index.html",
+    "htdocs/games/ikari-warriors/index.html",
+    "htdocs/games/megaman/index.html",
+    "htdocs/games/metroid/index.html",
+    "htdocs/games/mike-tysons-punch-out/index.html",
+    "htdocs/games/super-mario-bros-3/index.html",
+    "htdocs/games/the-guardian-legend/index.html",
+    "htdocs/games/zelda/index.html",
+    "htdocs/games/arcade/frame-pacing.mjs",
+    "htdocs/games/arcade/library-view.mjs",
+    "htdocs/games/arcade/library.html"
+  ],
+  "packages": [
+    {
+      "id": "megaman",
+      "artifactDigest": "14c299b3a422f5a131a262b53628068959013a63b58c28507beda52225810e5e",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/host.mjs",
+        "/games/arcade/index.html",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/megaman/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    },
+    {
+      "id": "adventure-island-2",
+      "artifactDigest": "0d3600d4ded8b8140b9ddee3a9ae113666c6a26352d41f76b2622e213033ae54",
+      "updated": [
+        "/games/adventure-island-2/index.html",
+        "/games/arcade/arcade.css",
+        "/games/arcade/host.mjs",
+        "/games/arcade/index.html",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-host.mjs"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    },
+    {
+      "id": "castlevania",
+      "artifactDigest": "fe369d2501db7d51be2b2dbc6975ab23cc33f109ab565351c83ba2717d6439ed",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/host.mjs",
+        "/games/arcade/index.html",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/castlevania/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    },
+    {
+      "id": "ikari-warriors",
+      "artifactDigest": "41524b4df2f73c0e2aa6340a1bb34d844700d67e8c232cea97df7fc8eb97aa8a",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/host.mjs",
+        "/games/arcade/index.html",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/ikari-warriors/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    },
+    {
+      "id": "bionic-commando",
+      "artifactDigest": "f844c6ef09bb82bad28fedfc6089d31b5a46ff5f133f38bd7d6defe276181002",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/host.mjs",
+        "/games/arcade/index.html",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/bionic-commando/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    },
+    {
+      "id": "zelda",
+      "artifactDigest": "06dbf48fa10fa8c3726d421327982a63ef379b93feb28bbb8a8b59d2895362af",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/host.mjs",
+        "/games/arcade/index.html",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/zelda/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    },
+    {
+      "id": "contra",
+      "artifactDigest": "c38fe853e21a69334708da4b85faf0a73f813d12f8cba6f63417980c54e44673",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/host.mjs",
+        "/games/arcade/index.html",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/contra/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    },
+    {
+      "id": "castlevania-3",
+      "artifactDigest": "0391b304749a892bce05b264bda397959e7b63b6d6ba668b73486b9c75380f0d",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/castlevania-3/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/host.mjs",
+        "/games/arcade/package.mjs",
+        "/games/arcade/authenticated-loader.mjs",
+        "/games/arcade/package-contract.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/receiver-input.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/netplay/session.mjs",
+        "/games/netplay/transport.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html",
+        "/games/arcade/index.html"
+      ]
+    },
+    {
+      "id": "double-dragon-ii",
+      "artifactDigest": "b529801af9f473b4cca0bff20bd6e5ad6ac3ccb68e8a97d779b60333e60465f7",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/double-dragon-ii/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/host.mjs",
+        "/games/arcade/package.mjs",
+        "/games/arcade/authenticated-loader.mjs",
+        "/games/arcade/package-contract.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/receiver-input.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/netplay/session.mjs",
+        "/games/netplay/transport.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html",
+        "/games/arcade/index.html"
+      ]
+    },
+    {
+      "id": "metroid",
+      "artifactDigest": "f788ce0a0e0641de66995896a3c12b0b4418a1996e0f30db1c20acbb30f9bbb1",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/metroid/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/host.mjs",
+        "/games/arcade/package.mjs",
+        "/games/arcade/authenticated-loader.mjs",
+        "/games/arcade/package-contract.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/receiver-input.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/netplay/session.mjs",
+        "/games/netplay/transport.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html",
+        "/games/arcade/index.html"
+      ]
+    },
+    {
+      "id": "the-guardian-legend",
+      "artifactDigest": "a190abe7c3d7e85d7aa99380d534efb941cd0fb8635b66ab3302b5a6717ec9ad",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/the-guardian-legend/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/host.mjs",
+        "/games/arcade/package.mjs",
+        "/games/arcade/authenticated-loader.mjs",
+        "/games/arcade/package-contract.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/receiver-input.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/netplay/session.mjs",
+        "/games/netplay/transport.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html",
+        "/games/arcade/index.html"
+      ]
+    },
+    {
+      "id": "super-mario-bros-3",
+      "artifactDigest": "677b99db3b66a4e6e89ce86855ee9f997adb4b5e801004fd8418bf75ffcb739b",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/super-mario-bros-3/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/host.mjs",
+        "/games/arcade/package.mjs",
+        "/games/arcade/authenticated-loader.mjs",
+        "/games/arcade/package-contract.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/receiver-input.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/netplay/session.mjs",
+        "/games/netplay/transport.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html",
+        "/games/arcade/index.html"
+      ]
+    },
+    {
+      "id": "mike-tysons-punch-out",
+      "artifactDigest": "257cbfc8f3896b774fd96e1da00730b9283390f535bc1ecdc180a9780847035b",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/nes-adapter.mjs",
+        "/games/arcade/worker-stream-host.mjs",
+        "/games/mike-tysons-punch-out/index.html"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/host.mjs",
+        "/games/arcade/package.mjs",
+        "/games/arcade/authenticated-loader.mjs",
+        "/games/arcade/package-contract.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/receiver-input.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/netplay/session.mjs",
+        "/games/netplay/transport.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html",
+        "/games/arcade/index.html"
+      ]
+    },
+    {
+      "id": "super-mario-world",
+      "artifactDigest": "d2f46a5a862bcee6a2bac6bc2fe7afda4fbf986e946a208d8a7801c758e393b5",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/index.html",
+        "/games/arcade/snes-adapter.mjs",
+        "/games/arcade/snes-runtime.mjs"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/netplay/session.mjs",
+        "/games/netplay/transport.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/arcade/package.mjs",
+        "/games/arcade/authenticated-loader.mjs",
+        "/games/arcade/package-contract.mjs",
+        "/games/arcade/host.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "artifactDigest": "7a4e34d84685b142fd649bbeb2218d9a11143088debf8e402a7c81077d1f130a",
+      "updated": [
+        "/games/arcade/arcade.css",
+        "/games/arcade/index.html",
+        "/games/arcade/snes-adapter.mjs",
+        "/games/arcade/snes-runtime.mjs"
+      ],
+      "added": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/netplay/session.mjs",
+        "/games/netplay/transport.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/arcade/package.mjs",
+        "/games/arcade/authenticated-loader.mjs",
+        "/games/arcade/package-contract.mjs",
+        "/games/arcade/host.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/library-view.mjs",
+        "/games/arcade/library.html"
+      ]
+    }
+  ],
+  "sourcePins": [
+    "htdocs/games/arcade/host.mjs",
+    "htdocs/games/arcade/nes-adapter.mjs",
+    "htdocs/games/arcade/ui.mjs",
+    "htdocs/games/arcade/worker-stream-host.mjs",
+    "htdocs/games/arcade/frame-pacing.mjs",
+    "htdocs/games/arcade/library-view.mjs",
+    "htdocs/games/arcade/snes-storage.mjs",
+    "htdocs/games/arcade/snes-runtime.mjs",
+    "htdocs/games/engines/snes/worker.mjs",
+    "htdocs/games/engines/snes/runner.mjs",
+    "htdocs/games/arcade/snes-input.mjs",
+    "htdocs/games/arcade/snes-adapter.mjs"
+  ],
+  "outputs": [
+    "htdocs/games/megaman/game-package.json",
+    "htdocs/games/megaman/network-package.json",
+    "htdocs/games/adventure-island-2/game-package.json",
+    "htdocs/games/adventure-island-2/network-package.json",
+    "htdocs/games/castlevania/game-package.json",
+    "htdocs/games/ikari-warriors/game-package.json",
+    "htdocs/games/bionic-commando/game-package.json",
+    "htdocs/games/zelda/game-package.json",
+    "htdocs/games/contra/game-package.json",
+    "htdocs/games/castlevania-3/game-package.json",
+    "htdocs/games/double-dragon-ii/game-package.json",
+    "htdocs/games/metroid/game-package.json",
+    "htdocs/games/the-guardian-legend/game-package.json",
+    "htdocs/games/super-mario-bros-3/game-package.json",
+    "htdocs/games/mike-tysons-punch-out/game-package.json",
+    "htdocs/games/super-mario-world/game-package.json",
+    "htdocs/games/zelda-a-link-to-the-past/game-package.json",
+    "tests/arcade-runtime-source-pins.json",
+    "htdocs/games/arcade/catalog.json",
+    "htdocs/games/netplay/catalog.json",
+    "includes/api/classes/netplay-catalog.json",
+    "includes/api/classes/NetplayPolicy.php"
+  ]
+}
