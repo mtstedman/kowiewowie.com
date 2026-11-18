@@ -1,0 +1,24 @@
+import T0 from "./bank-0-w0.mjs";
+import T1 from "./bank-1-w0.mjs";
+import T2 from "./bank-2-w0.mjs";
+import T3 from "./bank-3-w0.mjs";
+import T4 from "./bank-4-w0.mjs";
+import T5 from "./bank-5-w0.mjs";
+import T6 from "./bank-6-w0.mjs";
+import T7 from "./bank-7-w0.mjs";
+import T8 from "./bank-8-w0.mjs";
+import T9 from "./bank-9-w0.mjs";
+import T10 from "./bank-10-w0.mjs";
+import T11 from "./bank-11-w0.mjs";
+import T12 from "./bank-12-w0.mjs";
+import T13 from "./bank-13-w0.mjs";
+import T14 from "./bank-14-w0.mjs";
+import T15 from "./bank-15-w0.mjs";
+import T16 from "./bank-13-w1.mjs";
+import T17 from "./bank-14-w2.mjs";
+import T18 from "./bank-15-w3.mjs";
+import {prgHex,chrHex,trainerHex} from "./cartridge.mjs";
+function freeze(v){if(v&&typeof v==="object"){for(const x of Object.values(v))freeze(x);Object.freeze(v);}return v;}
+export const metadata=freeze({"apiVersion":3,"battery":false,"board":"PNROM","candidate_addresses":155648,"cartridgeHeader":{"battery":false,"chrNvramBytes":0,"chrRamBytes":0,"chrRomBytes":131072,"consoleType":0,"expansionDevice":1,"format":"NES2","headerHex":"4e45531a081090080000000000000001","mapper":9,"prgNvramBytes":0,"prgRamBytes":0,"prgRomBytes":131072,"submapper":0,"timing":"ntsc"},"chrSha256":"264f86cd778d52eabb20d7d6c3c757ffba743a1fa0176121cbece114f46f803c","compiled_candidates":113946,"compilerProvenance":{"adapter_snapshot_sha256":"617c8a38f63e094226844420ad2eafcca88d09121f9f66335b90d3a885401117","compiler_sha256":"065e65d6d93390948b8fb60c985f8457a19fbdbb4b463e776888d2e95f5e0315","emitter":"authenticated compiler.py translate; official instruction bodies unchanged","independent_reproduction":false,"runtime_factory_sha256":"b7d8f2a7ecd069761c8cb3cad898d45b7d00be5403f651604f31ddc0c449947f"},"complete_conversion":false,"crossing_variants":1,"headerMirroring":"horizontal","mapper":9,"mapperExtension":"mmc2-1","mappingIdentity":"5c14f45d9b4e28b9f35bd1376ccd39805fce0fb5a559024651968d0bece4d64e","mirroring":"mapper_controlled","mmc1":null,"mmc2":{"board":"PNROM","prgRamBytes":0,"startup":{"chrFd0":0,"chrFd1":0,"chrFe0":0,"chrFe1":0,"latch0":254,"latch1":254,"mirroring":"horizontal","prgBank":0}},"mmc3":null,"officialOpcodes":[0,1,5,6,8,9,10,13,14,16,17,21,22,24,25,29,30,32,33,36,37,38,40,41,42,44,45,46,48,49,53,54,56,57,61,62,64,65,69,70,72,73,74,76,77,78,80,81,85,86,88,89,93,94,96,97,101,102,104,105,106,108,109,110,112,113,117,118,120,121,125,126,129,132,133,134,136,138,140,141,142,144,145,148,149,150,152,153,154,157,160,161,162,164,165,166,168,169,170,172,173,174,176,177,180,181,182,184,185,186,188,189,190,192,193,196,197,198,200,201,202,204,205,206,208,209,213,214,216,217,221,222,224,225,228,229,230,232,233,234,236,237,238,240,241,245,246,248,249,253,254],"operand_wrap_candidates_rejected":1,"prgBankBytes":8192,"prgBanks":16,"prgSha256":"f6df2e41658aaac6aa2564844d96a04616fd8640a5231f2535633b6024c47295","region":"ntsc","romSha256":"e1e7ea03309e370240e90ad80815b484e1c537107d8620e2479f8169cf237c8f","runtimeRevision":"fetch-epoch-2","scan_complete":true,"scanned_addresses":155648,"trainerSha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","uxrom":null,"vectorPolicy":"live reads from current windows; startup vector metadata only","vectors":{"irq":40960,"nmi":40968,"reset":40960}});
+export const blocks=Object.freeze([Object.freeze({0:T0,1:T1,2:T2,3:T3,4:T4,5:T5,6:T6,7:T7,8:T8,9:T9,10:T10,11:T11,12:T12,13:T13,14:T14,15:T15}),Object.freeze({13:T16}),Object.freeze({14:T17}),Object.freeze({15:T18})]);
+export {prgHex,chrHex,trainerHex};

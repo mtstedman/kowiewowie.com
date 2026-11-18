@@ -1,0 +1,3 @@
+Super Mario Bros. 3
+
+Cartridge data is authenticated from the caller-supplied ROM-derived compiler output. The reusable NES engine and host components retain their respective source notices. No gameplay qualification is claimed by this admission.
