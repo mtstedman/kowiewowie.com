@@ -1,0 +1,81 @@
+{
+  "provider": "grok",
+  "model": "grok-imagine-image",
+  "prompt": "Use case: stylized-concept. Asset type: a premium illustrated background wrapping a playable retro arcade website, landscape 3:2 composition. Create a beautifully crafted vintage 1980s arcade cabinet surround, viewed straight on, with a wide open dark center. The outer left and right edges contain bold screen-printed cabinet side art: sweeping curved coral-orange and golden amber stripes, electric muted teal accents, stylized pixel stars, small abstract pixel spacecraft and geometric bursts. A shallow top arch of softly glowing amber and teal arcade trim connects the sides. The center 65 percent of the image must remain almost empty, very dark warm charcoal (#211f1d), low contrast and spacious so a real website's game screen, headings and cartridge shelf can sit over it. Put almost all bright detail in the outermost 17 percent on each side and the top 12 percent. Dark walnut and black painted metal framing with restrained worn silkscreen texture; crisp intentional graphic shapes with subtle warm neon glow, nostalgic and inviting, boutique arcade cabinet artwork rather than a busy arcade room. Bottom gradually fades to plain warm charcoal. Symmetrical structural framing with slightly different decorative artwork on each side. Sophisticated limited palette: warm charcoal, cream, faded coral #ff9a83, golden amber, muted teal. Flat front-facing artwork, no perspective room, no humans, no actual monitor, no controls, no text, no letters, no logos, no watermark. Finished production website background, detailed illustration at the edges, calm empty center.",
+  "asset": "/games/arcade/art/cabinet-surround-v1.png",
+  "dimensions": {
+    "width": 1248,
+    "height": 832
+  },
+  "assetPin": {
+    "bytes": 663673,
+    "sha256": "002af47f006c77d87d09ee4b2df0f8a253f7626d4c46c96ab50f782ae14c37ae"
+  },
+  "packages": [
+    {
+      "id": "megaman",
+      "before": "7fe9b7ce4e46259efd1d42535307e0c03df5cd252a0a73e5251dc1165de8cf13",
+      "after": "0e9a6131642c2b274a91b9fe043dfddf9e393ccb8b83d01b5271636256c8ebfd"
+    },
+    {
+      "id": "adventure-island-2",
+      "before": "1b59483d9fbb14a65ed55174127fe518786bd3745c39d894e98e46cac982b998",
+      "after": "b109d61507d92ff5502a4886c3cb7e8ce9661e6772e7a505529b5b2128cf0d48"
+    },
+    {
+      "id": "castlevania",
+      "before": "fe73bf983995da134d5340a52c9c2d2a3888b9e761dc6d49e84e643c3cf55899",
+      "after": "b6749c86fbac801163b62adb449c89d86e4874d1db25e2954c8796e5534403ea"
+    },
+    {
+      "id": "ikari-warriors",
+      "before": "b81a923dcc5a0e5cf0570fa011662db7ea4890cb8b89e55cee504f05104de7b6",
+      "after": "f2937e810c212bf95b8f1e2d4322916b74b670c5259ff2f9775766de82e8e468"
+    },
+    {
+      "id": "bionic-commando",
+      "before": "714ae3d2c04cb5ce35aab2b931e41369d1f11f579d171efab9066707fe392093",
+      "after": "e2da4597cb500974b741f5a9f77f3e79a184bc087158369fc85b0e63931f9333"
+    },
+    {
+      "id": "zelda",
+      "before": "8932aa691b5c9e2e76c7108d76b796860f19d0d449903724fa94823381927069",
+      "after": "7195c7343c0fb8d86af3a3558433e0e07ccbac8656e38ed087b7724328b9d17b"
+    },
+    {
+      "id": "contra",
+      "before": "bdc3d20b39f31596e1ae9767cfc87a51373de2f711aa09913f0739f94104080f",
+      "after": "5281c6f3dd8da2524d55182bffcc2f3c680fcf20c4c948dbfb2e2d5f422b84e2"
+    },
+    {
+      "id": "castlevania-3",
+      "before": "60c014d721af149d085e2c4d580f551412281b6c07b77f11011f34a47fea72fc",
+      "after": "b2463657d233e28787767fce4cef97365c5f8f237eb73e37c03fc6569967771f"
+    },
+    {
+      "id": "double-dragon-ii",
+      "before": "223414428de17cc8b04963dc120d9138dc58129c6f1c2c3a6825380ca119c3ec",
+      "after": "8f8f039611007e2742804d588481215e24022d17f342653c000bcab65e8a95eb"
+    },
+    {
+      "id": "metroid",
+      "before": "437d8762a095cbc81b354b17477130a7e47d5f49041ab6e7a8b9eecb54430519",
+      "after": "75cb4f061e85eda6652e53e7dcfd8275b989cf7a2865b22099c1e608477d4f7b"
+    },
+    {
+      "id": "the-guardian-legend",
+      "before": "3cc5bd3cb949c939882a58c1b49af620fc8fddc09897836f94342b33e8ed4345",
+      "after": "8946c6b0fcd6ca32f854a60c585ce60c021a2d8fc4e985d41ce50ce00f8aa9b6"
+    },
+    {
+      "id": "super-mario-bros-3",
+      "before": "da27db68020c7567b06f96165c37fc7f911e1551e5dcc6cd6665407a425143a3",
+      "after": "66295d2ec464baf4875960857507197c18c7d8c71ab886095f5631e5c8dd1916"
+    },
+    {
+      "id": "mike-tysons-punch-out",
+      "before": "ff62b6c9b385fe27aab0372966417fb05d74eab4552fe5e0f15c6bb10cb66d94",
+      "after": "c16c46fd7a4f43cccedc973b768e3850b704a090bf99594e78cd31d9927a0093"
+    }
+  ]
+}

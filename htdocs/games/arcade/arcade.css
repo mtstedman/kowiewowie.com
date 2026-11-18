@@ -45,3 +45,26 @@ h1{font-size:clamp(1.7rem,4vw,2.25rem)}
 
 /* Receiver-only controls use the existing touch preference and color palette. */
 .receiver-controls{margin-block:.65rem;min-width:0}.receiver-controls .receiver-pad{grid-template-columns:132px minmax(0,1fr);gap:1rem}.receiver-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:flex-end}.receiver-actions button{min-width:48px;min-height:48px}.receiver-pad button{touch-action:none;user-select:none;-webkit-user-select:none}.receiver-controls[hidden]{display:none!important}
+
+/* Grok cabinet art frames the page without intercepting game input. */
+body{isolation:isolate;min-height:100svh;background:var(--bg)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,transparent 72%,var(--bg)),url('/games/arcade/art/cabinet-surround-v1.png') center top/100% 100% no-repeat}
+.masthead,main{width:76%;max-width:980px}
+.masthead{padding-top:clamp(4rem,9vh,6rem)}
+.heading{padding-block:.5rem 1rem;border-bottom:1px solid #e8b46c40}
+.heading h1{text-shadow:0 2px 18px #ffb75c30}
+#library{padding-bottom:2rem}
+.shelf-heading{flex-wrap:wrap}
+.shelf-heading p{max-width:48ch}
+#player:not([data-state=library]){background:#27231ff5;box-shadow:0 16px 40px #0008,inset 0 1px #f5e8ce12}
+footer{position:relative;width:76%;margin-inline:auto}
+@media(max-width:700px){
+ body::before{opacity:.6}
+ .masthead,main,footer{width:88%}
+ .masthead{padding:3.75rem .5rem .75rem}
+ main{padding-inline:.5rem;background:#211f1deb;border-radius:.75rem}
+ .heading{padding:.75rem .25rem 1rem}
+ .heading .eyebrow{max-width:25ch}
+ .cartridge-label strong{overflow-wrap:anywhere}
+ .shelf-heading p{max-width:32ch}
+}

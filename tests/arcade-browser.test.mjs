@@ -12,6 +12,7 @@ const rows=JSON.parse(await readFile(new URL('htdocs/games/arcade/catalog.json',
 const assets=new Map();
 async function asset(path,dependency=false){let bytes;try{bytes=await readFile(new URL('htdocs'+path,root));}catch(e){if(!dependency)throw e;bytes=await readFile(new URL('../dependencies/htdocs'+path,root));}assets.set(path,bytes);}
 for(const name of ['index.html','arcade.css','package.mjs','host.mjs','ui.mjs','nes-adapter.mjs','catalog.json'])await asset('/games/arcade/'+name);
+await asset('/games/arcade/art/cabinet-surround-v1.png');
 for(const row of rows){await asset(row.manifest);for(const name of ['index.html','host-entry.mjs','host-runtime.mjs'])await asset('/games/'+row.id+'/'+name);for(const name of ['gamepad.mjs','touch-dpad.mjs'])await asset('/games/'+row.id+'/'+name,true);}
 await asset('/games/megaman/progress/20261112-v3/stage.png',true);
 await asset('/games/adventure-island-2/progress/20261114-ui/stage.png');
