@@ -12,10 +12,11 @@ const bad=(c,m)=>{throw new MachineError(c,m);};
 const int=(v,lo,hi,n)=>{if(!Number.isSafeInteger(v)||v<lo||v>hi)bad('BAD_ARGUMENT',n);return v;};
 const object=(x,keys)=>{if(!x||typeof x!=='object'||Array.isArray(x)||Object.keys(x).some(k=>!keys.includes(k)))bad('BAD_ARGUMENT','Unexpected options');};
 export function createMachine(options={}) {
+ let clockPPU,observePPU=()=>{};
  let dma,dmaDmc,dmaCpuCycles=0,cpuStep;
  const mmc=metadata.mapper===5,ux=false,banked=true,chrRAM=getCHR().length===0,sampleRate=48000,capacity=16384;
  let registers,nes,cpu,base,bus,facade,cycles,frames,metrics,fault,video,audio,head,count,strobe,latches,positions,writes,lastWrites,stepWrites,ciram,chrMap,mirror,busy,nmiQueued,frameReset,tracing=false,disposed=false;
- function active(){const p=nes.ppu;return Boolean(p.f_bgVisibility||p.f_spVisibility)&&p.scanline>=20&&p.scanline<=260;}
+ function active(){observePPU();const p=nes.ppu;return Boolean(p.f_bgVisibility||p.f_spVisibility)&&p.scanline>=20&&p.scanline<=260;}
  function gateSupported(){}
  function audioSample(l,r){if(!Number.isFinite(l)||!Number.isFinite(r))bad('DEVICE_AUDIO','Nonfinite sample');if(count===capacity){head=(head+1)%capacity;count--;metrics.audioDropped++;}const i=((head+count)%capacity)*2;audio[i]=l;audio[i+1]=r;count++;metrics.audioSamples++;}
  function latch(){for(let i=0;i<2;i++){latches[i]=nes.controllers[i+1].state.map(v=>v&1);positions[i]=0;}}
@@ -37,7 +38,7 @@ export function createMachine(options={}) {
  function captureNMI(){if(facade.nmiRaised||facade.nmiPending){nmiQueued=true;facade.nmiRaised=false;facade.nmiPending=false;metrics.nmiEdges++;}}
  function sync(){if(!cpu||busy)return;captureNMI();if(nmiQueued){cpu.requestNMI();nmiQueued=false;}cpu.setIRQ(Boolean((nes.papu.frameIrqEnabled&&nes.papu.frameIrqActive)||nes.papu.dmc.irqGenerated||base.getIRQ()));}
  function tickCycle(){
-   gateSupported();nes.ppu.advanceDots(3);dmaDmc.tick();nes.papu.clockFrameCounter(1);cycles++;facade._cpuCycleBase=cycles;captureNMI();
+   gateSupported();clockPPU();dmaDmc.tick();nes.papu.clockFrameCounter(1);cycles++;facade._cpuCycleBase=cycles;captureNMI();
    if(frameReset&&cycles>=frameReset.at){const p=nes.papu;p.countSequence=frameReset.mode;p.frameCycleCounter=0;p.frameStep=0;if(frameReset.mode){p.clockQuarterFrame();p.clockHalfFrame();}frameReset=null;}
    if(nes.ppu.frameEnded){nes.ppu.frameEnded=false;nes.controllers[1].clock();nes.controllers[2].clock();nes.ppu.startFrame();}
  }
@@ -57,7 +58,7 @@ export function createMachine(options={}) {
   if(a<0x3f00){base.writeNametable(a,v,ciram);return;}
   const address=palAddress(a);p.vramMem[address]=v&63;if((address&3)===0)p.vramMem[address^16]=v&63;p.updatePalettes();
  }
- function installPPU(){mappingRefresh();
+ function installPPU(){observePPU=()=>{};clockPPU=()=>nes.ppu.advanceDots(3);mappingRefresh();
    const record={bindPPU:e=>bindOwnedPPU(base,e)};
    const e=createOwnedInstance();
    if(!record?.bindPPU||!e){installDotPPU(nes,base,ppuPeek,ppuWrite,(a,k)=>base.ppuFetch(a,k,ciram));return;}
@@ -65,7 +66,7 @@ export function createMachine(options={}) {
    const vram=new Uint8Array(e.memory.buffer,e.owned_vram(),32768);vram.set(nes.ppu.vramMem);nes.ppu.vramMem=vram;
    const frame=new Uint32Array(e.memory.buffer,e.owned_framebuffer(),61440);frame.set(nes.ppu.buffer);nes.ppu.buffer=frame;
    const binding=record.bindPPU(e);
-   installOwnedDotPPU(nes,base,ppuPeek,ppuWrite,e,binding,(a,k)=>base.ppuFetch(a,k,ciram));
+   const owner=installOwnedDotPPU(nes,base,ppuPeek,ppuWrite,e,binding,(a,k)=>base.ppuFetch(a,k,ciram));clockPPU=owner.clockThree;observePPU=owner.publishPosition;
   }
  function writeCPU(a,v,t,dma=false){
   int(t,cycles,Number.MAX_SAFE_INTEGER-8192,'absolute write cycle');clockTo(t);

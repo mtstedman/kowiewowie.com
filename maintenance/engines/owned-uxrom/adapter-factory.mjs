@@ -31,8 +31,8 @@ function installFactoryPPU(nes,bus,peek,write,host){
  // use scalar transfers; other methods publish the complete rendering state.
  // Nested calls stay in the same transaction, including DMA writes.
  const methods=new Set();for(let proto=p;proto&&proto!==Object.prototype;proto=Object.getPrototypeOf(proto))for(const name of Object.getOwnPropertyNames(proto))methods.add(name);
- const wrapped=new Map();
- function narrowDependencies(name){return name==='scrollWrite'||name==='vramWrite'||name==='writeVRAMAddress'?true:name==='updateControlReg1'?p._updateNmiOutput===wrapped.get('_updateNmiOutput'):name==='readStatusRegister'?p.setStatusFlag===wrapped.get('setStatusFlag')&&p._updateNmiOutput===wrapped.get('_updateNmiOutput'):name==='sramWrite'?p.spriteRamWriteUpdate===wrapped.get('spriteRamWriteUpdate'):name==='writeSRAMAddress';}
+ const wrapped=new Map(),paletteTable=p.palTable,paletteEntry=p.palTable.getEntry;
+ function narrowDependencies(name){if(name==='vramWrite')return p.patternWrite===wrapped.get('patternWrite')&&p.updatePalettes===wrapped.get('updatePalettes')&&p.palTable===paletteTable&&p.palTable.getEntry===paletteEntry;return name==='scrollWrite'||name==='writeVRAMAddress'?true:name==='updateControlReg1'?p._updateNmiOutput===wrapped.get('_updateNmiOutput'):name==='readStatusRegister'?p.setStatusFlag===wrapped.get('setStatusFlag')&&p._updateNmiOutput===wrapped.get('_updateNmiOutput'):name==='sramWrite'?p.spriteRamWriteUpdate===wrapped.get('spriteRamWriteUpdate'):name==='writeSRAMAddress';}
  for(const name of methods){
   if(name==='constructor'||name==='advanceDots'||typeof p[name]!=='function')continue;
   const fn=p[name];p[name]=function(...args){
@@ -60,9 +60,16 @@ function installFactoryPPU(nes,bus,peek,write,host){
    return result;
   }finally{advancing=false;}
  };
+ // Common private clock entry avoids the public variable-count dispatch.
+ function clockThree(){
+  if(advancing||nesting||!session.active)return advance(3,false);
+  advancing=true;
+  try{const result=session.advanceThree();if(session.report.backend==='wasm')wasmCalls++;else jsCalls++;return result;}
+  finally{advancing=false;}
+ }
  p.advanceDots=n=>advance(n,true);
  return Object.freeze({
-  clockThree:()=>advance(3,false),
+  clockThree,
   checkpointCapture(){if(nesting||advancing)throw Error('Checkpoint during PPU call');session.leave();return {bridge:bridge.borrowState(),storage,wasmCalls,jsCalls};},
   checkpointRestore(q){if(nesting||advancing)throw Error('Checkpoint during PPU call');session.leave();bridge.restoreBorrowed(q.bridge);for(const k of ['chr','ciram','palette','rgb'])storage[k].set(q.storage[k]);wasmCalls=q.wasmCalls;jsCalls=q.jsCalls;},
   boundary(){session.leave();},

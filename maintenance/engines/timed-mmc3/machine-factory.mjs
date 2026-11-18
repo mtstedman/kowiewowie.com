@@ -24,10 +24,11 @@ const bad=(c,m)=>{throw new MachineError(c,m);};
 const int=(v,lo,hi,n)=>{if(!Number.isSafeInteger(v)||v<lo||v>hi)bad('BAD_ARGUMENT',n);return v;};
 const object=(x,keys)=>{if(!x||typeof x!=='object'||Array.isArray(x)||Object.keys(x).some(k=>!keys.includes(k)))bad('BAD_ARGUMENT','Unexpected options');};
 function createMachine(options={}) {
+ let clockPPU,observePPU=()=>{};
  let nmiSerial=0;
  const mmc=metadata.mapper===4,ux=false,banked=true,chrRAM=getCHR().length===0,sampleRate=48000,capacity=16384;
  let registers,nes,cpu,base,bus,facade,cycles,frames,metrics,fault,video,audio,head,count,pendingOam,pendingDmc,strobe,latches,positions,writes,lastWrites,stepWrites,ciram,chrMap,mirror,busy,nmiQueued,frameReset,tracing=false;
- function active(){const p=nes.ppu;return Boolean(p.f_bgVisibility||p.f_spVisibility)&&p.scanline>=20&&p.scanline<=260;}
+ function active(){observePPU();const p=nes.ppu;return Boolean(p.f_bgVisibility||p.f_spVisibility)&&p.scanline>=20&&p.scanline<=260;}
  function gateSupported(){}
  function audioSample(l,r){if(!Number.isFinite(l)||!Number.isFinite(r))bad('DEVICE_AUDIO','Nonfinite sample');if(count===capacity){head=(head+1)%capacity;count--;metrics.audioDropped++;}const i=((head+count)%capacity)*2;audio[i]=l;audio[i+1]=r;count++;metrics.audioSamples++;}
  function latch(){for(let i=0;i<2;i++){latches[i]=nes.controllers[i+1].state.map(v=>v&1);positions[i]=0;}}
@@ -50,7 +51,7 @@ function createMachine(options={}) {
  function sync(){captureNMI();}
  function clockOne(){
   if(cycles>=Number.MAX_SAFE_INTEGER-8192)bad('BAD_ARGUMENT','clock target');
-   gateSupported();nes.ppu.advanceDots(3);nes.papu.clockFrameCounter(1);cycles++;facade._cpuCycleBase=cycles;captureNMI();
+   gateSupported();clockPPU();nes.papu.clockFrameCounter(1);cycles++;facade._cpuCycleBase=cycles;captureNMI();
    if(frameReset&&cycles>=frameReset.at){const p=nes.papu;p.countSequence=frameReset.mode;p.frameCycleCounter=0;p.frameStep=0;if(frameReset.mode){p.clockQuarterFrame();p.clockHalfFrame();}frameReset=null;}
    if(nes.ppu.frameEnded){nes.ppu.frameEnded=false;nes.controllers[1].clock();nes.controllers[2].clock();nes.ppu.startFrame();}
  }
@@ -76,12 +77,12 @@ function createMachine(options={}) {
   if(a<0x3f00){const physical=base.mapNametable(a),page=physical>>10,offset=physical&1023;ciram[physical]=v;const nt=p.nameTable[page];nt.tile[offset]=v;if(offset>=960)nt.writeAttrib(offset-960,v);p.validTileData=false;return;}
   const address=palAddress(a);p.vramMem[address]=v&63;if((address&3)===0)p.vramMem[address^16]=v&63;p.updatePalettes();
  }
- function installPPU(){mappingRefresh(true);
+ function installPPU(){observePPU=()=>{};clockPPU=()=>nes.ppu.advanceDots(3);mappingRefresh(true);
    const e=createOwnedInstance();if(!e){installDotPPU(nes,base,ppuPeek,ppuWrite);return;}
    const c=new Uint8Array(e.memory.buffer,e.owned_ciram(),ciram.length);c.set(ciram);ciram=c;
    const v=new Uint8Array(e.memory.buffer,e.owned_vram(),32768);v.set(nes.ppu.vramMem);nes.ppu.vramMem=v;
    const f=new Uint32Array(e.memory.buffer,e.owned_framebuffer(),61440);f.set(nes.ppu.buffer);nes.ppu.buffer=f;
-   const binding=bindOwnedPPU(base,e);installOwnedDotPPU(nes,base,ppuPeek,ppuWrite,e,binding);
+   const binding=bindOwnedPPU(base,e);const owner=installOwnedDotPPU(nes,base,ppuPeek,ppuWrite,e,binding);clockPPU=owner.clockThree;observePPU=owner.publishPosition;
   }
  function writeCPU(a,v,t,dma=false){
   int(t,cycles,Number.MAX_SAFE_INTEGER-8192,'absolute write cycle');if(t!==cycles)clockTo(t);

@@ -106,14 +106,17 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
  let stageActive=false,entries=0,exits=0;
  function leave(){if(!stageActive)return;leaveSprites();v=state[0];t=state[1];fineX=state[2];first=Boolean(state[3]);odd=Boolean(state[4]);lo=state[5];hi=state[6];al=state[7];ah=state[8];nt=state[9];at=state[10];pl=state[11];ph=state[12];addr=state[13];fetchKind=state[14];skippedDummy=Boolean(state[15]);dot=clocks[0];lastClear=clocks[1];syncOutput();stageActive=false;exits++;counters();}
  function enter(){enterSprites();state[0]=v;state[1]=t;state[2]=fineX;state[3]=first;state[4]=odd;state[5]=lo;state[6]=hi;state[7]=al;state[8]=ah;state[9]=nt;state[10]=at;state[11]=pl;state[12]=ph;state[13]=addr;state[14]=fetchKind;state[15]=skippedDummy;clocks[0]=dot;clocks[1]=lastClear;syncInput();stageActive=true;entries++;}
- p.advanceDots=n=>{
+ function advance(n,publish){
   if(!Number.isInteger(n)||n<0||n>24576)throw Error('Invalid PPU advance');if(inAdvance)throw Error('Private owned PPU reentry');
   inAdvance=true;advanceCalls++;
   try{let left=n;
    // Complete a staged CPU-cycle span directly; native yields retain host effects.
    if(n===3&&stageActive&&!spriteRowDirty&&binding.before()){
     ownedCalls++;const done=e.owned_advance(3);binding.after();left-=done;
-    if(left===0){syncOutput();if((p.scanline===0||p.scanline===20)&&p.curX===1)leave();boundary(0);return;}
+    if(left===0){if(stageActive){
+   if(publish)syncOutput();
+   if((q[1]===0||q[1]===20)&&q[0]===1){leave();boundary(0);}
+  }else{counters();boundary(0);}return;}
    }
    while(left){
     // The owned kernel returns before every host-effect boundary.
@@ -123,10 +126,15 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
     let done=0;if(binding.before()){ownedCalls++;done=e.owned_advance(Math.min(3,left));binding.after();}
     if(done){left-=done;}else{leave();fallbackDots++;tick(left);left--;}
    }
-   if(stageActive)syncOutput();else counters();
-   if((p.scanline===0||p.scanline===20)&&p.curX===1)leave();boundary(0);
+   if(stageActive){
+   if(publish)syncOutput();
+   if((q[1]===0||q[1]===20)&&q[0]===1){leave();boundary(0);}
+  }else{counters();boundary(0);}
   }finally{inAdvance=false;}
- };
+ }
+ // Public advances publish position. The private machine clock only publishes
+ // at a host effect or observer; every register/checkpoint method calls leave.
+ p.advanceDots=n=>advance(n,true);
  p.checkpointCapture=()=>{if(inAdvance)throw Error('PPU checkpoint during advance');leave();return {v,t,fineX,first,dot,odd,lastClear,lo,hi,al,ah,nt,at,pl,ph,addr,fetchKind,skippedDummy,found,current,next,secondary,ids};};
  p.checkpointRestore=s=>{if(inAdvance)throw Error('PPU restore during advance');stageActive=false;({v,t,fineX,first,dot,odd,lastClear,lo,hi,al,ah,nt,at,pl,ph,addr,fetchKind,skippedDummy,found,current,next}=s);secondary.set(s.secondary);ids.set(s.ids);spriteRowDirty=true;refreshColors();};
  p.triggerRendering=()=>{};p.renderFramePartially=()=>{throw Error('Lazy rendering forbidden in dot adapter');};
@@ -152,6 +160,5 @@ export function installOwnedDotPPU(nes,bus,peek,write,e,binding,fetch){
  for(const key of methods){if(key==='constructor'||key==='advanceDots'||typeof p[key]!=='function')continue;const fn=p[key];Object.defineProperty(p,key,{configurable:true,writable:true,value:function(...args){if(!inAdvance)leave();return fn.apply(this,args);}});}
  p.sharedPPUBoundary=leave;
  p.sharedPPUTransferStats=()=>({stageActive,entries,exits});
+ return Object.freeze({clockThree:()=>advance(3,false),publishPosition(){if(stageActive)syncOutput();}});
  }
-
- 

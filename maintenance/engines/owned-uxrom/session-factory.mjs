@@ -37,45 +37,48 @@ function createStagedSession({exports:e,bridge,p,cpu,bus,storage,fixedMemory=fal
  function fallback(n,reason){leave();report.backend='js';report.reason=reason;report.calls++;return originalAdvance(n);}
  function advance(n){return run(n,false);}
  // Only the lexical factory calls this fixed-count entry. No caller eligibility flag.
- function advanceThree(){return run(3,fixedMemory);}
+ function advanceThree(){
+  if(!fixedMemory)return run(3,false);
+  if(!active)return fallback(3,entryReason||'unsupported-ownership-or-boundary-session');
+  if(currentDot()+3>=Number.MAX_SAFE_INTEGER-1)return fallback(3,'clock-limit-partial-progress');
+  report.backend='wasm';report.reason='private-owned-laboratory-session';report.calls++;report.threeCalls++;
+  try{
+   const rc=e.ppu_stage_three();
+   if(rc!==0)return continueStage(3,rc);
+  }catch(error){abort(error);}
+ }
+ function abort(error){if(active){publish();active=false;sidecar=null;}e.ppu_stage_abort();throw error;}
  function run(n,three){
   if(!active)return fallback(n,entryReason||'unsupported-ownership-or-boundary-session');
-  // Entry and callback recapture establish queue/trace/OAM invariants. Narrow
-  // register transactions cannot introduce delayed effects. Keep the clock fence.
   const reason=three?(currentDot()+3>=Number.MAX_SAFE_INTEGER-1?'clock-limit-partial-progress':null):intervalFallback(sidecar,n,currentDot());if(reason)return fallback(n,reason);
   report.backend='wasm';report.reason='private-owned-laboratory-session';report.calls++;
   if(!three){const begin=e.ppu_stage_begin(n);if(begin)throw Error('ppu_stage_begin: '+begin);}
   try{
-   for(let yields=0;yields<=n+2;yields++){
-    let rc;
-    if(three&&yields===0){report.threeCalls++;rc=e.ppu_stage_three();}
-    else rc=e.ppu_stage_resume();
-    if(rc===0)return;
-    if(rc!==4)throw Object.assign(Error('Staged PPU error '+rc),{code:rc===3?'PPU_CLOCK_LIMIT':'PPU_STAGE_ERROR'});
-    const event=codec.get('event'),remaining=codec.get('event_remaining');
-    publish();active=false; // reentry runs authoritative JS, never this scalar C invocation
-    report.events.push({event,remaining});
-    try{
-     if(event===1)p._fireVblankSet(cpu,remaining);
-     else if(event===2)p._fireVblankClear(cpu,remaining<=1);
-     else throw Error('Unknown PPU event');
-    }catch(error){
-     // Authentic handler mutations and thrown error remain visible. Never ack
-     // or overwrite them with the pre-callback sidecar.
-     e.ppu_stage_abort();sidecar=null;throw error;
-    }
-    sidecar=bridge.borrowState();
-    const unsupported=intervalFallback(sidecar,remaining);
-    if(unsupported){
-     e.ppu_stage_abort();sidecar=null;
-     report.backend='js';report.reason='callback-'+unsupported;
-     return originalAdvance(remaining);
-    }
-    codec.write(sidecar,storage);active=true;
-    const ack=e.ppu_stage_ack();if(ack)throw Error('ppu_stage_ack: '+ack);
-   }
-   throw Error('Staged event limit');
-  }catch(error){if(active){publish();active=false;sidecar=null;}e.ppu_stage_abort();throw error;}
+   if(three)report.threeCalls++;
+   return continueStage(n,three?e.ppu_stage_three():e.ppu_stage_resume());
+  }catch(error){abort(error);}
+ }
+ // Cold event continuation is shared by fixed-three and public count entries.
+ function continueStage(n,rc){
+  for(let yields=0;yields<=n+2;yields++){
+   if(rc===0)return;
+   if(rc!==4)throw Object.assign(Error('Staged PPU error '+rc),{code:rc===3?'PPU_CLOCK_LIMIT':'PPU_STAGE_ERROR'});
+   const event=codec.get('event'),remaining=codec.get('event_remaining');
+   publish();active=false;
+   report.events.push({event,remaining});
+   try{
+    if(event===1)p._fireVblankSet(cpu,remaining);
+    else if(event===2)p._fireVblankClear(cpu,remaining<=1);
+    else throw Error('Unknown PPU event');
+   }catch(error){e.ppu_stage_abort();sidecar=null;throw error;}
+   sidecar=bridge.borrowState();
+   const unsupported=intervalFallback(sidecar,remaining);
+   if(unsupported){e.ppu_stage_abort();sidecar=null;report.backend='js';report.reason='callback-'+unsupported;return originalAdvance(remaining);}
+   codec.write(sidecar,storage);active=true;
+   const ack=e.ppu_stage_ack();if(ack)throw Error('ppu_stage_ack: '+ack);
+   if(yields<n+2)rc=e.ppu_stage_resume();
+  }
+  throw Error('Staged event limit');
  }
  // These entry points retain the exact JS register bodies. Only their inputs
  // and mapped mutations cross the boundary; access counters and OAM caches
@@ -87,7 +90,7 @@ function createStagedSession({exports:e,bridge,p,cpu,bus,storage,fixedMemory=fal
   if(name==='readStatusRegister'||name==='scrollWrite'||name==='updateControlReg1'||name==='writeVRAMAddress')return true;
   if(name==='vramWrite'){
    const line=codec.get('scanline'),address=codec.get('address')&16383;
-   return !((p.f_bgVisibility||p.f_spVisibility)&&line>=20&&line<=260)&&address>=8192&&address<16128;
+   return !((p.f_bgVisibility||p.f_spVisibility)&&line>=20&&line<=260);
   }
   if(name!=='sramWrite')return false;
   const line=codec.get('scanline');

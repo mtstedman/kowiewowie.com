@@ -200,7 +200,7 @@ let ownedModule;
  let stageActive=false,entries=0,exits=0;
  function leave(){if(!stageActive)return;leaveSprites();v=state[0];t=state[1];fineX=state[2];first=Boolean(state[3]);odd=Boolean(state[4]);lo=state[5];hi=state[6];al=state[7];ah=state[8];nt=state[9];at=state[10];pl=state[11];ph=state[12];addr=state[13];fetchKind=state[14];dot=clocks[0];lastClear=clocks[1];syncOutput();stageActive=false;exits++;counters();}
  function enter(){enterSprites();state[0]=v;state[1]=t;state[2]=fineX;state[3]=first;state[4]=odd;state[5]=lo;state[6]=hi;state[7]=al;state[8]=ah;state[9]=nt;state[10]=at;state[11]=pl;state[12]=ph;state[13]=addr;state[14]=fetchKind;clocks[0]=dot;clocks[1]=lastClear;syncInput();stageActive=true;entries++;}
- p.advanceDots=n=>{
+ function advance(n,publish){
   if(!Number.isInteger(n)||n<0||n>24576)throw Error('Invalid PPU advance');if(inAdvance)throw Error('Private owned PPU reentry');
   inAdvance=true;advanceCalls++;
   try{let left=n;
@@ -208,7 +208,10 @@ let ownedModule;
    // Native code still yields before every host effect and sprite boundary.
    if(n===3&&stageActive&&!spriteRowDirty&&binding.before()){
     ownedCalls++;const done=e.owned_advance(3);binding.after();left-=done;
-    if(left===0){syncOutput();if((p.scanline===0||p.scanline===20)&&p.curX===1)leave();boundary(0);return;}
+    if(left===0){if(stageActive){
+   if(publish)syncOutput();
+   if((q[1]===0||q[1]===20)&&q[0]===1){leave();boundary(0);}
+  }else{boundary(0);}return;}
    }
    while(left){const x=stageActive?q[0]:p.curX,line=stageActive?q[1]:p.scanline,reason=sourceBoundary(x,line,p.f_bgVisibility||p.f_spVisibility,stageActive?state[4]:odd,stageActive?clocks[0]:dot);
     if(reason){binding.skipPreparation(reason);leave();fallbackDots++;tick(left);left--;continue;}
@@ -218,10 +221,15 @@ let ownedModule;
     let done=0;if(binding.before()){ownedCalls++;done=e.owned_advance(Math.min(3,left));binding.after();}
     if(done){left-=done;}else{leave();fallbackDots++;tick(left);left--;}
    }
-   if(stageActive)syncOutput();
-   if((p.scanline===0||p.scanline===20)&&p.curX===1)leave();boundary(0);
+   if(stageActive){
+   if(publish)syncOutput();
+   if((q[1]===0||q[1]===20)&&q[0]===1){leave();boundary(0);}
+  }else{boundary(0);}
   }finally{inAdvance=false;}
- };
+ }
+ // Public advances publish position. The private machine clock only publishes
+ // at a host effect or observer; every register/checkpoint method calls leave.
+ p.advanceDots=n=>advance(n,true);
  p.triggerRendering=()=>{};p.renderFramePartially=()=>{throw Error('Lazy rendering forbidden in dot adapter');};
  p.startFrame=()=>{};
  p.startVBlank=()=>{if(p.openBusDecayFrames>0&&--p.openBusDecayFrames===0)p.openBusLatch=0;nes.ui.writeFrame(p.buffer);p.lastRenderedScanline=-1;};
@@ -247,6 +255,7 @@ p.checkpointCapture=()=>{leave();return {v,t,fineX,first,dot,odd,lastClear,lo,hi
  for(const key of methods){if(key==='constructor'||key==='advanceDots'||typeof p[key]!=='function')continue;const fn=p[key];Object.defineProperty(p,key,{configurable:true,writable:true,value:function(...args){if(!inAdvance)leave();return fn.apply(this,args);}});}
  p.sharedPPUBoundary=leave;
  p.sharedPPUTransferStats=()=>({stageActive,entries,exits});
+ return Object.freeze({clockThree:()=>advance(3,false),publishPosition(){if(stageActive)syncOutput();}});
  }
 return Object.freeze(Object.defineProperties(Object.create(null),{"createOwnedInstance":{enumerable:true,get:()=>createOwnedInstance},"installOwnedDotPPU":{enumerable:true,get:()=>installOwnedDotPPU},"installDotPPU":{enumerable:true,get:()=>installDotPPU}}));
 }

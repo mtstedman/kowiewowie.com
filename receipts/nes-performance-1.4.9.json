@@ -1,0 +1,499 @@
+{
+  "format": "nes-performance-release/1",
+  "release": "1.4.9",
+  "baseline": "e357e28f227e1887ac82ca6a45379ebe9c9e36e8",
+  "createdAt": "2026-11-18T01:08:21.056Z",
+  "steady60Qualified": false,
+  "changes": [
+    {
+      "scope": "owned UxROM engine",
+      "behavior": "Private fixed-three JS/Wasm fast path plus narrow pattern/palette/nametable uploads into owned storage. Retains register timing, custom callback fallbacks, partial errors and clock fences."
+    },
+    {
+      "scope": "MMC3-dot, timed MMC3, MMC5",
+      "behavior": "Publish position at public advances, host effects and observers; private machine clocks avoid redundant publication. Initialize both native and JS fallback clocks on every install/reset."
+    },
+    {
+      "scope": "shared native source pipeline",
+      "behavior": "MMC3/MMC5 now compile from one common source and compiler recipe, with compile-time mapper behavior. Consolidation alone reproduces both previous Wasm binaries byte for byte; no speed claim for that consolidation."
+    }
+  ],
+  "preservation": "Original cartridge data and translated banks remain unchanged. Hardware clocks, audio rate, frame production and public save validation are unchanged.",
+  "validation": {
+    "parity": {
+      "framesPerGame": 300,
+      "replayFrames": 30,
+      "rows": [
+        {
+          "id": "megaman",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        },
+        {
+          "id": "adventure-island-2",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        },
+        {
+          "id": "castlevania",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        },
+        {
+          "id": "ikari-warriors",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        },
+        {
+          "id": "bionic-commando",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        },
+        {
+          "id": "zelda",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        },
+        {
+          "id": "contra",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        },
+        {
+          "id": "castlevania-3",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        },
+        {
+          "id": "double-dragon-ii",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 300,
+          "replay": 30
+        }
+      ],
+      "evidence": {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/final-global-parity.json",
+        "sha256": "f11849c43308ac41d6dc18b72c06774dca09da4bdda736c2c670ed2cba3d84d3"
+      }
+    },
+    "initialPositionParity": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/position-global-parity.json",
+      "sha256": "3897d08e227f0e518ddb5f48d0ce9cf20115a6c49e30f3b66c89ddc4dbe4d02b"
+    },
+    "nativeParity": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/three-parity.json",
+      "sha256": "3c9dfdc461067f0036eea5f6a2f5a558579a85ab4e89b7936b00cd5676142063"
+    },
+    "focusedTests": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/focused-tests.log",
+      "sha256": "1fc290052b6ea7165e861d9587d8fd6905b9a1899bf1b587913d8fea2f7a99b8"
+    },
+    "storageWrites": {
+      "parity": [
+        {
+          "id": "contra",
+          "pass": true,
+          "functionalPass": true,
+          "frames": 600,
+          "replay": 30
+        }
+      ],
+      "evidence": {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/storage-parity.json",
+        "sha256": "fb7fe7a8c8e465951d57b8ca8e4a122440e4732c9e21a90100dcf89c8b9c3384"
+      },
+      "boundaryTests": {
+        "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/storage-focused-tests.log",
+        "sha256": "74d251756333617b921dbd7213296b7e2623cd58fb47bb36a58604c4c739e5fc"
+      }
+    },
+    "publicationGates": [
+      {
+        "command": "npm run typecheck",
+        "exitCode": 0,
+        "started": "2026-11-18T01:07:28.890Z",
+        "ended": "2026-11-18T01:07:29.356Z",
+        "log": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/typecheck-gate.log",
+        "sha256": "396901319daac4a4413b23478852db3c572014f86c71d148273565f0f3332696"
+      },
+      {
+        "command": "npm run test:arcade",
+        "exitCode": 0,
+        "started": "2026-11-18T01:07:29.358Z",
+        "ended": "2026-11-18T01:07:56.618Z",
+        "log": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/arcade-gate.log",
+        "sha256": "eac2fbf344b7b1817c7dceeaf213b31aa476dd60fd63908a80c0a49c4d184955"
+      },
+      {
+        "command": "node maintenance/nes-capability-audit.mjs",
+        "exitCode": 0,
+        "started": "2026-11-18T01:07:56.619Z",
+        "ended": "2026-11-18T01:07:57.233Z",
+        "log": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/audit-gate.log",
+        "sha256": "539c4a6453072349a1283cd0029413a3af7a4aedade655ddb601fdb7252a132c"
+      }
+    ]
+  },
+  "performance": {
+    "quietHost": {
+      "contra": {
+        "game": "contra",
+        "pass": false,
+        "scope": "Active gameplay from authenticated checkpoint; actual presented frames, audio scheduling, production and RAF timing. Headless Chromium on this host.",
+        "seconds": 90,
+        "audio": "running",
+        "draws": 5418,
+        "presented_fps": 60.00261410688851,
+        "emulated_fps": 60.09917582385567,
+        "frame_intervals": {
+          "p50": 16.699999928474426,
+          "p95": 16.800000071525574,
+          "p99": 16.800000071525574,
+          "max": 22.399999976158142,
+          "over25": 0,
+          "over50": 0
+        },
+        "raf_intervals": {
+          "p50": 16.69999999999709,
+          "p99": 16.80000000000291,
+          "max": 16.80000000000291
+        },
+        "skipped_emulated_frames": 6,
+        "audio_gaps": 1,
+        "late_audio": 0,
+        "errors": [],
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "evidence": {
+          "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/browser-contra-storage-quiet/result.json",
+          "sha256": "e415cb368eaaeadf048fc8c9c002d2842bc454ee978aee96cf513015de2caa52"
+        }
+      },
+      "adventure-island-2": {
+        "game": "adventure-island-2",
+        "pass": false,
+        "scope": "Active gameplay from authenticated checkpoint; actual presented frames, audio scheduling, production and RAF timing. Headless Chromium on this host.",
+        "seconds": 90,
+        "audio": "running",
+        "draws": 5411,
+        "presented_fps": 59.93609770576265,
+        "emulated_fps": 60.1145133294745,
+        "frame_intervals": {
+          "p50": 16.699999928474426,
+          "p95": 16.800000071525574,
+          "p99": 16.90000009536743,
+          "max": 35.10000002384186,
+          "over25": 6,
+          "over50": 0
+        },
+        "raf_intervals": {
+          "p50": 16.69999999999709,
+          "p99": 16.80000000000291,
+          "max": 16.80000000000291
+        },
+        "skipped_emulated_frames": 8,
+        "audio_gaps": 6,
+        "late_audio": 0,
+        "errors": [],
+        "lifecycle": {
+          "pause": true,
+          "save_load": true,
+          "resume": true,
+          "reset": true
+        },
+        "evidence": {
+          "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/browser-adventure-draft-quiet/result.json",
+          "sha256": "c5c9f1642b83da8c1a9adb7ceaebead03c84af2a296ca818939341312a5ac7f9"
+        }
+      }
+    },
+    "interleavedThreadCpu": {
+      "adventure-island-2": {
+        "baselineThreadCpuMs": 17069.196264000002,
+        "candidateThreadCpuMs": 16859.978598,
+        "reductionPercent": 1.2257030897304344
+      },
+      "double-dragon-ii": {
+        "baselineThreadCpuMs": 18490.68899,
+        "candidateThreadCpuMs": 18157.275306,
+        "reductionPercent": 1.803143648029093
+      },
+      "castlevania-3": {
+        "baselineThreadCpuMs": 16497.904711,
+        "candidateThreadCpuMs": 15952.904967,
+        "reductionPercent": 3.3034482471984483
+      }
+    },
+    "evidence": {
+      "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/interleave-position-results.json",
+      "sha256": "22b8e66decde298183f489569649721e1003377ac37b0dff5d0d3019565d2481"
+    },
+    "browser": {
+      "contra": {
+        "control": {
+          "seconds": 45,
+          "presentedFPS": 43.30078207185721,
+          "emulatedFPS": 43.33224042745099,
+          "frameIntervals": {
+            "p50": 16.700000047683716,
+            "p95": 49.90000009536743,
+            "p99": 50.39999997615814,
+            "max": 118.30000007152557,
+            "over25": 609,
+            "over50": 49
+          },
+          "audioGaps": 647,
+          "lateAudio": 10,
+          "workerCPUPercent": 99.20277068911669,
+          "workerRunnableWaitPercent": 0.6967565842505059,
+          "lifecycle": {
+            "pause": true,
+            "save_load": true,
+            "resume": true,
+            "reset": true
+          },
+          "errors": [],
+          "steady60": false,
+          "evidence": {
+            "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/browser-contra-control-current/result.json",
+            "sha256": "21a9643aae71d902ef8b20b3a4a9dc39af168fb7bc894e27835b2efae04b0477"
+          }
+        },
+        "selected": {
+          "seconds": 45,
+          "presentedFPS": 43.41287191654617,
+          "emulatedFPS": 43.4143143196586,
+          "frameIntervals": {
+            "p50": 16.700000047683716,
+            "p95": 50,
+            "p99": 50.300000071525574,
+            "max": 116.70000004768372,
+            "over25": 595,
+            "over50": 51
+          },
+          "audioGaps": 630,
+          "lateAudio": 18,
+          "workerCPUPercent": 99.62362457798508,
+          "workerRunnableWaitPercent": 0.36406809180954525,
+          "lifecycle": {
+            "pause": true,
+            "save_load": true,
+            "resume": true,
+            "reset": true
+          },
+          "errors": [],
+          "steady60": false,
+          "evidence": {
+            "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/browser-contra-selected-current/result.json",
+            "sha256": "e8617cd82fff9ff18f5966ae3f26b8ca44910ebaa908e5a29de43c9f9815e93b"
+          }
+        }
+      },
+      "adventure": {
+        "control": {
+          "seconds": 45,
+          "presentedFPS": 47.56079182286225,
+          "emulatedFPS": 47.566428022460386,
+          "frameIntervals": {
+            "p50": 16.700000047683716,
+            "p95": 33.5,
+            "p99": 49.700000047683716,
+            "max": 64.39999997615814,
+            "over25": 533,
+            "over50": 8
+          },
+          "audioGaps": 614,
+          "lateAudio": 21,
+          "workerCPUPercent": 99.58047240665597,
+          "workerRunnableWaitPercent": 0.35069103447108657,
+          "lifecycle": {
+            "pause": true,
+            "save_load": true,
+            "resume": true,
+            "reset": true
+          },
+          "errors": [],
+          "steady60": false,
+          "evidence": {
+            "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/browser-adventure-control-current/result.json",
+            "sha256": "a128264f92703d70b7f6bdbdad410ab9a5dc841554e50a40c031c8ba2f3ba8c0"
+          }
+        },
+        "selected": {
+          "seconds": 45,
+          "presentedFPS": 48.58222391731746,
+          "emulatedFPS": 48.59760869610845,
+          "frameIntervals": {
+            "p50": 16.700000047683716,
+            "p95": 33.5,
+            "p99": 49.90000009536743,
+            "max": 69.20000004768372,
+            "over25": 482,
+            "over50": 10
+          },
+          "audioGaps": 561,
+          "lateAudio": 10,
+          "workerCPUPercent": 99.58669862437475,
+          "workerRunnableWaitPercent": 0.39331952307786167,
+          "lifecycle": {
+            "pause": true,
+            "save_load": true,
+            "resume": true,
+            "reset": true
+          },
+          "errors": [],
+          "steady60": false,
+          "evidence": {
+            "path": "/home/mason/.local/share/posse-rom-toolchain/evidence/nes-steady-60-20261117/browser-adventure-selected-current/result.json",
+            "sha256": "8b85eae45f70503b1e286553e9035d8e18b5468ab8e2abfdfca278878497a297"
+          }
+        }
+      }
+    },
+    "notes": [
+      "Browser measurements used the same authenticated checkpoint and scripted controls; sessions can reach game-over, and are not full-game coverage.",
+      "The concurrent host load rose to about 50 during browser observations. Worker CPU stayed near 100%; scheduling wait was measured separately. Current-load baseline and candidate both missed 60 FPS and had audio gaps.",
+      "The earlier 180-second candidate playback completed timing capture but its parent exited 143 before lifecycle checks completed. Those lifecycle checks were rerun successfully in the current-load 45-second comparisons.",
+      "After the host quieted, Contra with the upload fix measured 60.00 FPS, 16.8 ms p99 and one 14 ms audio gap in 90 seconds; Adventure Island II measured 59.94 FPS, 16.9 ms p99 and six audio gaps. All pause/save/load/resume/reset checks passed. These observations are not full-game or all-device certification.",
+      "Node CPU gains are small and must not be represented as a browser steady-60 guarantee."
+    ]
+  },
+  "sharedSourceBuilds": {
+    "mmc3": {
+      "source_sha256": "233985341caf7e9cf7f742c0edc8aad984f4d20b71b7e872d85f596656ca3089",
+      "wasm_sha256": "7c727aed44b9cf00c2473e7fb6142252a4561526b8d75b15321bf2fe4a727a13",
+      "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+      "compilerArgs": [
+        "--target=wasm32",
+        "-O3",
+        "-std=c11",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-nostdlib",
+        "-Wl,--no-entry",
+        "-Wl,--export-memory",
+        "-Wl,--initial-memory=1572864",
+        "-Wl,--max-memory=1572864",
+        "-Wl,--export=shared_pixel_abi",
+        "-Wl,--export=shared_planes",
+        "-Wl,--export=shared_scroll",
+        "-Wl,--export=shared_fetch",
+        "-Wl,--export=shared_pixel",
+        "-Wl,--export=shared_public_state",
+        "-Wl,--export=shared_sprite_input",
+        "-Wl,--export=shared_sprite_row",
+        "-Wl,--export=shared_sprite_rows",
+        "-Wl,--export=shared_prepare_sprites",
+        "-Wl,--export=shared_state",
+        "-Wl,--export=shared_clocks",
+        "-Wl,--export=shared_tick_count",
+        "-Wl,--export=shared_batch_count",
+        "-Wl,--export=shared_sprite_count",
+        "-Wl,--export=shared_sprite_step",
+        "-Wl,--export=shared_host_crossings",
+        "-Wl,--export=shared_advance",
+        "-Wl,--export=owned_exram",
+        "-Wl,--export=owned_mapper",
+        "-Wl,--export=owned_mapper_clocks",
+        "-Wl,--export=owned_yields",
+        "-Wl,--export=owned_reads",
+        "-Wl,--export=owned_registers",
+        "-Wl,--export=owned_chr",
+        "-Wl,--export=owned_ciram",
+        "-Wl,--export=owned_palette",
+        "-Wl,--export=owned_vram",
+        "-Wl,--export=owned_colors",
+        "-Wl,--export=owned_framebuffer",
+        "-Wl,--export=owned_dot_count",
+        "-Wl,--export=owned_span_count",
+        "-Wl,--export=owned_drive_count",
+        "-Wl,--export=owned_address_changes",
+        "-Wl,--export=owned_advance",
+        "-Wl,--export=owned_sprite_next",
+        "-Wl,--export=owned_sprite_init"
+      ]
+    },
+    "mmc5": {
+      "source_sha256": "16ffa0efe9c2efc831d82a3509e1656ef8761020892e07718ce7a174526e4b08",
+      "wasm_sha256": "72ef7065c0025ed1c65595ca041f720281c1aa67b03768de8a300fe88937532b",
+      "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+      "compilerArgs": [
+        "--target=wasm32",
+        "-O3",
+        "-std=c11",
+        "-ffreestanding",
+        "-fno-builtin",
+        "-nostdlib",
+        "-Wl,--no-entry",
+        "-Wl,--export-memory",
+        "-Wl,--initial-memory=1572864",
+        "-Wl,--max-memory=1572864",
+        "-Wl,--export=shared_pixel_abi",
+        "-Wl,--export=shared_planes",
+        "-Wl,--export=shared_scroll",
+        "-Wl,--export=shared_fetch",
+        "-Wl,--export=shared_pixel",
+        "-Wl,--export=shared_public_state",
+        "-Wl,--export=shared_sprite_input",
+        "-Wl,--export=shared_sprite_row",
+        "-Wl,--export=shared_sprite_rows",
+        "-Wl,--export=shared_prepare_sprites",
+        "-Wl,--export=shared_state",
+        "-Wl,--export=shared_clocks",
+        "-Wl,--export=shared_tick_count",
+        "-Wl,--export=shared_batch_count",
+        "-Wl,--export=shared_sprite_count",
+        "-Wl,--export=shared_sprite_step",
+        "-Wl,--export=shared_host_crossings",
+        "-Wl,--export=shared_advance",
+        "-Wl,--export=owned_exram",
+        "-Wl,--export=owned_mapper",
+        "-Wl,--export=owned_mapper_clocks",
+        "-Wl,--export=owned_yields",
+        "-Wl,--export=owned_reads",
+        "-Wl,--export=owned_registers",
+        "-Wl,--export=owned_chr",
+        "-Wl,--export=owned_ciram",
+        "-Wl,--export=owned_palette",
+        "-Wl,--export=owned_vram",
+        "-Wl,--export=owned_colors",
+        "-Wl,--export=owned_framebuffer",
+        "-Wl,--export=owned_dot_count",
+        "-Wl,--export=owned_span_count",
+        "-Wl,--export=owned_drive_count",
+        "-Wl,--export=owned_address_changes",
+        "-Wl,--export=owned_advance",
+        "-Wl,--export=owned_sprite_next",
+        "-Wl,--export=owned_sprite_init"
+      ]
+    }
+  },
+  "rejected": [
+    "Force-inlining the owned native dot routine regressed throughput.",
+    "DMA shortcut and pre-instruction synchronization removal had no consistent gain.",
+    "Initial helper-based position publication regressed Adventure Island; selected implementation removes that helper call."
+  ],
+  "remaining": "Both target games average approximately 60 FPS with normal p99 pacing in the quieter-host checks. Occasional audio discontinuities remain; gap-free playback and full-game stability are not certified.",
+  "checkpointCompatibility": "Existing strict checkpoint identity checks remain in force. Saves tied to an older changed engine graph are not migrated by this release."
+}

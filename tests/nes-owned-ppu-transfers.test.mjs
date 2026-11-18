@@ -20,7 +20,7 @@ function setup(module,size,visible){
  const chr=Uint8Array.from({length:8192},(_,i)=>((i*79)^(i>>3)^(i>>7))&255);let ciram=Uint8Array.from({length:2048},(_,i)=>i*13&255),owner;
  const nt=a=>((a-8192)&2047),pal=a=>{let i=a&31;if((i&19)===16)i&=15;return 0x3f00+i;};
  const peek=a=>a<8192?chr[a]:a<16128?ciram[nt(a)]:p.vramMem[pal(a)],bus={setPPUAddress(){}};
- const write=(a,v)=>{if(a<8192){chr[a]=v;owner.write(a);}else if(a<16128)ciram[nt(a)]=v;else{p.vramMem[pal(a)]=v&63;owner.write(a);}};
+ const write=(a,v)=>{if(a<8192){chr[a]=v;p.vramMem[a]=v;p.patternWrite(a,v);owner.write(a);}else if(a<16128)ciram[nt(a)]=v;else{const address=pal(a);p.vramMem[address]=v&63;if((address&3)===0)p.vramMem[address^16]=v&63;p.updatePalettes();owner.write(a);}};
  for(let i=0;i<32;i++)p.vramMem[0x3f00+i]=i;
  for(let i=0;i<64;i++){p.spriteMem[i*4]=i*7&255;p.spriteMem[i*4+1]=i*3;p.spriteMem[i*4+2]=i*37&227;p.spriteMem[i*4+3]=i*11&255;}
  owner=module.installFactoryPPU(nes,bus,peek,write,{mirroring:'vertical',ciram,setCiram:a=>ciram=a});
@@ -64,5 +64,45 @@ test('batched sprite shifts publish exact counters at arbitrary native return bo
    }
    assert.deepEqual(ms[1].capture(),ms[0].capture(),`size=${size} round=${round} dots=${dots}`);
   }
+ }
+});
+
+test('owned fixed-three native entry preserves event, line and clock-fence boundaries',()=>{
+ const factories=[oldBinary,newBinary];
+ for(const line of [0,19,20,21,260,261])for(const x of [0,1,255,337,338,340])for(const dot of [1000,Number.MAX_SAFE_INTEGER-5,Number.MAX_SAFE_INTEGER-3]){
+  const pair=factories.map(factory=>{const e=factory([]).createOwnedExports();e.ppu_initialize();const codec=newCodec([transfer([])]).createCodec(e,{fixedMemory:true}),view=new DataView(e.memory.buffer);
+   for(const [key,value] of Object.entries({scanline:line,x,dot,bg:1,sp:1})){const d=codec.layout[key];if(d.width===8)view.setFloat64(d.offset,value,true);else view.setUint32(d.offset,value,true);}
+   return {e,state:()=>new Uint8Array(e.memory.buffer,e.ppu_state(),e.ppu_state_size()).slice()};});
+  const codes=pair.map(m=>m.e.ppu_stage_three());assert.equal(codes[1],codes[0],`line=${line} x=${x} dot=${dot}`);assert.deepEqual(pair[1].state(),pair[0].state());
+ }
+});
+test('owned bridge publishes partial state when a vblank callback throws',()=>{
+ const ms=modules.map(m=>setup(m,0,30));
+ for(const m of ms)m.p._fireVblankSet=function(){this.cpuBoundaryMarker=17;throw Error('callback sentinel');};
+ for(const m of ms)assert.throws(()=>{for(let i=0;i<60000;i++)m.advance();},/callback sentinel/);
+ assert.deepEqual(ms[1].capture(),ms[0].capture());
+ for(const m of ms)assert.equal(m.p.cpuBoundaryMarker,17);
+});
+test('private three-dot bridge retains partial progress at clock exhaustion',()=>{
+ const ms=modules.map(m=>setup(m,0,0));
+ for(const m of ms){const q=m.owner.checkpointCapture();q.bridge.closure.dot=Number.MAX_SAFE_INTEGER-2;m.owner.checkpointRestore(q);assert.throws(()=>m.advance(),e=>e.code==='PPU_CLOCK_LIMIT');}
+ assert.deepEqual(ms[1].capture(),ms[0].capture());
+});
+
+test('owned CHR and palette uploads preserve pending increments and subsequent rendering',()=>{
+ const ms=modules.map(m=>setup(m,0,0));
+ for(const address of [0,0x1ff0,0x2000,0x23f0,0x3f00,0x3f10,0x3ff0]){
+  for(const m of ms){m.p.updateControlReg2(0);for(let j=0;j<10;j++)m.advance();m.p.readStatusRegister();m.p.writeVRAMAddress(address>>8);m.advance();m.p.writeVRAMAddress(address&255);m.advance();
+   for(let i=0;i<96;i++){m.p.vramWrite(i*37&255);m.advance();}
+   m.p.updateControlReg2(30);for(let j=0;j<30000;j++)m.advance();
+  }
+  assert.deepEqual(ms[1].capture(),ms[0].capture(),address.toString(16));
+ }
+});
+test('custom palette and pattern callbacks retain complete observation boundaries',()=>{
+ for(const name of ['patternWrite','updatePalettes']){
+  const ms=modules.map(m=>setup(m,0,0)),observed=[];
+  for(const m of ms){const fn=m.p[name];m.p[name]=function(...args){observed.push([this.scanline,this.curX,this.vramAddress]);return fn.apply(this,args);};m.p.readStatusRegister();m.p.writeVRAMAddress(name==='patternWrite'?0:0x3f);m.advance();m.p.writeVRAMAddress(0);m.advance();m.p.vramWrite(29);m.advance();}
+  assert.equal(observed.length,2);assert.deepEqual(observed[1],observed[0]);assert.deepEqual(ms[1].capture(),ms[0].capture());
  }
 });
