@@ -207,8 +207,15 @@ class Peer{
    pc.ondatachannel=e=>{e.channel.close();if(pc===this.pc&&!this.closed)this.stop('Unexpected input channel.');};
    if(!this.watchOnly)this.attachChannel(pc.createDataChannel('game-input-v3',{ordered:true}));
   }else{
-   const stream=new MediaStream();this.media.push(stream);this.cb.video.srcObject=stream;
-   pc.ontrack=e=>{if(pc!==this.pc||this.closed)return;if(stream.getTracks().includes(e.track))return;for(const old of stream.getTracks().filter(t=>t.kind===e.track.kind))stream.removeTrack(old);stream.addTrack(e.track);this.cb.video.play().catch(()=>message('Press Enable guest audio/video to start playback.'));};
+   let stream=new MediaStream();this.media.push(stream);
+   pc.ontrack=e=>{
+    if(pc!==this.pc||this.closed||stream.getTracks().includes(e.track))return;
+    // WebKit does not reliably adopt tracks added to an already-bound empty
+    // stream. Bind a populated snapshot and retain it as the owned media.
+    const tracks=stream.getTracks().filter(t=>t.kind!==e.track.kind),index=this.media.indexOf(stream);
+    stream=new MediaStream([...tracks,e.track]);this.media[index]=stream;this.cb.video.srcObject=stream;
+    this.cb.video.play().catch(()=>message('Press Enable guest audio/video to start playback.'));
+   };
    pc.ondatachannel=e=>{if(pc!==this.pc||this.closed){e.channel.close();return;}if(this.watchOnly){e.channel.close();this.stop('Watcher data channel rejected.');return;}try{if(this.dc)throw Error('Extra channel');this.attachChannel(e.channel);}catch{e.channel.close();this.stop('Invalid input channel.');}};
   }
  }

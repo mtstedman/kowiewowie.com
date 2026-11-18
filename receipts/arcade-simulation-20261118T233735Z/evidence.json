@@ -1,0 +1,116 @@
+{
+  "format": "arcade-simulation-browser-evidence/1",
+  "passed": true,
+  "command": "ARCADE_SIMULATION_ROOT=<authenticated-frozen-htdocs> ARCADE_SIMULATION_EVIDENCE=<existing-output-directory> node tests/arcade-simulation.browser.mjs",
+  "timingSources": {
+    "htdocs/games/arcade/simulation-clock.mjs": {
+      "bytes": 1200,
+      "sha256": "d68c327a65bb53c97432f365a9b8f6399f72495cb7cee792a648f4fe481403f2"
+    },
+    "htdocs/games/arcade/frame-pacing.mjs": {
+      "bytes": 1351,
+      "sha256": "b5c94eb3ae657eb10aeacf011ee90f7900ec53e92ebd02e275e7aa8a59ccc1b0"
+    },
+    "htdocs/games/arcade/snes-runtime.mjs": {
+      "bytes": 8356,
+      "sha256": "b7592d0118aba652d9e7551071c832efe15f1a6a37ac4b209980bb3fd45e527d"
+    },
+    "htdocs/games/arcade/worker-stream-host.mjs": {
+      "bytes": 16224,
+      "sha256": "ded71c9f0061b52a03fb2738308fed3e93c14ca430687e82f61695b30ae8ee0f"
+    },
+    "htdocs/games/arcade/worker-stream-producer.mjs": {
+      "bytes": 7780,
+      "sha256": "d483cd86250b929bc2fbadb17eb5e06b82a7d01139989a863da1ef789d2de9ae"
+    },
+    "htdocs/games/arcade/worker-stream-consumer.mjs": {
+      "bytes": 3061,
+      "sha256": "48e31ea6ce26fae6cedb83a3e15e3529fbeeac7bdb127057d78d38854caaa57e"
+    },
+    "htdocs/games/engines/snes/frame-executor.mjs": {
+      "bytes": 930,
+      "sha256": "fb31e275ecd2cc1bc9866ce879a209678ac555dac235dab280227adfa639b90f"
+    },
+    "htdocs/games/engines/snes/worker.mjs": {
+      "bytes": 1311,
+      "sha256": "24dbceb4e96f809b68c66d78f454094880533d8f6988c0dbfa19dd937adcabc4"
+    },
+    "htdocs/games/engines/snes/runner.mjs": {
+      "bytes": 6478,
+      "sha256": "5ec20b001099d22a1ff078261565597b935b6e4c13be6f05744dabf208874ec0"
+    },
+    "htdocs/games/engines/snes/posse-snes.wasm": {
+      "bytes": 2185357,
+      "sha256": "0e694cf9d404408ca45b817dcf4fc6478480802bc1b1f84cfc633152d656470c"
+    }
+  },
+  "testSources": {
+    "tests/arcade-simulation.browser.mjs": {
+      "bytes": 9387,
+      "sha256": "f18b1c7fbb2ad5f8d027047c948304dd5814e31a4b4cb7d29e4c826e74c31c79"
+    },
+    "tests/snes-browser-policy.mjs": {
+      "bytes": 919,
+      "sha256": "afb021a013f0c3e820821fa761e2a1827e02f76eec622c489d87fdf0b3dce030"
+    },
+    "deploy/nginx/wowiekowie.com.conf": {
+      "bytes": 3778,
+      "sha256": "fe81388c011de5651af517c4cfd8cfa8298304c47447636fcb91b6824401bba6"
+    }
+  },
+  "packages": [
+    {
+      "id": "super-mario-world",
+      "artifactDigest": "eeb4340bc281027937c5e6948fbd8098802457219cad118cfb70b258385336a4",
+      "manifest": {
+        "bytes": 6872,
+        "sha256": "5df2ae97dcfe1fb44cb20cb3c8f6ad7fb97ad201cbc10c654ad3afd850abb06a"
+      }
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "artifactDigest": "4a2d4952af90319a23c8d6261d915cce09ce2b666624ac3ec248d9065d98d615",
+      "manifest": {
+        "bytes": 6981,
+        "sha256": "5ddaf6911a28eeb7d12c2ffa6a481ea085de2a775a9a7c13132e4a2e97b330ae"
+      }
+    },
+    {
+      "id": "megaman",
+      "artifactDigest": "2d133665bc59d74c520bb1447dd1baab71715cdc9a4c0299c7546b1a6f73ccc5",
+      "manifest": {
+        "bytes": 14537,
+        "sha256": "0f41a5a6666b34f0750fa9236a87a03e0b3d7267911a2ff0f6fcd5b674547627"
+      }
+    }
+  ],
+  "evidence": {
+    "zelda-a-link-to-the-past-trace.json": {
+      "bytes": 339661,
+      "sha256": "bda5dcdce17a4e52e629ae3045bc27a826f225edd791c0180f65801771a8a209"
+    },
+    "simulation-report.json": {
+      "bytes": 5203,
+      "sha256": "78a35a8156947513074ac593a4f301f6fc3218008166449cfdc652f78d78b1b5"
+    },
+    "snapshot-refresh.json": {
+      "bytes": 5154,
+      "sha256": "42b5fb4ba1b5d95cf859c5f62fccd7135ad1bc17e36d55bcff769a41bd56f8c4"
+    },
+    "megaman-trace.json": {
+      "bytes": 323561,
+      "sha256": "86fc7600af3571c23122a28b7a9314292a7ee6576ce95396b0bfe857f863f72b"
+    },
+    "browser.log": {
+      "bytes": 3367,
+      "sha256": "147a37d2dc20d550a93861cfd693a584b804ba28297f921691678c3093705fd9"
+    },
+    "super-mario-world-trace.json": {
+      "bytes": 342009,
+      "sha256": "993725d720418c2cd4119bed2a782c2d52e3a1dfe5d16bfc076f3e72c56dc986"
+    }
+  },
+  "workingTreeTimingSourcesMatch": true,
+  "scope": "Actual native worker frame counters and timestamps immediately before native execution, ten seconds sustained per game, startup, 400ms worker stall, 300ms main-thread stall, stopped execution while paused and rapid resume. Strict maximum 60 native frames in every measured rolling second. Audio buffer duration/playbackRate >=1/60 within float precision. Observer wraps original worker module without changing machine, scheduler, clocks or inputs; injects only explicit stall messages. RPC posting counts are diagnostics, not native execution. Production nginx CSP used.",
+  "limitations": "Timing sources exactly match working tree. Snapshot package identities include its isolated session-bridge inventory refresh while sharing work continued; final network release requires refreshed identities. This is not shared-play/WAN evidence. SNES presentation is below simulation rate in this browser: about39\u201341FPS at steady snapshot. SMW had0 steady audio underruns; Zelda had2 before intentional stalls. Native execution sustained59.19\u201359.67FPS; this receipt does not claim exactly60 or zero underruns."
+}

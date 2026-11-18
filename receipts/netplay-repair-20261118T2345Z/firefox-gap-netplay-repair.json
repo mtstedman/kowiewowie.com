@@ -1,0 +1,101 @@
+{
+  "format": "netplay-browser-repair/1",
+  "reports": [
+    {
+      "label": "webkit-play",
+      "role": "guest",
+      "canControl": true,
+      "workers": 0,
+      "channels": 1,
+      "bindings": [
+        {
+          "connected": true,
+          "tracks": [
+            "video"
+          ]
+        },
+        {
+          "connected": true,
+          "tracks": [
+            "video",
+            "audio"
+          ]
+        }
+      ],
+      "width": 256,
+      "height": 240,
+      "readyState": 3,
+      "muted": false,
+      "connected": true,
+      "inbound": [
+        {
+          "kind": "audio",
+          "framesDecoded": 0,
+          "packetsReceived": 15,
+          "totalAudioEnergy": 5.495138581755527e-10
+        },
+        {
+          "kind": "video",
+          "framesDecoded": 6,
+          "packetsReceived": 48,
+          "totalAudioEnergy": null
+        }
+      ],
+      "candidates": [
+        {
+          "local": "relay",
+          "remote": "relay"
+        }
+      ]
+    },
+    {
+      "label": "webkit-watch",
+      "role": "spectator",
+      "canControl": false,
+      "workers": 0,
+      "channels": 0,
+      "bindings": [
+        {
+          "connected": true,
+          "tracks": [
+            "video"
+          ]
+        },
+        {
+          "connected": true,
+          "tracks": [
+            "video",
+            "audio"
+          ]
+        }
+      ],
+      "width": 256,
+      "height": 240,
+      "readyState": 3,
+      "muted": false,
+      "connected": true,
+      "inbound": [
+        {
+          "kind": "audio",
+          "framesDecoded": 0,
+          "packetsReceived": 20,
+          "totalAudioEnergy": 0.013338446947858417
+        },
+        {
+          "kind": "video",
+          "framesDecoded": 14,
+          "packetsReceived": 74,
+          "totalAudioEnergy": null
+        }
+      ],
+      "candidates": [
+        {
+          "local": "relay",
+          "remote": "relay"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "scope": "Actual Contra emulation, one WebKit play participant and two independent WebKit/Firefox spectators; authenticated loopback TURN, first-frame mounting, input ownership and cleanup. No production sessions or WAN quality claim."
+}

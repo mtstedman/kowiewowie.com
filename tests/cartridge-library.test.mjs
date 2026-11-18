@@ -81,9 +81,9 @@ for(const g of plan.games.filter(g=>g.battery)){
  test(g.slug+': worker persistence handshake, independent ports and release on malformed input',()=>{
    const source=read(prefix+'worker.mjs').toString().split('\n').filter(line=>!line.startsWith('import ')).join('\n');
    function instance(){
-    const messages=[],tasks=new Map(),ports=[Array(8).fill(false),Array(8).fill(false)],ram=new Uint8Array(8192),seen=[];let frames=0,id=0;
+    const messages=[],tasks=new Map(),ports=[Array(8).fill(false),Array(8).fill(false)],ram=new Uint8Array(8192),seen=[];let frames=0,id=0,now=0;
     const machine={exportBattery:()=>ram.slice(),importBattery:b=>ram.set(b),setButton:(p,b,v)=>{ports[p-1][b]=v;},frame(){seen.push(ports.map(p=>p.slice()));ram[0]=77;return {state:{frames:++frames,cycles:frames*29780}};},getRGBA:()=>new Uint8ClampedArray(245760),takeAudio:()=>new Float32Array()};
-    const context=vm.createContext({createMachine:()=>machine,createProducer:options=>createProducer({...options,schedule:f=>{tasks.set(++id,f);return id;},cancel:k=>tasks.delete(k)}),encodeRAM:codec.encodeRAM,decodeRAM:codec.decodeRAM,postMessage:d=>messages.push(d),Uint8Array,Uint8ClampedArray,Float32Array});
+    const context=vm.createContext({createMachine:()=>machine,createProducer:options=>createProducer({...options,now:()=>now,schedule:(f,delay)=>{tasks.set(++id,()=>{now+=delay;f();});return id;},cancel:k=>tasks.delete(k)}),encodeRAM:codec.encodeRAM,decodeRAM:codec.decodeRAM,postMessage:d=>messages.push(d),Uint8Array,Uint8ClampedArray,Float32Array});
     vm.runInContext(source,context,{timeout:1000});
     return {messages,ports,ram,seen,send:d=>{context.d=d;vm.runInContext('onmessage({data:d})',context,{timeout:1000});},step(){const [k,f]=tasks.entries().next().value;tasks.delete(k);f();}};
    }

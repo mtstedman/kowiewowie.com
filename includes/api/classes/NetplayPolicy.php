@@ -4,7 +4,7 @@ namespace Wowie\Api;
 final class NetplayPolicy {
  public const VERSION='romjs-cartridge-roles/1';
  public const BINDING='game-network-binding/1';
- private const DIGEST='a038b847b925107a4b8480ad788624c04fabcf124639059e79d887d15e4ad776';
+ private const DIGEST='5581de67efe9ba513555bf2be4dfa8f47acbb5d51c94b579dbc4051a6505cc16';
  public static function deny(string $code='invalid_contract',int $status=422): never {throw new ApiException($status,$code,'Netplay request rejected.');}
  public static function package(mixed $id,mixed $artifact): array {
   if(!is_string($id)||!is_string($artifact)||!preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/',$id)||strlen($id)>64||!preg_match('/\A[a-f0-9]{64}\z/',$artifact))self::deny();
@@ -23,7 +23,7 @@ final class NetplayPolicy {
  public static function sdp(mixed $d,string $type,bool $watch): string {
   if(!is_array($d)||count($d)!==2||($d['type']??null)!==$type||!is_string($d['sdp']??null))self::deny('invalid_sdp');
   $s=$d['sdp'];if(strlen($s)>32768||!str_starts_with($s,"v=0\r\n")||preg_match('/[^\x09\x0a\x0d\x20-\x7e]/',$s)||preg_match('/\r(?!\n)/',$s))self::deny('invalid_sdp');
-  $lines=preg_split('/\r?\n/',$s);if(count($lines)>1024)self::deny('invalid_sdp');$sections=[];$current=-1;$candidates=0;
+  $lines=preg_split('/\r?\n/',$s);if(count($lines)>1024)self::deny('invalid_sdp');$sections=[];$sessionDirections=[];$current=-1;$candidates=0;
   foreach($lines as $line){
    if(strlen($line)>1024)self::deny('invalid_sdp');if(str_starts_with($line,'a=candidate:')&&++$candidates>64)self::deny('invalid_sdp');
    if($watch&&preg_match('/^(m=application\b|a=(sctp-port|sctpmap|max-message-size):)/',$line))self::deny('watch_data_forbidden',403);
@@ -31,10 +31,14 @@ final class NetplayPolicy {
     if(!preg_match('/\Am=(audio|video|application) ([1-9][0-9]{0,4}) ([A-Za-z0-9\/]+) .+\z/',$line,$m)||(int)$m[2]>65535||$m[3]!==($m[1]==='application'?'UDP/DTLS/SCTP':'UDP/TLS/RTP/SAVPF'))self::deny('invalid_sdp');
     $sections[]=['kind'=>$m[1],'directions'=>[]];$current=count($sections)-1;
    }
-   if(preg_match('/\Aa=(sendonly|recvonly|sendrecv|inactive)\z/',$line,$m)){if($current<0)self::deny('invalid_sdp');$sections[$current]['directions'][]=$m[1];}
+   if(preg_match('/\Aa=(sendonly|recvonly|sendrecv|inactive)\z/',$line,$m)){if($current<0)$sessionDirections[]=$m[1];else $sections[$current]['directions'][]=$m[1];}
   }
   $kinds=array_column($sections,'kind');sort($kinds);if($kinds!==($watch?['audio','video']:['application','audio','video']))self::deny('invalid_sdp');
-  foreach($sections as $m)if($m['kind']!=='application'&&$m['directions']!==[$type==='offer'?'sendonly':'recvonly'])self::deny('invalid_media_direction');
+  if(count($sessionDirections)>1)self::deny('invalid_media_direction');
+  foreach($sections as $m){
+   if(count($m['directions'])>1)self::deny('invalid_media_direction');
+   if($m['kind']!=='application'&&($m['directions'][0]??$sessionDirections[0]??null)!==($type==='offer'?'sendonly':'recvonly'))self::deny('invalid_media_direction');
+  }
   if(!preg_match('/^a=fingerprint:sha-256 (?:[A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}\r?$/m',$s))self::deny('invalid_sdp');return $s;
  }
 }

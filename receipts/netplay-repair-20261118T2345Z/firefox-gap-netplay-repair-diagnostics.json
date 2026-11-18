@@ -1,0 +1,168 @@
+[
+  {
+    "session": {
+      "role": "host",
+      "phase": "active",
+      "message": "Sharing this game."
+    },
+    "videos": [],
+    "bindings": [],
+    "peers": [
+      {
+        "connection": "connected",
+        "ice": "connected",
+        "signaling": "stable"
+      },
+      {
+        "connection": "connected",
+        "ice": "connected",
+        "signaling": "stable"
+      },
+      {
+        "connection": "closed",
+        "ice": "closed",
+        "signaling": "closed"
+      },
+      {
+        "connection": "new",
+        "ice": "new",
+        "signaling": "have-local-offer"
+      }
+    ]
+  },
+  {
+    "session": {
+      "role": "guest",
+      "phase": "active",
+      "message": "Connected to the assigned second player."
+    },
+    "videos": [
+      {
+        "connected": true,
+        "width": 256,
+        "readyState": 3,
+        "paused": false,
+        "tracks": [
+          {
+            "kind": "video",
+            "muted": false,
+            "readyState": "live"
+          },
+          {
+            "kind": "audio",
+            "muted": false,
+            "readyState": "live"
+          }
+        ]
+      }
+    ],
+    "bindings": [
+      {
+        "connected": true,
+        "tracks": [
+          "video"
+        ]
+      },
+      {
+        "connected": true,
+        "tracks": [
+          "video",
+          "audio"
+        ]
+      }
+    ],
+    "peers": [
+      {
+        "connection": "connected",
+        "ice": "connected",
+        "signaling": "stable"
+      }
+    ]
+  },
+  {
+    "session": {
+      "role": "spectator",
+      "phase": "active",
+      "message": "Watching live · no controls."
+    },
+    "videos": [
+      {
+        "connected": true,
+        "width": 256,
+        "readyState": 3,
+        "paused": false,
+        "tracks": [
+          {
+            "kind": "video",
+            "muted": false,
+            "readyState": "live"
+          },
+          {
+            "kind": "audio",
+            "muted": false,
+            "readyState": "live"
+          }
+        ]
+      }
+    ],
+    "bindings": [
+      {
+        "connected": true,
+        "tracks": [
+          "video"
+        ]
+      },
+      {
+        "connected": true,
+        "tracks": [
+          "video",
+          "audio"
+        ]
+      }
+    ],
+    "peers": [
+      {
+        "connection": "connected",
+        "ice": "connected",
+        "signaling": "stable"
+      }
+    ]
+  },
+  {
+    "session": {
+      "role": "spectator",
+      "phase": "reconnecting",
+      "message": "Press Enable guest audio/video to start playback."
+    },
+    "videos": [
+      {
+        "connected": true,
+        "width": 0,
+        "readyState": 0,
+        "paused": true
+      }
+    ],
+    "bindings": [
+      {
+        "connected": true,
+        "tracks": [
+          "video"
+        ]
+      },
+      {
+        "connected": true,
+        "tracks": [
+          "video",
+          "audio"
+        ]
+      }
+    ],
+    "peers": [
+      {
+        "connection": "closed",
+        "ice": "closed",
+        "signaling": "closed"
+      }
+    ]
+  }
+]

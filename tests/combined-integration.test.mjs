@@ -147,7 +147,7 @@ import './receiver-input.test.mjs';
 // These additions do not replace any existing assertion above.
 test('paused connected receiver retains authenticated media and audio without input authority',{timeout:10000},async t=>{
  const lab=await inputLifecycleLab(t,false),{guest,peer,input,beat,drain,bridge,connections,mediaElements}=lab;
- const pc=connections[0],video=mediaElements.find(v=>v.srcObject);
+ const pc=connections[0],video=mediaElements.find(v=>v.autoplay===true);
  assert(pc&&video);assert.equal(guest.media(),null,'No fabricated video before a track/frame is available');
  const track={kind:'video',readyState:'live',muted:false,stop(){this.readyState='ended';}};
  pc.ontrack({track});video.readyState=2;video.videoWidth=256;await beat();
@@ -188,9 +188,9 @@ test('paused connected receiver retains authenticated media and audio without in
 });
 test('joining an already paused host reports connection before the first frame and resumes the same peer',{timeout:10000},async t=>{
  const lab=await inputLifecycleLab(t,false,true),{guest,peer,input,beat,drain,bridge,connections,mediaElements}=lab;
- const pc=connections[0],video=mediaElements.find(v=>v.srcObject),stream=video.srcObject;
+ const pc=connections[0],video=mediaElements.find(v=>v.autoplay===true);
  const track={kind:'video',readyState:'live',muted:true,stop(){this.readyState='ended';}};
- pc.ontrack({track});await beat();await beat();
+ pc.ontrack({track});const stream=video.srcObject;await beat();await beat();
  assert.equal(pc.connectionState,'connected');assert.equal(video.readyState,0);assert.equal(video.videoWidth,0);
  assert.equal(guest.snapshot().session.phase,'reconnecting');assert.equal(guest.snapshot().canControl,false);
  assert.match(guest.snapshot().session.message,/Connected—host paused\/away/);

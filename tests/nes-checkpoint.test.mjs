@@ -31,9 +31,9 @@ test('stored saves check their digest before parsing and reject corrupt payloads
  await assert.rejects(()=>decodeCheckpoint(null),/damaged/);
 });
 test('worker checkpoint errors are recoverable and restored frame counters may go backwards',()=>{
- let frames=10,seq=0;const posts=[],tasks=new Map();let task=0;
+ let frames=10,seq=0,now=0;const posts=[],tasks=new Map();let task=0;
  const machine={setButton(){},getState:()=>({frames}),exportCheckpoint:()=>({frames}),importCheckpoint(v){if(!Number.isSafeInteger(v?.frames))throw Error('bad save');frames=v.frames;},frame(){return {state:{frames:++frames,cycles:frames*29781}};},getRGBA:()=>new Uint8ClampedArray(256*240*4),takeAudio:()=>new Float32Array(1600)};
- const p=createProducer({machine,post:m=>posts.push(m),schedule:f=>{tasks.set(++task,f);return task;},cancel:id=>tasks.delete(id)});
+ const p=createProducer({machine,now:()=>now,post:m=>posts.push(m),schedule:(f,delay)=>{tasks.set(++task,()=>{now+=delay;f();});return task;},cancel:id=>tasks.delete(id)});
  const send=(type,extra={})=>p.receive({type,epoch:1,seq:++seq,...extra});
  send('sync');send('checkpoint-export');assert.deepEqual(posts.at(-1).record,{frames:10});
  send('checkpoint-import',{record:{frames:2}});assert.equal(posts.at(-1).type,'checkpoint');assert.equal(frames,2);

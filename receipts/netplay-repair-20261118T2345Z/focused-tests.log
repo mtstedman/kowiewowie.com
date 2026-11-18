@@ -1,0 +1,15 @@
+✔ reload waits for the existing lease, preserves retry identity and completes rejoin (35.041306ms)
+✔ another active tab gets bounded retries and a working explicit Retry action (6.037203ms)
+✔ a replaced session stops retrying and explains how to obtain a new invitation (1.178997ms)
+✔ disposing during rejoin cancels retries and never starts a receiving peer (1.001633ms)
+✔ first-time watcher exposes signaling failures instead of an unexplained Connecting label (1.612713ms)
+✔ terminal transport authorization errors retain their actionable message (1.047691ms)
+✔ JavaScript and PHP agree on Firefox SDP defaults without widening media authority (43.070334ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 112.194753

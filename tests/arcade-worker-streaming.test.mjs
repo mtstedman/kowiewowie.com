@@ -14,13 +14,13 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 const sourceRoot=fileURLToPath(new URL('../',import.meta.url));
 const pins=JSON.parse(readFileSync(new URL('./arcade-runtime-source-pins.json',import.meta.url))).files;
 function lab(audioSamples=1600){
- let sequence=0,taskId=0,frames=0,cycles=0;const tasks=new Map(),messages=[],samples=[],buttons=Array(16).fill(false);
+ let sequence=0,taskId=0,frames=0,cycles=0,now=0;const tasks=new Map(),messages=[],samples=[],buttons=Array(16).fill(false);
  const machine={setButton(p,b,v){buttons[(p-1)*8+b]=v;},frame(){samples.push([...buttons]);return {state:{frames:++frames,cycles:cycles+=29781}};},getRGBA(b){return new Uint8ClampedArray(b||new ArrayBuffer(RGBA_BYTES));},takeAudio(){return new Float32Array(audioSamples);}};
- const producer=createProducer({machine,schedule:f=>{tasks.set(++taskId,f);return taskId;},cancel:id=>tasks.delete(id),post:(m,t)=>messages.push(structuredClone(m,{transfer:t||[]}))});
+ const producer=createProducer({machine,now:()=>now,schedule:(f,delay)=>{f.due=now+delay;tasks.set(++taskId,f);return taskId;},cancel:id=>tasks.delete(id),post:(m,t)=>messages.push(structuredClone(m,{transfer:t||[]}))});
  const send=(type,extra={},transfer=[])=>producer.receive(structuredClone({type,epoch,seq:++sequence,...extra},{transfer}));
  let epoch=1;const consumer=createConsumer({send});
  function sync(){consumer.reset(epoch);send('sync');assert.equal(messages.shift().type,'synced');}
- function step(){assert(tasks.size);const [id,f]=tasks.entries().next().value;tasks.delete(id);f();}
+ function step(){assert(tasks.size);const [id,f]=tasks.entries().next().value;tasks.delete(id);now=Math.max(now,f.due);f();}
  function drain(){while(messages.length){const m=messages.shift();if(m.type==='error')throw Error(m.message);consumer.accept(m);}}
  sync();return {producer,consumer,tasks,messages,samples,send,step,drain,sync,nextEpoch(){epoch++;sync();}};
 }
@@ -205,11 +205,11 @@ test('current packages cover authored modules and migration rejects current and 
 });
 // Execute the exact authored Zelda worker and codec; only its engine is a fake.
 async function batteryWorker(){
- let id=0,frames=0;const tasks=new Map(),messages=[],ram=new Uint8Array(8192);
+ let id=0,frames=0,now=0;const tasks=new Map(),messages=[],ram=new Uint8Array(8192);
  const machine={setButton(){},frame(){return {state:{frames:++frames,cycles:frames*29781}};},getRGBA(b){return new Uint8ClampedArray(b||new ArrayBuffer(RGBA_BYTES));},takeAudio(){return new Float32Array(1600);},exportBattery(){return ram.slice();},importBattery(v){ram.set(v);}};
  class Channel{constructor(){this.port1={onmessage:null,close(){}};this.port2={postMessage:k=>{tasks.set(++id,()=>this.port1.onmessage?.({data:k}));},close(){tasks.clear();}};}}
- const context=vm.createContext({machine,MessageChannel:Channel,Uint8Array,Uint8ClampedArray,Float32Array,ArrayBuffer,TextEncoder,TextDecoder,btoa,atob,
-  postMessage:(m,t)=>messages.push(structuredClone(m,{transfer:t||[]})),setTimeout:f=>{tasks.set(++id,f);return id;},clearTimeout:k=>tasks.delete(k)});
+ const context=vm.createContext({machine,performance:{now:()=>now},MessageChannel:Channel,Uint8Array,Uint8ClampedArray,Float32Array,ArrayBuffer,TextEncoder,TextDecoder,btoa,atob,
+  postMessage:(m,t)=>messages.push(structuredClone(m,{transfer:t||[]})),setTimeout:(f,delay)=>{f.due=now+delay;tasks.set(++id,f);return id;},clearTimeout:k=>tasks.delete(k)});
  const modules=new Map();
  function get(file){
   if(modules.has(file))return modules.get(file);
@@ -220,7 +220,7 @@ async function batteryWorker(){
  const main=get(resolve(sourceRoot,'htdocs/games/zelda/worker.mjs'));
  await main.link((specifier,parent)=>{assert.match(specifier,/^\.\.?\/[A-Za-z0-9_./-]+\.mjs$/);return get(resolve(dirname(fileURLToPath(parent.identifier)),specifier));});
  for(const m of modules.values())assert(!m.hasTopLevelAwait());await main.evaluate({timeout:2000});
- return {messages,tasks,ram,send:d=>context.onmessage({data:structuredClone(d)}),step(){const [k,f]=tasks.entries().next().value;tasks.delete(k);f();}};
+ return {messages,tasks,ram,send:d=>context.onmessage({data:structuredClone(d)}),step(){const before=frames;while(tasks.size&&frames===before){const [k,f]=tasks.entries().next().value;tasks.delete(k);now=Math.max(now,f.due??now);f();}}};
 }
 test('grant rounding, outstanding reservations and a single free slot remain live',()=>{
  const l=lab();
@@ -255,22 +255,23 @@ test('credit target retains an absolute time cap even after arbitrarily long sta
  assert.equal(l.consumer.grant(.079,.08),1,'A sub-frame target deficit is live');
  l.step();l.drain();assert.equal(l.tasks.size,0);l.producer.dispose();
 });
-async function audioScheduleLab(){
+async function audioScheduleLab(samplesPerChannel=800){
  const h=await runtimeHarness(resolve(sourceRoot,'htdocs/games/contra/host-runtime.mjs')),r=h.runtime;
  await r.reset();const w=h.workers[0];w.receive({type:'ready'});r.start();
  await Promise.resolve();await Promise.resolve();
  const ac=h.contexts[0],starts=[],stops=[];
  ac.createBuffer=(channels,n,rate)=>({channels,n,rate,data:Array.from({length:channels},()=>new Float32Array(n)),getChannelData(ch){return this.data[ch];}});
- ac.createBufferSource=()=>({connect(){},disconnect(){},stop(at){stops.push(at);},start(at){starts.push({at,buffer:this.buffer});}});
+ ac.createBufferSource=()=>({playbackRate:{value:1},connect(){},disconnect(){},stop(at){stops.push(at);},start(at){starts.push({at,buffer:this.buffer,playbackRate:this.playbackRate.value});}});
  const barrier=w.sent.findLast(m=>m.type==='sync');w.receive({type:'synced',epoch:barrier.epoch,seq:barrier.seq});
- let id=0;const duration=800/48000;
- function frame(){const audio=new Float32Array(1600);for(let i=0;i<audio.length;i++)audio[i]=(i%19-9)/16;
+ let id=0;const duration=samplesPerChannel/48000;
+ function frame(){const audio=new Float32Array(samplesPerChannel*2);for(let i=0;i<audio.length;i++)audio[i]=(i%19-9)/16;
   const expected=audio.slice();id++;
   w.receive({type:'frame',epoch:barrier.epoch,id,produced:id,at:(id-1)*duration,duration,rgba:new Uint8ClampedArray(RGBA_BYTES),audio,frames:id,cycles:id*29781,inputSeq:0,appliedSeq:0});
   assert(r.snapshot().running,r.snapshot().message);
-  const b=starts.at(-1).buffer;assert.equal(b.rate,48000);assert.equal(b.n,800);
-  for(let i=0;i<800;i++){assert.equal(b.data[0][i],expected[2*i]);assert.equal(b.data[1][i],expected[2*i+1]);}
-  const end=starts.at(-1).at+duration;
+  const b=starts.at(-1).buffer;assert.equal(b.rate,48000);assert.equal(b.n,samplesPerChannel);
+  assert.equal(starts.at(-1).playbackRate,duration*60);
+  for(let i=0;i<samplesPerChannel;i++){assert.equal(b.data[0][i],expected[2*i]);assert.equal(b.data[1][i],expected[2*i+1]);}
+  const end=starts.at(-1).at+1/60;
   // Present eligible frames so this test respects bounded transport ownership.
   const [raf,callback]=h.rafs.entries().next().value;h.rafs.delete(raf);callback(1000+ac.currentTime*1000);
   return end;
@@ -331,4 +332,16 @@ test('actual Zelda worker imports saved RAM before ready, exports periodically a
  }
  assert.equal(periodic,1);assert.equal(w.tasks.size,0);send('sync');w.messages.length=0;
  w.send({type:'battery-flush',request:2});assert.equal(w.messages.shift().request,2);assert.equal(w.tasks.size,0);
+});
+
+test('fractional native NES PCM remains complete and plays on an exact 60 Hz timeline',async()=>{
+ const l=await audioScheduleLab(799);
+ try{
+  let end=l.frame();
+  for(let n=0;n<30;n++){
+   l.ac.currentTime=end-.001;const expected=end;end=l.frame();
+   assert.equal(l.starts.at(-1).at,expected);
+   assert.equal(l.starts.at(-1).buffer.n/48000/l.starts.at(-1).playbackRate,1/60);
+  }
+ }finally{await l.r.dispose();}
 });

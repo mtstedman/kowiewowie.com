@@ -1,0 +1,288 @@
+{
+  "write": true,
+  "simulationHz": 60,
+  "reviewed": [
+    "htdocs/games/arcade/frame-pacing.mjs",
+    "htdocs/games/arcade/session-bridge.mjs",
+    "htdocs/games/arcade/sharing.mjs",
+    "htdocs/games/arcade/snes-runtime.mjs",
+    "htdocs/games/arcade/ui.mjs",
+    "htdocs/games/arcade/worker-stream-host.mjs",
+    "htdocs/games/arcade/worker-stream-producer.mjs",
+    "htdocs/games/engines/snes/worker.mjs",
+    "htdocs/games/netplay/policy.mjs",
+    "htdocs/games/netplay/transport.mjs",
+    "tests/arcade-frame-pacing.test.mjs",
+    "tests/arcade-runtime-source-pins.json",
+    "tests/arcade-worker-streaming.test.mjs",
+    "tests/cartridge-library.test.mjs",
+    "tests/combined-integration.test.mjs",
+    "tests/nes-audit-fixes.test.mjs",
+    "tests/nes-checkpoint.test.mjs",
+    "tests/romjs-netplay-roles.php",
+    "tests/snes-sharing-lab.py",
+    "htdocs/games/arcade/simulation-clock.mjs",
+    "htdocs/games/engines/snes/frame-executor.mjs"
+  ],
+  "packages": [
+    {
+      "id": "megaman",
+      "artifactDigest": "48b06d9fbc3fb994bb96a2f4ebaf46882729fc728bbf0aa3d3abd825a4eed1d6",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "adventure-island-2",
+      "artifactDigest": "da9bdd77831197fdb2ce390bfd360d0fca1780dfb652a4006ab0e197e0e3f5e1",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "castlevania",
+      "artifactDigest": "94490aa564c497a024c2e59e78541fd4b5bc900a15f3c1a8ec864e0cf522a6b2",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "ikari-warriors",
+      "artifactDigest": "a0e229ce98630132d975e26d260058b2d7ee4a9b7be93a891b19edcc1666f2b6",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "bionic-commando",
+      "artifactDigest": "7b5d7bc70906e6e64221c44fab619d19c8e90c03740e49628c1478cde1d4a1cc",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "zelda",
+      "artifactDigest": "2841231776e227b6b43af2246f6ca5d0869a527f0da34a397ce071c929b0dc8a",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "contra",
+      "artifactDigest": "3b3fd9cb1436867d94d187c99ed6b9ce1b0976f3ecc223acdcdfe343f3a3f05d",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "castlevania-3",
+      "artifactDigest": "1a726b21f31880293e6232df10c75752fc7ab07185e59f828b7c075e5ddcf13c",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "double-dragon-ii",
+      "artifactDigest": "5d0ed1d2a578f50d23892be3aa8b96dc76be5d296425ca933cf2486dbf726691",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "metroid",
+      "artifactDigest": "c11e414fb457e8d10ecd16de95fe358f0b42e5fd380235837355c30b07d56394",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "the-guardian-legend",
+      "artifactDigest": "ea7a92419170070a54313691635075ccd00ef4549b3cd17771901af034ce7815",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "super-mario-bros-3",
+      "artifactDigest": "f1772fcf34e8a564531b0a86d27f66b836a09de88cd9d0acff691dd4a8987235",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "mike-tysons-punch-out",
+      "artifactDigest": "98ceafb44c3f006ca3b79f78d1183fdcfd9ddf81491586409fc4e7cf67e3ef46",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/arcade/worker-stream-producer.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "super-mario-world",
+      "artifactDigest": "23a5f6446e2fb9feb93b14a3d8c0e8dd7486f08ef1e6a76a2701585e7b4ae547",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/snes-runtime.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "artifactDigest": "15e6fbadfbadd6d0b0f6f4bb29dada404dcbd612963fb19124f2e9ac9e6b0341",
+      "updated": [
+        "/games/arcade/frame-pacing.mjs",
+        "/games/arcade/session-bridge.mjs",
+        "/games/arcade/sharing.mjs",
+        "/games/arcade/snes-runtime.mjs",
+        "/games/arcade/ui.mjs",
+        "/games/netplay/policy.mjs",
+        "/games/netplay/transport.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    }
+  ],
+  "sourcePins": [
+    "htdocs/games/arcade/frame-pacing.mjs",
+    "htdocs/games/arcade/session-bridge.mjs",
+    "htdocs/games/arcade/sharing.mjs",
+    "htdocs/games/arcade/snes-runtime.mjs",
+    "htdocs/games/arcade/ui.mjs",
+    "htdocs/games/arcade/worker-stream-producer.mjs",
+    "htdocs/games/netplay/policy.mjs",
+    "htdocs/games/netplay/transport.mjs"
+  ],
+  "outputs": [
+    "htdocs/games/megaman/game-package.json",
+    "htdocs/games/megaman/network-package.json",
+    "htdocs/games/adventure-island-2/game-package.json",
+    "htdocs/games/adventure-island-2/network-package.json",
+    "htdocs/games/castlevania/game-package.json",
+    "htdocs/games/ikari-warriors/game-package.json",
+    "htdocs/games/bionic-commando/game-package.json",
+    "htdocs/games/zelda/game-package.json",
+    "htdocs/games/contra/game-package.json",
+    "htdocs/games/castlevania-3/game-package.json",
+    "htdocs/games/double-dragon-ii/game-package.json",
+    "htdocs/games/metroid/game-package.json",
+    "htdocs/games/the-guardian-legend/game-package.json",
+    "htdocs/games/super-mario-bros-3/game-package.json",
+    "htdocs/games/mike-tysons-punch-out/game-package.json",
+    "htdocs/games/super-mario-world/game-package.json",
+    "htdocs/games/zelda-a-link-to-the-past/game-package.json",
+    "tests/arcade-runtime-source-pins.json",
+    "htdocs/games/arcade/catalog.json",
+    "htdocs/games/netplay/catalog.json",
+    "includes/api/classes/netplay-catalog.json",
+    "includes/api/classes/NetplayPolicy.php"
+  ]
+}

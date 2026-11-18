@@ -24,7 +24,7 @@ export function receiverStatus(s){
 export function receiverModule(){return {version:1,createAdapter(ctx){
  let root,video,status,closed=false;const cleanup=()=>{closed=true;root?.remove();};ctx.scope.defer(cleanup);
  return {version:1,packageId:ctx.package.id,artifactDigest:ctx.package.artifactDigest,
- load(){root=document.createElement('div');status=document.createElement('p');status.dataset.sharedReceiverStatus='';status.setAttribute('role','status');status.textContent=receiverStatus(null);root.append(status);const k=ctx.package.surfaces.video.kind;video=k==='none'?null:document.createElement(k==='canvas'?'canvas':'video');if(video)root.append(video);ctx.view.append(root);},
+ load(){root=document.createElement('div');status=document.createElement('p');status.dataset.sharedReceiverStatus='';status.setAttribute('role','status');status.textContent=receiverStatus(null);root.append(status);const k=ctx.package.surfaces.video.kind;video=k==='none'?null:document.createElement(k==='canvas'?'canvas':'video');if(video){video.hidden=true;root.append(video);}const mount=document.createElement('div');mount.dataset.sharedReceiverVideo='';root.append(mount);ctx.view.append(root);},
  setSessionState(s){if(!closed&&status)status.textContent=receiverStatus(s);},
  start(){},pause(){},resume(){},reset(){throw Error('Receiving sessions cannot reset a game');},dispose:cleanup,input(){return false;},releaseAll(){},
  snapshot:()=>({ready:!closed,running:!closed,loading:false,closed,message:'Shared stream receiver'}),
@@ -57,22 +57,23 @@ export function invitationMessage(p){
 }
 export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
  let lease=null,host=null,guest=null,opening=null,disposed=false,timer=null,releaseBusy=false,epoch=0,lastRawEpoch=0,receiverEnded=false;
- let retryTimer=null,retryWake=null,integration=null,disposal=null,joining=null,operation=0;
+ let retryTimer=null,retryWake=null,integration=null,disposal=null,joining=null,connecting=null,joinMessage=null,connectionMessage=null,operation=0;
  let state=Object.freeze({role:record?'spectator':'solo',phase:record?'connecting':'inactive',epoch:0,reconnect:'none',watch:record?'unavailable':'available',play:record?'unavailable':'available',message:record?'Connecting to shared game…':invitationMessage(p)});
- const listeners=new Set(),video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.muted=true;video.setAttribute('aria-label','Shared game video and audio');
+ const listeners=new Set(),video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.muted=true;video.setAttribute('aria-label','Shared game video and audio');video.setAttribute('data-shared-receiver-media','');
  const receiverMedia=()=>{if(disposed||signal?.aborted||receiverEnded||!guest)return null;const raw=guest.getState();return ['guest','spectator'].includes(raw.role)&&raw.phase==='active'&&raw.mediaAvailable===true?{video,audio:video}:null;};
  const notify=()=>{if(disposed)return;for(const f of listeners)try{f(state);}catch{}onUI({state,participants:host?.getState().participants||[]});};
  function update(){
   if(disposed||receiverEnded)return;if(host?.closed)host=null;
+  if(record&&!guest&&joinMessage){const next={...state,phase:'reconnecting',reconnect:'pending',message:joinMessage};if(JSON.stringify(next)!==JSON.stringify(state)){state=Object.freeze({...next,epoch:++epoch});notify();}return;}
   const raw=guest?.getState()||host?.getState(),role=raw?.role||(record?'spectator':'solo');let phase=raw?.phase||(record?'connecting':'inactive');
   if(role==='guest'&&phase==='active'&&!raw.inputEnabled)phase='reconnecting';
   const rawEpoch=raw?.epoch??0,barrier=role!==state.role||phase!==state.phase||rawEpoch!==lastRawEpoch;lastRawEpoch=rawEpoch;
   if(barrier)epoch++;
-  const next={role,phase,epoch,reconnect:phase==='reconnecting'?'pending':phase==='active'&&epoch>1?'recovered':'none',watch:!record&&phase!=='ended'&&(raw?.watchAvailable??true)?'available':'unavailable',play:!record&&phase!=='ended'&&(raw?.playAvailable??true)?'available':'unavailable',message:phase==='ended'?'Sharing ended.':role==='spectator'?(phase==='active'?'Watching live · no controls.':'Connecting live video and audio…'):role==='guest'?(phase==='active'?(p.capabilities.play==='shared-hero'?'Sharing one hero · Player 1.':(p.capabilities.mode==='alternating'?'Connected as Player 2 · take turns.':'Connected to the assigned second player.')):'Reconnecting · controls released.'):host?'Sharing this game.':invitationMessage(p)};
-  if(record&&phase!=='ended'){const media=receiverMedia();if(role==='guest'&&phase==='reconnecting'&&raw?.hostPaused===true)next.message=media?'Connected—host paused/away · Ask the host to Resume · controls released.':'Connected—host paused/away · No picture received yet. Ask the host to Resume · controls released.';else if(!media)next.message='Connecting live video and audio… · controls released.';}
+  const next={role,phase,epoch,reconnect:phase==='reconnecting'?'pending':phase==='active'&&epoch>1?'recovered':'none',watch:!record&&phase!=='ended'&&(raw?.watchAvailable??true)?'available':'unavailable',play:!record&&phase!=='ended'&&(raw?.playAvailable??true)?'available':'unavailable',message:phase==='ended'?(connectionMessage||'Sharing ended.'):role==='spectator'?(phase==='active'?'Watching live · no controls.':'Connecting live video and audio…'):role==='guest'?(phase==='active'?(p.capabilities.play==='shared-hero'?'Sharing one hero · Player 1.':(p.capabilities.mode==='alternating'?'Connected as Player 2 · take turns.':'Connected to the assigned second player.')):'Reconnecting · controls released.'):host?'Sharing this game.':invitationMessage(p)};
+  if(record&&phase!=='ended'){const media=receiverMedia();if(role==='guest'&&phase==='reconnecting'&&raw?.hostPaused===true)next.message=media?'Connected—host paused/away · Ask the host to Resume · controls released.':'Connected—host paused/away · No picture received yet. Ask the host to Resume · controls released.';else if(!media)next.message=connectionMessage||'Connecting live video and audio… · controls released.';}
    if(JSON.stringify(next)===JSON.stringify(state))return;state=Object.freeze(next);notify();
  }
- const event=e=>{if(disposed)return;queueMicrotask(update);if(e.type==='roster')onUI({state,participants:e.state.participants});};
+ const event=e=>{if(disposed)return;if(e.type==='status'&&typeof e.message==='string')connectionMessage=e.message.slice(0,240);queueMicrotask(update);if(e.type==='roster')onUI({state,participants:e.state.participants});};
  async function open(){
   insist(!disposed&&!signal?.aborted&&!record&&lease,'Host session unavailable');if(host&&!host.closed)return host;if(opening)return opening;
   const ticket=operation,adapter=hostAdapter(p,b,lease,()=>state,()=>integration.getState().runtime);
@@ -110,18 +111,32 @@ export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
   if(reason==='session-transition'||releaseBusy||disposed)return;
   releaseBusy=true;try{guest?.release();host?.release();}finally{releaseBusy=false;}
  },enableAudio:()=>{if(record){insist(receiverMedia(),'Shared media unavailable');return guest.enableAudio();}return host?.audio();},getMedia:receiverMedia,dispose});
- return {provider,end,revoke:id=>{insist(host,'No sharing session');return host.revoke(id);},retry:()=>guest?.retry(),async attach(owner){
-  insist(!disposed&&!signal?.aborted&&!integration,'Bridge attachment unavailable');integration=owner;lease=owner.bindSession(provider);timer=setInterval(update,250);
-  if(!record){update();return;}
+ async function connect(){
+  if(connecting)return connecting;
+  connecting=connectOnce().finally(()=>{connecting=null;});return connecting;
+ }
+ async function connectOnce(){
+  insist(!disposed&&!signal?.aborted&&!receiverEnded,'Selection ended');
   if(record.joined)record=prepareRejoin(record);sessionStorage.setItem(storageKey(p),JSON.stringify(record));
+  connectionMessage=null;joinMessage='Connecting to shared game…';update();
   try{
    let s;
    for(let attempt=0;attempt<11;attempt++){
     insist(!disposed&&!signal?.aborted&&!receiverEnded,'Selection ended');
     try{joining=joinParticipant(b,record,{video,onEvent:event}).then(async result=>{if(disposed||signal?.aborted||receiverEnded){await result.dispose({leave:true});return null;}return result;});s=await joining;joining=null;if(!s)return;break;}
-    catch(e){if(e.code!=='still_active'||attempt===10)throw e;await new Promise(resolve=>{retryWake=resolve;retryTimer=setTimeout(resolve,2000);});retryWake=null;}
+    catch(e){joining=null;if(e.status!==409||e.code!=='still_active'||attempt===10)throw e;joinMessage='Waiting for the previous connection to close… Close any other tab using this invitation. Retrying automatically.';update();await new Promise(resolve=>{retryWake=resolve;retryTimer=setTimeout(resolve,2000);});retryWake=null;}
    }
-   if(disposed||signal?.aborted||receiverEnded){await s.dispose({leave:true});return;}guest=s;sessionStorage.setItem(storageKey(p),JSON.stringify(s.resume));history.replaceState(history.state,'',location.pathname+location.search);update();
-  }catch(e){if(!disposed){receiverEnded=true;state=Object.freeze({...state,phase:'ended',epoch:++epoch,message:'Could not join. Use a fresh invitation or return to the library.'});notify();}throw e;}
+   if(disposed||signal?.aborted||receiverEnded){await s.dispose({leave:true});return;}guest=s;joinMessage=null;sessionStorage.setItem(storageKey(p),JSON.stringify(s.resume));history.replaceState(history.state,'',location.pathname+location.search);update();
+  }catch(e){
+   joining=null;if(disposed||signal?.aborted||receiverEnded)return;
+   if(e.status===409&&e.code==='still_active'){
+    joinMessage='This invitation is active in another tab or window. Close that connection, wait 15 seconds, then choose Retry connection.';update();return;
+   }
+   receiverEnded=true;clearInterval(timer);state=Object.freeze({...state,phase:'ended',epoch:++epoch,message:e.code==='stale_session'?'This participant has reconnected elsewhere. Ask the host for a fresh invitation.':'Could not join. Ask the host for a fresh invitation or return to the library.'});notify();
+  }
+ }
+ return {provider,end,revoke:id=>{insist(host,'No sharing session');return host.revoke(id);},retry:()=>guest?guest.retry():record&&!receiverEnded&&!disposed?connect():undefined,async attach(owner){
+  insist(!disposed&&!signal?.aborted&&!integration,'Bridge attachment unavailable');integration=owner;lease=owner.bindSession(provider);timer=setInterval(update,250);
+  if(!record){update();return;}onUI({state,receiverVideo:video});await connect();
  },dispose};
 }

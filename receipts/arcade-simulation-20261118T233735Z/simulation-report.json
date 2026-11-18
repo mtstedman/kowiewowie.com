@@ -1,0 +1,182 @@
+{
+  "passed": true,
+  "observation": "Actual worker frame counters and execution timestamps, independent wall time and WebAudio scheduling; not canvas or FPS text",
+  "csp": "exact production nginx policy",
+  "reports": [
+    {
+      "id": "super-mario-world",
+      "actualFrames": 950,
+      "maxRollingSecond": 60,
+      "sustained": {
+        "elapsedMs": 10004.5,
+        "frames": 597,
+        "fps": 59.67314708381228,
+        "runtime": {
+          "ready": true,
+          "running": true,
+          "loading": false,
+          "closed": false,
+          "message": "41.0 FPS",
+          "generatedFrames": 666,
+          "simulationFrames": 666,
+          "simulationHz": 60,
+          "dispatchedFrames": 667,
+          "presentedFrames": 542,
+          "audioSamples": 1066618,
+          "underruns": 0,
+          "queuedFrames": 1
+        }
+      },
+      "rpcPostsMaxRollingSecond": 60,
+      "audio": {
+        "scheduledBuffers": 949,
+        "minEffectiveSeconds": 0.016666666342287653,
+        "maxEffectiveSeconds": 0.016729166666666666,
+        "minNativeSeconds": 0.014291666666666666,
+        "maxNativeSeconds": 0.016729166666666666,
+        "minPlaybackRate": 0.8575000166893005,
+        "maxPlaybackRate": 1
+      },
+      "workerStallMs": 400,
+      "mainStallMs": 300,
+      "pauseStoppedActualEmulation": true,
+      "rapidResume": true,
+      "runtime": {
+        "ready": true,
+        "running": true,
+        "loading": false,
+        "closed": false,
+        "message": "36.0 FPS",
+        "generatedFrames": 949,
+        "simulationFrames": 950,
+        "simulationHz": 60,
+        "dispatchedFrames": 950,
+        "presentedFrames": 771,
+        "audioSamples": 1519940,
+        "underruns": 2,
+        "queuedFrames": 4
+      },
+      "errors": []
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "actualFrames": 945,
+      "maxRollingSecond": 60,
+      "sustained": {
+        "elapsedMs": 10002.5,
+        "frames": 592,
+        "fps": 59.18520369907523,
+        "runtime": {
+          "ready": true,
+          "running": true,
+          "loading": false,
+          "closed": false,
+          "message": "39.0 FPS",
+          "generatedFrames": 660,
+          "simulationFrames": 660,
+          "simulationHz": 60,
+          "dispatchedFrames": 661,
+          "presentedFrames": 480,
+          "audioSamples": 1057006,
+          "underruns": 2,
+          "queuedFrames": 3
+        }
+      },
+      "rpcPostsMaxRollingSecond": 60,
+      "audio": {
+        "scheduledBuffers": 942,
+        "minEffectiveSeconds": 0.016666666342287653,
+        "maxEffectiveSeconds": 0.016729166666666666,
+        "minNativeSeconds": 0.014291666666666666,
+        "maxNativeSeconds": 0.016729166666666666,
+        "minPlaybackRate": 0.8575000166893005,
+        "maxPlaybackRate": 1
+      },
+      "workerStallMs": 400,
+      "mainStallMs": 300,
+      "pauseStoppedActualEmulation": true,
+      "rapidResume": true,
+      "runtime": {
+        "ready": true,
+        "running": true,
+        "loading": false,
+        "closed": false,
+        "message": "27.0 FPS",
+        "generatedFrames": 942,
+        "simulationFrames": 945,
+        "simulationHz": 60,
+        "dispatchedFrames": 946,
+        "presentedFrames": 673,
+        "audioSamples": 1508732,
+        "underruns": 4,
+        "queuedFrames": 4
+      },
+      "errors": []
+    },
+    {
+      "id": "megaman",
+      "actualFrames": 952,
+      "maxRollingSecond": 60,
+      "sustained": {
+        "elapsedMs": 10007.2998046875,
+        "frames": 597,
+        "fps": 59.65645195523775,
+        "runtime": {
+          "ready": true,
+          "running": true,
+          "loading": false,
+          "closed": false,
+          "message": "Running · 58.0 FPS · 100% speed · frame 647",
+          "bufferTarget": 0.2,
+          "stream": {
+            "received": 663,
+            "queued": 3,
+            "credits": 11,
+            "bound": 16,
+            "inputSeq": 2,
+            "appliedSeq": 2,
+            "stale": 0,
+            "pendingReturns": 1,
+            "grantMessages": 668,
+            "returnedBuffers": 659
+          }
+        }
+      },
+      "rpcPostsMaxRollingSecond": null,
+      "audio": {
+        "scheduledBuffers": 948,
+        "minEffectiveSeconds": 0.016666666626830647,
+        "maxEffectiveSeconds": 0.01666666714410063,
+        "minNativeSeconds": 0.016625,
+        "maxNativeSeconds": 0.016645833333333332,
+        "minPlaybackRate": 0.9975000023841858,
+        "maxPlaybackRate": 0.9987499713897705
+      },
+      "workerStallMs": 400,
+      "mainStallMs": 300,
+      "pauseStoppedActualEmulation": true,
+      "rapidResume": true,
+      "runtime": {
+        "ready": true,
+        "running": true,
+        "loading": false,
+        "closed": false,
+        "message": "Running · 36.0 FPS · 88% speed · frame 927",
+        "bufferTarget": 0.2,
+        "stream": {
+          "received": 948,
+          "queued": 13,
+          "credits": 2,
+          "bound": 16,
+          "inputSeq": 0,
+          "appliedSeq": 0,
+          "stale": 0,
+          "pendingReturns": 0,
+          "grantMessages": 936,
+          "returnedBuffers": 912
+        }
+      },
+      "errors": []
+    }
+  ]
+}

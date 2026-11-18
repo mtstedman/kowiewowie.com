@@ -1,0 +1,165 @@
+[
+  {
+    "session": {
+      "role": "solo",
+      "phase": "inactive",
+      "message": "Sharing is not available yet."
+    },
+    "videos": [],
+    "bindings": [],
+    "requests": [],
+    "rtcErrors": [],
+    "peers": [
+      {
+        "connection": "closed",
+        "ice": "closed",
+        "signaling": "closed"
+      },
+      {
+        "connection": "closed",
+        "ice": "closed",
+        "signaling": "closed"
+      },
+      {
+        "connection": "closed",
+        "ice": "closed",
+        "signaling": "closed"
+      }
+    ]
+  },
+  {
+    "session": {
+      "role": "guest",
+      "phase": "ended",
+      "message": "Room authorization ended. Open a new invite to reconnect."
+    },
+    "videos": [
+      {
+        "connected": true,
+        "width": 0,
+        "readyState": 0,
+        "paused": true
+      }
+    ],
+    "bindings": [
+      {
+        "connected": true,
+        "tracks": [
+          "video"
+        ]
+      },
+      {
+        "connected": true,
+        "tracks": [
+          "video",
+          "audio"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "action": "poll",
+        "status": 410,
+        "error": "room_ended"
+      }
+    ],
+    "rtcErrors": [],
+    "peers": [
+      {
+        "connection": "closed",
+        "ice": "closed",
+        "signaling": "closed"
+      }
+    ]
+  },
+  {
+    "session": {
+      "role": "spectator",
+      "phase": "ended",
+      "message": "Room authorization ended. Open a new invite to reconnect."
+    },
+    "videos": [
+      {
+        "connected": true,
+        "width": 0,
+        "readyState": 0,
+        "paused": true
+      }
+    ],
+    "bindings": [
+      {
+        "connected": true,
+        "tracks": [
+          "video"
+        ]
+      },
+      {
+        "connected": true,
+        "tracks": [
+          "video",
+          "audio"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "action": "poll",
+        "status": 410,
+        "error": "room_ended"
+      }
+    ],
+    "rtcErrors": [],
+    "peers": [
+      {
+        "connection": "closed",
+        "ice": "closed",
+        "signaling": "closed"
+      }
+    ]
+  },
+  {
+    "session": {
+      "role": "spectator",
+      "phase": "ended",
+      "message": "Room authorization ended. Open a new invite to reconnect."
+    },
+    "videos": [
+      {
+        "connected": true,
+        "width": 0,
+        "readyState": 0,
+        "paused": true
+      }
+    ],
+    "bindings": [
+      {
+        "connected": true,
+        "tracks": [
+          "video"
+        ]
+      },
+      {
+        "connected": true,
+        "tracks": [
+          "audio",
+          "video"
+        ]
+      }
+    ],
+    "requests": [
+      {
+        "action": "poll",
+        "status": 410,
+        "error": "room_ended"
+      }
+    ],
+    "rtcErrors": [],
+    "peers": [
+      {
+        "connection": "closed",
+        "ice": "closed",
+        "signaling": "closed"
+      }
+    ]
+  }
+]

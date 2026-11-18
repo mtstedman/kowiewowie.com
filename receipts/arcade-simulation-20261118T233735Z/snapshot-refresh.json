@@ -1,0 +1,171 @@
+{
+  "write": true,
+  "simulationHz": null,
+  "reviewed": [
+    "htdocs/games/arcade/session-bridge.mjs"
+  ],
+  "packages": [
+    {
+      "id": "megaman",
+      "artifactDigest": "2d133665bc59d74c520bb1447dd1baab71715cdc9a4c0299c7546b1a6f73ccc5",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "adventure-island-2",
+      "artifactDigest": "a946c9d55c981c955d13b397dff496f0811a0b12f0908b33632096eb04843306",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "castlevania",
+      "artifactDigest": "be30ec3f611657a7214dd22e9bb238c45f3eefddae15c905dd8a3bb8d96a0149",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "ikari-warriors",
+      "artifactDigest": "9d11dbe797117e500a2984055f6b4dcc29d266d29f6b0f54e474acc6479980ef",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "bionic-commando",
+      "artifactDigest": "c08bbcc545698e7ce430834ecf33b915402f0d481f50750a9f2e60f938bd449b",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "zelda",
+      "artifactDigest": "0e393dbcbe1c432a96c392f8b7fc7170c1475e5394c530c0a77611f4f8e9233d",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "contra",
+      "artifactDigest": "3f08aa234739071c712f68f5956cfceb974ec2c3a76ef079465321a3ad6bdaf2",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "castlevania-3",
+      "artifactDigest": "b92e139045d1e401f086ec440f22260e46086cca345281ed9c7d8f40270125ab",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "double-dragon-ii",
+      "artifactDigest": "dcd1a01ba86ca537a48ea26ed3c812f330ce258d62d87199096ba175f77824cc",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "metroid",
+      "artifactDigest": "18259a32b85a719fa910fbe8696641228d8c10433ea1d0cbc354c8f7e43006bb",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "the-guardian-legend",
+      "artifactDigest": "64632d2d21a046cfe9ec4979c591fa3e5a57b341687c1739645a641a18b82f7f",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "super-mario-bros-3",
+      "artifactDigest": "7a28e127e4bcb0ff979821a67811e90f2d9a744485267f3ca362c1d8a807eb12",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "mike-tysons-punch-out",
+      "artifactDigest": "41dadf182a47e7e5226c7ac8bbd400b6b131b5b46c4a2913b702e770602f53a8",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "super-mario-world",
+      "artifactDigest": "eeb4340bc281027937c5e6948fbd8098802457219cad118cfb70b258385336a4",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "artifactDigest": "4a2d4952af90319a23c8d6261d915cce09ce2b666624ac3ec248d9065d98d615",
+      "updated": [
+        "/games/arcade/session-bridge.mjs"
+      ],
+      "added": [],
+      "timingChanged": false
+    }
+  ],
+  "sourcePins": [
+    "htdocs/games/arcade/session-bridge.mjs"
+  ],
+  "outputs": [
+    "htdocs/games/megaman/game-package.json",
+    "htdocs/games/megaman/network-package.json",
+    "htdocs/games/adventure-island-2/game-package.json",
+    "htdocs/games/adventure-island-2/network-package.json",
+    "htdocs/games/castlevania/game-package.json",
+    "htdocs/games/ikari-warriors/game-package.json",
+    "htdocs/games/bionic-commando/game-package.json",
+    "htdocs/games/zelda/game-package.json",
+    "htdocs/games/contra/game-package.json",
+    "htdocs/games/castlevania-3/game-package.json",
+    "htdocs/games/double-dragon-ii/game-package.json",
+    "htdocs/games/metroid/game-package.json",
+    "htdocs/games/the-guardian-legend/game-package.json",
+    "htdocs/games/super-mario-bros-3/game-package.json",
+    "htdocs/games/mike-tysons-punch-out/game-package.json",
+    "htdocs/games/super-mario-world/game-package.json",
+    "htdocs/games/zelda-a-link-to-the-past/game-package.json",
+    "tests/arcade-runtime-source-pins.json",
+    "htdocs/games/arcade/catalog.json",
+    "htdocs/games/netplay/catalog.json",
+    "includes/api/classes/netplay-catalog.json",
+    "includes/api/classes/NetplayPolicy.php"
+  ]
+}

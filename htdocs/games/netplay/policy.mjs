@@ -27,14 +27,18 @@ export function assignment(b,d){
 }
 export function validateSDP(d,watch){
  insist(d&&Object.keys(d).length===2&&['offer','answer'].includes(d.type)&&typeof d.sdp==='string'&&new TextEncoder().encode(d.sdp).length<=32768&&d.sdp.startsWith('v=0\r\n')&&!/[^\x09\x0a\x0d\x20-\x7e]/.test(d.sdp)&&!/\r(?!\n)/.test(d.sdp),'SDP envelope');
- const lines=d.sdp.split(/\r?\n/),sections=[];let current=null,candidates=0;insist(lines.length<=1024,'SDP lines');
+ const lines=d.sdp.split(/\r?\n/),sections=[],sessionDirections=[];let current=null,candidates=0;insist(lines.length<=1024,'SDP lines');
  for(const line of lines){
   insist(line.length<=1024,'SDP line size');if(line.startsWith('a=candidate:'))insist(++candidates<=64,'SDP candidates');
   insist(!watch||!/^(m=application\b|a=(sctp-port|sctpmap|max-message-size):)/.test(line),'Watcher data forbidden');
   if(line.startsWith('m=')){const m=/^m=(audio|video|application) ([1-9][0-9]{0,4}) ([A-Za-z0-9/]+) .+$/.exec(line);insist(m&&Number(m[2])<=65535&&m[3]===(m[1]==='application'?'UDP/DTLS/SCTP':'UDP/TLS/RTP/SAVPF'),'SDP media');current={kind:m[1],directions:[]};sections.push(current);}
-  const m=/^a=(sendonly|recvonly|sendrecv|inactive)$/.exec(line);if(m){insist(current,'Session media direction forbidden');current.directions.push(m[1]);}
+  const m=/^a=(sendonly|recvonly|sendrecv|inactive)$/.exec(line);if(m)(current?current.directions:sessionDirections).push(m[1]);
  }
  insist(sections.map(s=>s.kind).sort().join(',')===(watch?'audio,video':'application,audio,video'),'SDP sections');
- for(const s of sections)if(s.kind!=='application')insist(s.directions.length===1&&s.directions[0]===(d.type==='offer'?'sendonly':'recvonly'),'SDP direction');
+ insist(sessionDirections.length<=1,'SDP session direction');
+ for(const s of sections){
+  insist(s.directions.length<=1,'SDP duplicate direction');
+  if(s.kind!=='application')insist((s.directions[0]??sessionDirections[0])===(d.type==='offer'?'sendonly':'recvonly'),'SDP direction');
+ }
  insist(/^a=fingerprint:sha-256 (?:[a-fA-F0-9]{2}:){31}[a-fA-F0-9]{2}\r?$/m.test(d.sdp),'SDP fingerprint');return {type:d.type,sdp:d.sdp};
 }

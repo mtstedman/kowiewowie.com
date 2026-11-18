@@ -21,6 +21,14 @@ try{
  $joined=[];foreach([...$watch,$play] as $invite){$cred=bin2hex(random_bytes(32));$join=['room'=>$root['room'],'credential'=>$cred,'participant'=>$invite['participant'],'invite'=>$invite['invite'],'join_id'=>bin2hex(random_bytes(16))];$a=$call('join',$join);ok($call('join',$join)===$a,'Idempotent join');$joined[]=['room'=>$root['room'],'credential'=>$cred,'role'=>'guest','participant'=>$a['participant'],'participant_role'=>$a['participant_role'],'player'=>$a['player'],'session'=>$a['session']];}
  $w=$joined[0];$p=$joined[4];foreach([['credential'=>bin2hex(random_bytes(32))],['participant_role'=>'play'],['player'=>$b['players']['remote']],['session'=>bin2hex(random_bytes(16))],['role'=>'host'],['participant'=>$p['participant']]] as $bad)denied(fn()=>$call('ice',array_replace($w,$bad)));
  denied(fn()=>$call('input',$w+['controls'=>['a'=>true]]));denied(fn()=>$call('upgrade',$w));$ice=$call('ice',$w);ok($ice['expires_at']-$ice['server_time']>=599&&$ice['expires_at']-$ice['server_time']<=600,'Temporary TURN credential');
+ // Routing comes from the authenticated participant role on both peers.
+ foreach([$w,$p] as $participant){
+  $expected=$participant['participant_role']==='watch'?'relay':'all';
+  ok($call('ice',$participant)['iceTransportPolicy']===$expected,'Guest role routing policy');
+  $authority=array_replace($participant,['role'=>'host','credential'=>$root['credential']]);
+  ok($call('ice',$authority)['iceTransportPolicy']===$expected,'Host role routing policy');
+ }
+ putenv('WOWIE_NETPLAY_ICE_POLICY=relay');ok($call('ice',$p)['iceTransportPolicy']==='relay','Explicit relay fallback diagnostic preserved');putenv('WOWIE_NETPLAY_ICE_POLICY=all');
  $fingerprint=implode(':',str_split(bin2hex(random_bytes(32)),2));$sdp=fn(string $type,bool $data=false)=>['type'=>$type,'sdp'=>"v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=-\r\nt=0 0\r\na=fingerprint:sha-256 ".$fingerprint."\r\n".implode('',array_map(fn($k)=>'m='.$k." 9 UDP/TLS/RTP/SAVPF 96\r\na=".($type==='offer'?'sendonly':'recvonly')."\r\n",['audio','video'])).($data?"m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\na=sctp-port:5000\r\n":'')];
  $wa=array_replace($w,['role'=>'host','credential'=>$root['credential']]);$round=bin2hex(random_bytes(16));$call('begin',$wa+['previous'=>'','round'=>$round,'mode'=>'rebuild']);denied(fn()=>$call('signal',$wa+['round'=>$round,'description'=>$sdp('offer',true)]));$call('signal',$wa+['round'=>$round,'description'=>$sdp('offer')]);denied(fn()=>$call('signal',$w+['round'=>$round,'description'=>$sdp('answer',true)]));$call('signal',$w+['round'=>$round,'description'=>$sdp('answer')]);
  $call('revoke',$root+['participant'=>$w['participant'],'session'=>$w['session']]);denied(fn()=>$call('ice',$w));ok($call('ice',$joined[1])['available']===true,'Independent watcher survives revoke');
@@ -29,6 +37,22 @@ try{
  $db->exec("UPDATE romjs_netplay3_rooms SET created_at=clock_timestamp()-interval '30 days',host_lease_until=clock_timestamp()+interval '10 seconds'");$call('roster',$root);ok((float)$db->query('SELECT extract(epoch FROM host_lease_until-clock_timestamp()) FROM romjs_netplay3_rooms')->fetchColumn()>55,'No fixed active session age');
  $edit(function(&$s)use($joined){$s['participants'][$joined[1]['participant']]['guest_turn_until']=time()-1;});ok($call('ice',$joined[1])['expires_at']>=time()+599,'Renewed temporary credentials');
  $edit(function(&$s)use($joined){$s['participants'][$joined[2]['participant']]['seen']=time()-301;$s['host_poll']=0;});$roster=$call('roster',$root);ok(!in_array($joined[2]['participant'],array_column($roster['participants'],'participant'),true),'Stale viewer cleanup');ok($call('ice',$joined[1])['available']===true,'Cleanup is participant-local');
+ // Exhausting room-creation admission must not strand existing participants.
+ $slot=hexdec(substr(hash('sha256','192.0.2.10'),0,4))%1024;
+ foreach(['bucket','global'] as $limit){
+  $db->exec('UPDATE romjs_netplay_gate SET creates='.($limit==='global'?31:0).',create_window=now(),requests=0,window_at=now()');
+  $db->exec('UPDATE romjs_netplay_buckets SET creates='.($limit==='bucket'?7:0).',create_window=now(),requests=0,window_at=now() WHERE slot='.$slot);
+  try{$call('create');throw new RuntimeException('Exhausted create quota accepted');}catch(ApiException $e){ok($e->status===429,'Create admission remains limited');}
+  ok($call('capabilities')['available']===true,'Create quota does not block capabilities');
+  $edit(function(&$s)use($joined){$s['host_poll']=0;$s['participants'][$joined[1]['participant']]['guest_poll']=0;});
+  $call('roster',$root);
+  $call('poll',$joined[1]+['recover'=>'none','round'=>'']);
+  ok($call('ice',$joined[1])['available']===true,'Create quota does not block existing participant');
+ }
+ // General request limits still apply to non-create traffic.
+ $db->exec('UPDATE romjs_netplay_buckets SET requests=1200,window_at=now() WHERE slot='.$slot);
+ try{$call('capabilities');throw new RuntimeException('Request quota accepted');}catch(ApiException $e){ok($e->status===429,'Request limit preserved');}
+ $db->exec('UPDATE romjs_netplay_buckets SET requests=0,window_at=now() WHERE slot='.$slot);
  $call('end',$root);denied(fn()=>$call('ice',$joined[1]));ok((int)$db->query('SELECT count(*) FROM romjs_netplay3_rooms')->fetchColumn()===0,'All state revoked');
  $fixture=$b;$fixture['capabilities']['nativePlayers']=2;$fixture['capabilities']['play']='independent';$fixture['compatibility']='native-two/1';$fixture['players']['remote']='diagnostic-second-player';NetplayPolicy::classification($fixture);$fixture['players']['remote']=$fixture['players']['local'];denied(fn()=>NetplayPolicy::classification($fixture));
  echo json_encode(['status'=>'passed','scope'=>'disposable PostgreSQL authority regressions; no browser, gameplay or TURN execution'])."\n";

@@ -42,6 +42,7 @@ export function createSharing({loadBinding:readBinding=loadBinding,createBridge:
  function render(plan,e){
   if(!live(plan)||!plan.ui)return;
   const u=plan.ui;
+  if(e.receiverVideo){const mount=document.querySelector('[data-shared-receiver-video]');if(mount)mount.append(e.receiverVideo);}
   if(e.state)plan.state=e.state;
   const state=plan.state,visible=Boolean(state&&['host','guest','spectator'].includes(state.role)&&!['inactive','ended','incompatible'].includes(state.phase));
   u.panel.hidden=!visible;u.end.disabled=plan.ending;u.end.textContent=state?.role==='host'?'End sharing':'Leave shared game';

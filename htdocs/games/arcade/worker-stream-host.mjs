@@ -90,9 +90,9 @@ function pump(){
  }
  function enqueue(d){
   if(lastCycles===null){measuredAt=performance.now();measuredCycles=d.cycles;measuredFrames=presented;}
-  const now=clock(),duration=d.audio.length?d.audio.length/2/48000:
-    lastCycles===null?1/60.0988:(d.cycles-lastCycles)/CPU_HZ;
-  // Rebase after a real underrun, never stretch samples or accumulate stale work.
+  const now=clock(),duration=1/60;
+  // All native PCM is played on the same 60 Hz timeline as simulation.
+  // Rebase after a real underrun without accumulating stale work.
   // Prime once after a lifecycle barrier so initial playback has the configured lead.
   if(primeMedia){mediaNext=Math.max(mediaNext,now+bufferTarget);primeMedia=false;}
   if(mediaNext<now){bufferTarget=Math.min(.2,bufferTarget+.02);mediaNext=now+.012;fadeIn=true;}
@@ -168,10 +168,10 @@ function sound(samples,at){
   if(!audioClockActive||!ac||ac.state!=='running'||!samples.length)return;
   const n=samples.length/2,b=ac.createBuffer(2,n,48000);
   for(let ch=0;ch<2;ch++){const a=b.getChannelData(ch);for(let i=0;i<n;i++)a[i]=samples[2*i+ch];}
-  const source=ac.createBufferSource();source.buffer=b;source.connect(master);sources.add(source);
+  const source=ac.createBufferSource();source.buffer=b;source.playbackRate.value=n/48000*60;source.connect(master);sources.add(source);
   if(fadeIn){master.gain.setValueAtTime(0,at);master.gain.linearRampToValueAtTime(1,at+.005);fadeIn=false;}
   source.onended=()=>{sources.delete(source);source.disconnect();};
-  source.start(at);audioNext=at+n/48000;
+  source.start(at);audioNext=at+1/60;
 }
 function start(withAudio=true){
   if(closed)return;

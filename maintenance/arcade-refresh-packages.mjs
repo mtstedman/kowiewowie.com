@@ -8,7 +8,7 @@ import {parse} from 'acorn';
 import {canonical,validateManifest} from '../htdocs/games/arcade/package-contract.mjs';
 import {validateBinding} from '../htdocs/games/netplay/policy.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
-const args=process.argv.slice(2),write=args.includes('--write'),names=args.filter(a=>a!=='--write');
+const args=process.argv.slice(2),write=args.includes('--write'),simulationHz=args.includes('--simulation-hz=60')?60:null,names=args.filter(a=>a!=='--write'&&a!=='--simulation-hz=60');
 if(!names.length||names.some(a=>a.startsWith('--')))throw Error('Pass explicit reviewed relative source paths; optionally --write');
 const reviewedNames=new Set(names);
 const reviewed=new Set(names.map(name=>{
@@ -65,7 +65,8 @@ for(const row of catalog){
  if(hash(canonical(manifest))!==envelope.artifactDigest||row.artifactDigest!==envelope.artifactDigest||network.packages[row.id]?.artifactDigest!==envelope.artifactDigest)throw Error('Existing identity mismatch: '+row.id);
  const seeds=['/games/arcade/index.html','/games/arcade/ui.mjs','/games/arcade/host.mjs',...Object.keys(manifest.files).filter(p=>p.startsWith('/games/arcade/')&&p.endsWith('.mjs'))];
  const discovered=graph(seeds);for(const p of discovered)allGraph.add(p);
- const updated=[],added=[],derived=new Set();
+ const updated=[],added=[],derived=new Set(),timingChanged=simulationHz===60&&['NES','SNES'].includes(manifest.platform)&&manifest.timing.nominalHz!==60;
+ if(timingChanged)manifest.timing={...manifest.timing,nominalHz:60};
  if(manifest.platform==='NES'){
   const sideURL=manifest.route+'composition.json',side=JSON.parse(read(sideURL)),before=canonical(side),binding=canonical(side.binding),queue=Object.keys(side.moduleGraph).filter(url=>reviewed.has(url)),seen=new Set();
   while(queue.length){const url=queue.pop();if(seen.has(url))continue;seen.add(url);side.moduleGraph[url]=executableEdges(url);discovered.add(url);allGraph.add(url);for(const edge of side.moduleGraph[url])if(!Object.hasOwn(side.moduleGraph,edge.target)||reviewed.has(edge.target))queue.push(edge.target);}
@@ -79,17 +80,18 @@ for(const row of catalog){
   manifest.files[url]=actual;updated.push(url);
  }
  for(const url of discovered)if(!Object.hasOwn(manifest.files,url)){manifest.files[url]=pin(url);added.push(url);}
- if(!updated.length&&!added.length)continue;
+ if(!updated.length&&!added.length&&!timingChanged)continue;
  validateManifest(manifest);const artifactDigest=hash(canonical(manifest));envelope.artifactDigest=artifactDigest;row.artifactDigest=artifactDigest;
  network.packages[row.id]=validateBinding({...network.packages[row.id],artifactDigest});schedule(name,envelope);
  const legacy='htdocs'+manifest.route+'network-package.json';
  if(fs.existsSync(path.join(root,legacy))){const old=json(legacy);old.artifactDigest=artifactDigest;old.binding=network.packages[row.id];schedule(legacy,old);}
- reports.push({id:row.id,artifactDigest,updated,added});
+ reports.push({id:row.id,artifactDigest,updated,added,timingChanged});
 }
 const sourcePinsName='tests/arcade-runtime-source-pins.json',sourcePins=json(sourcePinsName),changedPins=[];
 for(const [name,record]of Object.entries(sourcePins.files)){
- if(!name.startsWith('htdocs/')&&!name.startsWith('tests/'))continue;const url=name.slice('htdocs'.length);
- if(reviewed.has(url)&&!same(record,pin(url))){sourcePins.files[name]=pin(url);changedPins.push(name);}
+ if(!reviewedNames.has(name))continue;
+ const actual=name.startsWith('htdocs/')?pin(name.slice('htdocs'.length)):(()=>{const b=fs.readFileSync(path.join(root,name));return {bytes:b.length,sha256:hash(b)};})();
+ if(!same(record,actual)){sourcePins.files[name]=actual;changedPins.push(name);}
 }
 for(const url of allGraph)if(url.endsWith('.mjs')&&!Object.hasOwn(sourcePins.files,'htdocs'+url)){sourcePins.files['htdocs'+url]=pin(url);changedPins.push('htdocs'+url);}
 if(changedPins.length)schedule(sourcePinsName,sourcePins);
@@ -101,4 +103,4 @@ if(reports.length){
  schedule(policy,source.replace(/private const DIGEST='[a-f0-9]{64}'/,"private const DIGEST='"+hash(raw)+"'"));
 }
 if(write)for(const [name,value]of pending)fs.writeFileSync(path.join(root,name),value);
-console.log(JSON.stringify({write,reviewed:[...reviewedNames],packages:reports,sourcePins:changedPins,outputs:[...pending.keys()]},null,2));
+console.log(JSON.stringify({write,simulationHz,reviewed:[...reviewedNames],packages:reports,sourcePins:changedPins,outputs:[...pending.keys()]},null,2));

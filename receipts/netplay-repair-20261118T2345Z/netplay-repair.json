@@ -1,0 +1,169 @@
+{
+  "format": "netplay-browser-repair/1",
+  "reports": [
+    {
+      "label": "webkit-play",
+      "role": "guest",
+      "canControl": true,
+      "workers": 0,
+      "channels": 1,
+      "bindings": [
+        {
+          "connected": true,
+          "tracks": [
+            "video"
+          ]
+        },
+        {
+          "connected": true,
+          "tracks": [
+            "video",
+            "audio"
+          ]
+        }
+      ],
+      "width": 256,
+      "height": 240,
+      "readyState": 3,
+      "muted": false,
+      "connected": true,
+      "inbound": [
+        {
+          "kind": "audio",
+          "framesDecoded": 0,
+          "packetsReceived": 20,
+          "totalAudioEnergy": 0.007282512634494808
+        },
+        {
+          "kind": "video",
+          "framesDecoded": 10,
+          "packetsReceived": 45,
+          "totalAudioEnergy": null
+        }
+      ],
+      "candidates": [
+        {
+          "local": "srflx",
+          "remote": "srflx"
+        }
+      ],
+      "policies": [
+        "all"
+      ]
+    },
+    {
+      "label": "webkit-watch",
+      "role": "spectator",
+      "canControl": false,
+      "workers": 0,
+      "channels": 0,
+      "bindings": [
+        {
+          "connected": true,
+          "tracks": [
+            "video"
+          ]
+        },
+        {
+          "connected": true,
+          "tracks": [
+            "video",
+            "audio"
+          ]
+        }
+      ],
+      "width": 256,
+      "height": 240,
+      "readyState": 3,
+      "muted": false,
+      "connected": true,
+      "inbound": [
+        {
+          "kind": "audio",
+          "framesDecoded": 0,
+          "packetsReceived": 19,
+          "totalAudioEnergy": 0.0028409225492358817
+        },
+        {
+          "kind": "video",
+          "framesDecoded": 9,
+          "packetsReceived": 48,
+          "totalAudioEnergy": null
+        }
+      ],
+      "candidates": [
+        {
+          "local": "relay",
+          "remote": "relay"
+        }
+      ],
+      "policies": [
+        "relay"
+      ]
+    },
+    {
+      "label": "chromium-watch",
+      "role": "spectator",
+      "canControl": false,
+      "workers": 0,
+      "channels": 0,
+      "bindings": [
+        {
+          "connected": true,
+          "tracks": [
+            "video"
+          ]
+        },
+        {
+          "connected": true,
+          "tracks": [
+            "audio",
+            "video"
+          ]
+        }
+      ],
+      "width": 256,
+      "height": 240,
+      "readyState": 4,
+      "muted": false,
+      "connected": true,
+      "inbound": [
+        {
+          "kind": "audio",
+          "framesDecoded": 0,
+          "packetsReceived": 14,
+          "totalAudioEnergy": 0
+        },
+        {
+          "kind": "video",
+          "framesDecoded": 5,
+          "packetsReceived": 41,
+          "totalAudioEnergy": null
+        }
+      ],
+      "candidates": [
+        {
+          "local": "relay",
+          "remote": "relay"
+        }
+      ],
+      "policies": [
+        "relay"
+      ]
+    },
+    {
+      "label": "independent-roles",
+      "nativeNES": true,
+      "guestSeat": 2,
+      "watchers": 2,
+      "guestPressRelease": true
+    },
+    {
+      "label": "cleanup",
+      "allParticipantsEnded": true,
+      "workersStopped": true
+    }
+  ],
+  "errors": [],
+  "scope": "Actual Contra emulation, one WebKit play participant and two independent WebKit/Chromium spectators; direct local play and authenticated loopback TURN for viewers, first-frame mounting, input ownership and cleanup. No production sessions or WAN quality claim."
+}

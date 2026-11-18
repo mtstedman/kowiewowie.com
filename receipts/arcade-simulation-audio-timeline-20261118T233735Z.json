@@ -1,0 +1,43 @@
+{
+  "format": "arcade-simulation-audio-timeline/1",
+  "passed": true,
+  "scope": "Independent analysis of previously recorded real WebAudio buffer scheduling during each ten-second sustained phase; at most60 scheduled frame buffers per rollingsecond, no overlap beyond AudioParam float precision.",
+  "reports": [
+    {
+      "id": "super-mario-world",
+      "trace": {
+        "path": "receipts/arcade-simulation-20261118T233735Z/super-mario-world-trace.json",
+        "bytes": 342009,
+        "sha256": "993725d720418c2cd4119bed2a782c2d52e3a1dfe5d16bfc076f3e72c56dc986"
+      },
+      "buffers": 597,
+      "maxScheduledStartsPerSecond": 60,
+      "minStartGapSeconds": 0.016666666666666607,
+      "maxOverlapSeconds": 0
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "trace": {
+        "path": "receipts/arcade-simulation-20261118T233735Z/zelda-a-link-to-the-past-trace.json",
+        "bytes": 339661,
+        "sha256": "bda5dcdce17a4e52e629ae3045bc27a826f225edd791c0180f65801771a8a209"
+      },
+      "buffers": 592,
+      "maxScheduledStartsPerSecond": 60,
+      "minStartGapSeconds": 0.016666666666666607,
+      "maxOverlapSeconds": 4.774332040824447e-10
+    },
+    {
+      "id": "megaman",
+      "trace": {
+        "path": "receipts/arcade-simulation-20261118T233735Z/megaman-trace.json",
+        "bytes": 323561,
+        "sha256": "86fc7600af3571c23122a28b7a9314292a7ee6576ce95396b0bfe857f863f72b"
+      },
+      "buffers": 597,
+      "maxScheduledStartsPerSecond": 60,
+      "minStartGapSeconds": 0.016666666666666607,
+      "maxOverlapSeconds": 4.774340922608644e-10
+    }
+  ]
+}

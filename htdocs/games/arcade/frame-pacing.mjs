@@ -2,7 +2,7 @@
 // and PCM clocks. A stalled display never earns a burst of catch-up draws.
 export const PRESENTATION_LIMIT_HZ=60;
 export function createFramePacer(){
- const period=1000/PRESENTATION_LIMIT_HZ,windowMs=1000,epsilon=1e-7;
+ const period=1000/PRESENTATION_LIMIT_HZ,windowMs=1000,epsilon=1e-7,deadlineTolerance=.2;
  let deadline=null,lastTime=null,total=0;const recent=[];
  function trim(now){while(recent.length&&recent[0]<=now-windowMs+epsilon)recent.shift();}
  function sample(now){
@@ -13,7 +13,9 @@ export function createFramePacer(){
  return Object.freeze({
   take(now){
    sample(now);
-   if(recent.length>=PRESENTATION_LIMIT_HZ||(deadline!==null&&now+epsilon<deadline))return false;
+   // Browser vsync timestamps are rounded; accept up to 0.2 ms of that
+   // rounding while the actual presentation history still enforces the cap.
+   if(recent.length>=PRESENTATION_LIMIT_HZ||(deadline!==null&&now+deadlineTolerance<deadline))return false;
    // Keep a steady phase across normal vsync rounding. If a whole deadline
    // was missed, discard that timing debt rather than presenting it later.
    deadline=deadline===null||now-deadline>=period?now+period:deadline+period;

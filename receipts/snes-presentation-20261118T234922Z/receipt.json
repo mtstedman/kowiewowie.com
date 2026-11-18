@@ -1,0 +1,149 @@
+{
+  "format": "snes-presentation-evidence/1",
+  "recordedAt": "2026-11-18T23:49:22.586632+00:00",
+  "scope": "Headless Chromium, actual two SNES ROMs, direct maintained runtime, local HTTP server with arcade CSP. Canvas putImageData counts measured across ten seconds after 1.5 seconds warmup. This does not qualify sharing or wide-area network quality.",
+  "before": {
+    "measurements": "before.jsonl",
+    "sourceProvenance": "Run used the then-dirty working tree. Hashes recovered afterward from the independently preserved frozen source snapshot /tmp/arcade-simulation-source-2a9TbU/htdocs. Diff reviewed: only the subsequently authored presentation clock/deadband and pacer tolerance changes differ. These are NOT final-source hashes and were NOT captured during the original run.",
+    "sources": {
+      "htdocs/games/arcade/snes-runtime.mjs": {
+        "bytes": 8356,
+        "sha256": "b7592d0118aba652d9e7551071c832efe15f1a6a37ac4b209980bb3fd45e527d"
+      },
+      "htdocs/games/arcade/frame-pacing.mjs": {
+        "bytes": 1351,
+        "sha256": "b5c94eb3ae657eb10aeacf011ee90f7900ec53e92ebd02e275e7aa8a59ccc1b0"
+      },
+      "htdocs/games/arcade/simulation-clock.mjs": {
+        "bytes": 1200,
+        "sha256": "d68c327a65bb53c97432f365a9b8f6399f72495cb7cee792a648f4fe481403f2"
+      },
+      "htdocs/games/arcade/snes-storage.mjs": {
+        "bytes": 1147,
+        "sha256": "fb9b8956ea44b845104859ec9a812d03cf682d8aa89028d2edad916ad660f115"
+      },
+      "htdocs/games/engines/snes/frame-executor.mjs": {
+        "bytes": 930,
+        "sha256": "fb31e275ecd2cc1bc9866ce879a209678ac555dac235dab280227adfa639b90f"
+      },
+      "htdocs/games/engines/snes/worker.mjs": {
+        "bytes": 1311,
+        "sha256": "24dbceb4e96f809b68c66d78f454094880533d8f6988c0dbfa19dd937adcabc4"
+      },
+      "htdocs/games/engines/snes/runner.mjs": {
+        "bytes": 6478,
+        "sha256": "5ec20b001099d22a1ff078261565597b935b6e4c13be6f05744dabf208874ec0"
+      },
+      "htdocs/games/engines/snes/posse-snes.cjs": {
+        "bytes": 64682,
+        "sha256": "0970d8ce46aeeafbead9696b545ab5c9da2da9a44f9c1acd502cc8b143e21a56"
+      },
+      "htdocs/games/engines/snes/posse-snes.wasm": {
+        "bytes": 2185357,
+        "sha256": "0e694cf9d404408ca45b817dcf4fc6478480802bc1b1f84cfc633152d656470c"
+      },
+      "htdocs/games/super-mario-world/host-entry.mjs": {
+        "bytes": 802,
+        "sha256": "99277bac1f5f2094fa0dd8726fcde2ddbd5fda01320489f5aa554b446ae0c864"
+      },
+      "htdocs/games/super-mario-world/source.sfc": {
+        "bytes": 524288,
+        "sha256": "0838e531fe22c077528febe14cb3ff7c492f1f5fa8de354192bdff7137c27f5b"
+      },
+      "htdocs/games/zelda-a-link-to-the-past/host-entry.mjs": {
+        "bytes": 811,
+        "sha256": "ef1c18328fb2cd638d6411e4a97e01a216e897c4a523d7bd7b76f62af14211e0"
+      },
+      "htdocs/games/zelda-a-link-to-the-past/source.sfc": {
+        "bytes": 1048576,
+        "sha256": "66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb"
+      }
+    }
+  },
+  "after": {
+    "measurements": "after.jsonl",
+    "sourceProvenance": "Hashes recorded after the final successful run while the runtime files remained frozen. The probe reads these maintained runtime/core files directly; package inventory freshness is outside this focused test.",
+    "sources": {
+      "htdocs/games/arcade/snes-runtime.mjs": {
+        "bytes": 9043,
+        "sha256": "f5eda3f72a5ee0abea4d4a77044f3003932fb7c03b1f5d7fde4021b90f78bcc8"
+      },
+      "htdocs/games/arcade/frame-pacing.mjs": {
+        "bytes": 1531,
+        "sha256": "5d5a77ea31e257546321c0932d48007114d44a2cedd210f127da7317646c4adb"
+      },
+      "htdocs/games/arcade/simulation-clock.mjs": {
+        "bytes": 1200,
+        "sha256": "d68c327a65bb53c97432f365a9b8f6399f72495cb7cee792a648f4fe481403f2"
+      },
+      "htdocs/games/arcade/snes-storage.mjs": {
+        "bytes": 1147,
+        "sha256": "fb9b8956ea44b845104859ec9a812d03cf682d8aa89028d2edad916ad660f115"
+      },
+      "htdocs/games/engines/snes/frame-executor.mjs": {
+        "bytes": 930,
+        "sha256": "fb31e275ecd2cc1bc9866ce879a209678ac555dac235dab280227adfa639b90f"
+      },
+      "htdocs/games/engines/snes/worker.mjs": {
+        "bytes": 1311,
+        "sha256": "24dbceb4e96f809b68c66d78f454094880533d8f6988c0dbfa19dd937adcabc4"
+      },
+      "htdocs/games/engines/snes/runner.mjs": {
+        "bytes": 6478,
+        "sha256": "5ec20b001099d22a1ff078261565597b935b6e4c13be6f05744dabf208874ec0"
+      },
+      "htdocs/games/engines/snes/posse-snes.cjs": {
+        "bytes": 64682,
+        "sha256": "0970d8ce46aeeafbead9696b545ab5c9da2da9a44f9c1acd502cc8b143e21a56"
+      },
+      "htdocs/games/engines/snes/posse-snes.wasm": {
+        "bytes": 2185357,
+        "sha256": "0e694cf9d404408ca45b817dcf4fc6478480802bc1b1f84cfc633152d656470c"
+      },
+      "htdocs/games/super-mario-world/host-entry.mjs": {
+        "bytes": 802,
+        "sha256": "99277bac1f5f2094fa0dd8726fcde2ddbd5fda01320489f5aa554b446ae0c864"
+      },
+      "htdocs/games/super-mario-world/source.sfc": {
+        "bytes": 524288,
+        "sha256": "0838e531fe22c077528febe14cb3ff7c492f1f5fa8de354192bdff7137c27f5b"
+      },
+      "htdocs/games/zelda-a-link-to-the-past/host-entry.mjs": {
+        "bytes": 811,
+        "sha256": "ef1c18328fb2cd638d6411e4a97e01a216e897c4a523d7bd7b76f62af14211e0"
+      },
+      "htdocs/games/zelda-a-link-to-the-past/source.sfc": {
+        "bytes": 1048576,
+        "sha256": "66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb"
+      }
+    }
+  },
+  "probe": {
+    "file": "probe.mjs",
+    "source": {
+      "bytes": 2549,
+      "sha256": "f82a9215fd37e292b194d10f71de22b45198fed704f2079c0afc6f39bfdb1011"
+    }
+  },
+  "limits": [
+    "Short local run, not a two-minute native frame cap qualification; independent simulation suite provides that evidence.",
+    "Before and after source fingerprints were recorded after their runs, not by a continuous source-integrity monitor."
+  ],
+  "evidence": {
+    "before.jsonl": {
+      "bytes": 1398,
+      "sha256": "bf65d1159390ea2ced88dd30b24054a6f3765cf61c77c1fa62992c3265ecb8eb",
+      "originalModifiedAt": "2026-11-18T23:44:16.082695+00:00"
+    },
+    "after.jsonl": {
+      "bytes": 1374,
+      "sha256": "4bbc2c26461094fb6a6cc2943db4de7761ad0baea4c5a3da325fc207de862428",
+      "originalModifiedAt": "2026-11-18T23:47:37.893741+00:00"
+    },
+    "probe.mjs": {
+      "bytes": 2549,
+      "sha256": "f82a9215fd37e292b194d10f71de22b45198fed704f2079c0afc6f39bfdb1011",
+      "originalModifiedAt": "2026-11-18T23:43:51.623565+00:00"
+    }
+  }
+}

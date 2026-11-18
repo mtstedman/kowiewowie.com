@@ -1,11 +1,12 @@
 import {BrowserSnesRunner} from './runner.mjs';
-let runner=null,chain=Promise.resolve();
+import {createSnesFrameExecutor} from './frame-executor.mjs';
+let runner=null,executor=null,chain=Promise.resolve();
 self.onmessage=({data:request})=>{chain=chain.then(async()=>{
  const {id,op}=request;let result;
  try{
-  if(op==='init'){if(runner)throw Error('SNES worker already initialized');runner=await BrowserSnesRunner.create(request.config,{sampleRate:request.sampleRate});if(request.battery)await runner.importBattery(request.battery);result=runner.info();}
+  if(op==='init'){if(runner)throw Error('SNES worker already initialized');runner=await BrowserSnesRunner.create(request.config,{sampleRate:request.sampleRate});if(request.battery)await runner.importBattery(request.battery);executor=createSnesFrameExecutor(runner);result={...runner.info(),simulationHz:executor.snapshot().hz};}
   else {if(!runner)throw Error('SNES worker not initialized');
-   if(op==='frame'){for(let p=0;p<2;p++)runner.input(p+1,request.pads[p]);result=runner.step();}
+   if(op==='frame')result=await executor.frame(request.pads);
    else if(op==='reset'){runner.reset();result=runner.info();}
    else if(op==='save')result=await runner.save();
    else if(op==='load'){await runner.load(request.record);result=runner.info();}

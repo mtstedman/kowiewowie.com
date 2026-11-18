@@ -1,0 +1,21 @@
+✖ NES host streams on first join to WebKit play and two independent WebKit/Firefox watchers (78700.762867ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79510.987392
+
+✖ failing tests:
+
+test at tests/netplay-repair.browser.mjs:49:1
+✖ NES host streams on first join to WebKit play and two independent WebKit/Firefox watchers (78700.762867ms)
+  page.waitForFunction: Timeout 60000ms exceeded.
+      at until (/tmp/combined-lab-_6ci7sj6/site/tests/netplay-repair.browser.mjs:15:41)
+      at receive (/tmp/combined-lab-_6ci7sj6/site/tests/netplay-repair.browser.mjs:32:26)
+      at async TestContext.<anonymous> (/tmp/combined-lab-_6ci7sj6/site/tests/netplay-repair.browser.mjs:55:47) {
+    name: 'TimeoutError',
+    log: []
+  }

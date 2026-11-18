@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "scope": "Sustained PCM schedule timestamps, independent of canvas and requests; initial buffering and deliberate stalls excluded",
+  "reports": [
+    {
+      "id": "super-mario-world",
+      "steadyBuffers": 597,
+      "maxStartsPerRollingSecond": 60,
+      "minScheduledGapSeconds": 0.016666666666666607,
+      "maxScheduledGapSeconds": 0.016729166666666906,
+      "maxOverlapSeconds": 0
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "steadyBuffers": 596,
+      "maxStartsPerRollingSecond": 60,
+      "minScheduledGapSeconds": 0.016666666666666607,
+      "maxScheduledGapSeconds": 0.07700000000001594,
+      "maxOverlapSeconds": 4.774332040824447e-10
+    },
+    {
+      "id": "megaman",
+      "steadyBuffers": 589,
+      "maxStartsPerRollingSecond": 60,
+      "minScheduledGapSeconds": 0.016666666666666607,
+      "maxScheduledGapSeconds": 0.042666666666663744,
+      "maxOverlapSeconds": 4.774340922608644e-10
+    }
+  ]
+}

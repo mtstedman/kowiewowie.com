@@ -45,9 +45,9 @@ test('cache cannot authorize changed pins or malformed import graphs',async()=>{
 });
 test('audio producer reuses returned exact-length PCM buffers, bounded across changes and reset',async()=>{
  const {createProducer,RGBA_BYTES,CAPACITY}=await import(pathToFileURL(root+'/htdocs/games/arcade/worker-stream-producer.mjs'));
- let frames=0,seq=0,task,received;const offered=[],buffers=[];
+ let frames=0,seq=0,now=0,task,received;const offered=[],buffers=[];
  const machine={setButton(){},frame(){return {state:{frames:++frames,cycles:frames*29781}};},getRGBA(buffer){return new Uint8ClampedArray(buffer||new ArrayBuffer(RGBA_BYTES));},audioLength(){return frames%2?1600:1602;},takeAudio(buffer){offered.push(buffer);const a=buffer?new Float32Array(buffer):new Float32Array(this.audioLength());a.fill(frames);return a;}};
- const producer=createProducer({machine,post:m=>{received=m;},schedule:f=>{task=f;return 1;},cancel:()=>{task=null;}});
+ const producer=createProducer({machine,now:()=>now,post:m=>{received=m;},schedule:(f,delay)=>{task=()=>{now+=delay;f();};return 1;},cancel:()=>{task=null;}});
  const send=(type,extra={})=>producer.receive({type,epoch:1,seq:++seq,...extra});send('sync');let returns=[];
  for(let i=0;i<CAPACITY*3;i++){
   send('grant',{count:1,returns});const f=task;task=null;f();assert.equal(received.type,'frame');assert.equal(received.audio[0],i+1);buffers.push(received.audio.buffer);

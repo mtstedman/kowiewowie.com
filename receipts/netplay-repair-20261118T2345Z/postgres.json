@@ -1,0 +1,13 @@
+{
+  "format": "combined-lab-receipt/1",
+  "mode": "postgres",
+  "run": true,
+  "pass": true,
+  "job": "/tmp/combined-lab-xkigc9f0",
+  "production_access": false,
+  "detail": {
+    "status": "passed",
+    "scope": "disposable PostgreSQL authority regressions; no browser, gameplay or TURN execution"
+  },
+  "cleanup_pass": true
+}

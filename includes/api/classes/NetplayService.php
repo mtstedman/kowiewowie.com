@@ -29,7 +29,7 @@ final class NetplayService
  private function fail(int $status,string $message,string $code='netplay_error'): never {throw new ApiException($status,$code,$message);}
  private function query(string $sql,array $args=[]): \PDOStatement {$q=$this->pdo->prepare($sql);$q->execute($args);return $q;}
  private function identity(mixed $v,int $length): string {if(!is_string($v)||!preg_match('/\A[a-f0-9]{'.$length.'}\z/',$v))$this->fail(422,'Invalid session identity.');return $v;}
- private function ice(string $room='',string $role='',int $until=0): array {
+ private function ice(string $room='',string $role='',int $until=0,bool $watch=false): array {
   $turn=$this->config->csv('WOWIE_NETPLAY_TURN_URLS');$stun=$this->config->csv('WOWIE_NETPLAY_STUN_URLS');
   $turnKey=$this->config->get('WOWIE_NETPLAY_TURN_SECRET','');$policy=$this->config->get('WOWIE_NETPLAY_ICE_POLICY','all');
   $available=$this->config->boolean('WOWIE_NETPLAY_ENABLED',false)&&count($turn)>0&&count($turn)<=6&&count($stun)<=2&&strlen($turnKey)>=32&&strlen($turnKey)<=256&&in_array($policy,['all','relay'],true);
@@ -40,7 +40,8 @@ final class NetplayService
   $now=time();$username=$until.':'.$room.':'.$role;
   $servers=[];if($stun!==[])$servers[]=['urls'=>$stun];
   $servers[]=['urls'=>$turn,'username'=>$username,'credential'=>base64_encode(hash_hmac('sha1',$username,$turnKey,true))];
-  return ['available'=>true,'iceServers'=>$servers,'iceTransportPolicy'=>$policy,'server_time'=>$now,'expires_at'=>$until,'refresh_after_seconds'=>max(1,min(420,$until-$now-180))];
+  // Players prefer direct ICE paths by default; authenticated watchers always relay.
+  return ['available'=>true,'iceServers'=>$servers,'iceTransportPolicy'=>$watch?'relay':$policy,'server_time'=>$now,'expires_at'=>$until,'refresh_after_seconds'=>max(1,min(420,$until-$now-180))];
  }
  private function rate(Request $r,bool $create): void {
   $slot=hexdec(substr(hash('sha256',(string)$r->remoteAddress),0,4))%1024;$this->pdo->beginTransaction();
@@ -49,7 +50,7 @@ final class NetplayService
    $this->query('SELECT singleton FROM romjs_netplay_gate WHERE singleton=true FOR UPDATE')->fetch();
    $g=$this->query("UPDATE romjs_netplay_gate SET requests=CASE WHEN window_at<now()-interval '1 second' THEN 1 ELSE LEAST(requests+1,1000000) END,window_at=CASE WHEN window_at<now()-interval '1 second' THEN now() ELSE window_at END,creates=CASE WHEN create_window<now()-interval '1 minute' THEN :inc ELSE LEAST(creates+:inc2,1000000) END,create_window=CASE WHEN create_window<now()-interval '1 minute' THEN now() ELSE create_window END WHERE singleton=true RETURNING requests,creates",['inc'=>(int)$create,'inc2'=>(int)$create])->fetch();
    $b=$this->query("UPDATE romjs_netplay_buckets SET requests=CASE WHEN window_at<now()-interval '1 minute' THEN 1 ELSE LEAST(requests+1,1000000) END,window_at=CASE WHEN window_at<now()-interval '1 minute' THEN now() ELSE window_at END,creates=CASE WHEN create_window<now()-interval '10 minutes' THEN :inc ELSE LEAST(creates+:inc2,1000000) END,create_window=CASE WHEN create_window<now()-interval '10 minutes' THEN now() ELSE create_window END WHERE slot=:slot RETURNING requests,creates",['inc'=>(int)$create,'inc2'=>(int)$create,'slot'=>$slot])->fetch();
-   $this->pdo->commit();if(!$g||!$b||$g['requests']>300||$g['creates']>30||$b['requests']>1200||$b['creates']>6)$this->fail(429,'Request limit reached. Retry later.');
+   $this->pdo->commit();if(!$g||!$b||$g['requests']>300||$b['requests']>1200||($create&&($g['creates']>30||$b['creates']>6)))$this->fail(429,'Request limit reached. Retry later.');
   }catch(Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();throw $e;}
  }
  private function tokenHash(string $room,string $participant,string $role,?string $player,string $kind,string $token): string {return hash('sha256','np3|'.$room.'|'.$participant.'|'.$role.'|'.($player??'none').'|'.$kind.'|'.$token);}
@@ -136,7 +137,7 @@ final class NetplayService
        $result+=['round'=>$p['round'],'mode'=>$p['mode'],'recover'=>$p['recovery'],'peer_live'=>($side==='host'?$p['seen']:$s['host_seen'])>$now-15,'message'=>null,'host_lease_seconds'=>60];
        $other=$side==='host'?'guest':'host';if($p[$other.'_sdp']!==null)$result['message']=['round'=>$p['round'],'description'=>['type'=>$side==='host'?'answer':'offer','sdp'=>$p[$other.'_sdp']]];
       }elseif($action==='ice'){
-       $until=$p[$side.'_turn_until'];if($until<=time()+180)$until=time()+600;$p[$side.'_turn_until']=$until;$result+=$this->ice($id,$pid.':'.$p['session'].':'.$side,$until);
+       $until=$p[$side.'_turn_until'];if($until<=time()+180)$until=time()+600;$p[$side.'_turn_until']=$until;$result+=$this->ice($id,$pid.':'.$p['session'].':'.$side,$until,$p['role']==='watch');
       }elseif($action==='begin'){
        if($side!=='host')$this->fail(403,'Only host negotiates.');$round=$this->identity($d['round'],32);
        if(!is_string($d['previous'])||($d['previous']!==''&&!preg_match('/\A[a-f0-9]{32}\z/',$d['previous']))||!in_array($d['mode'],['restart','rebuild'],true))$this->fail(422,'Invalid round.');
