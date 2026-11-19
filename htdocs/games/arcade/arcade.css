@@ -1,84 +1,191 @@
-:root{color-scheme:dark;--bg:#211f1d;--panel:#2c2926;--cream:#f5e8ce;--muted:#cbbfae;--coral:#ff9a83;--edge:#756b60;--ink:#231e1b}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0,#39302a 0,transparent 65%),var(--bg);color:var(--cream);font:1rem/1.5 system-ui,sans-serif}a{color:var(--coral);text-underline-offset:.2em}button,select{font:inherit;color:var(--cream);background:#38332d;border:1px solid #958777;border-radius:.5rem;padding:.65rem .9rem;min-height:44px;cursor:pointer}button:hover:not(:disabled){background:#504237}button:disabled{opacity:.55;cursor:not-allowed}button.primary{background:var(--coral);border-color:var(--coral);color:var(--ink);font-weight:750}button.primary:hover:not(:disabled){background:#ffb49e}button[aria-pressed=true]{outline:3px solid var(--coral)}:focus-visible{outline:3px solid #ffd48f;outline-offset:4px}.skip-link{position:absolute;left:1rem;top:-5rem;z-index:10;background:var(--cream);color:var(--ink);padding:.8rem}.skip-link:focus{top:1rem}.masthead{max-width:1080px;margin:auto;padding:1.2rem 1rem;display:flex;justify-content:space-between;gap:1rem}.masthead a:first-child{font-weight:800;color:var(--cream)}main{max-width:980px;margin:0 auto;padding:0 1rem}.heading{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin:1rem 0 1.2rem}.eyebrow,.series{font-size:.72rem;text-transform:uppercase;letter-spacing:.13em;color:var(--muted)}h1{font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.1;margin:.3rem 0}h2{font-size:1.15rem;margin:0}.edition{font-size:.8rem;color:var(--muted);text-align:right}#player{background:var(--panel);border:1px solid var(--edge);padding:clamp(.65rem,2vw,1.25rem);border-radius:1rem;box-shadow:0 16px 40px #0005}.player-heading{display:flex;gap:.8rem;align-items:center;justify-content:space-between;margin-bottom:.8rem}.badge{font-size:.75rem;padding:.2rem .65rem;border:1px solid var(--edge);border-radius:2rem}.video-frame{display:grid;place-items:center;width:100%;background:#0b0b0b;border:6px solid #171512;border-radius:.5rem;overflow:hidden;min-width:0}.nes-view canvas{display:block;width:min(100%,768px);height:auto;aspect-ratio:256/240;image-rendering:pixelated;background:#050505}#surface video,#surface canvas,#session-surface video{max-width:100%;display:block;margin:auto}#session-surface video{width:100%;max-height:75vh}#idle-screen{display:grid;align-content:center;text-align:center;background:radial-gradient(ellipse,#383027,#171512);padding:2rem;min-height:320px;border-radius:.5rem}#idle-screen>p:last-child{font:700 clamp(1.2rem,4vw,2.7rem)/1.3 Georgia,serif}#player-state{min-height:1.5em;margin:.65rem 0;font-size:.9rem}.toolbar,.invite-row{display:flex;gap:.5rem;flex-wrap:wrap}.invite-row{margin-top:.9rem}.quiet{font-size:.8rem;color:var(--muted);margin:.4rem 0}details{border-top:1px solid #62584c;margin-top:.65rem;padding-top:.3rem;font-size:.9rem}summary{padding:.6rem .1rem;cursor:pointer;min-height:44px}details p{max-width:75ch}.button-controller{display:flex;flex-wrap:wrap;gap:.35rem}#diagnostic{overflow-wrap:anywhere;font:.8rem/1.5 ui-monospace,monospace}#library{padding:1.6rem 0}.shelf-heading{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}.shelf-heading p{font-size:.85rem;color:var(--muted)}fieldset{border:0;margin:0;padding:0}.shelf{display:flex;gap:1rem;overflow-x:auto;padding:1.3rem .5rem .9rem;border-bottom:8px solid #5d4938;box-shadow:0 7px 0 #171512}.cartridge{display:block;position:relative;cursor:pointer;flex:0 0 174px}.cartridge input{position:absolute;width:1px;height:1px;opacity:0}.cartridge-body{display:block;background:linear-gradient(90deg,#5e5b54 0 6%,#807b70 6% 94%,#57544e 94%);border:2px solid #b4aa98;border-radius:.4rem .4rem .2rem .2rem;padding:.8rem .9rem .5rem;box-shadow:0 8px 10px #0005}.cartridge input:focus-visible+.cartridge-body{outline:3px solid #ffd48f;outline-offset:5px}.cartridge input:checked+.cartridge-body{border-color:var(--coral);box-shadow:0 0 0 3px var(--coral),0 8px 10px #0005}.cartridge-label{display:flex;flex-direction:column;min-height:210px;background:#303e39;color:#fff2d9;border:1px solid #17232f;border-radius:.25rem;overflow:hidden}.cartridge-label .series{font-size:.55rem;color:#f2d9b1;padding:.45rem .5rem .1rem;letter-spacing:.07em}.cartridge-label strong{display:block;font-weight:900;font-size:1.2rem;line-height:1.1;padding:.4rem .5rem}.cartridge-label img{display:block;width:100%;height:96px;object-fit:cover;image-rendering:pixelated;margin-top:auto}.label-space{min-height:72px;flex:1}.cartridge-meta{font-size:.63rem;padding:.4rem .5rem;letter-spacing:.08em;text-transform:uppercase}.cartridge-grip{display:block;height:20px;margin:.6rem .4rem 0;border-top:3px solid #514e48;border-bottom:3px solid #514e48;box-shadow:inset 0 5px #969083,inset 0 8px #514e48}.load-row{display:flex;align-items:center;flex-wrap:wrap;gap:1rem;margin:1.2rem 0 .5rem}.load-row p{font-size:.9rem}.touch-overlay{display:grid;grid-template-columns:132px 1fr auto;align-items:center;gap:.5rem;margin:.75rem 0;padding:.75rem 0;user-select:none;-webkit-user-select:none}.touch-overlay button,.touch-dpad{touch-action:none;-webkit-touch-callout:none}.touch-dpad{display:grid;grid-template:repeat(3,44px)/repeat(3,44px);width:132px;height:132px}.touch-dpad button{padding:0;font-size:1.1rem;min-width:44px}.dpad-up{grid-area:1/2}.dpad-left{grid-area:2/1}.dpad-center{grid-area:2/2;background:#4d453b}.dpad-right{grid-area:2/3}.dpad-down{grid-area:3/2}.touch-actions{display:flex;gap:.5rem}.touch-actions button{width:52px;height:52px;border-radius:50%;font-weight:800;background:#84483d}.touch-menu{display:flex;justify-content:center;gap:.35rem;flex-wrap:wrap}.touch-menu button{font-size:.8rem;padding:.35rem .5rem}#player[data-touch=off] .touch-overlay{display:none}@media(any-pointer:fine){#player[data-touch=auto] .touch-overlay{display:none}}footer{text-align:center;padding:1rem;color:var(--muted);font-size:.8rem}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}[hidden]{display:none!important}#player:fullscreen{overflow:auto;border-radius:0;padding:max(.65rem,env(safe-area-inset-top));background:var(--bg)}#player:fullscreen canvas{max-height:70dvh;width:auto;max-width:100%}@media(max-width:600px){.heading{align-items:start}.edition{max-width:8rem}.toolbar button{flex:1 0 auto}.touch-overlay{grid-template-columns:132px 1fr}.touch-actions{justify-content:flex-end}.touch-menu{grid-column:1/-1;grid-row:2}.shelf-heading{display:block}.shelf-heading p{margin:.25rem 0}.cartridge{flex-basis:150px}.cartridge-body{padding:.6rem .6rem .4rem}.cartridge-label strong{font-size:1rem}.shelf{gap:.8rem}#player{padding:.65rem}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+/* Game arcade. Surface dimensions and lifecycle remain adapter-owned. */
+:root{color-scheme:dark;--bg:#1d1c1a;--panel:#292623;--well:#171512;--cream:#f5e8ce;--muted:#b9ad9b;--coral:#ff9a83;--amber:#f0b45c;--edge:#5a5148;--line:#3d3730;--ink:#231e1b;
+ /* One cabinet-art pixel. The art is 1248x832 and is sliced, never stretched out of proportion. */
+ --u:calc(min(100svh,62vw)/832);--rail:calc(var(--u)*166);--marquee:calc(var(--u)*128);--load-h:2.4rem}
+*{box-sizing:border-box}
+html{scroll-padding-top:calc(var(--marquee) + .5rem)}
+body{margin:0;min-height:100svh;isolation:isolate;background:var(--bg);color:var(--cream);font:1rem/1.5 system-ui,sans-serif}
+[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 
-/* Visual polish only. Surface dimensions and lifecycle remain adapter-owned. */
-.masthead{max-width:980px;padding:.85rem 1rem}
-.heading{margin:.5rem 0 1rem;align-items:center}
-.heading .eyebrow{margin:0 0 .3rem;letter-spacing:.06em;text-transform:none;font-size:.9rem}
-h1{font-size:clamp(1.7rem,4vw,2.25rem)}
-#player{scroll-margin-top:1rem}
-#player[data-state=library]{padding:0;border:0;background:none;box-shadow:none}
-#player[data-state=library]>:not(#player-state){display:none!important}
-#player-state:empty{display:none}
-#idle-screen{display:none!important;min-height:0;padding:0}
-#player>.toolbar{margin:0 0 .8rem;align-items:center}
-#change{margin-left:auto;border-color:var(--coral);color:var(--coral);font-weight:650}
-.video-frame{max-width:426px;margin-inline:auto}
-.nes-view canvas{width:100%;height:auto}
-.nes-view>.quiet:empty{display:none}
-#session-surface video{width:auto;max-width:100%;max-height:400px}
-#library{padding:1rem 0}
-.shelf-heading{align-items:center}
-.shelf-heading p{margin:.3rem 0}
-.shelf{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,190px));gap:1rem;padding:1rem .4rem .9rem;overflow:visible}
-.cartridge-choice{display:flex;flex-direction:column;min-width:0;gap:.7rem}
-.cartridge{flex:none;width:100%}
-.cartridge-label{min-height:200px}
-.cartridge-label strong{min-height:3.1rem}
-.cartridge-label img{height:112px;object-fit:contain;background:#111}
-.load-cartridge{width:100%;font-weight:650;padding:.5rem .65rem;min-height:44px}
-.load-row{display:none}
-.cartridge:has(input:disabled){opacity:.6;cursor:not-allowed}
+/* Cabinet art: fixed side rails behind the page, and the marquee arch above it.
+   Both are nine-slices of the same image, so the rails and arch corners keep their
+   proportions at every viewport and only the plain middle stretches. */
+body::before,body::after{content:"";position:fixed;top:0;left:0;right:0;pointer-events:none;border:0 solid transparent;border-image-source:url('/games/arcade/art/cabinet-surround-v1.png');border-image-slice:128 300 0 300 fill;border-image-width:calc(var(--u)*128) calc(var(--u)*300) 0;border-image-repeat:stretch}
+body::before{z-index:-1;height:calc(var(--u)*832);-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+body::after{z-index:3;height:var(--marquee);-webkit-mask-image:linear-gradient(#000 80%,transparent);mask-image:linear-gradient(#000 80%,transparent)}
+
+a{color:var(--coral);text-underline-offset:.2em}
+:focus-visible{outline:3px solid #ffd48f;outline-offset:3px}
+button,select,input[type=text]{font:inherit;font-size:.9rem;color:var(--cream);background:#37322c;border:1px solid #6b6156;border-radius:.6rem;padding:.5rem .9rem;min-height:44px}
+button{cursor:pointer;font-weight:600;box-shadow:inset 0 1px #ffffff12,0 1px 0 #0007;transition:background-color .12s,color .12s,border-color .12s,transform .06s}
+select{cursor:pointer;max-width:100%}
+button:hover:not(:disabled){background:#4a4239}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled,select:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--coral);border-color:var(--coral);color:var(--ink);font-weight:750}
+button.primary:hover:not(:disabled){background:#ffb49e}
+button[aria-pressed=true]{background:#5a4a3c;border-color:var(--amber);color:#ffe3b0}
+.skip-link{position:absolute;left:1rem;top:-5rem;z-index:10;background:var(--cream);color:var(--ink);padding:.8rem;border-radius:.4rem}
+.skip-link:focus{top:1rem}
+
+/* Page frame: everything sits inside the cabinet opening. */
+.masthead,main,footer{width:calc(100% - 2*var(--rail) - 2rem);max-width:980px;margin-inline:auto}
+.masthead{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:calc(var(--marquee) + .15rem) 0 .4rem;font-size:.9rem}
+.masthead a:first-child{font-weight:800;color:var(--cream)}
+.heading{margin:.6rem 0 0;padding-bottom:.9rem;border-bottom:1px solid #e8b46c33}
+.eyebrow,.series{font-size:.72rem;text-transform:uppercase;letter-spacing:.13em;color:var(--muted)}
+.heading .eyebrow{margin:0 0 .2rem;font-size:.85rem;letter-spacing:.04em;text-transform:none}
+h1{margin:0;font-size:clamp(1.6rem,3.6vw,2.2rem);line-height:1.1;text-shadow:0 2px 18px #ffb75c30}
+h2{margin:0;font-size:1.1rem;line-height:1.25}
+.quiet{font-size:.78rem;color:var(--muted);margin:.35rem 0}
+#navigation-status{margin:.75rem 0;font-size:.85rem;color:var(--muted)}
+#navigation-status:empty,#player-state:empty,#change-status:empty{display:none}
+footer{padding:1.5rem 0 1.25rem;text-align:center;color:var(--muted);font-size:.8rem}
+/* The player names the game itself, so the page heading steps aside while playing. */
+main:has(>#player:not([hidden])) .heading{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* Cartridge library: every cartridge is the same size whatever its title length. */
+#library{padding:.5rem 0 1.5rem}
+.shelf-heading h2{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.shelf-heading p{margin:.75rem 0 0;font-size:.82rem;color:var(--muted)}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:1.4rem 1.1rem;padding:1rem 0 .5rem}
+.cartridge-choice{display:flex;flex-direction:column;min-width:0;transition:transform .15s}
+.cartridge-choice:hover{transform:translateY(-4px)}
+.cartridge{display:block;position:relative;cursor:pointer}
+.cartridge input{position:absolute;width:1px;height:1px;opacity:0}
+.cartridge-body{display:block;padding:.55rem .6rem calc(var(--load-h) + 1.1rem);background:linear-gradient(90deg,#55524b 0 3.5%,transparent 3.5% 96.5%,#55524b 96.5%),linear-gradient(#8b867b,#6c675e);border:1px solid #a69d8d;border-radius:.7rem .7rem .3rem .3rem;box-shadow:inset 0 1px #ffffff40,inset 0 -4px #0000002e,0 10px 18px #0008}
+.cartridge input:checked+.cartridge-body{border-color:var(--coral);box-shadow:0 0 0 2px var(--coral),inset 0 1px #ffffff40,0 10px 18px #0008}
 .cartridge input:focus-visible+.cartridge-body{outline:3px solid #ffd48f;outline-offset:4px}
-#watch-help,#play-help{max-width:65ch}
-#player:fullscreen .video-frame{max-width:min(100%,70dvh)}
-@media(max-width:600px){
- .masthead{padding:.65rem 1rem}.heading{margin:.35rem 0 .8rem}.heading .eyebrow{font-size:.8rem}
- .shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;padding:.7rem .3rem .8rem}
- .cartridge-label{min-height:190px}.cartridge-label img{height:100px}.cartridge-label strong{font-size:1rem}
- .shelf-heading p{font-size:.8rem}.toolbar button{flex:0 1 auto;padding:.5rem .65rem}
- #change{margin-left:0}.player-heading{align-items:flex-start}.player-heading h2{font-size:1.05rem}
- #player-state{font-size:.8rem}#library{padding:.7rem 0}.load-cartridge{font-size:.9rem}
-}
-@media(max-width:340px){.shelf{gap:.6rem}.cartridge-body{padding:.45rem}.cartridge-label .series{font-size:.5rem}}
+.cartridge:has(input:disabled){opacity:.6;cursor:not-allowed}
+.cartridge-label{display:flex;flex-direction:column;background:#22302c;color:#fff2d9;border:1px solid #0e1614;border-radius:.3rem;overflow:hidden}
+.cartridge-label .series{order:0;padding:.4rem .5rem .35rem;font-size:.56rem;letter-spacing:.09em;color:#e9d3ae;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cartridge-label img,.label-space{order:1;display:block;width:100%;height:auto;aspect-ratio:16/15;background:#0b0b0b}
+.cartridge-label img{object-fit:cover;image-rendering:pixelated}
+.cartridge-label strong{order:2;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;height:3.6rem;margin-bottom:.35rem;padding:.45rem .5rem 0;overflow:hidden;font-size:.9rem;font-weight:800;line-height:1.15;text-wrap:balance;overflow-wrap:anywhere}
+.cartridge-meta{order:3;padding:.3rem .5rem .4rem;border-top:1px solid #ffffff14;font-size:.58rem;letter-spacing:.09em;text-transform:uppercase;color:#cfdcd2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cartridge-grip,.load-row{display:none}
+/* The load button sits in the cartridge's grip, so label and action are one object. */
+.load-cartridge{position:relative;z-index:1;height:var(--load-h);min-height:0;margin:calc(-1*var(--load-h) - .55rem) .6rem .55rem;padding:0 .5rem;background:#26221e;border-color:#00000080;border-radius:.35rem;font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;box-shadow:inset 0 1px #ffffff14}
+.load-cartridge:hover:not(:disabled){background:var(--coral);border-color:var(--coral);color:var(--ink)}
 
-.video-frame{position:relative}.nes-fps{position:absolute;top:.45rem;right:.45rem;padding:.2rem .4rem;border-radius:.25rem;background:#111d;color:#fff;font:12px monospace;font-variant-numeric:tabular-nums;pointer-events:none}.nes-fps[hidden],#sharing-controls[hidden]{display:none!important}#sharing-controls{margin-block:.7rem}#sharing-link{max-width:100%;min-width:0}#sharing-controls button{margin:.25rem}
+/* Player: one console-width column — heading, control strip, screen, saves, sharing. */
+#player{position:relative;max-width:37rem;margin:3.1rem auto 0;padding:1rem;scroll-margin-top:calc(var(--marquee) + 3.4rem);background:linear-gradient(#2e2a26,#24211e);border:1px solid var(--edge);border-radius:1.1rem;box-shadow:0 18px 44px #000a,inset 0 1px #f5e8ce14}
+#player[data-state=library]{max-width:none;margin:0;padding:0;border:0;background:none;box-shadow:none}
+#player[data-state=library]>:not(#player-state){display:none!important}
+.player-heading{display:flex;gap:.8rem;align-items:center;justify-content:space-between}
+.badge{flex:none;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;padding:.15rem .6rem;border:1px solid var(--edge);border-radius:2rem;color:var(--muted)}
+.toolbar,.invite-row{display:flex;gap:.5rem;flex-wrap:wrap}
+#player>.toolbar{gap:3px;margin:.8rem 0;padding:3px;background:var(--well);border:1px solid #000;border-radius:.8rem;box-shadow:inset 0 1px 3px #000a}
+#player>.toolbar button{flex:1 1 auto;min-height:2.6rem;padding:.35rem .7rem;border-color:transparent;border-radius:.55rem;font-size:.85rem;white-space:nowrap}
+#player>.toolbar button.primary{border-color:var(--coral)}
+#player>.toolbar button[aria-pressed=true]{border-color:var(--amber)}
+/* Leaving the game reads as navigation, not as another game control. */
+#player>.toolbar #change{position:absolute;left:0;bottom:calc(100% + .55rem);flex:none;min-height:2.25rem;padding:.25rem .9rem .25rem .7rem;background:#00000059;border-color:var(--edge);border-radius:2rem;color:var(--cream)}
+#change::before{content:"\2190";margin-right:.45rem;color:var(--coral)}
+#player>.toolbar #change:hover:not(:disabled){background:#4a4239;border-color:var(--coral)}
+#idle-screen{display:none!important}
+.video-frame{position:relative;display:grid;place-items:center;width:100%;min-width:0;max-width:min(100%,536px,max(300px,calc((100svh - var(--marquee) - 15rem)*1.0667)));margin-inline:auto;padding:11px;overflow:hidden;background:linear-gradient(#2b2723,#12100e);border:1px solid #000;border-radius:1rem;box-shadow:inset 0 1px #ffffff1c,inset 0 0 0 1px #5d49384d,0 10px 26px #0009,0 0 44px #ffb75c12}
+.nes-view{border-radius:1rem}
+.nes-view canvas{display:block;width:100%;height:auto;aspect-ratio:256/240;image-rendering:pixelated;background:#050505;border-radius:.45rem;box-shadow:0 0 0 1px #000}
+.nes-view>.quiet:empty{display:none}
+.nes-fps{position:absolute;top:1.05rem;right:1.05rem;padding:.1rem .35rem;border-radius:.25rem;background:#111c;color:#fffc;font:11px ui-monospace,monospace;font-variant-numeric:tabular-nums;pointer-events:none}
+.nes-fps[hidden],#sharing-controls[hidden],.receiver-controls[hidden]{display:none!important}
+#surface video,#surface canvas,#session-surface video{max-width:100%;display:block;margin:auto}
+#session-surface video{width:auto;max-height:min(480px,70svh);background:#050505;border-radius:.6rem;box-shadow:0 0 0 1px #000,0 0 0 8px #1a1714,0 10px 26px #0009}
+#session-surface{padding:8px 0}
+.nes-save-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.9rem;padding:.7rem;background:var(--well);border:1px solid var(--line);border-radius:.8rem}
+.nes-save-controls label{flex:1 1 100%;display:flex;align-items:center;gap:.7rem;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.nes-save-controls select{flex:1;min-width:0;max-width:100%;font-weight:400;letter-spacing:0;text-transform:none}
+.nes-save-controls button{flex:1 1 9rem}
+.nes-save-controls img{flex:none;width:96px;height:auto;border-radius:.3rem;border:1px solid #000;image-rendering:pixelated}
+.nes-save-controls p{flex:1 1 100%;margin:0;font-size:.76rem;line-height:1.4;color:var(--muted)}
+#player-state{margin:.7rem 0 0;min-height:0;font-size:.8rem;color:var(--muted)}
+#legacy{margin-top:.8rem}
+.invite-row{margin-top:.8rem}
+.invite-row button{flex:1 1 9rem}
+#watch-help,#play-help,#session-state{max-width:65ch}
+#sharing-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.8rem}
+#sharing-link{flex:1 1 100%;min-width:0;max-width:100%;font:.8rem ui-monospace,monospace;background:var(--well);cursor:text}
+#sharing-controls p,#sharing-roster{flex:1 1 100%;margin:0;font-size:.8rem;color:var(--muted)}
+#sharing-roster{padding-left:1.1rem}
+#sharing-roster:empty,#sharing-copy-status:empty{display:none}
+details{margin-top:.8rem;border-top:1px solid var(--line);font-size:.86rem}
+details+details{margin-top:0}
+summary{display:flex;align-items:center;gap:.5rem;min-height:44px;cursor:pointer;color:var(--muted);font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";display:grid;place-items:center;width:1.2rem;height:1.2rem;border:1px solid var(--edge);border-radius:50%;font-size:.8rem;line-height:1;color:var(--coral)}
+details[open]>summary::before{content:"\2212"}
+summary:hover{color:var(--cream)}
+details p{max-width:75ch;margin:.4rem 0}
+details>:last-child{margin-bottom:.9rem}
+#input-help{margin:.4rem 0 .7rem;padding-left:1.1rem;color:var(--muted)}
+.button-controller{display:flex;flex-wrap:wrap;gap:.35rem}
+.button-controller button{min-height:2.4rem;padding:.3rem .7rem;font-size:.8rem}
+#details label{margin-left:.6rem;color:var(--muted)}
+#diagnostic{overflow-wrap:anywhere;font:.78rem/1.5 ui-monospace,monospace;color:var(--muted)}
 
-/* Receiver-only controls use the existing touch preference and color palette. */
-.receiver-controls{margin-block:.65rem;min-width:0}.receiver-controls .receiver-pad{grid-template-columns:132px minmax(0,1fr);gap:1rem}.receiver-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:flex-end}.receiver-actions button{min-width:48px;min-height:48px}.receiver-pad button{touch-action:none;user-select:none;-webkit-user-select:none}.receiver-controls[hidden]{display:none!important}
-
-/* Grok cabinet art frames the page without intercepting game input. */
-body{isolation:isolate;min-height:100svh;background:var(--bg)}
-body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,transparent 72%,var(--bg)),url('/games/arcade/art/cabinet-surround-v1.png') center top/100% 100% no-repeat}
-.masthead,main{width:76%;max-width:980px}
-.masthead{padding-top:clamp(4rem,9vh,6rem)}
-.heading{padding-block:.5rem 1rem;border-bottom:1px solid #e8b46c40}
-.heading h1{text-shadow:0 2px 18px #ffb75c30}
-#library{padding-bottom:2rem}
-.shelf-heading{flex-wrap:wrap}
-.shelf-heading p{max-width:48ch}
-#player:not([data-state=library]){background:#27231ff5;box-shadow:0 16px 40px #0008,inset 0 1px #f5e8ce12}
-footer{position:relative;width:76%;margin-inline:auto}
-@media(max-width:700px){
- body::before{opacity:.6}
- .masthead,main,footer{width:88%}
- .masthead{padding:3.75rem .5rem .75rem}
- main{padding-inline:.5rem;background:#211f1deb;border-radius:.75rem}
- .heading{padding:.75rem .25rem 1rem}
- .heading .eyebrow{max-width:25ch}
- .cartridge-label strong{overflow-wrap:anywhere}
- .shelf-heading p{max-width:32ch}
-}
+/* Touch controllers. */
+.touch-overlay{display:grid;grid-template-columns:132px 1fr auto;align-items:center;gap:.5rem;margin:.75rem 0 0;padding:.5rem 0;user-select:none;-webkit-user-select:none}
+.touch-overlay button,.touch-dpad{touch-action:none;-webkit-touch-callout:none}
+.touch-overlay button:active{transform:none}
+.touch-dpad{display:grid;grid-template:repeat(3,44px)/repeat(3,44px);width:132px;height:132px}
+.touch-dpad button{padding:0;font-size:1.1rem;min-width:44px}
+.dpad-up{grid-area:1/2}.dpad-left{grid-area:2/1}.dpad-center{grid-area:2/2;background:#4d453b}.dpad-right{grid-area:2/3}.dpad-down{grid-area:3/2}
+.touch-actions{display:flex;gap:.5rem}
+.touch-actions button{width:52px;height:52px;padding:0;border-radius:50%;font-weight:800;background:#84483d;border-color:#b0685b}
+.touch-menu{display:flex;justify-content:center;gap:.35rem;flex-wrap:wrap}
+.touch-menu button{font-size:.75rem;padding:.3rem .7rem;border-radius:2rem}
+#player[data-touch=off] .touch-overlay{display:none}
+@media(any-pointer:fine){#player[data-touch=auto] .touch-overlay{display:none}}
 /* SNES has four face buttons; keep the complete pad within portrait screens. */
 .snes-view .touch-actions{display:grid;grid-template-columns:repeat(2,52px);justify-content:end}
 .snes-view .touch-menu button{min-width:44px}
+/* Receiver-only controls use the existing touch preference and color palette. */
+.receiver-controls{margin-block:.65rem;min-width:0}
+.receiver-controls .receiver-pad{grid-template-columns:132px minmax(0,1fr);gap:1rem}
+.receiver-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:flex-end}
+.receiver-actions button{min-width:48px;min-height:48px}
+.receiver-pad button{touch-action:none;user-select:none;-webkit-user-select:none}
 
-/* Player and cartridge library are separate same-document views. */
-#navigation-status:empty{display:none}
-body[data-expanded=true] main{width:94%;max-width:1440px}
-body[data-expanded=true] .video-frame{max-width:min(100%,960px)}
-body[data-expanded=true] #session-surface video{width:100%;max-height:80dvh}
-#change-dialog{color:var(--cream);background:var(--panel);border:1px solid var(--edge);border-radius:1rem;max-width:min(34rem,calc(100% - 2rem));padding:1.5rem}
+/* Bigger widens the same column and lets the screen use the whole window height. */
+body[data-expanded=true] main{width:calc(100% - 2*var(--rail) - 1rem);max-width:1440px}
+body[data-expanded=true]::after{display:none}
+body[data-expanded=true] #player{max-width:calc(960px + 2rem + 2px);scroll-margin-top:3.4rem}
+body[data-expanded=true] .video-frame{max-width:min(100%,960px,max(536px,calc((100svh - 1.5rem)*1.0667)))}
+body[data-expanded=true] #session-surface video{width:100%;max-height:80svh}
+#player:fullscreen{max-width:none;margin:0;overflow:auto;border:0;border-radius:0;padding:max(.65rem,env(safe-area-inset-top));background:var(--bg)}
+#player:fullscreen>.toolbar #change{position:static;flex:1 1 auto;border-radius:.55rem}
+#player:fullscreen .video-frame{max-width:min(100%,70dvh)}
+#player:fullscreen canvas{max-height:70dvh;width:auto;max-width:100%}
+
+#change-dialog{color:var(--cream);background:var(--panel);border:1px solid var(--edge);border-radius:1rem;max-width:min(34rem,calc(100% - 2rem));padding:1.5rem;box-shadow:0 24px 60px #000c}
 #change-dialog::backdrop{background:#000b}
-#change-status:empty{display:none}
+#change-dialog p{color:var(--muted);font-size:.9rem}
+#change-dialog .toolbar{margin-top:1rem}
 
-.nes-save-controls select{max-width:100%}
+@media(pointer:coarse){:root{--load-h:2.75rem}#player>.toolbar button,#player>.toolbar #change{min-height:44px}}
+/* Narrow or portrait screens have no room for side rails: keep only the marquee stripe. */
+@media(max-width:700px),(max-aspect-ratio:1/1){
+ :root{--u:calc(min(100vw,560px)/480);--rail:0px;--marquee:calc(var(--u)*112)}
+ body::before{display:none}
+ body::after{border-image-slice:112 300 0 300;border-image-width:var(--marquee) 0 0}
+ .masthead,main,footer{width:calc(100% - 1.5rem)}
+}
+@media(max-width:600px){
+ .heading .eyebrow{font-size:.8rem}
+ .shelf-heading p{font-size:.78rem}
+ .shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem .75rem}
+ #player{padding:.7rem;border-radius:.9rem}
+ .player-heading{align-items:flex-start}
+ .player-heading h2{font-size:1.02rem}
+ .video-frame{padding:7px;border-radius:.8rem}
+ .nes-fps{top:.75rem;right:.75rem}
+ .touch-overlay{grid-template-columns:132px 1fr}
+ .touch-actions{justify-content:flex-end}
+ .touch-menu{grid-column:1/-1;grid-row:2}
+ .nes-save-controls label{flex-wrap:wrap;gap:.35rem .7rem}
+}
+@media(max-width:340px){.shelf{gap:.8rem .5rem}.cartridge-body{padding-inline:.45rem}.load-cartridge{margin-inline:.45rem}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}.cartridge-choice:hover{transform:none}}

@@ -98,6 +98,9 @@ php "$release_dir/tests/public-ux-accessibility.php"
 php "$release_dir/tests/public-page-security.php"
 php "$release_dir/tests/deployment-revision.php"
 
+# Cache-bust stylesheets by content so CSS edits never need a manual ?v= bump.
+"$NODE" "$release_dir/deploy/stamp-assets.mjs" "$release_dir/htdocs"
+
 if ! sudo -n test -r "$API_ENV_FILE"; then
     printf 'Missing readable API environment file: %s\n' "$API_ENV_FILE" >&2
     exit 1

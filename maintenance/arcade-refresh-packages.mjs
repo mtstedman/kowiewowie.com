@@ -16,6 +16,9 @@ const reviewed=new Set(names.map(name=>{
  return name.startsWith('htdocs/')?'/'+name.slice('htdocs/'.length):null;
 }).filter(Boolean));
 const hash=b=>createHash('sha256').update(b).digest('hex');
+// Page markup, styling, artwork and prose are not package members: only code and data the
+// engine consumes are inventoried, so presentation can change without a package release.
+export const presentation=url=>/\.(?:css|html|png|md|txt)$|\.d\.mts$/.test(url);
 const bytes=new Map(),pins=new Map();
 const read=url=>{if(!bytes.has(url))bytes.set(url,fs.readFileSync(path.join(root,'htdocs',url)));return bytes.get(url);};
 const pin=url=>{if(!pins.has(url)){const b=read(url);pins.set(url,{bytes:b.length,sha256:hash(b)});}return pins.get(url);};
@@ -65,7 +68,7 @@ for(const row of catalog){
  if(hash(canonical(manifest))!==envelope.artifactDigest||row.artifactDigest!==envelope.artifactDigest||network.packages[row.id]?.artifactDigest!==envelope.artifactDigest)throw Error('Existing identity mismatch: '+row.id);
  const seeds=['/games/arcade/index.html','/games/arcade/ui.mjs','/games/arcade/host.mjs',...Object.keys(manifest.files).filter(p=>p.startsWith('/games/arcade/')&&p.endsWith('.mjs'))];
  const discovered=graph(seeds);for(const p of discovered)allGraph.add(p);
- const updated=[],added=[],derived=new Set(),timingChanged=simulationHz===60&&['NES','SNES'].includes(manifest.platform)&&manifest.timing.nominalHz!==60;
+ const updated=[],added=[],removed=[],derived=new Set(),timingChanged=simulationHz===60&&['NES','SNES'].includes(manifest.platform)&&manifest.timing.nominalHz!==60;
  if(timingChanged)manifest.timing={...manifest.timing,nominalHz:60};
  if(manifest.platform==='NES'){
   const sideURL=manifest.route+'composition.json',side=JSON.parse(read(sideURL)),before=canonical(side),binding=canonical(side.binding),queue=Object.keys(side.moduleGraph).filter(url=>reviewed.has(url)),seen=new Set();
@@ -75,17 +78,18 @@ for(const row of catalog){
  }
 
  for(const [url,record]of Object.entries(manifest.files)){
+  if(presentation(url)){delete manifest.files[url];removed.push(url);continue;}
   const actual=pin(url);if(same(record,actual))continue;
   if(!reviewed.has(url)&&!derived.has(url))throw Error('Stale inventory member not explicitly reviewed: '+row.id+' '+url);
   manifest.files[url]=actual;updated.push(url);
  }
- for(const url of discovered)if(!Object.hasOwn(manifest.files,url)){manifest.files[url]=pin(url);added.push(url);}
- if(!updated.length&&!added.length&&!timingChanged)continue;
+ for(const url of discovered)if(!presentation(url)&&!Object.hasOwn(manifest.files,url)){manifest.files[url]=pin(url);added.push(url);}
+ if(!updated.length&&!added.length&&!removed.length&&!timingChanged)continue;
  validateManifest(manifest);const artifactDigest=hash(canonical(manifest));envelope.artifactDigest=artifactDigest;row.artifactDigest=artifactDigest;
  network.packages[row.id]=validateBinding({...network.packages[row.id],artifactDigest});schedule(name,envelope);
  const legacy='htdocs'+manifest.route+'network-package.json';
  if(fs.existsSync(path.join(root,legacy))){const old=json(legacy);old.artifactDigest=artifactDigest;old.binding=network.packages[row.id];schedule(legacy,old);}
- reports.push({id:row.id,artifactDigest,updated,added,timingChanged});
+ reports.push({id:row.id,artifactDigest,updated,added,removed,timingChanged});
 }
 const sourcePinsName='tests/arcade-runtime-source-pins.json',sourcePins=json(sourcePinsName),changedPins=[];
 for(const [name,record]of Object.entries(sourcePins.files)){
