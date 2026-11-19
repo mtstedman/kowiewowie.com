@@ -78,3 +78,10 @@ test('NES battery facade handshakes empty state but never reads, writes, or flus
  const runtime=createPersistentRuntime({replica:true,root:{}},base,codec,{NativeWorker:Worker,storage:{}});
  await runtime.reset();await new Promise(setImmediate);await runtime.dispose();assert.deepEqual(sent,[{type:'battery-init',record:null}]);assert(native.terminated);
 });
+
+test('fast checkpoint encoding retains canonical wire bytes for nested arrays, memory and reserved keys',()=>{
+ const record={z:[1,null,'z',true,false],memory:new Uint8Array([0,255,128]),array:[{z:2,a:1},[0,3]],empty:undefined};
+ assert.equal(new TextDecoder().decode(encodeReplicationState(record)),'{"array":[{"a":1,"z":2},[0,3]],"memory":{"$uint8":"AP+A"},"z":[1,null,"z",true,false]}');
+ const reserved=JSON.parse('{"__proto__":{"polluted":true},"constructor":"data"}');
+ assert.deepEqual(decodeReplicationState(encodeReplicationState(reserved)),reserved);assert.equal({}.polluted,undefined);
+});

@@ -1,0 +1,6 @@
+{
+  "format": "arcade-sync-performance/1",
+  "scope": "Local Chromium Contra host with and without full native synchronization checks; each scenario resets the ROM, warms for 3 seconds, then measures 10 seconds. Timing tests separately enforce the rolling 60 FPS native execution ceiling. Not a WAN latency or remote-device performance guarantee.",
+  "encoding_equivalence": "Old and optimized encoding produced byte-identical full native Contra checkpoints for every comparison.",
+  "timing_tests_passed": 16
+}

@@ -20,9 +20,15 @@ function canonicalGraph(graph){
  for(let i=0;i<graph.prototypes.length;i++)if(!prototypeIds.has(i)){prototypeIds.set(i,prototypes.length);prototypes.push(graph.prototypes[i]);}
  return {...graph,root,nodes,prototypes};
 }
+function canonicalValue(v){
+ if(v instanceof Uint8Array)return {$uint8:base64(v)};
+ if(!v||typeof v!=='object')return v;
+ if(Array.isArray(v))return v.some(item=>item&&typeof item==='object')?v.map(canonicalValue):v;
+ if(v.format==='nes-state-graph/1')v=canonicalGraph(v);
+ const result=Object.create(null);for(const key of Object.keys(v).sort())result[key]=canonicalValue(v[key]);return result;
+}
 export function encodeReplicationState(state){
- const text=JSON.stringify(state,(_,v)=>{if(v?.format==='nes-state-graph/1')v=canonicalGraph(v);return v instanceof Uint8Array?{$uint8:base64(v)}:v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v;});
- const bytes=new TextEncoder().encode(text);if(bytes.length>limit)throw Error('Replication checkpoint exceeds limit');return bytes;
+ const bytes=new TextEncoder().encode(JSON.stringify(canonicalValue(state)));if(bytes.length>limit)throw Error('Replication checkpoint exceeds limit');return bytes;
 }
 export function decodeReplicationState(bytes){
  if(!(bytes instanceof Uint8Array)||!bytes.length||bytes.length>limit)throw Error('Invalid replication checkpoint bytes');

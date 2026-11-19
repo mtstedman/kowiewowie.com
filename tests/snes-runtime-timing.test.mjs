@@ -63,3 +63,13 @@ test('pause history survives rapid restart and a lower native frequency remains 
  now+=clock.delay(now);assert(clock.take(now));steps.push(now);assertRollingLimit(steps);
  const pal=createSimulationClock({hz:50});pal.resume(0);assert.equal(pal.take(20),false);assert(pal.take(20.001));assert.equal(pal.take(33.334),false);
 });
+
+test('native frames slightly above one period do not pay a second full-frame delay',async()=>{
+ for(const cost of [16.8,18,20,25]){
+  let now=0;const steps=[],runner={info:()=>({fps:60}),input(){},step(){steps.push(now);now+=cost;return {frame:steps.length};}};
+  const executor=createSnesFrameExecutor(runner,{now:()=>now,wait:async ms=>{now+=ms;}});
+  while(now<5000)await executor.frame([0,0]);
+  assert(steps.length>=Math.floor((5000-1000/60)/cost),'An overrun incurred an unnecessary extra frame interval');
+  for(let i=1;i<steps.length;i++)assert(steps[i]-steps[i-1]>=1000/60);assertRollingLimit(steps);
+ }
+});

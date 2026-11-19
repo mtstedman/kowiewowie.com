@@ -1,0 +1,22 @@
+{
+  "rows": [
+    {
+      "sync": false,
+      "simulationFPS": 48.660584926093854,
+      "presentationFPS": 48.46074679498053,
+      "checks": 0,
+      "status": "Running · 51.0 FPS · 87% speed · frame 643"
+    },
+    {
+      "sync": true,
+      "simulationFPS": 47.68474088325842,
+      "presentationFPS": 47.28486884230867,
+      "checks": 4,
+      "status": "Running · 36.0 FPS · 60% speed · frame 632"
+    }
+  ],
+  "sources": {
+    "games/arcade/simulation-clock.mjs": "d68c327a65bb53c97432f365a9b8f6399f72495cb7cee792a648f4fe481403f2",
+    "games/arcade/replication-state.mjs": "916f65c8b46fa8a6ad65a59d36d086af907b114c6330c2c9b003ed453f9c3b47"
+  }
+}
