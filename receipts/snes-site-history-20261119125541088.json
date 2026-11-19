@@ -1,0 +1,23 @@
+{
+  "format": "nes-engine-maintenance-history/1",
+  "reason": "Revalidate static HTML pages in nginx so they never reference a stale content-hashed stylesheet.",
+  "previous": {
+    "path": "receipts/snes-site-history-20261119110458029.json",
+    "bytes": 11242,
+    "sha256": "ad69a119d03f5ee5e5905b77df23dfdad166cc36f689646c8965f9430f5a5da4"
+  },
+  "changes": {
+    "deploy/nginx/wowiekowie.com.conf": {
+      "before": {
+        "bytes": 3778,
+        "sha256": "fe81388c011de5651af517c4cfd8cfa8298304c47447636fcb91b6824401bba6"
+      },
+      "after": {
+        "bytes": 4013,
+        "sha256": "615ac33d6c1f55720255370a04521bf80e5648b3cb3bd3d0fa6c4a6f28d4ef09"
+      },
+      "original": "maintenance/snes-site-originals/20261119125541088/deploy/nginx/wowiekowie.com.conf"
+    }
+  },
+  "added": {}
+}
