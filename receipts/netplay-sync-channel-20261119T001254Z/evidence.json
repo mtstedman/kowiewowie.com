@@ -1,0 +1,72 @@
+{
+  "format": "netplay-sync-channel/1",
+  "passed": true,
+  "command": "NETPLAY_SYNC_STUN=stun:wowiekowie.com:3478 node tests/netplay-sync-channel.browser.mjs",
+  "scope": "Actual Chromium to WebKit pure-application DataChannel; megabyte checkpoint bytes, authoritative frame records, play-only input authority, zero RTP transceivers. Existing STUN read only; no production signaling session. Does not qualify emulator determinism or service authorization, covered by separate suites.",
+  "sources": {
+    "htdocs/games/netplay/sync-transport.mjs": {
+      "bytes": 4926,
+      "sha256": "7d862f3cffe077e72d4d6dd4470eda163d99a7283fa38113b6decb62046f15ce"
+    },
+    "htdocs/games/netplay/sync-wire.mjs": {
+      "bytes": 8540,
+      "sha256": "353d7d227885854f9fe5369a55115e93d5be0d7871013b3b53adabc2c1c8dca2"
+    },
+    "htdocs/games/netplay/policy.mjs": {
+      "bytes": 5177,
+      "sha256": "b11928925bbea80229059590649d81fa665bc54ba346ffa5be71d049d76f7635"
+    },
+    "includes/api/classes/NetplayPolicy.php": {
+      "bytes": 4128,
+      "sha256": "73becebf54d82271d3895f2731f880e0d776103c4217fc795797fa10956556d1"
+    },
+    "tests/netplay-sync-wire.test.mjs": {
+      "bytes": 7249,
+      "sha256": "68ec21b0e7f5a645375be8b0c20e506f8c72e7db5e92643747cb8c142911a372"
+    },
+    "tests/netplay-sync-channel.browser.mjs": {
+      "bytes": 5426,
+      "sha256": "e789d7e1e84869df9d0766fed4a13c2e48eb014d3211f75f1a67505b06fc13c2"
+    },
+    "tests/netplay-sdp-policy.test.mjs": {
+      "bytes": 4642,
+      "sha256": "39cc34090372d8c57c8397aab2e22bdded354bd838d4048e07e15ba01838387d"
+    }
+  },
+  "report": {
+    "bytes": 357,
+    "sha256": "71c83a96a024b6b3db67c8356ebbf7cf89f9f7878c3c17f31ab1694f8d5aa2b9"
+  },
+  "reports": [
+    {
+      "passed": true,
+      "host": "Chromium",
+      "guest": "WebKit",
+      "role": "play",
+      "checkpoint": {
+        "bytes": 1048715,
+        "valid": true,
+        "frame": 240
+      },
+      "transceivers": 0,
+      "sctp": "connected",
+      "frames": 242,
+      "rtp": 0
+    },
+    {
+      "passed": true,
+      "host": "Chromium",
+      "guest": "WebKit",
+      "role": "watch",
+      "checkpoint": {
+        "bytes": 1048715,
+        "valid": true,
+        "frame": 240
+      },
+      "transceivers": 0,
+      "sctp": "connected",
+      "frames": 242,
+      "rtp": 0
+    }
+  ]
+}

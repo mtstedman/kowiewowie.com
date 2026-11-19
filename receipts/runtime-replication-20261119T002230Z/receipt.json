@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "scope": "Actual Contra and SMW direct browser runtime snapshot/wire/replay to frame240; 205-frame offscreen catchup and four live frames; fullstate hashes match; no local replica input; second port recorded.",
+  "sourceBefore": "source-before.json",
+  "sourceAfter": "source-after.json",
+  "sourceChangedAfterTest": [
+    "tests/nes-replication-catalog.test.mjs"
+  ],
+  "qualification": "Browser test completed before the later canonical graph traversal fix and catalog regression edits. This receipt does not qualify later composer bytes; final suite separately qualifies them.",
+  "browserReport": "browser-report.json"
+}

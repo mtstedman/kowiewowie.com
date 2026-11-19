@@ -1,5 +1,6 @@
 // Bounded streaming producer. Credits permit ownership, never faster emulation.
 import {createSimulationClock} from './simulation-clock.mjs';
+import {replicationSnapshot,validateReplicationSnapshot,validateFrameRecords,hashReplicationState} from './replication-state.mjs';
 export const CAPACITY=16, RGBA_BYTES=256*240*4;
 const integer=(v,min=0)=>Number.isSafeInteger(v)&&v>=min;
 export function createTaskScheduler(Channel=globalThis.MessageChannel,{setTimer=globalThis.setTimeout,clearTimer=globalThis.clearTimeout}={}){
@@ -22,14 +23,35 @@ export function createProducer({machine,post,schedule,cancel,now=()=>performance
  const scheduler=schedule?null:createTaskScheduler(),simulation=createSimulationClock();
  if(schedule&&typeof cancel!=='function')throw Error('Injected scheduler requires cancellation');
  schedule??=scheduler.schedule;cancel??=scheduler.cancel;
- let generation=0;
+ let generation=0,replica=false,networkEnabled=false,replicationPosts=Promise.resolve(),replayTasks=Promise.resolve();
  let epoch=-1,seq=0,inputSeq=0,appliedSeq=0,timer=null,closed=false,failed=false;
  let credits=0,produced=0,time=0,lastCycles=null,nextId=0;
  const leases=new Map(),pool=[],audioPool=[],held=[new Map(),new Map()];
  const queues=Array.from({length:16},()=>[]),values=Array(16).fill(false);
+ function capture(){const state=machine.exportCheckpoint(),frame=machine.getState().frames,picture={width:256,height:240,rgba:new Uint8Array(machine.getRGBA())};return replicationSnapshot(frame,state).then(snapshot=>({...snapshot,picture}));}
+ function emitRecord(frame,pads){if(!networkEnabled||replica)return;const e=epoch,state=frame%120===0?machine.exportCheckpoint():null;replicationPosts=replicationPosts.then(async()=>{const record={frame,pads};if(state)record.hash=await hashReplicationState(state);if(!closed)post({type:'network-frame',epoch:e,record});}).catch(error);}
+ function reply(d,result,error){if(!closed)post({type:'network-result',epoch:d.epoch,seq:d.seq,result,error});}
+ async function replay(d){
+  if(!replica)throw Error('Replica is not initialized');validateFrameRecords(d.records,machine.getState().frames,255);
+  const g=generation;
+  for(const record of d.records){
+   if(closed||g!==generation)throw Error('Replica replay interrupted');
+   if(d.catchUp!==true){simulation.resume(now());while(simulation.delay(now())>0)await new Promise(resolve=>setTimeout(resolve,Math.max(.1,simulation.delay(now()))));}
+   if(closed||g!==generation)throw Error('Replica replay interrupted');
+   for(let p=1;p<=2;p++)for(let b=0;b<8;b++)machine.setButton(p,b,Boolean(record.pads[p-1]&(1<<b)));
+   const executedAtMs=now();if(d.catchUp!==true&&!simulation.take(executedAtMs))throw Error('Replica simulation clock changed during input sampling');
+   const result=machine.frame({maxSteps:20000,maxCycles:40000,maxMs:60000});if(d.catchUp!==true)simulation.complete(now());
+   const rgba=machine.getRGBA(),audio=machine.takeAudio(),{frames,cycles}=result.state;
+   if(frames!==record.frame)throw Error('Replica frame mismatch');
+   if(record.hash&&await hashReplicationState(machine.exportCheckpoint())!==record.hash)throw Error('Replica state diverged at frame '+frames);
+   if(d.catchUp!==true)post({type:'replica-frame',epoch:d.epoch,rgba,audio,frames,cycles,executedAtMs},[rgba.buffer,audio.buffer]);
+   afterFrame(frames);if(d.catchUp===true&&frames%8===0)await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  if(d.catchUp===true)simulation.pause();return {frame:machine.getState().frames,hash:d.records.at(-1).hash??null};
+ }
  function release(){for(let p=1;p<=2;p++)for(let b=0;b<8;b++)machine.setButton(p,b,false);}
  function stop(){simulation.pause();generation++;if(timer!==null)cancel(timer);timer=null;credits=0;}
- function clear(){for(const h of held)h.clear();for(const q of queues)q.length=0;values.fill(false);release();}
+ function clear(){for(const h of held)h.clear();for(const q of queues)q.length=0;values.fill(false);if(!replica)release();}
  function error(e){stop();failed=true;scheduler?.dispose();try{clear();}catch{}post({type:'error',epoch,seq,code:e.code||'STREAM',message:String(e.message||e)});}
  function wake(){if(timer===null&&credits>0&&!closed&&!failed){const capturedGeneration=generation;timer=schedule(()=>{if(capturedGeneration===generation)step();},simulation.delay(now()));}}
  function step(){timer=null;if(!credits||closed||failed)return;
@@ -48,7 +70,7 @@ export function createProducer({machine,post,schedule,cancel,now=()=>performance
    if(!(duration>0&&duration<=.2))throw Error('Invalid frame duration');
    credits--;produced++;const id=++nextId;leases.set(id,{epoch, audioBytes:audio.byteLength});
    post({type:'frame',epoch,id,produced,executedAtMs,at:time,duration,rgba,audio,frames,cycles,inputSeq,appliedSeq},[rgba.buffer,audio.buffer]);
-   time+=duration;lastCycles=cycles;afterFrame(frames);wake();
+   time+=duration;lastCycles=cycles;emitRecord(frames,[values.slice(0,8).reduce((n,v,b)=>n|(Number(v)<<b),0),values.slice(8).reduce((n,v,b)=>n|(Number(v)<<b),0)]);afterFrame(frames);wake();
   }catch(e){error(e);}
  }
  function receive(d){if(closed||failed)return;
@@ -60,6 +82,14 @@ export function createProducer({machine,post,schedule,cancel,now=()=>performance
     post({type:'synced',epoch,seq});return;
    }
    if(d.epoch!==epoch)throw Error('Release barrier required');seq=d.seq;
+   if(d.type==='network-enable'){networkEnabled=d.enabled===true;reply(d,{enabled:networkEnabled});return;}
+   if(d.type==='network-capture'){capture().then(result=>reply(d,result),e=>reply(d,null,e.message));return;}
+   if(d.type==='network-follow'){
+    replica=true;stop();clear();leases.clear();pool.length=audioPool.length=0;
+    replayTasks=replayTasks.then(async()=>{const record=await validateReplicationSnapshot(d.snapshot);machine.importCheckpoint(record);const frame=machine.getState().frames;if(frame!==d.snapshot.frame)throw Error('Checkpoint frame mismatch');return {frame,hash:d.snapshot.hash,picture:d.snapshot.picture};});
+    replayTasks=replayTasks.then(result=>reply(d,result),e=>reply(d,null,e.message));return;
+   }
+   if(d.type==='network-replay'){replayTasks=replayTasks.then(()=>replay(d)).then(result=>reply(d,result),e=>reply(d,null,e.message));return;}
    if(d.type==='checkpoint-export'||d.type==='checkpoint-import'){
     // The preceding sync barrier cancels production and releases both players.
     if(credits||timer!==null)throw Error('Checkpoint requires a paused release barrier');
@@ -82,6 +112,7 @@ export function createProducer({machine,post,schedule,cancel,now=()=>performance
     if(before!==after){if(q.length>=32)throw Error('Input edge overflow');q.push({value:after,seq:inputSeq});}return;
    }
    if(d.type==='grant'){
+    if(replica)return;
     const returned=d.returns??[];
     if(!integer(d.count,1)||d.count>4||!Array.isArray(returned)||returned.length>CAPACITY)throw Error('Invalid grant batch');
     const ids=new Set(),buffers=new Set([...pool,...audioPool]);

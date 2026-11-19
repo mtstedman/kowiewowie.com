@@ -1,0 +1,19 @@
+{
+  "name": "wowiekowie.com",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.13.0",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test:arcade": "node --experimental-vm-modules --test tests/arcade-ui.test.mjs tests/combined-integration.test.mjs tests/combined-followup.test.mjs tests/cartridge-library.test.mjs tests/shared-connection-repair.test.mjs tests/zelda-release.test.mjs tests/arcade-runtime-harness.test.mjs tests/contra-release.test.mjs tests/arcade-worker-streaming.test.mjs tests/core-refresh.test.mjs tests/shared-engine-integration.test.mjs tests/nes-audit-fixes.test.mjs tests/nes-cartridge-build.test.mjs tests/nes-checkpoint.test.mjs tests/nes-engine-efficiency.test.mjs tests/nes-code-identity.test.mjs tests/nes-mmc5.test.mjs tests/nes-shared-components.test.mjs tests/nes-mmc5-throughput.test.mjs tests/nes-timed-mmc3.test.mjs tests/nes-translation-reuse.test.mjs tests/nes-rom-dispatch.test.mjs tests/nes-mmc3-throughput.test.mjs tests/nes-mapper-transfer.test.mjs tests/nes-timed-bus-binding.test.mjs tests/nes-mmc3-fetch-boundaries.test.mjs tests/nes-mmc3-lazy-mapper.test.mjs tests/nes-owned-ppu-transfers.test.mjs tests/nes-ppu-fallback.test.mjs tests/snes-site-packages.test.mjs tests/receiver-input.test.mjs tests/snes-runtime.test.mjs tests/arcade-save.test.mjs tests/arcade-save-adapters.test.mjs tests/arcade-frame-pacing.test.mjs tests/nes-simulation-timing.test.mjs tests/snes-runtime-timing.test.mjs tests/netplay-rejoin-recovery.test.mjs tests/netplay-sdp-policy.test.mjs tests/netplay-receiving-media.test.mjs",
+    "audit:nes": "node maintenance/nes-capability-audit.mjs",
+    "test:nes-saves": "node tests/nes-checkpoint-continuation.mjs"
+  },
+  "devDependencies": {
+    "acorn": "8.17.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

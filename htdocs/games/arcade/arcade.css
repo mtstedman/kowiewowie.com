@@ -80,3 +80,5 @@ body[data-expanded=true] #session-surface video{width:100%;max-height:80dvh}
 #change-dialog{color:var(--cream);background:var(--panel);border:1px solid var(--edge);border-radius:1rem;max-width:min(34rem,calc(100% - 2rem));padding:1.5rem}
 #change-dialog::backdrop{background:#000b}
 #change-status:empty{display:none}
+
+.nes-save-controls select{max-width:100%}

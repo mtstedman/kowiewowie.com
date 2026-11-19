@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "reports": [
+    {
+      "id": "contra",
+      "bootstrap": {
+        "frame": 31,
+        "picture": true,
+        "replica": {
+          "ready": true,
+          "replica": true,
+          "frame": 31,
+          "hash": "2a946f8d48fd6362a72015dd5f191e93a8e16c3fb2871061d3165ab045d6f9b5",
+          "running": true,
+          "queued": 0
+        },
+        "audioState": "not-created"
+      },
+      "catchup": {
+        "drawsBefore": 1,
+        "drawsAfter": 1,
+        "frame": 236
+      },
+      "frame": 240,
+      "actual": {
+        "frame": 240,
+        "hash": "3a705934d0a6b2bc00474d406d325490f7c9a01698e7c1b48176db376fb0ab8c"
+      },
+      "expected": "3a705934d0a6b2bc00474d406d325490f7c9a01698e7c1b48176db376fb0ab8c",
+      "draws": 5,
+      "hostContinued": true,
+      "secondPortRecorded": true,
+      "followerLocalInputRejected": true,
+      "queued": 0,
+      "errors": []
+    },
+    {
+      "id": "super-mario-world",
+      "bootstrap": {
+        "frame": 31,
+        "picture": true,
+        "replica": {
+          "ready": true,
+          "replica": true,
+          "frame": 31,
+          "hash": "5cdeae4e5f988da13a198b0e8c37b1f93cf79f500b5bd07a5e60496041a4e517",
+          "running": true,
+          "queued": 0
+        },
+        "audioState": "running"
+      },
+      "catchup": {
+        "drawsBefore": 1,
+        "drawsAfter": 1,
+        "frame": 236
+      },
+      "frame": 240,
+      "actual": {
+        "frame": 240,
+        "hash": "94931d2bc82e44b9fa0604a4f74f9d37d2bc7a496c192ec61e002a3f1195b177"
+      },
+      "expected": "94931d2bc82e44b9fa0604a4f74f9d37d2bc7a496c192ec61e002a3f1195b177",
+      "draws": 5,
+      "hostContinued": true,
+      "secondPortRecorded": true,
+      "followerLocalInputRejected": true,
+      "queued": 0,
+      "errors": []
+    }
+  ]
+}

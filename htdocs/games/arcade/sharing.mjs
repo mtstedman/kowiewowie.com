@@ -1,7 +1,7 @@
 import {loadBinding,receiveIntent,createBridge} from './session-bridge.mjs';
-import {receiverModule} from './receiver-input.mjs';
+import {createHostSyncSession,joinSyncParticipant} from '../netplay/sync-session.mjs';
 // Optional services are a private test seam; the production caller uses defaults.
-export function createSharing({loadBinding:readBinding=loadBinding,createBridge:makeBridge=createBridge}={}){
+export function createSharing({loadBinding:readBinding=loadBinding,createBridge:makeBridge=(p,b,record,options)=>createBridge(p,b,record,{...options,replica:true,sessionFactory:createHostSyncSession,joinFactory:joinSyncParticipant})}={}){
  let current=null;
  const live=plan=>current===plan&&!plan.closed&&!plan.signal.aborted;
  function fail(plan){if(!live(plan))return;const n=document.getElementById('session-state');if(n){n.hidden=false;n.textContent='Sharing operation failed. Try again or return to the library.';}}
@@ -74,8 +74,9 @@ export function createSharing({loadBinding:readBinding=loadBinding,createBridge:
    plan.abort=()=>{void cleanup(plan,typeof signal.reason==='string'?signal.reason:'selection-aborted');};
    current=plan;signal.addEventListener('abort',plan.abort,{once:true});buildUI(plan);
    try{
-    // Decide receiving intent before importing any game adapter or worker.
-    const module=record?receiverModule({getState:()=>plan.bridge?.provider.getState(),stream:()=>document.getElementById('session-surface')}):await importAdapter(p,signal);
+    // Receiving clients run the same verified cartridge in a storage-isolated replica.
+    const source=await importAdapter(p,signal);
+    const module=record?{version:source.version,createAdapter:ctx=>source.createAdapter({...ctx,replica:true})}:source;
     if(!live(plan))throw Error('Selection superseded');return module;
    }catch(e){await cleanup(plan,'load-error');throw e;}
   },

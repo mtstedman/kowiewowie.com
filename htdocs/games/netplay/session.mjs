@@ -6,16 +6,16 @@ const safeNotify=(f,e)=>{try{f?.(e);}catch{}};
 function adapterCheck(a,b){insist(a&&a.version===1&&a.packageId===b.packageId&&a.artifactDigest===b.artifactDigest,'Adapter/package mismatch');for(const k of ['capture','admit','remote','release','remove','enabled'])insist(typeof a[k]==='function','Adapter method: '+k);}
 export function prepareJoin(fragment){const m=typeof fragment==='string'&&/^#netplay3=([a-f0-9]{32})\.([a-f0-9]{32})\.([a-f0-9]{64})$/.exec(fragment);insist(m,'Invitation format');return {room:m[1],participant:m[2],invite:m[3],credential:random(32),join_id:random(16)};}
 export function prepareRejoin(record){insist(record&&hex(record.room,32)&&hex(record.participant,32)&&hex(record.credential,64)&&hex(record.session,32),'Resume identity');return {room:record.room,participant:record.participant,credential:record.credential,session:record.session,join_id:random(16)};}
-export async function createHostSession(value,adapter,{onEvent=()=>{},signal}={}){
+export async function createHostSession(value,adapter,{onEvent=()=>{},signal,transportFactory=createTransport,peerCallbacks=null}={}){
  const binding=validateBinding(value);adapterCheck(adapter,binding);insist(!signal?.aborted,'Cancelled');
- const t=createTransport(binding,onEvent),c=await t.api('capabilities');t.configuration(c,false);insist(c.protocol===3&&JSON.stringify(validateBinding(c.binding))===JSON.stringify(binding),'Server package mismatch');insist(!signal?.aborted,'Cancelled');
+ const t=transportFactory(binding,onEvent),c=await t.api('capabilities');t.configuration(c,false);insist(c.protocol===3&&JSON.stringify(validateBinding(c.binding))===JSON.stringify(binding),'Server package mismatch');insist(!signal?.aborted,'Cancelled');
  const auth=await t.api('create');insist(hex(auth.room,32)&&hex(auth.credential,64)&&auth.protocol===3&&auth.binding===binding.version&&auth.packageId===binding.packageId&&auth.artifactDigest===binding.artifactDigest,'Room response');
- const room=new HostRoom(binding,adapter,t,auth,onEvent);if(signal?.aborted){await room.end();throw Error('Cancelled');}
+ const room=new HostRoom(binding,adapter,t,auth,onEvent,peerCallbacks);if(signal?.aborted){await room.end();throw Error('Cancelled');}
  if(signal){const cancel=()=>{void room.end();};signal.addEventListener('abort',cancel,{once:true});room.unlisten=()=>signal.removeEventListener('abort',cancel);}
  room.refresh();return room;
 }
 export class HostRoom {
- constructor(binding,adapter,transport,auth,notify){this.binding=binding;this.adapter=adapter;this.transport=transport;this.auth=auth;this.notify=notify;this.peers=new Map();this.blocked=new Set();this.slots=[];this.closed=false;this.last=now();this.polling=false;this.generation=0;this.ending=null;}
+ constructor(binding,adapter,transport,auth,notify,peerCallbacks=null){this.peerCallbacks=peerCallbacks;this.binding=binding;this.adapter=adapter;this.transport=transport;this.auth=auth;this.notify=notify;this.peers=new Map();this.blocked=new Set();this.slots=[];this.closed=false;this.last=now();this.polling=false;this.generation=0;this.ending=null;}
  root(action,extra={}){return this.transport.api(action,{...extra,room:this.auth.room,credential:this.auth.credential});}
  getState(){return Object.freeze({version:1,packageId:this.binding.packageId,artifactDigest:this.binding.artifactDigest,role:'host',phase:this.closed?'ended':'active',epoch:this.generation,participants:this.slots.map(a=>({...a})),watchAvailable:!this.closed&&this.slots.filter(a=>a.participant_role==='watch').length<4,playAvailable:!this.closed&&this.slots.filter(a=>a.participant_role==='play').length<1});}
  async invite(role){insist(!this.closed&&['watch','play'].includes(role),'Invitation unavailable');const generation=this.generation,d=await this.root('invite',{participant_role:role}),a=assignment(this.binding,d);insist(d.room===this.auth.room&&hex(d.invite,64)&&a.participant_role===role,'Invitation response');if(this.closed||generation!==this.generation)throw Error('Invitation cancelled');return {assignment:a,expiresInSeconds:300,fragment:'#netplay3='+d.room+'.'+a.participant+'.'+d.invite,route:this.binding.route};}
@@ -42,6 +42,7 @@ export class HostRoom {
     if(a.joined&&!p){
      if(a.participant_role==='play')this.adapter.admit(a);
      const callbacks={capture:()=>this.adapter.capture(),enabled:()=>this.adapter.enabled(),clearRemote:()=>this.adapter.release(a.participant),remote:controls=>this.adapter.remote(a.participant,a.session,a.player,controls),ended:peer=>{if(!this.closed&&this.peers.get(a.participant)===peer)void this.revoke(a.participant).catch(()=>{});}};
+     Object.assign(callbacks,this.peerCallbacks?.(a)||{});
      p=new this.transport.Peer('host',{...this.auth,...a},callbacks);this.peers.set(a.participant,p);p.start();
     }
    }

@@ -6,28 +6,30 @@ import vm from 'node:vm';
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 class Element {
- constructor(){this.nodes=new Map();this.listeners=new Map();this.textContent='';this.dataset={};}
- querySelector(selector){if(!this.nodes.has(selector))this.nodes.set(selector,new Element());return this.nodes.get(selector);}
+ constructor(){this.nodes=new Map();this.children=[];this.listeners=new Map();this.textContent='';this.dataset={};}
+ querySelector(selector){const all=[...this.children,...this.nodes.values()];for(const child of all){if(selector==='#'+child.id||selector===`[data-snes-save="${child.dataset.snesSave}"]`||selector==='.snes-save-message'&&child.className?.includes('snes-save-message'))return child;const nested=child.find?.(selector);if(nested)return nested;}if(!this.nodes.has(selector))this.nodes.set(selector,new Element());return this.nodes.get(selector);}
+ find(selector){for(const child of [...this.children,...this.nodes.values()]){if(selector==='#'+child.id||selector===`[data-snes-save="${child.dataset.snesSave}"]`||selector==='.snes-save-message'&&child.className?.includes('snes-save-message'))return child;const found=child.find(selector);if(found)return found;}return null;}
  querySelectorAll(){return [];}
  addEventListener(event,callback){this.listeners.set(event,callback);}
  click(){this.listeners.get('click')?.({});}
- append(){} setAttribute(){} focus(){} remove(){} contains(){return false;}
+ append(...children){this.children.push(...children);} removeAttribute(){} setAttribute(){} focus(){} remove(){} contains(){return false;}
 }
 async function harness(platform){
  let root,control=true,write=async()=>{},exportState=async()=>({machine:'checkpoint'});
  const writes=[],runtime={snapshot:()=>({ready:true,running:false}),pause(){},load(){},reset(){},dispose(){},releaseAll(){},exportCheckpoint:()=>exportState(),importCheckpoint(){},input(){},held(){return false;},audio(){return [];}};
- const context=vm.createContext({AbortController,requestAnimationFrame:()=>1,cancelAnimationFrame(){},setTimeout,document:{createElement(){root=new Element();return root;},hidden:false,hasFocus:()=>true},window:new Element()});
+ const context=vm.createContext({AbortController,requestAnimationFrame:()=>1,cancelAnimationFrame(){},setTimeout,setInterval:()=>1,clearInterval(){},document:{createElement(){const node=new Element();root??=node;return node;},hidden:false,hasFocus:()=>true},window:new Element()});
  const file=new URL(`../htdocs/games/arcade/${platform}-adapter.mjs`,import.meta.url);
  const module=new vm.SourceTextModule(fs.readFileSync(file,'utf8'),{context,identifier:file.href});
  class Pads{clear(){} poll(){} render(){}}
  const store=async(...args)=>{writes.push(args);return write(...args);};
  const dependencies={
-  './checkpoint-store.mjs':{saveCheckpoint:store,loadCheckpoint:async()=>({})},
+  './checkpoint-store.mjs':{readLegacyCheckpoint:async()=>null},
+  './save-store.mjs':{SAVE_SLOTS:['slot1','slot2','slot3','autosave','recovery'],createSaveStore:()=>({write:store,read:async()=>({}),list:async()=>[]})},
   './snes-runtime.mjs':{createSnesRuntime:()=>runtime},
   './snes-input.mjs':{SNES_BUTTONS:['b','y','select','start','up','down','left','right','a','x','l','r'],SNES_KEYS:{},SnesGamepads:Pads},
   './snes-storage.mjs':{snesSlot:store},
  };
- await module.link(async name=>{const exports=dependencies[name];assert(exports,`Unexpected dependency ${name}`);return new vm.SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context});});await module.evaluate();
+ await module.link(async name=>{if(name==='./save-controls.mjs')return new vm.SourceTextModule(fs.readFileSync(new URL('../htdocs/games/arcade/save-controls.mjs',import.meta.url),'utf8'),{context});const exports=dependencies[name];assert(exports,`Unexpected dependency ${name}`);return new vm.SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context});});await module.evaluate();
  const ctx={package:{id:'save-fixture',title:'Save fixture',artifactDigest:'1'.repeat(64),capabilities:{nativePlayers:1}},scope:{defer(){}},signal:new AbortController().signal,view:new Element(),input(){return true;},canControl:()=>control,changed(){}};
  const adapter=platform==='nes'?module.namespace.createNESAdapter(ctx,()=>runtime,Pads,Pads):module.namespace.createSNESAdapter(ctx,{});
  await adapter.load();

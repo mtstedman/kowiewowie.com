@@ -18,7 +18,7 @@ function render(s){
  $('player-state').textContent=s.blocked?'This game could not be closed. Reopen the arcade to continue.':s.loading?'Loading cartridge…':r?.loading?'Loading '+p.title+'…':r?.ready?(r.running?'Now playing · ':'Ready · ')+p.title:s.message==='Choose a game from the shelf.'?'':s.message.startsWith('Game unavailable:')?'This game could not be opened. Try another cartridge.':s.message;
  $('diagnostic').textContent=p?'Start enables game audio. Pause whenever you need a break.':'';$('session-state').textContent=session.message;
  const stream=['guest','spectator'].includes(session.role),ready=Boolean(r?.ready&&!s.loading&&!s.closed&&!s.blocked&&!suspended);
- $('start-game').disabled=stream?!media:!ready||!s.canControl;$('start-game').textContent=stream?'Enable audio':r?.message==='Paused'?'Resume + audio':'Start + audio';$('resume').hidden=!ready||r.running||stream;$('resume').disabled=!s.canControl;$('pause').disabled=!ready||!r.running||!s.canControl||stream;$('reset').disabled=!p||s.loading||!s.canControl||stream;
+ $('start-game').disabled=stream?!(media||s.replica&&session.phase==='active'):!ready||!s.canControl;$('start-game').textContent=stream?'Enable audio':r?.message==='Paused'?'Resume + audio':'Start + audio';$('resume').hidden=!ready||r.running||stream;$('resume').disabled=!s.canControl;$('pause').disabled=!ready||!r.running||!s.canControl||stream;$('reset').disabled=!p||s.loading||!s.canControl||stream;
  $('change').disabled=suspended||s.closed||pending||Boolean(changeSession)||screen!=='player';
  $('select-game').disabled=!ready||!s.canControl||session.role==='spectator'||(!r.running&&!stream)||Boolean(changeSession);
  $('select-game').hidden=stream&&session.role==='spectator';

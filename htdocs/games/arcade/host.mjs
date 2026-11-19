@@ -32,7 +32,7 @@ const inactive=s=>['connecting','reconnecting','ended','incompatible'].includes(
 export class GameHost {
  constructor(catalog,{loader,view=null,controls=null,changed=()=>{}}){this.catalog=catalog;this.loader=loader;this.view=view;this.controls=controls;this.changed=changed;this.active=null;this.queue=Promise.resolve();this.generation=0;this.transitioning=false;this.closed=false;this.poisoned=false;this.legacy=null;this.message='Choose a game from the shelf.';this.disposal=null;}
  emit(){try{this.changed(this.snapshot());}catch{}}
- snapshot(){const r=this.active?.closing?null:this.active,runtime=r?.adapter?.snapshot()||null,canControl=Boolean(r&&this.permitted(r,false));return Object.freeze({package:r?.pkg||null,runtime,session:r?.state||soloState(),pending:Boolean(r?.pending),loading:this.transitioning,closed:this.closed,blocked:this.poisoned,legacy:this.legacy,message:this.message,canControl,canSave:Boolean(canControl&&runtime?.ready&&!r.saving&&['solo','host'].includes(r.state.role)&&typeof r.adapter?.save==='function')});}
+ snapshot(){const r=this.active?.closing?null:this.active,runtime=r?.adapter?.snapshot()||null,canControl=Boolean(r&&this.permitted(r,false));return Object.freeze({package:r?.pkg||null,runtime,replica:r?.adapter?.replica===true,session:r?.state||soloState(),pending:Boolean(r?.pending),loading:this.transitioning,closed:this.closed,blocked:this.poisoned,legacy:this.legacy,message:this.message,canControl,canSave:Boolean(canControl&&runtime?.ready&&!r.saving&&['solo','host'].includes(r.state.role)&&typeof r.adapter?.save==='function')});}
  permitted(r,remote){if(this.closed||this.poisoned||r.closing||r.awaitingSession||!r.loaded||r!==this.active||inactive(r.state))return false;if(remote)return Boolean(r.provider&&r.state.role==='host'&&r.state.phase==='active'&&seatFor(r.pkg,'guest'));return seatFor(r.pkg,r.state.role)>0&&(r.state.role!=='guest'||Boolean(r.provider&&r.state.phase==='active'));}
  load(id,options={}){return this.transition(id,options);}
  unload(reason='library'){return this.transition(null,{reason});}
@@ -102,10 +102,10 @@ export class GameHost {
   catch(e){if(r===this.active&&!r.closing)this.message=String(e.message||e).slice(0,200);throw e;}
   finally{r.saving=false;this.emit();}
  }
- suspend(reason='focus-loss'){const r=this.active;this.release(reason,r);if(r?.adapter&&!r.closing)attempt(()=>r.adapter.pause()).catch(()=>{if(r===this.active&&!r.closing){this.poisoned=true;this.emit();}});}
+ suspend(reason='focus-loss'){const r=this.active;this.release(reason,r);if(r?.adapter?.replica)return;if(r?.adapter&&!r.closing)attempt(()=>r.adapter.pause()).catch(()=>{if(r===this.active&&!r.closing){this.poisoned=true;this.emit();}});}
  state(r,value,initial=false){
   const next=validateState(value,initial?null:r.state),previous=r.state;const changed=next.role!==previous.role||next.phase!==previous.phase||next.epoch!==previous.epoch;if(changed){const localContinues=['solo','host'].includes(previous.role)&&['solo','host'].includes(next.role)&&!inactive(previous)&&!inactive(next);if(localContinues)this.releaseRemote(r);else this.release('session-transition',r);}r.state=next;r.adapter?.setSessionState?.(next);
-  if(next.role==='guest'||next.role==='spectator'||inactive(next))attempt(()=>r.adapter.pause()).catch(()=>this.fault(r));this.emit();return next;
+  if(r.adapter?.replica?['ended','incompatible'].includes(next.phase):next.role==='guest'||next.role==='spectator'||inactive(next))attempt(()=>r.adapter.pause()).catch(()=>this.fault(r));this.emit();return next;
  }
  fault(r){if(r!==this.active||r.closing||r.faulting)return;r.faulting=true;r.state=Object.freeze({...r.state,role:'spectator',phase:'incompatible',watch:'unavailable',play:'unavailable',message:'Sharing is incompatible. Return to the library to reconnect.'});this.release('binding-error',r);attempt(()=>r.adapter?.pause()).catch(()=>{});r.faulting=false;this.emit();}
  bindSession(provider){
@@ -116,7 +116,7 @@ export class GameHost {
   const initial=validateState(provider.getState());r.provider=provider;r.awaitingSession=false;this.legacy=null;
   try{this.state(r,initial,true);r.unsubscribe=provider.subscribe(s=>{if(r!==this.active||r.closing||r.provider!==provider)return;try{this.state(r,s);}catch{this.fault(r);}});insist(typeof r.unsubscribe==='function','subscribe must return a disposer');}
   catch(e){this.fault(r);void this.shutdown(r,'binding-error').catch(()=>{});throw e;}
-  return Object.freeze({version:1,input:e=>r===this.active&&!r.closing?this.edge(r,e,true):false,release:()=>this.releaseRemote(r),surfaces:()=>{insist(r===this.active&&!r.closing,'Binding disposed');return r.adapter.surfaces();},dispose:why=>this.shutdown(r,why||'session-disposed')});
+  return Object.freeze({version:1,input:e=>r===this.active&&!r.closing?this.edge(r,e,true):false,release:()=>this.releaseRemote(r),surfaces:()=>{insist(r===this.active&&!r.closing,'Binding disposed');return r.adapter.surfaces();},network:()=>{insist(r===this.active&&!r.closing,'Binding disposed');return r.adapter.network?.();},dispose:why=>this.shutdown(r,why||'session-disposed')});
  }
  async invite(kind){
   const r=this.active;if(!r?.provider||r.closing||r.pending||!['watch','play'].includes(kind)||!['host','solo'].includes(r.state.role)||inactive(r.state)||r.state[kind]!=='available'||(kind==='watch'?!r.pkg.capabilities.watch:r.pkg.capabilities.play==='none'))return false;

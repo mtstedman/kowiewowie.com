@@ -1,0 +1,73 @@
+{
+  "passed": true,
+  "scope": "Real NES and SNES checkpoints, IndexedDB durability, retained legacy stores, three manual slots, thumbnails, recovery before load and a real one-minute nonpausing autosave.",
+  "reports": [
+    {
+      "id": "super-mario-world",
+      "platform": "snes",
+      "manual": [
+        {
+          "slot": "slot1",
+          "savedAt": "2026-11-19T00:19:38.106Z",
+          "thumbnail": true,
+          "digest": "e0e7c7a3cc248231dad0958218fac50a5138871527bffefd093c7726b5844007"
+        },
+        {
+          "slot": "slot2",
+          "savedAt": "2026-11-19T00:19:37.256Z",
+          "thumbnail": true,
+          "digest": "e0e7c7a3cc248231dad0958218fac50a5138871527bffefd093c7726b5844007"
+        },
+        {
+          "slot": "slot3",
+          "savedAt": "2026-11-19T00:19:38.355Z",
+          "thumbnail": true,
+          "digest": "027b944d625086fe4301f090a9c65635a2fcab7e28c6bd0d9c20ff7ff45886fc"
+        }
+      ],
+      "migration": true,
+      "recovery": true,
+      "autosave": {
+        "savedAt": "2026-11-19T00:20:36.508Z",
+        "thumbnail": true,
+        "elapsedMs": 60218.700000047684,
+        "executedFrames": 3438,
+        "nonpausing": true
+      }
+    },
+    {
+      "id": "contra",
+      "platform": "nes",
+      "manual": [
+        {
+          "slot": "slot1",
+          "savedAt": "2026-11-19T00:19:48.439Z",
+          "thumbnail": true,
+          "digest": "dbfafd794d8420382bef4dff837cf67b6c953883f9727f629e0b7a91f2e015b1"
+        },
+        {
+          "slot": "slot2",
+          "savedAt": "2026-11-19T00:19:42.046Z",
+          "thumbnail": true,
+          "digest": "dbfafd794d8420382bef4dff837cf67b6c953883f9727f629e0b7a91f2e015b1"
+        },
+        {
+          "slot": "slot3",
+          "savedAt": "2026-11-19T00:19:51.367Z",
+          "thumbnail": true,
+          "digest": "274b88a3a348c473b0f1334ea6934b314489b30ac36ccc6a744acbc40903d58d"
+        }
+      ],
+      "migration": true,
+      "recovery": true,
+      "autosave": {
+        "savedAt": "2026-11-19T00:20:39.163Z",
+        "thumbnail": true,
+        "elapsedMs": 62094,
+        "executedFrames": 1232,
+        "nonpausing": true
+      }
+    }
+  ],
+  "errors": []
+}

@@ -27,14 +27,17 @@ export function assignment(b,d){
 }
 export function validateSDP(d,watch){
  insist(d&&Object.keys(d).length===2&&['offer','answer'].includes(d.type)&&typeof d.sdp==='string'&&new TextEncoder().encode(d.sdp).length<=32768&&d.sdp.startsWith('v=0\r\n')&&!/[^\x09\x0a\x0d\x20-\x7e]/.test(d.sdp)&&!/\r(?!\n)/.test(d.sdp),'SDP envelope');
- const lines=d.sdp.split(/\r?\n/),sections=[],sessionDirections=[];let current=null,candidates=0;insist(lines.length<=1024,'SDP lines');
+ const lines=d.sdp.split(/\r?\n/),sections=[],sessionDirections=[];let current=null,candidates=0,hasData=false;insist(lines.length<=1024,'SDP lines');
  for(const line of lines){
   insist(line.length<=1024,'SDP line size');if(line.startsWith('a=candidate:'))insist(++candidates<=64,'SDP candidates');
-  insist(!watch||!/^(m=application\b|a=(sctp-port|sctpmap|max-message-size):)/.test(line),'Watcher data forbidden');
+  if(/^(m=application\b|a=(sctp-port|sctpmap|max-message-size):)/.test(line))hasData=true;
   if(line.startsWith('m=')){const m=/^m=(audio|video|application) ([1-9][0-9]{0,4}) ([A-Za-z0-9/]+) .+$/.exec(line);insist(m&&Number(m[2])<=65535&&m[3]===(m[1]==='application'?'UDP/DTLS/SCTP':'UDP/TLS/RTP/SAVPF'),'SDP media');current={kind:m[1],directions:[]};sections.push(current);}
   const m=/^a=(sendonly|recvonly|sendrecv|inactive)$/.exec(line);if(m)(current?current.directions:sessionDirections).push(m[1]);
  }
- insist(sections.map(s=>s.kind).sort().join(',')===(watch?'audio,video':'application,audio,video'),'SDP sections');
+ const sync=sections.length===1&&sections[0].kind==='application';
+ insist(!watch||sync||!hasData,'Watcher data forbidden');
+ insist(sync||sections.map(s=>s.kind).sort().join(',')===(watch?'audio,video':'application,audio,video'),'SDP sections');
+ if(sync)insist(/^m=application [1-9][0-9]{0,4} UDP\/DTLS\/SCTP webrtc-datachannel\r?$/m.test(d.sdp)&&(d.sdp.match(/^a=sctp-port:/gm)||[]).length===1&&/^a=sctp-port:([1-9][0-9]{0,4})\r?$/m.test(d.sdp)&&Number(/^a=sctp-port:([1-9][0-9]{0,4})\r?$/m.exec(d.sdp)[1])<=65535,'SDP sync channel');
  insist(sessionDirections.length<=1,'SDP session direction');
  for(const s of sections){
   insist(s.directions.length<=1,'SDP duplicate direction');

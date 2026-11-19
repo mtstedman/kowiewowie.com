@@ -4,7 +4,7 @@ namespace Wowie\Api;
 final class NetplayPolicy {
  public const VERSION='romjs-cartridge-roles/1';
  public const BINDING='game-network-binding/1';
- private const DIGEST='5581de67efe9ba513555bf2be4dfa8f47acbb5d51c94b579dbc4051a6505cc16';
+ private const DIGEST='347e32b1b8f119d8eb8586d6c6ba29791f36481e627d655b6c666424e54dd44a';
  public static function deny(string $code='invalid_contract',int $status=422): never {throw new ApiException($status,$code,'Netplay request rejected.');}
  public static function package(mixed $id,mixed $artifact): array {
   if(!is_string($id)||!is_string($artifact)||!preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/',$id)||strlen($id)>64||!preg_match('/\A[a-f0-9]{64}\z/',$artifact))self::deny();
@@ -23,17 +23,20 @@ final class NetplayPolicy {
  public static function sdp(mixed $d,string $type,bool $watch): string {
   if(!is_array($d)||count($d)!==2||($d['type']??null)!==$type||!is_string($d['sdp']??null))self::deny('invalid_sdp');
   $s=$d['sdp'];if(strlen($s)>32768||!str_starts_with($s,"v=0\r\n")||preg_match('/[^\x09\x0a\x0d\x20-\x7e]/',$s)||preg_match('/\r(?!\n)/',$s))self::deny('invalid_sdp');
-  $lines=preg_split('/\r?\n/',$s);if(count($lines)>1024)self::deny('invalid_sdp');$sections=[];$sessionDirections=[];$current=-1;$candidates=0;
+  $lines=preg_split('/\r?\n/',$s);if(count($lines)>1024)self::deny('invalid_sdp');$sections=[];$sessionDirections=[];$current=-1;$candidates=0;$hasData=false;
   foreach($lines as $line){
    if(strlen($line)>1024)self::deny('invalid_sdp');if(str_starts_with($line,'a=candidate:')&&++$candidates>64)self::deny('invalid_sdp');
-   if($watch&&preg_match('/^(m=application\b|a=(sctp-port|sctpmap|max-message-size):)/',$line))self::deny('watch_data_forbidden',403);
+   if(preg_match('/^(m=application\b|a=(sctp-port|sctpmap|max-message-size):)/',$line))$hasData=true;
    if(str_starts_with($line,'m=')){
     if(!preg_match('/\Am=(audio|video|application) ([1-9][0-9]{0,4}) ([A-Za-z0-9\/]+) .+\z/',$line,$m)||(int)$m[2]>65535||$m[3]!==($m[1]==='application'?'UDP/DTLS/SCTP':'UDP/TLS/RTP/SAVPF'))self::deny('invalid_sdp');
     $sections[]=['kind'=>$m[1],'directions'=>[]];$current=count($sections)-1;
    }
    if(preg_match('/\Aa=(sendonly|recvonly|sendrecv|inactive)\z/',$line,$m)){if($current<0)$sessionDirections[]=$m[1];else $sections[$current]['directions'][]=$m[1];}
   }
-  $kinds=array_column($sections,'kind');sort($kinds);if($kinds!==($watch?['audio','video']:['application','audio','video']))self::deny('invalid_sdp');
+  $kinds=array_column($sections,'kind');sort($kinds);$sync=$kinds===['application'];
+  if($watch&&!$sync&&$hasData)self::deny('watch_data_forbidden',403);
+  if(!$sync&&$kinds!==($watch?['audio','video']:['application','audio','video']))self::deny('invalid_sdp');
+  if($sync&&(!preg_match('/^m=application [1-9][0-9]{0,4} UDP\/DTLS\/SCTP webrtc-datachannel\r?$/m',$s)||preg_match_all('/^a=sctp-port:/m',$s)!==1||!preg_match('/^a=sctp-port:([1-9][0-9]{0,4})\r?$/m',$s,$port)||(int)$port[1]>65535))self::deny('invalid_sdp');
   if(count($sessionDirections)>1)self::deny('invalid_media_direction');
   foreach($sections as $m){
    if(count($m['directions'])>1)self::deny('invalid_media_direction');

@@ -1,0 +1,242 @@
+{
+  "htdocs/games/arcade/replication-state.mjs": {
+    "bytes": 3393,
+    "sha256": "48e0a88166d8979850606cc0324c86430f96cc8f54381f10d231c59cb7f75e66"
+  },
+  "htdocs/games/arcade/worker-stream-producer.mjs": {
+    "bytes": 11392,
+    "sha256": "4bc38dfdfc10b5b689ec0c7117af76fd656596726f5780b89867a3a93aff3645"
+  },
+  "htdocs/games/arcade/worker-stream-host.mjs": {
+    "bytes": 20467,
+    "sha256": "d13751e10c4acb0952ea81f8feaf3b8806830b2019549eb70dc324af2329b586"
+  },
+  "htdocs/games/arcade/snes-runtime.mjs": {
+    "bytes": 12403,
+    "sha256": "5c0e3942d9a89054084b44680a9798a1c6064bd4f87a0d92b63809f2f032f0a7"
+  },
+  "htdocs/games/arcade/battery-client.mjs": {
+    "bytes": 4231,
+    "sha256": "2f56f3926416509d64640d236a30de68bbd7f64cfe0524816d4221bfc956898d"
+  },
+  "htdocs/games/arcade/simulation-clock.mjs": {
+    "bytes": 1200,
+    "sha256": "d68c327a65bb53c97432f365a9b8f6399f72495cb7cee792a648f4fe481403f2"
+  },
+  "htdocs/games/arcade/frame-pacing.mjs": {
+    "bytes": 1531,
+    "sha256": "5d5a77ea31e257546321c0932d48007114d44a2cedd210f127da7317646c4adb"
+  },
+  "htdocs/games/arcade/snes-storage.mjs": {
+    "bytes": 1303,
+    "sha256": "e6c65f7d007fb0b5793303880950b2f48b1a36af0550aa40d53694e2547c2b89"
+  },
+  "htdocs/games/engines/snes/worker.mjs": {
+    "bytes": 3655,
+    "sha256": "038d0ebd90922a57fd1cf73cca21d7f8c622efe19f4ca80cf1d320ab6f4cf3ac"
+  },
+  "htdocs/games/engines/snes/frame-executor.mjs": {
+    "bytes": 957,
+    "sha256": "427c03aca2c1fb78834142c8effe08d78f509be4b892c5f02c20a978de190541"
+  },
+  "htdocs/games/engines/snes/runner.mjs": {
+    "bytes": 6478,
+    "sha256": "5ec20b001099d22a1ff078261565597b935b6e4c13be6f05744dabf208874ec0"
+  },
+  "htdocs/games/engines/snes/posse-snes.cjs": {
+    "bytes": 64682,
+    "sha256": "0970d8ce46aeeafbead9696b545ab5c9da2da9a44f9c1acd502cc8b143e21a56"
+  },
+  "htdocs/games/engines/snes/posse-snes.wasm": {
+    "bytes": 2185357,
+    "sha256": "0e694cf9d404408ca45b817dcf4fc6478480802bc1b1f84cfc633152d656470c"
+  },
+  "tests/runtime-replication.test.mjs": {
+    "bytes": 9823,
+    "sha256": "abcbbd46d6fb2c7aeaea8fb8e9b6af3af19515cb97d8ec0ffedf19de0e2670ab"
+  },
+  "tests/runtime-replication.browser.mjs": {
+    "bytes": 5922,
+    "sha256": "cdfd21288e9f864bbbaaaabf7b7f2b72a4abbbdef450566136d10b0e1d288c4e"
+  },
+  "tests/nes-replication-catalog.test.mjs": {
+    "bytes": 2943,
+    "sha256": "4fbf4a3a02cb6dceab5e2cdb5ce7dcad907f0b4cd44ae5a7257c304aceda41f3"
+  },
+  "htdocs/games/megaman/composition.json": {
+    "bytes": 10993,
+    "sha256": "fc7ee4c80b5c2a946aa1498993ad49832cc454c7d9d41becf1bbddbf59a567c5"
+  },
+  "htdocs/games/megaman/composition-entry.mjs": {
+    "bytes": 323,
+    "sha256": "33ef4aa2028e989e018b87cfdd901da394322947e57e251154db3287a4c3b880"
+  },
+  "htdocs/games/megaman/worker.mjs": {
+    "bytes": 483,
+    "sha256": "66d1bf627497eac596f7df8783639779bb45e680e8c07727ebbfeb21c5ffa4f7"
+  },
+  "htdocs/games/adventure-island-2/composition.json": {
+    "bytes": 15044,
+    "sha256": "63fdb1a2b06247fc076e75fd54f50f26abc865135d8173288f64281926ebeffc"
+  },
+  "htdocs/games/adventure-island-2/composition-entry.mjs": {
+    "bytes": 313,
+    "sha256": "ab76c7f4b542e7d72e532fd45e80072abfe0b56b8167e726990c5e6d3b62a3cb"
+  },
+  "htdocs/games/adventure-island-2/worker.mjs": {
+    "bytes": 483,
+    "sha256": "66d1bf627497eac596f7df8783639779bb45e680e8c07727ebbfeb21c5ffa4f7"
+  },
+  "htdocs/games/castlevania/composition.json": {
+    "bytes": 7400,
+    "sha256": "bdbda6fedb056fd723e8299df339c7ca1072a5ee64cfcf6c0ad21d17d85bfeab"
+  },
+  "htdocs/games/castlevania/composition-entry.mjs": {
+    "bytes": 323,
+    "sha256": "9b7efa97ecf7dc713d461b621fe71ea749379f0d742ac29d3b9bcc5921c74c13"
+  },
+  "htdocs/games/castlevania/worker.mjs": {
+    "bytes": 483,
+    "sha256": "66d1bf627497eac596f7df8783639779bb45e680e8c07727ebbfeb21c5ffa4f7"
+  },
+  "htdocs/games/ikari-warriors/composition.json": {
+    "bytes": 7508,
+    "sha256": "c499be0f813688e9b12a4b3ddd7d8fcb808ffb1ebf6d8a945054379db67006c0"
+  },
+  "htdocs/games/ikari-warriors/composition-entry.mjs": {
+    "bytes": 323,
+    "sha256": "9b7efa97ecf7dc713d461b621fe71ea749379f0d742ac29d3b9bcc5921c74c13"
+  },
+  "htdocs/games/ikari-warriors/worker.mjs": {
+    "bytes": 483,
+    "sha256": "66d1bf627497eac596f7df8783639779bb45e680e8c07727ebbfeb21c5ffa4f7"
+  },
+  "htdocs/games/bionic-commando/composition.json": {
+    "bytes": 12982,
+    "sha256": "941a0f0ba3ab2bc7c4e4cf1e8e2d18f41526809cf6f5c75f73c1549fd84ac7ed"
+  },
+  "htdocs/games/bionic-commando/composition-entry.mjs": {
+    "bytes": 315,
+    "sha256": "bf3165a5af7c0f257b070784b03ccab516ab52e0c7bbed4724de1d6c3e69833f"
+  },
+  "htdocs/games/bionic-commando/worker.mjs": {
+    "bytes": 483,
+    "sha256": "66d1bf627497eac596f7df8783639779bb45e680e8c07727ebbfeb21c5ffa4f7"
+  },
+  "htdocs/games/zelda/composition.json": {
+    "bytes": 10641,
+    "sha256": "fdf9b6286944ef2313d503ddb6194ff87112737c994cee6f8f304e2f44bc2558"
+  },
+  "htdocs/games/zelda/composition-entry.mjs": {
+    "bytes": 315,
+    "sha256": "bc99f25b98bc41412229db2f8bd0acf8015ae2993ab583422ec056223702d313"
+  },
+  "htdocs/games/zelda/worker.mjs": {
+    "bytes": 1532,
+    "sha256": "6e72718f9cdf65b0a539fe7ed288c06dfe9f8a9a2e8fad290a755b75ddd56944"
+  },
+  "htdocs/games/contra/composition.json": {
+    "bytes": 10998,
+    "sha256": "9815321acfd86e2024ad2a18bf40634976322fcd85152e3b51fae60023f38918"
+  },
+  "htdocs/games/contra/composition-entry.mjs": {
+    "bytes": 321,
+    "sha256": "712caa9454cdeaefd874b88b55da7210e80919588d89184c395edbee323c52c6"
+  },
+  "htdocs/games/contra/worker.mjs": {
+    "bytes": 483,
+    "sha256": "66d1bf627497eac596f7df8783639779bb45e680e8c07727ebbfeb21c5ffa4f7"
+  },
+  "htdocs/games/castlevania-3/composition.json": {
+    "bytes": 28728,
+    "sha256": "c6e8ea271710bf8a2cb3eda5966f4de0afb3ba04f587d45e9ebe3ca4f496b788"
+  },
+  "htdocs/games/castlevania-3/composition-entry.mjs": {
+    "bytes": 313,
+    "sha256": "9ca7c565cc6a04970ae7cf507448384e390004041cc1be2d778cc25776c3f7ab"
+  },
+  "htdocs/games/castlevania-3/worker.mjs": {
+    "bytes": 483,
+    "sha256": "66d1bf627497eac596f7df8783639779bb45e680e8c07727ebbfeb21c5ffa4f7"
+  },
+  "htdocs/games/double-dragon-ii/composition.json": {
+    "bytes": 15884,
+    "sha256": "66b4dc55c5d9b8ca8710f6608cc2ef3bf8036832c6a054766421f0856a2ab70f"
+  },
+  "htdocs/games/double-dragon-ii/composition-entry.mjs": {
+    "bytes": 323,
+    "sha256": "61d268e447441fdeb36a7fd3a8e4623f223f5f5f64cd02b512de46aa1827d484"
+  },
+  "htdocs/games/double-dragon-ii/worker.mjs": {
+    "bytes": 483,
+    "sha256": "66d1bf627497eac596f7df8783639779bb45e680e8c07727ebbfeb21c5ffa4f7"
+  },
+  "htdocs/games/metroid/composition.json": {
+    "bytes": 9818,
+    "sha256": "6a2f1f0f67c9a8b577ab96099c0a05b568b103c0d15f68a26f17c1632e37d9a8"
+  },
+  "htdocs/games/metroid/composition-entry.mjs": {
+    "bytes": 323,
+    "sha256": "6659070c9b6830ae42b72d8b9af35d40764ec42a09daa18caba52727407f6d0d"
+  },
+  "htdocs/games/metroid/worker.mjs": {
+    "bytes": 478,
+    "sha256": "c7946134abf337e392153a5f97d95a92cd5dc87b45b468f0ceac49930f398af6"
+  },
+  "htdocs/games/the-guardian-legend/composition.json": {
+    "bytes": 11464,
+    "sha256": "6046ecef07a47027e1e21e930311d7bae91645723ffb8c8c7953c2f9cde7b562"
+  },
+  "htdocs/games/the-guardian-legend/composition-entry.mjs": {
+    "bytes": 321,
+    "sha256": "712caa9454cdeaefd874b88b55da7210e80919588d89184c395edbee323c52c6"
+  },
+  "htdocs/games/the-guardian-legend/worker.mjs": {
+    "bytes": 478,
+    "sha256": "c7946134abf337e392153a5f97d95a92cd5dc87b45b468f0ceac49930f398af6"
+  },
+  "htdocs/games/super-mario-bros-3/composition.json": {
+    "bytes": 24659,
+    "sha256": "546f1c66c1baed2cc9576f66556d58647a159916b7ede1345972b77f81794a15"
+  },
+  "htdocs/games/super-mario-bros-3/composition-entry.mjs": {
+    "bytes": 323,
+    "sha256": "61d268e447441fdeb36a7fd3a8e4623f223f5f5f64cd02b512de46aa1827d484"
+  },
+  "htdocs/games/super-mario-bros-3/worker.mjs": {
+    "bytes": 478,
+    "sha256": "c7946134abf337e392153a5f97d95a92cd5dc87b45b468f0ceac49930f398af6"
+  },
+  "htdocs/games/mike-tysons-punch-out/composition.json": {
+    "bytes": 10968,
+    "sha256": "7a344f5c44800abe8fe2a0d3571ea8cdece5e2ec78a16e0320560feef4d9a9aa"
+  },
+  "htdocs/games/mike-tysons-punch-out/composition-entry.mjs": {
+    "bytes": 313,
+    "sha256": "74f413d400688542664dd793616b2303fe29028e22cb91d02f3ef4cb4297b683"
+  },
+  "htdocs/games/mike-tysons-punch-out/worker.mjs": {
+    "bytes": 478,
+    "sha256": "c7946134abf337e392153a5f97d95a92cd5dc87b45b468f0ceac49930f398af6"
+  },
+  "htdocs/games/super-mario-world/host-entry.mjs": {
+    "bytes": 802,
+    "sha256": "99277bac1f5f2094fa0dd8726fcde2ddbd5fda01320489f5aa554b446ae0c864"
+  },
+  "htdocs/games/super-mario-world/source.sfc": {
+    "bytes": 524288,
+    "sha256": "0838e531fe22c077528febe14cb3ff7c492f1f5fa8de354192bdff7137c27f5b"
+  },
+  "htdocs/games/zelda-a-link-to-the-past/host-entry.mjs": {
+    "bytes": 811,
+    "sha256": "ef1c18328fb2cd638d6411e4a97e01a216e897c4a523d7bd7b76f62af14211e0"
+  },
+  "htdocs/games/zelda-a-link-to-the-past/source.sfc": {
+    "bytes": 1048576,
+    "sha256": "66871d66be19ad2c34c927d6b14cd8eb6fc3181965b6e517cb361f7316009cfb"
+  },
+  "htdocs/games/engines/nes/registry.json": {
+    "bytes": 6239,
+    "sha256": "c49d99ac0431be4e3118bcb99b89d37718557b7dc3b4e304616cd691ed4014a7"
+  }
+}

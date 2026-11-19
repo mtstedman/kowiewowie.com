@@ -29,3 +29,5 @@ async function slot(id,write,value){
 }
 export async function saveCheckpoint(id,record){const stored=await encodeCheckpoint(record);await slot(id,true,stored);return stored.savedAt;}
 export async function loadCheckpoint(id){const stored=await slot(id,false);if(!stored)throw Error('No saved game on this browser yet');return decodeCheckpoint(stored);}
+// Migration reads the old slot without replacing or deleting it.
+export async function readLegacyCheckpoint(id){const stored=await slot(id,false);return stored?{record:await decodeCheckpoint(stored),savedAt:stored.savedAt}:null;}

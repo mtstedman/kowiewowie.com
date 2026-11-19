@@ -12,7 +12,7 @@ else:
   if not sep or key in seen:raise SystemExit('Use distinct explicit supported browser options')
   seen.add(key)
   if key=='--browser-mode' and value in ('isolated','trusted-local'):browser_mode=value
-  elif key=='--suite' and value in ('snes','netplay-repair'):suite=value
+  elif key=='--suite' and value in ('snes','netplay-repair','rom-sync'):suite=value
   else:raise SystemExit('Unsupported browser option')
 if os.geteuid()==0:raise SystemExit('Run disposable fixtures as an ordinary user')
 mode=sys.argv[1];os.umask(0o077);job=P(tempfile.mkdtemp(prefix='combined-lab-'));procs=[];handles=[];initialized=False
@@ -74,7 +74,7 @@ try:
   nc=json.loads((source/'includes/api/classes/netplay-catalog.json').read_bytes());b=dict(next(iter(nc['packages'].values())));b.update({'packageId':m['id'],'route':m['route'],'entryAdapter':m['entry'],'adapter':'diagnostic/1','artifactDigest':digest,'compatibility':'native-two/1','players':{'local':'left-player','remote':'right-player'},'capabilities':{'nativePlayers':2,'play':'independent','watch':True,'video':True,'audio':True}});nc['packages'][m['id']]=b;nb=canon(nc)+b'\n'
   write(source/'htdocs/games/netplay/catalog.json',nb);write(source/'includes/api/classes/netplay-catalog.json',nb);policy=source/'includes/api/classes/NetplayPolicy.php';text,n=re.subn(r"private const DIGEST='[a-f0-9]{64}';","private const DIGEST='"+h(nb)+"';",policy.read_text());assert n==1;policy.write_text(text)
   phpport,tlsport,turnport=freeport(),freeport(),freeport();origin='https://127.0.0.1:'+str(tlsport);fixture_key=secrets.token_hex(32)
-  env.update({'WOWIE_NETPLAY_ENABLED':'true','WOWIE_NETPLAY_TURN_URLS':'turn:127.0.0.1:'+str(turnport)+'?transport=udp','WOWIE_NETPLAY_TURN_SECRET':fixture_key,'WOWIE_NETPLAY_ORIGINS':origin,'WOWIE_NETPLAY_STUN_URLS':'','WOWIE_NETPLAY_ICE_POLICY':'all' if suite=='netplay-repair' else 'relay','COMBINED_TEST_ORIGIN':origin})
+  env.update({'WOWIE_NETPLAY_ENABLED':'true','WOWIE_NETPLAY_TURN_URLS':'turn:127.0.0.1:'+str(turnport)+'?transport=udp','WOWIE_NETPLAY_TURN_SECRET':fixture_key,'WOWIE_NETPLAY_ORIGINS':origin,'WOWIE_NETPLAY_STUN_URLS':'','WOWIE_NETPLAY_ICE_POLICY':'all' if suite in ('netplay-repair','rom-sync') else 'relay','COMBINED_TEST_ORIGIN':origin})
   key=job/'key.pem';cert=job/'cert.pem';run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-keyout',str(key),'-out',str(cert),'-days','1','-subj','/CN=127.0.0.1','-addext','subjectAltName=IP:127.0.0.1'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   # Structured serialization of freshly generated disposable credentials; no credential literals or production inputs.
   settings={'listening-ip':'127.0.0.1','relay-ip':'127.0.0.1','listening-port':turnport,'min-port':51000,'max-port':51100,'realm':'combined-fixture','use-auth-secret':None,'static-auth-secret':fixture_key,'fingerprint':None,'no-tls':None,'no-dtls':None,'no-cli':None,'cli-password':secrets.token_hex(32),'allow-loopback-peers':None,'no-multicast-peers':None,'no-tcp-relay':None,'user-quota':8,'total-quota':32,'log-file':str(job/'turn.log'),'pidfile':str(job/'turn.pid')}
@@ -82,7 +82,7 @@ try:
   turn=launch(['turnserver','-c',str(tc)]);ready(turnport,turn)
   php=launch(['php','-S','127.0.0.1:'+str(phpport),str(source/'tests/combined-lab-router.php')]);ready(phpport,php)
   web=launch(['node',str(source/'tests/snes-sharing-server.mjs'),str(source),str(tlsport),str(phpport),str(key),str(cert)]);ready(tlsport,web)
-  p=run(['node','--test','--test-concurrency=1','tests/'+('snes-sharing' if suite=='snes' else 'netplay-repair')+'.browser.mjs'],timeout=1620,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+  p=run(['node','--test','--test-concurrency=1','tests/'+{'snes':'snes-sharing','netplay-repair':'netplay-repair','rom-sync':'arcade-sync'}[suite]+'.browser.mjs'],timeout=1620,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
   (job/'browser.tap').write_bytes(p.stdout);(job/'browser.stderr').write_bytes(p.stderr);receipt.update({'pass':p.returncode==0,'browser_receipt':str(job/'browser.tap'),'scope':'Real cartridge streams and controls in independent browser contexts, disposable PostgreSQL and authenticated loopback TURN; not WAN qualification'})
 except Exception as e:
  receipt['error']=type(e).__name__+': '+str(e)[:240]

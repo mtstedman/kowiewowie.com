@@ -1,11 +1,12 @@
 // This facade adds save messages only. Frame/input/audio envelopes remain base-owned.
-export function createPersistentRuntime(args,createBase,codec,{NativeWorker=globalThis.Worker,storage=globalThis.localStorage,timeoutMs=4000}={}){
+export function createPersistentRuntime(args,createBase,codec,{NativeWorker=globalThis.Worker,storage,timeoutMs=4000}={}){
  const {readSave,writeSave,validateRecord}=codec;
+ if(args.replica!==true&&storage===undefined)storage=globalThis.localStorage;
  let current=null,closed=false,disposal=null,queue=Promise.resolve(),saveError=null;
  const warning=args.root.ownerDocument?.createElement('p');if(warning){warning.setAttribute('role','status');warning.hidden=true;args.root.append(warning);}
  function report(e){saveError=e instanceof Error?e:Error('Save failed');if(warning){warning.hidden=false;warning.textContent='Save data could not be stored on this device. Keep this game open and free storage before trying again.';}}
  // Read/validate before creating a worker. Corrupt or wrong-ROM saves are never overwritten.
- let saved=readSave(storage);
+ let saved=args.replica===true?null:readSave(storage);
  class SavingWorker {
   constructor(url,options){
    if(closed)throw Error('Cartridge closed');this.dead=false;this.serial=0;this.waiting=new Map();this.worker=new NativeWorker(url,options);current=this;
@@ -14,6 +15,7 @@ export function createPersistentRuntime(args,createBase,codec,{NativeWorker=glob
     try{
      if(d?.type==='battery-await-init'){this.worker.postMessage({type:'battery-init',record:saved});return;}
      if(d?.type==='battery-data'){
+      if(args.replica===true||base?.network?.status().replica)return;
       const v=validateRecord(d.record);saved=writeSave(storage,v);saveError=null;if(warning)warning.hidden=true;
       const pending=this.waiting.get(d.request);if(pending){this.waiting.delete(d.request);clearTimeout(pending.timer);pending.resolve();}return;
      }
@@ -33,7 +35,7 @@ export function createPersistentRuntime(args,createBase,codec,{NativeWorker=glob
  }
  let base;
  try{base=createBase({...args,WorkerClass:SavingWorker});}catch(e){current?.terminate();warning?.remove();throw e;}
- async function flush(){if(current)await current.flush();if(saveError)throw saveError;}
+ async function flush(){if(args.replica===true||base?.network?.status().replica)return;if(current)await current.flush();if(saveError)throw saveError;}
  function reset(){if(closed)return;const work=queue.then(async()=>{if(closed)return;base.pause();await flush();if(!closed)base.reset();});queue=work.catch(e=>{report(e);});return work;}
  function dispose(){if(disposal)return disposal;closed=true;base.pause();disposal=(async()=>{let error;try{await queue;await flush();}catch(e){report(e);error=e;}finally{try{await base.dispose();}finally{current?.terminate();warning?.remove();}}if(error)throw error;})();return disposal;}
  const forward=k=>(...a)=>{if(closed)return false;return base[k](...a);};

@@ -1,0 +1,3 @@
+3ab8fa2f9d2858c709377d0204100092e0cde7a45a2009ea865e32c103b0b920  tests/arcade-save-library.browser.mjs
+afb021a013f0c3e820821fa761e2a1827e02f76eec622c489d87fdf0b3dce030  tests/snes-browser-policy.mjs
+fe81388c011de5651af517c4cfd8cfa8298304c47447636fcb91b6824401bba6  deploy/nginx/wowiekowie.com.conf

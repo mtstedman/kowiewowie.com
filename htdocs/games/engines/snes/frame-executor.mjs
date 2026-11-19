@@ -14,5 +14,6 @@ export function createSnesFrameExecutor(runner,{hz=Math.min(60,runner.info().fps
    finally{clock.complete(now());}
   },
   snapshot:()=>clock.snapshot(),
+  pause:()=>clock.pause(),
  });
 }

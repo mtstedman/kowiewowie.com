@@ -55,12 +55,12 @@ export function invitationMessage(p){
  const c=p.capabilities;
  return c.nativePlayers===2&&c.play==='host-p1-guest-p2'?(c.mode==='alternating'?'Invite someone to watch or take turns · Player 1 and Player 2.':'Invite someone to watch or join the game · Player 1 and Player 2.'):c.play==='shared-hero'?'Invite someone to watch or share this hero.':'Invite someone to watch this game.';
 }
-export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
+export function createBridge(p,b,record,{signal,onUI=()=>{},replica=false,sessionFactory=createHostSession,joinFactory=joinParticipant}={}){
  let lease=null,host=null,guest=null,opening=null,disposed=false,timer=null,releaseBusy=false,epoch=0,lastRawEpoch=0,receiverEnded=false;
  let retryTimer=null,retryWake=null,integration=null,disposal=null,joining=null,connecting=null,joinMessage=null,connectionMessage=null,operation=0;
  let state=Object.freeze({role:record?'spectator':'solo',phase:record?'connecting':'inactive',epoch:0,reconnect:'none',watch:record?'unavailable':'available',play:record?'unavailable':'available',message:record?'Connecting to shared game…':invitationMessage(p)});
  const listeners=new Set(),video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.muted=true;video.setAttribute('aria-label','Shared game video and audio');video.setAttribute('data-shared-receiver-media','');
- const receiverMedia=()=>{if(disposed||signal?.aborted||receiverEnded||!guest)return null;const raw=guest.getState();return ['guest','spectator'].includes(raw.role)&&raw.phase==='active'&&raw.mediaAvailable===true?{video,audio:video}:null;};
+ const receiverMedia=()=>{if(replica)return null;if(disposed||signal?.aborted||receiverEnded||!guest)return null;const raw=guest.getState();return ['guest','spectator'].includes(raw.role)&&raw.phase==='active'&&raw.mediaAvailable===true?{video,audio:video}:null;};
  const notify=()=>{if(disposed)return;for(const f of listeners)try{f(state);}catch{}onUI({state,participants:host?.getState().participants||[]});};
  function update(){
   if(disposed||receiverEnded)return;if(host?.closed)host=null;
@@ -70,14 +70,14 @@ export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
   const rawEpoch=raw?.epoch??0,barrier=role!==state.role||phase!==state.phase||rawEpoch!==lastRawEpoch;lastRawEpoch=rawEpoch;
   if(barrier)epoch++;
   const next={role,phase,epoch,reconnect:phase==='reconnecting'?'pending':phase==='active'&&epoch>1?'recovered':'none',watch:!record&&phase!=='ended'&&(raw?.watchAvailable??true)?'available':'unavailable',play:!record&&phase!=='ended'&&(raw?.playAvailable??true)?'available':'unavailable',message:phase==='ended'?(connectionMessage||'Sharing ended.'):role==='spectator'?(phase==='active'?'Watching live · no controls.':'Connecting live video and audio…'):role==='guest'?(phase==='active'?(p.capabilities.play==='shared-hero'?'Sharing one hero · Player 1.':(p.capabilities.mode==='alternating'?'Connected as Player 2 · take turns.':'Connected to the assigned second player.')):'Reconnecting · controls released.'):host?'Sharing this game.':invitationMessage(p)};
-  if(record&&phase!=='ended'){const media=receiverMedia();if(role==='guest'&&phase==='reconnecting'&&raw?.hostPaused===true)next.message=media?'Connected—host paused/away · Ask the host to Resume · controls released.':'Connected—host paused/away · No picture received yet. Ask the host to Resume · controls released.';else if(!media)next.message=connectionMessage||'Connecting live video and audio… · controls released.';}
+  if(record&&phase!=='ended'){const media=replica?raw?.mediaAvailable:receiverMedia();if(role==='guest'&&phase==='reconnecting'&&raw?.hostPaused===true)next.message=media?'Connected—host paused/away · Ask the host to Resume · controls released.':'Connected—host paused/away · No picture received yet. Ask the host to Resume · controls released.';else if(!media)next.message=connectionMessage||(replica?'Synchronizing game state… · controls released.':'Connecting live video and audio… · controls released.');}
    if(JSON.stringify(next)===JSON.stringify(state))return;state=Object.freeze(next);notify();
  }
  const event=e=>{if(disposed)return;if(e.type==='status'&&typeof e.message==='string')connectionMessage=e.message.slice(0,240);queueMicrotask(update);if(e.type==='roster')onUI({state,participants:e.state.participants});};
  async function open(){
   insist(!disposed&&!signal?.aborted&&!record&&lease,'Host session unavailable');if(host&&!host.closed)return host;if(opening)return opening;
   const ticket=operation,adapter=hostAdapter(p,b,lease,()=>state,()=>integration.getState().runtime);
-  opening=createHostSession(b,adapter,{onEvent:event}).then(async h=>{if(disposed||signal?.aborted||ticket!==operation){await h.end();throw Error('Selection ended');}host=h;update();return h;}).finally(()=>{opening=null;});return opening;
+  opening=sessionFactory(b,adapter,{onEvent:event,signal,network:replica?lease.network():undefined}).then(async h=>{if(disposed||signal?.aborted||ticket!==operation){await h.end();throw Error('Selection ended');}host=h;update();return h;}).finally(()=>{opening=null;});return opening;
  }
  async function invite(kind,context){
   insist(context.package.id===p.id&&context.package.artifactDigest===p.artifactDigest&&!context.signal.aborted&&!disposed,'Stale invitation context');
@@ -110,7 +110,7 @@ export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
   // host wire epoch, another guest clear, and another notification indefinitely.
   if(reason==='session-transition'||releaseBusy||disposed)return;
   releaseBusy=true;try{guest?.release();host?.release();}finally{releaseBusy=false;}
- },enableAudio:()=>{if(record){insist(receiverMedia(),'Shared media unavailable');return guest.enableAudio();}return host?.audio();},getMedia:receiverMedia,dispose});
+ },enableAudio:()=>{if(record){insist(replica?guest?.getState().mediaAvailable:receiverMedia(),'Shared media unavailable');return guest.enableAudio();}return host?.audio();},getMedia:receiverMedia,dispose});
  async function connect(){
   if(connecting)return connecting;
   connecting=connectOnce().finally(()=>{connecting=null;});return connecting;
@@ -123,7 +123,7 @@ export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
    let s;
    for(let attempt=0;attempt<11;attempt++){
     insist(!disposed&&!signal?.aborted&&!receiverEnded,'Selection ended');
-    try{joining=joinParticipant(b,record,{video,onEvent:event}).then(async result=>{if(disposed||signal?.aborted||receiverEnded){await result.dispose({leave:true});return null;}return result;});s=await joining;joining=null;if(!s)return;break;}
+    try{joining=joinFactory(b,record,{video,onEvent:event,signal,network:replica?lease.network():undefined}).then(async result=>{if(disposed||signal?.aborted||receiverEnded){await result.dispose({leave:true});return null;}return result;});s=await joining;joining=null;if(!s)return;break;}
     catch(e){joining=null;if(e.status!==409||e.code!=='still_active'||attempt===10)throw e;joinMessage='Waiting for the previous connection to close… Close any other tab using this invitation. Retrying automatically.';update();await new Promise(resolve=>{retryWake=resolve;retryTimer=setTimeout(resolve,2000);});retryWake=null;}
    }
    if(disposed||signal?.aborted||receiverEnded){await s.dispose({leave:true});return;}guest=s;joinMessage=null;sessionStorage.setItem(storageKey(p),JSON.stringify(s.resume));history.replaceState(history.state,'',location.pathname+location.search);update();
@@ -137,6 +137,6 @@ export function createBridge(p,b,record,{signal,onUI=()=>{}}={}){
  }
  return {provider,end,revoke:id=>{insist(host,'No sharing session');return host.revoke(id);},retry:()=>guest?guest.retry():record&&!receiverEnded&&!disposed?connect():undefined,async attach(owner){
   insist(!disposed&&!signal?.aborted&&!integration,'Bridge attachment unavailable');integration=owner;lease=owner.bindSession(provider);timer=setInterval(update,250);
-  if(!record){update();return;}onUI({state,receiverVideo:video});await connect();
+  if(!record){update();return;}if(!replica)onUI({state,receiverVideo:video});await connect();
  },dispose};
 }
