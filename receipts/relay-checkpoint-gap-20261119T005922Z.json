@@ -1,0 +1,16 @@
+{
+  "format": "relay-checkpoint-gap/1",
+  "passed": 16,
+  "failed": 0,
+  "scope": "Spectator checkpoint transfer tolerates delivery gaps up to the existing 15-second authorization window; player input retains its 2-second freshness limit.",
+  "sources": {
+    "htdocs/games/netplay/sync-transport.mjs": {
+      "bytes": 5226,
+      "sha256": "fd8abd34f00df067475a8284ddb8b1bee15b832372bef12a7deb2af9511316b5"
+    },
+    "tests/netplay-sync-wire.test.mjs": {
+      "bytes": 11282,
+      "sha256": "c04ec5cf48f06dd7f05402992cb3f8be3002622af66323912cf0b100c5566a16"
+    }
+  }
+}

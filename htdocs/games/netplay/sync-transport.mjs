@@ -8,7 +8,8 @@ export function createSyncTransport(binding,notify=()=>{}){
  class Peer extends base.Peer{
   constructor(role,auth,callbacks={}){super(role,auth,{enabled:()=>false,state:()=>({}),clear:()=>{},clearRemote:()=>{},...callbacks});this.syncWire=null;this.syncPending=0;this.syncReady=false;}
   sdp(d,type){insist(d?.type===type,'Sync SDP type');const value=validateSDP({type,sdp:d?.sdp},this.watchOnly);insist((value.sdp.match(/^m=/gm)||[]).length===1&&/^m=application /m.test(value.sdp),'Data-only sync SDP');return value;}
-  healthy(){return this.pc?.connectionState==='connected'&&this.dc?.readyState==='open'&&performance.now()-this.lastData<2000;}
+  // Bulk relay checkpoints tolerate brief delivery gaps; player input keeps its two-second expiry.
+  healthy(){return this.pc?.connectionState==='connected'&&this.dc?.readyState==='open'&&performance.now()-this.lastData<(this.watchOnly?15000:2000);}
   connect(config){
    this.lastData=performance.now();this.everOpen=false;const pc=this.pc=new RTCPeerConnection(config);
    pc.onconnectionstatechange=()=>{if(pc!==this.pc||this.closed)return;if(['disconnected','failed','closed'].includes(pc.connectionState))this.suspend('Game synchronization interrupted. Reconnecting…',pc.connectionState==='closed'?'rebuild':'restart');};
@@ -26,7 +27,7 @@ export function createSyncTransport(binding,notify=()=>{}){
   }
   // Existing tick invokes pulse for hosts and sendState for guests. Both are
   // heartbeat-only here; actual input uses the validated sendInput method.
-  tick(){if(this.watchOnly&&this.everOpen&&performance.now()-this.lastData>2000)this.suspend('Viewer synchronization interrupted. Reconnecting…','rebuild');super.tick();}
+  tick(){if(this.watchOnly&&this.everOpen&&performance.now()-this.lastData>15000)this.suspend('Viewer synchronization interrupted. Reconnecting…','rebuild');super.tick();}
   pulse(){this.syncWire?.heartbeat(!this.suspended&&this.cb.enabled());}
   sendState(controls){this.syncWire?.heartbeat(false);this.cb.syncInput?.(controls);}
   attachAudio(){}

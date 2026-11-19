@@ -27,6 +27,11 @@ test('validated checkpoint fragments keep a slow relayed viewer alive before hyd
  try{peer.pc={connectionState:'connected',close(){}};peer.attachChannel(dc);const packets=[];const host=createSyncWire(binding,auth('watch'),{role:'host',send:raw=>packets.push(raw)});
  await host.sendCheckpoint({epoch,frame:40,bytes:new Uint8Array(65536),metadata:{}});
  for(const raw of packets.slice(0,-1)){now+=1500;dc.onmessage({data:raw});await new Promise(setImmediate);assert.equal(peer.lastData,now);assert(peer.healthy());}
- assert(peer.syncState().receiving);now+=2001;assert.equal(peer.healthy(),false,'A genuinely idle transfer still expires');
+ assert(peer.syncState().receiving);now+=2001;assert(peer.healthy(),'A brief relay gap must not discard an active viewer checkpoint');now+=13000;assert.equal(peer.healthy(),false,'A genuinely idle transfer still expires');
  }finally{peer.closeMedia();Object.defineProperty(globalThis,'performance',original);}
+});
+
+test('spectator relay tolerance never extends the player input freshness limit',()=>{
+ const original=Object.getOwnPropertyDescriptor(globalThis,'performance');let now=0;Object.defineProperty(globalThis,'performance',{value:{now:()=>now},configurable:true});
+ try{for(const role of ['play','watch']){const peer=new (createSyncTransport(binding).Peer)('guest',auth(role),{});peer.pc={connectionState:'connected'};peer.dc={readyState:'open'};peer.lastData=0;now=2001;assert.equal(peer.healthy(),role==='watch');now=15001;assert.equal(peer.healthy(),false);now=0;}}finally{Object.defineProperty(globalThis,'performance',original);}
 });
