@@ -1,0 +1,67 @@
+{
+  "format": "nes-engine-maintenance-history/1",
+  "reason": "Recapture clean Castlevania, Ikari Warriors, Zelda and Bionic Commando thumbnails, stop pinning game artwork in release checks, and polish arcade player controls.",
+  "previous": {
+    "path": "receipts/snes-site-history-20261119125541088.json",
+    "bytes": 805,
+    "sha256": "f8d384990b4ad6714bfeda0a722d48ad43a2ecf4664becbfbb5ea75732079ebc"
+  },
+  "changes": {
+    "maintenance/snes-site-history.mjs": {
+      "before": {
+        "bytes": 3132,
+        "sha256": "f79a93a5b489993d574e07507b6964cc6a158358b597cd7fec087a6148d3ce1c"
+      },
+      "after": {
+        "bytes": 3169,
+        "sha256": "6b18635cfcbeaa266e6e9bbaab9a1a1a308067c418bf881f3417eef23bb5fa31"
+      },
+      "original": "maintenance/snes-site-originals/20261119140859428/maintenance/snes-site-history.mjs"
+    },
+    "tests/cartridge-addition-history.mjs": {
+      "before": {
+        "bytes": 1514,
+        "sha256": "d99687674823c43f7f1eac8cf8e218a43a71be0884c347c1a84d0ea25829da23"
+      },
+      "after": {
+        "bytes": 1782,
+        "sha256": "ca035c70f3fc80aaa1181e253787d6434a0a66f63f3500f5a0dd3fc932ce1f7f"
+      },
+      "original": "maintenance/snes-site-originals/20261119140859428/tests/cartridge-addition-history.mjs"
+    },
+    "tests/cartridge-library.test.mjs": {
+      "before": {
+        "bytes": 15895,
+        "sha256": "7dc326c1cf0eb6a05f8e3524e2a5a6e9d7fd366ee25093d8019909882a2e5971"
+      },
+      "after": {
+        "bytes": 16159,
+        "sha256": "b5756ddc5305d272d3bc183ed6880f729297c24eaaaeaf82591d406d480f46bf"
+      },
+      "original": "maintenance/snes-site-originals/20261119140859428/tests/cartridge-library.test.mjs"
+    },
+    "tests/shared-connection-repair.test.mjs": {
+      "before": {
+        "bytes": 7343,
+        "sha256": "c6498b2891a407bb84cda8388613b7e1d0a01ae77b2e039a6db87c309eb31f24"
+      },
+      "after": {
+        "bytes": 7623,
+        "sha256": "6e611c0f63639113e87426013d03f3cc9ef0d56b56945fb47c68dfe8de909bda"
+      },
+      "original": "maintenance/snes-site-originals/20261119140859428/tests/shared-connection-repair.test.mjs"
+    },
+    "tests/zelda-release.test.mjs": {
+      "before": {
+        "bytes": 2029,
+        "sha256": "eff40e405a0518f38e5d4056512d8c609f8242d248f00856a2b8b4e6ba4559b8"
+      },
+      "after": {
+        "bytes": 2284,
+        "sha256": "dcbcac4a1868ec5fd601ccdda27ac6165cd77be7f5db936c27dedef5314c9b47"
+      },
+      "original": "maintenance/snes-site-originals/20261119140859428/tests/zelda-release.test.mjs"
+    }
+  },
+  "added": {}
+}

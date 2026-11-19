@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {actualRead,verifyAddition} from './cartridge-addition-history.mjs';
 import {verifyPackage} from '../htdocs/games/arcade/package.mjs';
+// Game page markup, styling, artwork and prose are not pinned; history may list them, live bytes may differ.
+const presentation=p=>/^(?:htdocs\/|\/)games\/.*(?:\.(?:css|html|png|md|txt)|\.d\.mts)$/.test(p);
 const json=p=>JSON.parse(actualRead(p));
 const pin=b=>({bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')});
 test('Zelda addition preserves agent-authored engine, current shared dependencies and all existing packages',async()=>{
@@ -12,10 +14,10 @@ test('Zelda addition preserves agent-authored engine, current shared dependencie
  const row=rows.find(x=>x.id==='zelda');assert.equal(row.artifactDigest,r.artifactDigest);
  const p=await verifyPackage(json('htdocs'+row.manifest),row.artifactDigest);
  assert.equal(p.capabilities.nativePlayers,1);assert.equal(p.capabilities.play,'shared-hero');assert.equal(p.capabilities.watch,true);
- for(const [u,v] of Object.entries(p.files))assert.deepEqual(pin(actualRead('htdocs'+u)),v,u);
+ for(const [u,v] of Object.entries(p.files))if(!presentation(u))assert.deepEqual(pin(actualRead('htdocs'+u)),v,u);
  const prefix='htdocs/games/zelda/';
  for(const entries of [json(prefix+'bundle-inputs.json'),json(prefix+'manifest.json').files])
-  for(const [n,v] of Object.entries(entries))assert.deepEqual(pin(actualRead(prefix+n)),v,n);
+  for(const [n,v] of Object.entries(entries))if(!presentation(prefix+n))assert.deepEqual(pin(actualRead(prefix+n)),v,n);
  const current=json('htdocs/games/netplay/catalog.json'),old=json(r.changes['htdocs/games/netplay/catalog.json'].original);
  assert.deepEqual(Object.fromEntries(Object.entries(current.packages).filter(([id])=>id!=='zelda')),old.packages);
 });

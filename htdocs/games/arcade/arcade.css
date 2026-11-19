@@ -86,11 +86,15 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
 #change::before{content:"\2190";margin-right:.45rem;color:var(--coral)}
 #player>.toolbar #change:hover:not(:disabled){background:#4a4239;border-color:var(--coral)}
 #idle-screen{display:none!important}
+/* Start already becomes Resume when paused; the separate Resume button only duplicated it. */
+#player>.toolbar #resume{display:none!important}
 .video-frame{position:relative;display:grid;place-items:center;width:100%;min-width:0;max-width:min(100%,536px,max(300px,calc((100svh - var(--marquee) - 15rem)*1.0667)));margin-inline:auto;padding:11px;overflow:hidden;background:linear-gradient(#2b2723,#12100e);border:1px solid #000;border-radius:1rem;box-shadow:inset 0 1px #ffffff1c,inset 0 0 0 1px #5d49384d,0 10px 26px #0009,0 0 44px #ffb75c12}
 .nes-view{border-radius:1rem}
 .nes-view canvas{display:block;width:100%;height:auto;aspect-ratio:256/240;image-rendering:pixelated;background:#050505;border-radius:.45rem;box-shadow:0 0 0 1px #000}
 .nes-view>.quiet:empty{display:none}
-.nes-fps{position:absolute;top:1.05rem;right:1.05rem;padding:.1rem .35rem;border-radius:.25rem;background:#111c;color:#fffc;font:11px ui-monospace,monospace;font-variant-numeric:tabular-nums;pointer-events:none}
+.nes-fps{display:none;position:absolute;top:1.05rem;right:1.05rem;padding:.1rem .35rem;border-radius:.25rem;background:#111c;color:#fffc;font:11px ui-monospace,monospace;font-variant-numeric:tabular-nums;pointer-events:none}
+/* The frame counter is a diagnostic: it shows only while Settings & details is open. */
+#player:has(#details[open]) .nes-fps{display:block}
 .nes-fps[hidden],#sharing-controls[hidden],.receiver-controls[hidden]{display:none!important}
 #surface video,#surface canvas,#session-surface video{max-width:100%;display:block;margin:auto}
 #session-surface video{width:auto;max-height:min(480px,70svh);background:#050505;border-radius:.6rem;box-shadow:0 0 0 1px #000,0 0 0 8px #1a1714,0 10px 26px #0009}
@@ -164,6 +168,7 @@ body[data-expanded=true] #session-surface video{width:100%;max-height:80svh}
 #change-dialog::backdrop{background:#000b}
 #change-dialog p{color:var(--muted);font-size:.9rem}
 #change-dialog .toolbar{margin-top:1rem}
+#change-dialog .toolbar button{flex:1 1 auto}
 
 @media(pointer:coarse){:root{--load-h:2.75rem}#player>.toolbar button,#player>.toolbar #change{min-height:44px}}
 /* Narrow or portrait screens have no room for side rails: keep only the marquee stripe. */

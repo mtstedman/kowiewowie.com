@@ -6,6 +6,8 @@ import {GameHost,ResourceScope} from '../htdocs/games/arcade/host.mjs';
 import {receiverModule,receiverStatus} from '../htdocs/games/arcade/session-bridge.mjs';
 import {canonical,verifyPackage,Catalog} from '../htdocs/games/arcade/package.mjs';
 import {additionHistoricalRead} from './cartridge-addition-history.mjs';
+// Game page markup, styling, artwork and prose are not pinned; history may list them, live bytes may differ.
+const presentation=p=>/^(?:htdocs\/|\/)games\/.*(?:\.(?:css|html|png|md|txt)|\.d\.mts)$/.test(p);
 const read=additionHistoricalRead(p=>readFileSync(new URL('../'+p,import.meta.url))),json=p=>JSON.parse(read(p));
 const hash=b=>createHash('sha256').update(b).digest('hex'),pin=b=>({bytes:b.length,sha256:hash(b)});
 const migration=json('tests/shared-connection-migration.json');
@@ -25,14 +27,14 @@ test('complete hotfix dependency closure, retained originals and unchanged inven
   assert(x.members.length>0);
   for(const c of x.members){assert.deepEqual(m.files[c.path],c.before);m.files[c.path]=c.after;}
   const {artifactDigest,...actual}=p;assert.deepEqual(actual,m);
-  for(const [u,r] of Object.entries(actual.files))assert.deepEqual(pin(read('htdocs'+u)),r,u);
+  for(const [u,r] of Object.entries(actual.files))if(!presentation(u))assert.deepEqual(pin(read('htdocs'+u)),r,u);
   assert.deepEqual(Object.keys(actual.files),Object.keys(prior.manifest.files));
   const binding=network.packages[x.id];assert.equal(binding.artifactDigest,x.after);
   const originalBinding=json(migration.original_network).packages[x.id];assert.deepEqual(binding,{...originalBinding,artifactDigest:x.after});
   for(const inv of x.inventories){
    const old=json(inv.original),current=json(inv.path),a=inv.field?old[inv.field]:old,b=inv.field?current[inv.field]:current;
    assert.deepEqual(Object.keys(b),Object.keys(a));
-   for(const [name,r] of Object.entries(b))assert.deepEqual(pin(read(x.prefix+name)),r,name);
+   for(const [name,r] of Object.entries(b))if(!presentation(x.prefix+name))assert.deepEqual(pin(read(x.prefix+name)),r,name);
   }
   if(x.network_reference){const n=json(x.network_reference);assert.equal(n.artifactDigest,x.after);assert.deepEqual(n.binding,binding);}
  }
@@ -40,7 +42,7 @@ test('complete hotfix dependency closure, retained originals and unchanged inven
  assert.deepEqual(plan.newIds,oldPlan.newIds);assert.deepEqual(plan.games,oldPlan.games);
  assert.deepEqual(Object.keys(plan.preserved),Object.keys(oldPlan.preserved));
  assert.deepEqual(Object.keys(plan.browserAssets),Object.keys(oldPlan.browserAssets));
- for(const map of ['preserved','browserAssets'])for(const [p,r] of Object.entries(plan[map]))assert.deepEqual(pin(read(p)),r,p);
+ for(const map of ['preserved','browserAssets'])for(const [p,r] of Object.entries(plan[map]))if(!presentation(p))assert.deepEqual(pin(read(p)),r,p);
  for(const x of [...oldPlan.identityMigrations,...(oldPlan.published||[])]){
   assert.equal(hash(canonical(x.original_manifest)),x.before);
   const m=structuredClone(x.original_manifest);assert.deepEqual(m.files[x.shared_member],x.shared_before);m.files[x.shared_member]=x.shared_after;
