@@ -1,0 +1,824 @@
+{
+  "passed": true,
+  "reports": [
+    {
+      "id": "contra",
+      "bootstrap": {
+        "frame": 31,
+        "picture": true,
+        "replica": {
+          "ready": true,
+          "replica": true,
+          "frame": 31,
+          "hash": "7eaf44c04a50edf67bf3d42941793dce24fc07a5e11c5d836b82bdbe3a8fb5d2",
+          "running": true,
+          "queued": 0
+        },
+        "audioState": "not-created"
+      },
+      "catchup": {
+        "drawsBefore": 1,
+        "drawsAfter": 1,
+        "frame": 236
+      },
+      "frame": 240,
+      "actual": {
+        "frame": 240,
+        "hash": "7417bf6c0b4ef6889efccf5872c8f98157d674c187d9802786d49d1f194c39cf"
+      },
+      "expected": "7417bf6c0b4ef6889efccf5872c8f98157d674c187d9802786d49d1f194c39cf",
+      "draws": 5,
+      "hostContinued": true,
+      "secondPortRecorded": true,
+      "followerLocalInputRejected": true,
+      "queued": 0,
+      "visibleCatchUp": {
+        "draws": 206,
+        "hash": "7417bf6c0b4ef6889efccf5872c8f98157d674c187d9802786d49d1f194c39cf"
+      },
+      "fastPlayer": {
+        "paced": [
+          {
+            "host": 32,
+            "player": 32
+          },
+          {
+            "host": 33,
+            "player": 33
+          },
+          {
+            "host": 34,
+            "player": 34
+          },
+          {
+            "host": 35,
+            "player": 35
+          },
+          {
+            "host": 36,
+            "player": 36
+          },
+          {
+            "host": 37,
+            "player": 37
+          },
+          {
+            "host": 38,
+            "player": 38
+          },
+          {
+            "host": 39,
+            "player": 39
+          },
+          {
+            "host": 40,
+            "player": 40
+          },
+          {
+            "host": 41,
+            "player": 41
+          },
+          {
+            "host": 42,
+            "player": 42
+          },
+          {
+            "host": 43,
+            "player": 43
+          },
+          {
+            "host": 44,
+            "player": 44
+          },
+          {
+            "host": 45,
+            "player": 45
+          },
+          {
+            "host": 46,
+            "player": 46
+          },
+          {
+            "host": 47,
+            "player": 47
+          },
+          {
+            "host": 48,
+            "player": 48
+          },
+          {
+            "host": 49,
+            "player": 49
+          },
+          {
+            "host": 50,
+            "player": 50
+          },
+          {
+            "host": 51,
+            "player": 51
+          }
+        ],
+        "pacedHostFPS": 15.884361845462067,
+        "catchUpFrames": 194,
+        "catchUpMs": 3811.600000023842,
+        "catchUpFPS": 50.89726099244058,
+        "drawn": 191,
+        "hostFrame": 245,
+        "playerFrame": 245,
+        "idleFrame": 245,
+        "idlePushes": 0,
+        "hash": "06bbec709607634ab4df8bd0b750c10727074b3dfe3fdb67e0b7fa3a5b05d7b6",
+        "expectedHash": "06bbec709607634ab4df8bd0b750c10727074b3dfe3fdb67e0b7fa3a5b05d7b6",
+        "resyncs": [],
+        "calls": [
+          {
+            "frames": 1,
+            "ms": 31.700000047683716,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 16.699999928474426,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 20.100000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 16.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 16.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 19.5,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 18.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 19.200000047683716,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 21.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 19.40000009536743,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 17.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 17.700000047683716,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 23.799999952316284,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 23.5,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 25.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 18.700000047683716,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 19.100000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 19.5,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 22.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 16.899999976158142,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 69,
+            "ms": 1405.3000000715256,
+            "catchUp": true,
+            "followHost": true
+          },
+          {
+            "frames": 120,
+            "ms": 2317.2999999523163,
+            "catchUp": true,
+            "followHost": true
+          },
+          {
+            "frames": 5,
+            "ms": 88.20000004768372,
+            "catchUp": false,
+            "followHost": true
+          }
+        ]
+      },
+      "errors": []
+    },
+    {
+      "id": "super-mario-world",
+      "bootstrap": {
+        "frame": 31,
+        "picture": true,
+        "replica": {
+          "ready": true,
+          "replica": true,
+          "frame": 31,
+          "hash": "5cdeae4e5f988da13a198b0e8c37b1f93cf79f500b5bd07a5e60496041a4e517",
+          "running": true,
+          "queued": 0
+        },
+        "audioState": "running"
+      },
+      "catchup": {
+        "drawsBefore": 1,
+        "drawsAfter": 1,
+        "frame": 236
+      },
+      "frame": 240,
+      "actual": {
+        "frame": 240,
+        "hash": "94931d2bc82e44b9fa0604a4f74f9d37d2bc7a496c192ec61e002a3f1195b177"
+      },
+      "expected": "94931d2bc82e44b9fa0604a4f74f9d37d2bc7a496c192ec61e002a3f1195b177",
+      "draws": 5,
+      "hostContinued": true,
+      "secondPortRecorded": true,
+      "followerLocalInputRejected": true,
+      "queued": 0,
+      "visibleCatchUp": {
+        "draws": 21,
+        "hash": "94931d2bc82e44b9fa0604a4f74f9d37d2bc7a496c192ec61e002a3f1195b177"
+      },
+      "fastPlayer": {
+        "paced": [
+          {
+            "host": 32,
+            "player": 32
+          },
+          {
+            "host": 33,
+            "player": 33
+          },
+          {
+            "host": 34,
+            "player": 34
+          },
+          {
+            "host": 35,
+            "player": 35
+          },
+          {
+            "host": 36,
+            "player": 36
+          },
+          {
+            "host": 37,
+            "player": 37
+          },
+          {
+            "host": 38,
+            "player": 38
+          },
+          {
+            "host": 39,
+            "player": 39
+          },
+          {
+            "host": 40,
+            "player": 40
+          },
+          {
+            "host": 41,
+            "player": 41
+          },
+          {
+            "host": 42,
+            "player": 42
+          },
+          {
+            "host": 43,
+            "player": 43
+          },
+          {
+            "host": 44,
+            "player": 44
+          },
+          {
+            "host": 45,
+            "player": 45
+          },
+          {
+            "host": 46,
+            "player": 46
+          },
+          {
+            "host": 47,
+            "player": 47
+          },
+          {
+            "host": 48,
+            "player": 48
+          },
+          {
+            "host": 49,
+            "player": 49
+          },
+          {
+            "host": 50,
+            "player": 50
+          },
+          {
+            "host": 51,
+            "player": 51
+          }
+        ],
+        "pacedHostFPS": 22.69632319748453,
+        "catchUpFrames": 193,
+        "catchUpMs": 352.8000000715256,
+        "catchUpFPS": 547.0521540841037,
+        "drawn": 21,
+        "hostFrame": 244,
+        "playerFrame": 244,
+        "idleFrame": 244,
+        "idlePushes": 0,
+        "hash": "45be385f0e9567dab7358c563fba1a9e6d9d8826b5adbbd0e59d88f0107be85e",
+        "expectedHash": "45be385f0e9567dab7358c563fba1a9e6d9d8826b5adbbd0e59d88f0107be85e",
+        "resyncs": [],
+        "calls": [
+          {
+            "frames": 1,
+            "ms": 1.399999976158142,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.6999999284744263,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.7000000476837158,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.3000000715255737,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.5999999046325684,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.6999999284744263,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.5,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.3000000715255737,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.1999999284744263,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.5,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.7000000476837158,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.899999976158142,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2.799999952316284,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2.100000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.2000000476837158,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2.100000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2.5,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 69,
+            "ms": 130.70000004768372,
+            "catchUp": true,
+            "followHost": true
+          },
+          {
+            "frames": 120,
+            "ms": 215.5,
+            "catchUp": true,
+            "followHost": true
+          },
+          {
+            "frames": 4,
+            "ms": 4.699999928474426,
+            "catchUp": false,
+            "followHost": true
+          }
+        ]
+      },
+      "errors": []
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "bootstrap": {
+        "frame": 31,
+        "picture": true,
+        "replica": {
+          "ready": true,
+          "replica": true,
+          "frame": 31,
+          "hash": "aa41ff2e0f33beeaf6e764404622b628c419604e4e80e9951d85b1a7f71c309a",
+          "running": true,
+          "queued": 0
+        },
+        "audioState": "running"
+      },
+      "catchup": {
+        "drawsBefore": 1,
+        "drawsAfter": 1,
+        "frame": 236
+      },
+      "frame": 240,
+      "actual": {
+        "frame": 240,
+        "hash": "0eb73b47a548c8cc287d9053cbfda6ba84a9f5099b6df133bf0b2d951a481a47"
+      },
+      "expected": "0eb73b47a548c8cc287d9053cbfda6ba84a9f5099b6df133bf0b2d951a481a47",
+      "draws": 5,
+      "hostContinued": true,
+      "secondPortRecorded": true,
+      "followerLocalInputRejected": true,
+      "queued": 0,
+      "visibleCatchUp": {
+        "draws": 18,
+        "hash": "0eb73b47a548c8cc287d9053cbfda6ba84a9f5099b6df133bf0b2d951a481a47"
+      },
+      "fastPlayer": {
+        "paced": [
+          {
+            "host": 32,
+            "player": 32
+          },
+          {
+            "host": 33,
+            "player": 33
+          },
+          {
+            "host": 34,
+            "player": 34
+          },
+          {
+            "host": 35,
+            "player": 35
+          },
+          {
+            "host": 36,
+            "player": 36
+          },
+          {
+            "host": 37,
+            "player": 37
+          },
+          {
+            "host": 38,
+            "player": 38
+          },
+          {
+            "host": 39,
+            "player": 39
+          },
+          {
+            "host": 40,
+            "player": 40
+          },
+          {
+            "host": 41,
+            "player": 41
+          },
+          {
+            "host": 42,
+            "player": 42
+          },
+          {
+            "host": 43,
+            "player": 43
+          },
+          {
+            "host": 44,
+            "player": 44
+          },
+          {
+            "host": 45,
+            "player": 45
+          },
+          {
+            "host": 46,
+            "player": 46
+          },
+          {
+            "host": 47,
+            "player": 47
+          },
+          {
+            "host": 48,
+            "player": 48
+          },
+          {
+            "host": 49,
+            "player": 49
+          },
+          {
+            "host": 50,
+            "player": 50
+          },
+          {
+            "host": 51,
+            "player": 51
+          }
+        ],
+        "pacedHostFPS": 22.634676323517823,
+        "catchUpFrames": 194,
+        "catchUpMs": 343.39999997615814,
+        "catchUpFPS": 564.938846865082,
+        "drawn": 23,
+        "hostFrame": 245,
+        "playerFrame": 245,
+        "idleFrame": 245,
+        "idlePushes": 0,
+        "hash": "21bfd51e7dcbe9bdf455c900454f7f40157061c48c7405ac7d55d848f5c66205",
+        "expectedHash": "21bfd51e7dcbe9bdf455c900454f7f40157061c48c7405ac7d55d848f5c66205",
+        "resyncs": [],
+        "calls": [
+          {
+            "frames": 1,
+            "ms": 1.2000000476837158,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.7000000476837158,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.399999976158142,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.7999999523162842,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.899999976158142,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.7000000476837158,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.100000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2.600000023841858,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.1999999284744263,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.7000000476837158,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 2.399999976158142,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.1999999284744263,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.5,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.4000000953674316,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 1,
+            "ms": 1.2999999523162842,
+            "catchUp": false,
+            "followHost": true
+          },
+          {
+            "frames": 69,
+            "ms": 134.39999997615814,
+            "catchUp": true,
+            "followHost": true
+          },
+          {
+            "frames": 120,
+            "ms": 202.80000007152557,
+            "catchUp": true,
+            "followHost": true
+          },
+          {
+            "frames": 5,
+            "ms": 5.399999976158142,
+            "catchUp": false,
+            "followHost": true
+          }
+        ]
+      },
+      "errors": []
+    }
+  ]
+}

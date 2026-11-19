@@ -23,6 +23,9 @@ export function createSyncTransport(binding,notify=()=>{}){
    let chain=Promise.resolve(),pending=0,pendingBytes=0;const wire=this.syncWire;
    dc.onopen=()=>{if(dc!==this.dc||this.closed)return;this.everOpen=true;this.lastData=performance.now();this.syncReady=true;Promise.resolve().then(()=>{if(dc===this.dc&&!this.closed)return this.cb.syncOpen?.(this);}).catch(()=>{if(dc===this.dc&&!this.closed)this.stop('Game synchronization could not start.');});wire.heartbeat(this.role==='host'&&this.cb.enabled());};
    dc.onclose=dc.onerror=()=>{if(dc===this.dc&&!this.closed)this.suspend('Game synchronization interrupted. Reconnecting…','rebuild');};
+   // Resume blocked frames/releases as soon as SCTP drains, without waiting
+   // for the 250 ms heartbeat. Only the current authorized channel may retry.
+   dc.onbufferedamountlow=()=>{if(dc!==this.dc||this.closed||!this.healthy())return;try{if(this.role==='host')this.cb.syncWritable?.(this);else if(this.permitted())this.cb.syncInput?.(this.cb.state());}catch{this.suspend('Game synchronization interrupted. Reconnecting…','rebuild');}};
    dc.onmessage=e=>{if(dc!==this.dc||this.closed)return;if(typeof e.data!=='string'||e.data.length>SYNC_LIMITS.messageBytes||++pending>2048||(pendingBytes+=e.data.length)>SYNC_LIMITS.checkpointBytes*2){this.stop('Excessive sync backlog.');return;}chain=chain.then(async()=>{if(dc!==this.dc||this.closed)return;await wire.receive(e.data);if(dc===this.dc&&!this.closed)this.lastData=performance.now();}).catch(()=>{if(dc===this.dc&&!this.closed)this.stop('Invalid synchronized game data.');}).finally(()=>{pending--;pendingBytes-=e.data.length;});};
   }
   // Existing tick invokes pulse for hosts and sendState for guests. Both are

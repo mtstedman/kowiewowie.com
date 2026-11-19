@@ -20,6 +20,39 @@ test('incoming frames remain consecutive while a native replay batch is in fligh
  await f.replica.receive({type:'frames',epoch,frames:[{frame:12,pads:[2,1]},{frame:13,pads:[2,0],hash}]});
  assert.equal(f.requests.length,0);finish();await flush();assert.equal(f.replica.state().frame,13);assert.equal(f.replica.state().ready,true);assert.deepEqual(calls.flat(),[11,12,13]);f.replica.close();
 });
+test('a faster player follows a slow or stalled host without invented frames or a local pacing delay',async()=>{
+ const executed=[],modes=[];const f=follower(async(records,options)=>{executed.push(...records.map(r=>r.frame));modes.push(options);return {frame:records.at(-1).frame,hash:records.at(-1).hash};});
+ try{
+  await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:10,action:'resume'});
+  // The host clock is explicitly stepped; the replica finishes within each
+  // step, then has unlimited event-loop turns in which it must remain idle.
+  for(let frame=11;frame<=20;frame++){
+   await f.replica.receive({type:'frames',epoch,frames:[{frame,pads:[frame%2,1]}]});await flush();
+   assert.equal(f.replica.state().frame,frame);assert.equal(f.replica.state().queued,0);
+   const count=executed.length;await flush();assert.equal(executed.length,count);
+  }
+  // A delivery burst is replayed immediately, even though no new host ticks
+  // occur while the faster player catches up.
+  await f.replica.receive({type:'frames',epoch,frames:Array.from({length:60},(_,i)=>({frame:21+i,pads:[0,i%2],...(i===59?{hash}:{})}))});await flush();
+  assert.equal(f.replica.state().frame,80);assert.equal(f.replica.state().queued,0);assert(modes.some(m=>m.catchUp));assert(modes.every(m=>m.followHost));
+  await flush();assert.deepEqual(executed,Array.from({length:70},(_,i)=>11+i));assert.equal(f.requests.length,0);
+  await f.replica.receive({type:'frames',epoch,frames:[{frame:81,pads:[1,0]}]});await flush();assert.equal(f.replica.state().frame,81);
+ }finally{f.replica.close();}
+});
+test('host sends each frame immediately and drains blocked peers independently without a heartbeat',async()=>{
+ let record,frame=40;const host=createHostReplication({binding,network:{subscribeFrame:fn=>(record=fn,()=>{}),capture:async()=>snapshot(frame)},adapter:{enabled:()=>true,release(){},remote(){}}});
+ function participant(id,role){const callbacks=host.callbacks({participant:id,participant_role:role}),sent=[];let ack,cursor=frame,writable=true;
+  const peer={closed:false,healthy:()=>true,syncState:()=>({frame:cursor}),async sendCheckpoint(s){cursor=s.frame;return ack={type:'ack',epoch:s.epoch,frame:s.frame,sha256:hash};},sendFrames(s){if(!writable)return false;assert.equal(s.frames[0].frame,cursor+1);cursor=s.frames.at(-1).frame;sent.push(...s.frames);return true;},sendControl:()=>true,suspend(){},retry(){assert.fail('Unexpected transport retry');}};
+  return {callbacks,peer,sent,ack:()=>callbacks.syncMessage(ack,peer),block:()=>{writable=false;},drain:()=>{writable=true;callbacks.syncWritable(peer);}};
+ }
+ try{const play=participant('player','play'),watch=participant('viewer','watch');for(const p of [play,watch]){p.callbacks.syncOpen(p.peer);await flush();p.ack();}
+  watch.block();for(;frame<1900;){record({frame:++frame,pads:[0,1]});assert.equal(play.sent.at(-1).frame,frame,'Frame must leave in the producer callback, before any timer');}
+  assert.equal(watch.sent.length,0);play.block();record({frame:++frame,pads:[1,0]});assert.equal(play.sent.at(-1).frame,frame-1);
+  play.drain();assert.equal(play.sent.at(-1).frame,frame,'Drain sends the pending tail even when the host produces no more frames');
+  assert.deepEqual(play.sent.map(r=>r.frame),Array.from({length:frame-40},(_,i)=>41+i));
+  play.callbacks.syncClose(play.peer);const count=play.sent.length;play.drain();assert.equal(play.sent.length,count);
+ }finally{host.dispose();}
+});
 test('hash divergence stops input readiness until a fresh checkpoint restores the canonical state',async()=>{
  let fail=true;const f=follower(async records=>{if(fail)throw Error('Replica state diverged');return {frame:records.at(-1).frame,hash:records.at(-1).hash??null};});
  await f.replica.receive(checkpoint(119));await f.replica.receive({type:'control',epoch,frame:119,action:'resume'});

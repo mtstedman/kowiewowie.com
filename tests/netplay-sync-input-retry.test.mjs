@@ -44,9 +44,16 @@ test('heartbeat retries preserve two-source OR and clear only after the final so
  f.channel.bufferedAmount=SYNC_LIMITS.bufferedBytes;assert(f.press('key-a',false));f.channel.bufferedAmount=0;await f.heartbeat();assert.equal(f.inputs().at(-1).controls.a,true);
  f.channel.bufferedAmount=SYNC_LIMITS.bufferedBytes;assert(f.press('pad-a',false));f.channel.bufferedAmount=0;await f.heartbeat();assert.equal(f.inputs().at(-1).controls.a,false);
 });
+test('channel drain immediately retries the latest input without waiting for a heartbeat',async t=>{
+ const f=await fixture(t);assert(f.press('key-a',true));assert(f.press('pad-a',true));await tick();
+ f.channel.bufferedAmount=SYNC_LIMITS.bufferedBytes;assert(f.press('key-a',false));assert(f.press('pad-a',false));await tick();assert.equal(f.inputs().at(-1).controls.a,true);
+ const before=f.inputs().length;f.channel.bufferedAmount=0;f.channel.onbufferedamountlow();await tick();
+ assert.equal(f.inputs().length,before+1);assert.equal(f.inputs().at(-1).controls.a,false);
+ await f.session.dispose();const ended=f.inputs().length;f.channel.onbufferedamountlow();await tick();assert.equal(f.inputs().length,ended,'A stale drain event cannot revive a closed participant');
+});
 test('watcher heartbeats never emit player input or grant control authority',async t=>{
  const f=await fixture(t,'watch');assert.equal(f.session.getState().inputEnabled,false);assert.equal(f.press('forged',true),false);
- for(let n=0;n<3;n++)await f.heartbeat();assert.equal(f.inputs().length,0);
+ for(let n=0;n<3;n++)await f.heartbeat();f.channel.onbufferedamountlow();await tick();assert.equal(f.inputs().length,0);
 });
 
 test('terminal cleanup cannot create new release epochs or revive state notifications',async t=>{

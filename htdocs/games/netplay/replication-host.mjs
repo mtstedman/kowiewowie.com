@@ -18,10 +18,13 @@ export function createHostReplication({network,adapter,binding,onError=()=>{}}){
  function reset(){epoch=random();history.length=0;lastFrame=null;capturedFrame=0;for(const entry of peers.values()){entry.ready=false;entry.generation++;adapter.release(entry.assignment.participant);void bootstrap(entry,true);}}
  function flush(entry){
   if(closed||!entry.ready||!entry.peer.healthy())return;
-  const cursor=entry.peer.syncState().frame,records=history.filter(r=>r.frame>cursor);
-  if(!records.length)return;
-  if(records[0].frame!==cursor+1){resync(entry);return;}
-  for(let i=0;i<records.length;i+=120)if(!entry.peer.sendFrames({epoch,frames:records.slice(i,i+120)}))return;
+  if(!history.length)return;
+  const cursor=entry.peer.syncState().frame,start=cursor-history[0].frame+1;
+  if(start>=history.length)return;
+  if(start<0){resync(entry);return;}
+  // The log is contiguous. Locate unsent frames directly instead of scanning
+  // thirty seconds of history for every frame and every participant.
+  for(let i=start;i<history.length;i+=SYNC_LIMITS.frameBatch)if(!entry.peer.sendFrames({epoch,frames:history.slice(i,i+SYNC_LIMITS.frameBatch)}))return;
  }
  async function bootstrap(entry,force=false){
   if(closed||entry.peer.closed||entry.loading)return;
@@ -56,6 +59,7 @@ export function createHostReplication({network,adapter,binding,onError=()=>{}}){
  },250);
  return {
   callbacks(assignment){return {
+   syncWritable(peer){const entry=peers.get(assignment.participant);if(!entry||entry.peer!==peer||closed)return;try{flush(entry);if(entry.controlPending)control(entry);}catch(error){report(error);peer.retry();}},
    syncOpen(peer){const previous=peers.get(assignment.participant);if(previous){previous.generation++;releasePause(previous);}const entry={assignment,peer,generation:0,ready:false,loading:false,expected:null,lastSnapshot:-Infinity};peers.set(assignment.participant,entry);void bootstrap(entry,true);},
    syncMessage(message,peer){
     const entry=peers.get(assignment.participant);if(!entry||entry.peer!==peer||closed)return;
