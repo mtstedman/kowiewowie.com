@@ -105,15 +105,15 @@ export function mountReceiverInputs(ctx,{getState=()=>null,stream=()=>null}={}){
   if(DIRECTIONS.includes(id)){b.className='dpad-'+id;directions.append(b);}else actions.append(b);buttons.set(id,b);
   listen(b,'pointerdown',e=>{
    sync();if(e.button!==0||!available(readState())||doc.hidden||!doc.hasFocus())return;
-   e.preventDefault();b.focus({preventScroll:true});const source='receiver:p:'+e.pointerId;
+   e.preventDefault();root.focus({preventScroll:true});const source='receiver:p:'+e.pointerId;
    if(down(source,id,'pointer')){const item=physical.get(source);item.node=b;item.pointer=e.pointerId;try{b.setPointerCapture(e.pointerId);}catch{up(source);}}
   });
   for(const type of ['pointerup','pointercancel','lostpointercapture'])listen(b,type,e=>up('receiver:p:'+e.pointerId));
   listen(b,'click',e=>{if(e.detail===0&&!e.pointerType){sync();const source='receiver:activation:'+id;if(down(source,id,'activation'))up(source);else physical.delete(source);}});
  }
  listen(win,'keydown',e=>{
-  if(!Object.hasOwn(keys,e.code)||!declared.has(keys[e.code])||e.repeat||e.isComposing||e.ctrlKey||e.altKey||e.metaKey||interactive(e.target))return;
-  sync();if(!usable())return;e.preventDefault();down('receiver:k:'+e.code,keys[e.code],'keyboard');
+  if(!Object.hasOwn(keys,e.code)||!declared.has(keys[e.code])||e.isComposing||e.ctrlKey||e.altKey||e.metaKey||interactive(e.target))return;
+  if(!focused())return;e.preventDefault();sync();if(!usable()||e.repeat)return;down('receiver:k:'+e.code,keys[e.code],'keyboard');
  });
  listen(win,'keyup',e=>{if(Object.hasOwn(keys,e.code))up('receiver:k:'+e.code);});
  listen(doc,'focusout',()=>queueMicrotask(()=>{if(!closed&&!focused())cancel(true);}));

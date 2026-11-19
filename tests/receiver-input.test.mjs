@@ -37,7 +37,7 @@ test('receiver keyboard stays scoped and requires release after focus loss or a 
  const f=receiverFixture(t);f.outside.focus();f.key('keydown','ArrowRight');assert.equal(f.calls.length,0);
  f.screen.focus();f.key('keydown','ArrowRight',{ctrlKey:true});f.key('keydown','ArrowRight',{isComposing:true});assert.equal(f.calls.length,0);
  f.key('keydown','ArrowRight');assert.deepEqual(f.calls.at(-1),{control:'right',source:'receiver:k:ArrowRight',pressed:true});
- f.key('keydown','ArrowRight',{repeat:true});assert.equal(f.calls.length,1);
+ assert.equal(f.key('keydown','ArrowRight',{repeat:true}).defaultPrevented,true,'Held arrows must not scroll the page');assert.equal(f.calls.length,1);
  f.outside.focus();await Promise.resolve();assert.equal(f.calls.at(-1).pressed,false);
  f.screen.focus();const n=f.calls.length;f.key('keydown','ArrowRight',{repeat:true});assert.equal(f.calls.length,n);
  f.key('keyup','ArrowRight');f.key('keydown','ArrowRight');assert.equal(f.calls.at(-1).pressed,true);
@@ -52,6 +52,7 @@ test('standard gamepad and concurrent pointers share descriptor inputs, neutral 
  const f=receiverFixture(t);f.screen.focus();f.setPads([f.pad]);f.step();f.pad.buttons[15].pressed=true;f.step();
  assert.equal(f.calls.at(-1).control,'right');assert.equal(f.calls.at(-1).pressed,true);const n=f.calls.length;f.step();assert.equal(f.calls.length,n);
  const right=f.button('right'),a=f.button('a');f.fire(right,'pointerdown',{button:0,pointerId:7,pointerType:'touch'});f.fire(a,'pointerdown',{button:0,pointerId:8,pointerType:'touch'});
+ assert.equal(f.doc.activeElement,f.root(),'Touch controls keep keyboard focus on the panel');
  assert(f.calls.some(e=>e.source==='receiver:p:7'&&e.control==='right'&&e.pressed));assert(f.calls.some(e=>e.source==='receiver:p:8'&&e.control==='a'&&e.pressed));
  f.fire(right,'pointerup',{pointerId:7});assert.equal(f.calls.at(-1).source,'receiver:p:7');assert.equal(f.calls.at(-1).pressed,false);
  f.fire(a,'pointercancel',{pointerId:8});assert.equal(f.calls.at(-1).source,'receiver:p:8');assert.equal(f.calls.at(-1).pressed,false);

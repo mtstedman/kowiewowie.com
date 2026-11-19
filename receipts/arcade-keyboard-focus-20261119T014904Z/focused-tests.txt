@@ -1,0 +1,19 @@
+(node:3299613) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ nes adapter save waits for durable storage and exposes failures while button errors are handled (8.607042ms)
+✔ nes adapter refuses to persist a checkpoint after authority is lost (4.912165ms)
+✔ snes adapter save waits for durable storage and exposes failures while button errors are handled (3.197121ms)
+✔ snes adapter refuses to persist a checkpoint after authority is lost (2.816676ms)
+✔ receiver keyboard stays scoped and requires release after focus loss or a host barrier (6.970135ms)
+✔ standard gamepad and concurrent pointers share descriptor inputs, neutral rearming and cleanup (2.26574ms)
+✔ watchers and unavailable receivers never submit input, even with enabled forged buttons (1.446991ms)
+✔ receiver mappings use declared IDs, never human hints, and unknown buttons remain usable by touch (0.726436ms)
+✔ extended descriptor controller keeps all four face buttons and shoulders independent (2.044494ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 85.841223

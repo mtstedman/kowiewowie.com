@@ -1,0 +1,5 @@
+{
+  "format": "arcade-keyboard-focus/1",
+  "scope": "Real Chrome loads Contra and Super Mario World, clicks their canvas, holds repeated Down keys without document scrolling, and retains native keyboard behavior in the save selector. Receiver unit checks also verify repeat prevention without duplicate control edges and pointer focus on the shared controller.",
+  "focusedTestsPassed": 9
+}
