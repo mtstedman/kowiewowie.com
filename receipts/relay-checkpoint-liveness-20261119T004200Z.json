@@ -1,0 +1,17 @@
+{
+  "format": "relay-checkpoint-liveness/1",
+  "command": "node --test tests/netplay-sync-wire.test.mjs tests/netplay-sync-input-retry.test.mjs",
+  "passed": 15,
+  "failed": 0,
+  "scope": "Authenticated partial checkpoint traffic refreshes transport activity; genuine idle timeout and stale-channel rejection remain enforced.",
+  "sources": {
+    "htdocs/games/netplay/sync-transport.mjs": {
+      "bytes": 5102,
+      "sha256": "9515462fe48cbb1e7f06e6fb780a6a881107ea173b4ec54c53bf0016f4c7be90"
+    },
+    "tests/netplay-sync-wire.test.mjs": {
+      "bytes": 10549,
+      "sha256": "11a1147cf0c1f589b3ddb35a34c491e3355a15dc0a66ae480e21279400497002"
+    }
+  }
+}
