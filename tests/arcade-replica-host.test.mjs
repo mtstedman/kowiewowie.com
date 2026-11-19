@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {GameHost} from '../htdocs/games/arcade/host.mjs';
+import {hostAdapter} from '../htdocs/games/arcade/session-bridge.mjs';
 function fixture(replica=true){
  const pkg={id:'replica-fixture',title:'Replica fixture',artifactDigest:'a'.repeat(64),capabilities:{nativePlayers:2,play:'host-p1-guest-p2'},inputs:[{id:'a',activation:'held'}],surfaces:{video:{kind:'canvas'},audio:{kind:'none'}}};
  const calls={pause:0,start:0,save:0,reset:0,release:0,dispose:0,inputs:[],forwarded:[],audio:0};let running=true,listener,session;
@@ -36,4 +37,29 @@ test('bootstrap and reconnect notifications do not pause replica catchup; termin
 test('solo cartridge retains ordinary local controls, saves and pause behavior',async()=>{
  const f=fixture(false);await f.host.load(f.pkg.id);assert(f.host.input({control:'a',source:'local-key',pressed:true}));assert.equal(f.calls.inputs.length,1);assert.equal(f.calls.forwarded.length,0);assert.equal(f.calls.inputs[0].seat,1);
  assert.equal(f.host.snapshot().canSave,true);await f.host.save();assert.equal(f.calls.save,1);await f.host.control('pause');assert.equal(f.calls.pause,1);assert.equal(f.host.snapshot().runtime.running,false);await f.host.control('resume');f.host.suspend('focus-loss');assert.equal(f.calls.pause,2);await f.host.dispose();
+});
+test('shared host loses focus or visibility without pausing or releasing Player 2',async()=>{
+ const f=fixture(false);await f.host.load(f.pkg.id);const lease=f.bind('host');
+ try{
+  assert(f.host.input({control:'a',source:'key',pressed:true}));
+  assert(lease.input({control:'a',source:'peer',pressed:true,seat:2,role:'guest',epoch:1}));
+  const released=f.calls.release;
+  f.host.suspend('focus-loss');
+  assert.equal(f.calls.pause,0);assert.equal(f.host.snapshot().runtime.running,true);
+  assert.equal(f.calls.release,released,'Focus loss invoked global input cleanup');
+  assert.deepEqual(f.calls.inputs.slice(-1).map(e=>[e.source,e.pressed]),[['local:key',false]]);
+  assert.equal(lease.input({control:'a',source:'peer',pressed:false,seat:2,role:'guest',epoch:1}),true,'Remote held input was cleared on host blur');
+  assert(f.host.input({control:'a',source:'key',pressed:true}));
+  assert(lease.input({control:'a',source:'peer',pressed:true,seat:2,role:'guest',epoch:1}));
+  f.host.suspend('hidden');assert.equal(f.calls.pause,0);assert.equal(f.host.snapshot().runtime.running,true);
+  assert.equal(lease.input({control:'a',source:'peer',pressed:false,seat:2,role:'guest',epoch:1}),true);
+  await f.host.control('pause');assert.equal(f.calls.pause,1);assert.equal(f.host.snapshot().runtime.running,false);
+ }finally{await f.host.dispose();}
+});
+test('hidden shared host keeps remote input enabled until its runtime actually pauses',()=>{
+ const previous=globalThis.document;globalThis.document={hidden:true};let running=true;
+ try{
+  const adapter=hostAdapter({capabilities:{play:'host-p1-guest-p2'}},{},{},()=>({}),()=>({ready:true,running}));
+  assert.equal(adapter.enabled(),true);running=false;assert.equal(adapter.enabled(),false);
+ }finally{if(previous===undefined)delete globalThis.document;else globalThis.document=previous;}
 });

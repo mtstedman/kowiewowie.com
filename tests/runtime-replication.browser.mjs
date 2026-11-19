@@ -25,6 +25,20 @@ try{for(const id of ['contra','super-mario-world','zelda-a-link-to-the-past']){
  const result=await page.evaluate(async()=>({frame:follower.network.status().frame,actual:await follower.network.hash(),expected:records.find(r=>r.frame===240).hash,draws:draws.follower,hostContinued:host.network.status().frame>startFrame,secondPortRecorded:records.some(r=>r.pads[1]&128),followerLocalInputRejected:follower.input('local',0,true)===false,queued:follower.network.status().queued}));assert.equal(result.actual.hash,result.expected);assert.equal(result.frame,240);assert(result.hostContinued&&result.secondPortRecorded&&result.followerLocalInputRejected);assert(result.draws>catchup.drawsAfter);assert.equal(result.queued,0);
  const preview=await page.evaluate(async()=>{await follower.network.follow(savedSnapshot);const before=draws.follower,rows=records.filter(r=>r.frame>startFrame&&r.frame<=240);while(rows.length)await follower.network.push(rows.splice(0,120),{catchUp:true,followHost:true,presentCatchUp:true});await new Promise(r=>setTimeout(r,50));return {draws:draws.follower-before,hash:(await follower.network.hash()).hash};});assert(preview.draws>0,'Established catch-up must keep presenting progress');assert.equal(preview.hash,result.expected);result.visibleCatchUp=preview;
  const fastPlayer=await page.evaluate(fastPlayerScenario);assert(fastPlayer.paced.every(r=>r.host===r.player),'Fast player ran ahead of available host inputs');assert(fastPlayer.catchUpFPS>fastPlayer.pacedHostFPS,'Fixture must exercise a player faster than the paced host: '+JSON.stringify(fastPlayer));assert.equal(fastPlayer.playerFrame,fastPlayer.hostFrame);assert.equal(fastPlayer.idleFrame,fastPlayer.hostFrame);assert.equal(fastPlayer.idlePushes,0);assert.equal(fastPlayer.hash,fastPlayer.expectedHash);assert(fastPlayer.drawn>0);assert.deepEqual(fastPlayer.resyncs,[]);assert(fastPlayer.calls.every(c=>c.followHost));result.fastPlayer=fastPlayer;
- await page.locator('#audio').click();await page.waitForFunction(()=>follower.audio().context?.state==='running');await page.evaluate(async()=>{await host.dispose();await follower.dispose();});assert.deepEqual(errors,[]);reports.push({id,bootstrap,catchup,...result,errors});console.log(JSON.stringify(reports.at(-1)));await page.close();
+ await page.locator('#audio').click();await page.waitForFunction(()=>follower.audio().context?.state==='running');
+ if(id!=='contra'){
+  // Replay an actual SNES log in small arrival bursts after a stall. The replay
+  // queue drains between batches, so only presentation can retain this delay.
+  const burst=await page.evaluate(async()=>{
+   await follower.network.follow(savedSnapshot);
+   const rows=records.filter(r=>r.frame>startFrame),tail=rows.splice(-18);
+   while(rows.length)await follower.network.push(rows.splice(0,120),{catchUp:true});
+   while(tail.length)await follower.network.push(tail.splice(0,6),{followHost:true});
+   const state=follower.snapshot(),actual=await follower.network.hash(),expected=await host.network.hash();
+   return {leadMs:state.presentationLeadMs,resets:state.presentationResets,frame:actual.frame,hash:actual.hash,expectedHash:expected.hash};
+  });
+  assert(burst.leadMs<=100+1e-6,JSON.stringify(burst));assert.equal(burst.hash,burst.expectedHash);result.presentationBurst=burst;
+ }
+ await page.evaluate(async()=>{await host.dispose();await follower.dispose();});assert.deepEqual(errors,[]);reports.push({id,bootstrap,catchup,...result,errors});console.log(JSON.stringify(reports.at(-1)));await page.close();
  }if(process.env.REPLICATION_EVIDENCE)fs.writeFileSync(process.env.REPLICATION_EVIDENCE,JSON.stringify({passed:true,reports},null,2)+'\n',{flag:'wx'});
 }finally{await browser.close();await new Promise(r=>server.close(r));}

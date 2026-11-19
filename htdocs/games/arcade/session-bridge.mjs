@@ -45,7 +45,7 @@ export function captureSurfaces(s){
 export function hostAdapter(p,b,lease,state,runtime){
  const participants=new Map(),seat=p.capabilities.play==='host-p1-guest-p2'?2:1;
  const release=id=>{const r=participants.get(id);if(!r)return;for(const c of b.inputs)if(r.values[c.id])lease.input({control:c.id,source:id+':'+c.id,pressed:false,seat,epoch:state().epoch,role:'guest'});r.values=zero(b);lease.release();};
- return {version:1,packageId:p.id,artifactDigest:p.artifactDigest,capture:()=>captureSurfaces(lease.surfaces()),enabled:()=>Boolean(runtime()?.ready&&runtime()?.running&&!document.hidden),
+ return {version:1,packageId:p.id,artifactDigest:p.artifactDigest,capture:()=>captureSurfaces(lease.surfaces()),enabled:()=>Boolean(runtime()?.ready&&runtime()?.running),
  admit(value){const a=assignment(b,value);insist(a.participant_role==='play'&&a.capabilities.input&&a.session&&a.player===b.players.remote,'Remote assignment');const old=participants.get(a.participant);if(old?.assignment.session===a.session)return;if(old)release(a.participant);insist(!participants.size||old,'Remote capacity');participants.set(a.participant,{assignment:a,values:zero(b)});},
  remote(id,session,player,values){const r=participants.get(id);insist(r&&r.assignment.session===session&&r.assignment.player===player&&full(b,values),'Remote authority');for(const c of b.inputs){const v=values[c.id];if(v===r.values[c.id])continue;const ok=lease.input({control:c.id,source:id+':'+c.id,pressed:v,seat,epoch:state().epoch,role:'guest'});if(v&&!ok){release(id);return;}r.values[c.id]=v;}},
  release,remove(id){release(id);participants.delete(id);}};

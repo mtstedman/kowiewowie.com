@@ -90,7 +90,10 @@ function rebase(){
 }
 function pump(){
    clearTimeout(pumpTimer);pumpTimer=null;
-   if(replicaMode||!ready||!running||document.hidden||synced!==epoch)return;
+   if(replicaMode||!ready||!running||(document.hidden&&!frameListeners.size)||synced!==epoch)return;
+   // A shared host's native clock must not depend on background RAF delivery.
+   // Return old display buffers so the worker can keep serving the other player.
+   if(document.hidden)while(videoQueue.length>1)recycle(videoQueue.shift());
    try{stream.grant(mediaNext-clock(),bufferTarget);watchProgress();}catch(e){fail(e.message||e);return;}
    // A coarse timer also makes progress if RAF is throttled. It grants batches only.
    pumpTimer=setTimeout(pump,12);

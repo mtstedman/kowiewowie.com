@@ -27,7 +27,7 @@ function environment({quantumMs=0,outputLatencyMs=0}={}){
  const db={open(){const r={};queueMicrotask(()=>{r.result={close(){},transaction(){const tx={objectStore(){return {get(key){const req={result:slots.get(key)};queueMicrotask(()=>tx.oncomplete());return req;},put(value,key){const req={result:key};queueMicrotask(()=>{slots.set(key,value);tx.oncomplete();});return req;}};}};return tx;}};r.onsuccess();});return r;}};
  Object.assign(globalThis,{Worker:W,AudioContext:A,indexedDB:db,requestAnimationFrame:cb=>{raf=cb;return 1;},cancelAnimationFrame:()=>{raf=null;},performance:{now:()=>now},setTimeout:(fn,ms)=>{const id=++serial;timers.set(id,{fn,at:now+Math.max(.1,ms)});return id;},clearTimeout:id=>timers.delete(id)});
  const canvas={width:1,height:1,getContext:()=>({createImageData:()=>({data:new Uint8ClampedArray(4)}),putImageData(){draws.push(now);}})};
- return {canvas,draws,audio,setTime(t){now=t;},async tick(t){for(;;){const next=[...timers].sort((a,b)=>a[1].at-b[1].at)[0];if(!next||next[1].at>t)break;timers.delete(next[0]);now=next[1].at;next[1].fn();await settle();}now=t;const cb=raf;raf=null;cb?.(t);await settle();},restore(){for(const [k,v]of Object.entries(before))if(v===undefined)delete globalThis[k];else globalThis[k]=v;}};
+ return {canvas,draws,audio,setTime(t){now=t;},async tick(t,{display=true}={}){for(;;){const next=[...timers].sort((a,b)=>a[1].at-b[1].at)[0];if(!next||next[1].at>t)break;timers.delete(next[0]);now=next[1].at;next[1].fn();await settle();}now=t;if(display){const cb=raf;raf=null;cb?.(t);}await settle();},restore(){for(const [k,v]of Object.entries(before))if(v===undefined)delete globalThis[k];else globalThis[k]=v;}};
 }
 async function settle(){for(let i=0;i<40;i++)await Promise.resolve();}
 test('SNES actual canvas writes remain capped through high-refresh callbacks and a stall while all PCM is scheduled',async()=>{
@@ -89,5 +89,18 @@ test('SNES replica retains frames through audio device latency instead of droppi
  const env=environment({outputLatencyMs:200}),runtime=createSnesRuntime({canvas:env.canvas,config:{},packageId:'delayed-audio',replica:true});
  try{await runtime.load();await runtime.network.follow({frame:0,hash:'a'.repeat(64)});for(let frame=1;frame<=300;frame++){const time=frame*1000/60;env.setTime(time);await runtime.network.push([{frame,pads:[0,0]}],{followHost:true});await env.tick(time);}
  bounded(env.draws);assert(env.draws.length>270,`Audio output latency starved the display: ${env.draws.length} actual pictures`);assert.equal(env.audio.length,300);assert.equal(runtime.network.status().frame,300);
+ }finally{await runtime.dispose();env.restore();}
+});
+
+
+test('SNES host keeps simulating when background display callbacks stop',async()=>{
+ const env=environment(),runtime=createSnesRuntime({canvas:env.canvas,config:{},packageId:'background-host'});
+ try{
+  await runtime.load();await runtime.start();await settle();
+  await env.tick(3000,{display:false});
+  assert(runtime.snapshot().generatedFrames>=175,'A full video queue stopped the shared simulation');
+  assert.equal(env.draws.length,0);assert(runtime.snapshot().queuedFrames<=64);
+  const frames=runtime.snapshot().generatedFrames;
+  await env.tick(3100);assert(runtime.snapshot().generatedFrames>frames);assert.equal(env.draws.length,1);assert(runtime.snapshot().queuedFrames<12);
  }finally{await runtime.dispose();env.restore();}
 });

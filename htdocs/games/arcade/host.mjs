@@ -68,10 +68,10 @@ export class GameHost {
   }).finally(()=>{if(ticket===this.generation){this.transitioning=false;this.emit();}});
   this.queue=job.catch(()=>{});return job;
  }
- release(reason='release',r=this.active){
-  if(!r||r.releaseBusy)return;r.releaseBusy=true;const held=[...r.held.values()];r.held.clear();const errors=[];
+ release(reason='release',r=this.active,localOnly=false){
+  if(!r||r.releaseBusy)return;r.releaseBusy=true;const held=[];for(const [key,item]of r.held)if(!localOnly||key.startsWith('local:')){held.push(item);r.held.delete(key);}const errors=[];
   for(const item of held){if(item.forwarded)r.forwardedReleases.set(item.event.source,item.event);try{if(item.forwarded)r.provider?.sendInput({...item.event,pressed:false});else r.adapter?.input({...item.event,pressed:false});}catch(e){errors.push(e);}}
-  try{r.adapter?.releaseAll(reason);}catch(e){errors.push(e);}try{r.provider?.releaseInputs(reason,r.state.epoch);}catch(e){errors.push(e);}r.releaseBusy=false;
+  if(!localOnly){try{r.adapter?.releaseAll(reason);}catch(e){errors.push(e);}try{r.provider?.releaseInputs(reason,r.state.epoch);}catch(e){errors.push(e);}}r.releaseBusy=false;
   if(errors.length){this.poisoned=true;this.message='Input cleanup failed. Close this arcade before continuing.';}this.emit();
  }
  localInput(r,e){try{exact(e,['control','source','pressed']);return this.edge(r,{...e,seat:seatFor(r.pkg,r.state.role),epoch:r.state.epoch,role:r.state.role},false);}catch{return false;}}
@@ -102,7 +102,7 @@ export class GameHost {
   catch(e){if(r===this.active&&!r.closing)this.message=String(e.message||e).slice(0,200);throw e;}
   finally{r.saving=false;this.emit();}
  }
- suspend(reason='focus-loss'){const r=this.active;this.release(reason,r);if(r?.adapter?.replica)return;if(r?.adapter&&!r.closing)attempt(()=>r.adapter.pause()).catch(()=>{if(r===this.active&&!r.closing){this.poisoned=true;this.emit();}});}
+ suspend(reason='focus-loss'){const r=this.active,sharing=r?.state.role==='host'&&!inactive(r.state)&&['focus-loss','hidden'].includes(reason);this.release(reason,r,sharing);if(sharing||r?.adapter?.replica)return;if(r?.adapter&&!r.closing)attempt(()=>r.adapter.pause()).catch(()=>{if(r===this.active&&!r.closing){this.poisoned=true;this.emit();}});}
  state(r,value,initial=false){
   const next=validateState(value,initial?null:r.state),previous=r.state;const changed=next.role!==previous.role||next.phase!==previous.phase||next.epoch!==previous.epoch;if(changed){const localContinues=['solo','host'].includes(previous.role)&&['solo','host'].includes(next.role)&&!inactive(previous)&&!inactive(next);if(localContinues)this.releaseRemote(r);else this.release('session-transition',r);}r.state=next;r.adapter?.setSessionState?.(next);
   if(r.adapter?.replica?['ended','incompatible'].includes(next.phase):next.role==='guest'||next.role==='spectator'||inactive(next))attempt(()=>r.adapter.pause()).catch(()=>this.fault(r));this.emit();return next;

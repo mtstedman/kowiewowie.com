@@ -91,15 +91,23 @@ test('host retries throttled resync and buffered pause controls without new fram
  finally{host.dispose();}
 });
 
-test('player bootstrap pauses until verified acknowledgment; viewers never acquire the pause',async()=>{
- let running=true,holds=0,releases=0;const captures=[],controls=[];
- const network={subscribeFrame:()=>()=>{},pauseForSync(){holds++;const resume=running;running=false;let released=false;return()=>{if(released)return;released=true;releases++;running=resume;};},capture:async()=>{captures.push(running);return snapshot(40);}};
- const host=createHostReplication({network,binding,adapter:{enabled:()=>running,release(){},remote(){}}});
- function participant(id,role){const callbacks=host.callbacks({participant:id,participant_role:role});let sent;const peer={closed:false,healthy:()=>true,syncState:()=>({frame:40}),async sendCheckpoint(s){sent={type:'ack',epoch:s.epoch,frame:s.frame,sha256:hash};return sent;},sendFrames:()=>true,sendControl:s=>(controls.push(s),true),suspend(){},retry(){}};return{callbacks,peer,ack:()=>callbacks.syncMessage(sent,peer),bad:()=>callbacks.syncMessage({...sent,sha256:'0'.repeat(64)},peer)};}
- try{const play=participant('player','play');play.callbacks.syncOpen(play.peer);await flush();assert.equal(running,false);assert.deepEqual(captures,[false]);assert.equal(holds,1);play.bad();assert.equal(releases,0);play.ack();await flush();assert.equal(running,true);assert.equal(releases,1);assert.equal(controls.at(-1).action,'resume');
- const watch=participant('viewer','watch');watch.callbacks.syncOpen(watch.peer);await flush();assert.equal(holds,1);assert.equal(captures.at(-1),true);watch.ack();
- play.callbacks.syncClose(play.peer);play.callbacks.syncOpen(play.peer);await flush();assert.equal(holds,2);assert.equal(running,false);play.callbacks.syncClose(play.peer);await flush();assert.equal(running,true);assert.equal(releases,2);
- }finally{host.dispose();}
+test('player bootstrap, resync and disconnect never acquire or resume the host clock',async()=>{
+ let running=true,holds=0,record,frame=40;const captures=[],controls=[],inputs=[];
+ const network={subscribeFrame:fn=>(record=fn,()=>{}),pauseForSync(){holds++;running=false;return()=>{running=true;};},capture:async()=>{captures.push(running);return snapshot(frame);}};
+ const host=createHostReplication({network,binding,adapter:{enabled:()=>running,release(){},remote(...args){inputs.push(args);}}});
+ function participant(id,role){const callbacks=host.callbacks({participant:id,participant_role:role,session:'session',player:'p2'});let sent,cursor=frame;const frames=[];const peer={closed:false,healthy:()=>true,syncState:()=>({frame:cursor}),async sendCheckpoint(s){cursor=s.frame;sent={type:'ack',epoch:s.epoch,frame:s.frame,sha256:hash};return sent;},sendFrames(s){assert.equal(s.frames[0].frame,cursor+1);cursor=s.frames.at(-1).frame;frames.push(...s.frames);return true;},sendControl:s=>(controls.push(s),true),suspend(){},retry(){}};return{callbacks,peer,frames,ack:()=>callbacks.syncMessage(sent,peer),bad:()=>callbacks.syncMessage({...sent,sha256:'0'.repeat(64)},peer),input:()=>callbacks.syncMessage({type:'input',epoch:host.state().epoch,controls:{a:true}},peer)};}
+ try{
+  const play=participant('player','play');play.callbacks.syncOpen(play.peer);await flush();
+  assert.equal(holds,0);assert.equal(running,true);assert.deepEqual(captures,[true]);
+  for(let i=0;i<4;i++)record({frame:++frame,pads:[1,0]});
+  play.bad();play.input();assert.equal(inputs.length,0);assert.equal(play.frames.length,0);
+  play.ack();await flush();assert.deepEqual(play.frames.map(r=>r.frame),[41,42,43,44]);assert.equal(controls.at(-1).action,'resume');play.input();assert.equal(inputs.length,1);
+  play.callbacks.syncMessage({type:'resync'},play.peer);play.input();assert.equal(inputs.length,1);assert.equal(running,true);assert.equal(holds,0);
+  play.callbacks.syncClose(play.peer);play.callbacks.syncOpen(play.peer);await flush();assert.equal(running,true);assert.equal(holds,0);
+  // A manual host pause during recovery must not be undone by a late ack.
+  running=false;play.ack();await flush();assert.equal(running,false);assert.equal(controls.at(-1).action,'pause');play.callbacks.syncClose(play.peer);assert.equal(running,false);
+  const watch=participant('viewer','watch');watch.callbacks.syncOpen(watch.peer);await flush();watch.ack();assert.equal(holds,0);assert.equal(running,false);
+ }finally{host.dispose();assert.equal(running,false);}
 });
 
 test('viewers retain ordered visible frames through half-second lag while players catch up promptly',async()=>{

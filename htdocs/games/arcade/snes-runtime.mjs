@@ -5,11 +5,12 @@ import {createSimulationClock} from './simulation-clock.mjs';
 // Host execution keeps one native frame in flight and under 100 ms of audio lead.
 // Retain up to one second of video for device output latency and viewer jitter.
 const VIDEO_QUEUE_LIMIT=64;
+const REPLICA_AUDIO_LEAD=2/60,REPLICA_PRESENTATION_LIMIT=.1;
 export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal,replica=false}) {
  let syncPause=null,catchUpPresentation=false;
  let worker=null,workerBootstrap=null,context=null,master=null,ready=false,running=false,closed=false,loading=false,message='Loading SNES…';
  let nextId=0,pending=new Map(),frameBusy=false,epoch=0,raf=0,audioCursor=0,video=[],sources=new Map(),nodes=new Set(),lastBattery=0,batteryBusy=false,batteryPending=null,disposal=null;
- let generated=0,presented=0,audioSamples=0,underruns=0,lastMeter=0,fps=0;const presentation=createFramePacer();let simulation=null,simulationFrames=0,pumpTimer=null,renderOffset=null,renderWall=null;
+ let generated=0,presented=0,audioSamples=0,underruns=0,presentationResets=0,lastMeter=0,fps=0;const presentation=createFramePacer();let simulation=null,simulationFrames=0,pumpTimer=null,renderOffset=null,renderWall=null;
  let replicaMode=replica,networkFollowed=false,networkGeneration=0,networkFrame=0,networkHash=null,networkQueued=0;const frameListeners=new Set();
  const emit=record=>{for(const listener of frameListeners)try{listener(record);}catch{}};
  const mediaClock=()=>replicaMode&&context?.state!=='running'?performance.now()/1000:context.currentTime;
@@ -25,18 +26,23 @@ export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal
   if(replicaMode&&frame.catchUp===true){if(!catchUpPresentation){stopAudio();catchUpPresentation=true;}video=[{showAt:-Infinity,frame}];generated++;return;}
   if(catchUpPresentation)stopAudio();
   const now=mediaClock();
+  const length=frame.audio.length/2,duration=Math.max(1/simulation.snapshot().hz,length/context.sampleRate);
+  // Ordered replay may deliver several small batches after a network stall.
+  // Its simulation queue can be empty while audio/video still trail by hundreds
+  // of milliseconds. Discard stale presentation together, never native frames.
+  if(replicaMode&&audioCursor+duration-now>REPLICA_PRESENTATION_LIMIT){stopAudio();presentationResets++;}
   if(audioCursor&&audioCursor<now)underruns++;
   // Prime a small audio lead once, then join every PCM buffer exactly.
   // Re-prime only after a real underrun; ordinary arrival jitter adds no silence.
-  const start=audioCursor>now?audioCursor:now+.06,length=frame.audio.length/2,duration=Math.max(1/simulation.snapshot().hz,length/context.sampleRate);
+  const start=audioCursor>now?audioCursor:now+(replicaMode?REPLICA_AUDIO_LEAD:.06);
   if(length&&(!replicaMode||context.state==='running')){const buffer=context.createBuffer(2,length,context.sampleRate);for(let channel=0;channel<2;channel++){const data=buffer.getChannelData(channel);for(let i=0;i<length;i++)data[i]=frame.audio[i*2+channel]/32768;}const node=context.createBufferSource();node.buffer=buffer;node.playbackRate.value=(length/context.sampleRate)/duration;node.connect(master);node.onended=()=>{nodes.delete(node);node.disconnect();};nodes.add(node);node.start(start);audioCursor=start+duration;}
   else audioCursor=start+duration;
-  audioSamples+=frame.audio.length;if(replicaMode)while(video.length>=VIDEO_QUEUE_LIMIT)video.shift();video.push({showAt:start,frame});generated++;
+  audioSamples+=frame.audio.length;while(video.length>=VIDEO_QUEUE_LIMIT)video.shift();video.push({showAt:start,frame});generated++;
  }
  function armPump(delay){clearTimeout(pumpTimer);pumpTimer=setTimeout(()=>{pumpTimer=null;pump();},Math.max(.1,delay));}
  function pump(){
   clearTimeout(pumpTimer);pumpTimer=null;if(!running||closed||frameBusy||replicaMode)return;
-  if(video.length>=VIDEO_QUEUE_LIMIT||audioCursor-context.currentTime>=.085){armPump(5);return;}
+  if(audioCursor-context.currentTime>=.085){armPump(5);return;}
   if(!simulation.take(performance.now())){armPump(simulation.delay(performance.now()));return;}
   frameBusy=true;const generation=epoch;
   rpc('frame',{pads:masks()}).then(frame=>{simulationFrames=frame.simulation?.executed??simulationFrames+1;networkFrame=frame.frame+1;if(frame.replication)emit(frame.replication);if(running&&!closed&&generation===epoch)accept(frame);},fail).finally(()=>{frameBusy=false;if(running&&!closed)pump();});
@@ -96,5 +102,5 @@ export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal
   status:()=>({ready:ready&&!closed&&(!replicaMode||networkFollowed),replica:replicaMode,frame:networkFrame,hash:networkHash,running,queued:networkQueued}),
  });
  signal?.addEventListener('abort',()=>{dispose().catch(()=>{});},{once:true});
- return {load,start,pause,reset,dispose,input,releaseAll,network,async networkSnapshot(){return (await network.capture()).state;},clearRemote(){for(const [key,value]of sources)if(value.source.startsWith('remote:'))sources.delete(key);},held(button,seat=1){return [...sources.values()].some(s=>s.button===button&&s.seat===seat);},snapshot:()=>({ready,running,loading,closed,message,generatedFrames:generated,simulationFrames,simulationHz:simulation?.snapshot().hz??null,dispatchedFrames:simulation?.snapshot().executed??0,presentedFrames:presented,audioSamples,underruns,queuedFrames:video.length}),audio:()=>({context,node:master}),async exportCheckpoint(){pause();return rpc('save');},async importCheckpoint(record){pause();await rpc('load',{record});networkFrame=record.frame;emit({type:'reset'});message='Saved game loaded';changed();}};
+ return {load,start,pause,reset,dispose,input,releaseAll,network,async networkSnapshot(){return (await network.capture()).state;},clearRemote(){for(const [key,value]of sources)if(value.source.startsWith('remote:'))sources.delete(key);},held(button,seat=1){return [...sources.values()].some(s=>s.button===button&&s.seat===seat);},snapshot:()=>({ready,running,loading,closed,message,generatedFrames:generated,simulationFrames,simulationHz:simulation?.snapshot().hz??null,dispatchedFrames:simulation?.snapshot().executed??0,presentedFrames:presented,audioSamples,underruns,queuedFrames:video.length,presentationLeadMs:context?Math.max(0,audioCursor-mediaClock())*1000:0,presentationResets}),audio:()=>({context,node:master}),async exportCheckpoint(){pause();return rpc('save');},async importCheckpoint(record){pause();await rpc('load',{record});networkFrame=record.frame;emit({type:'reset'});message='Saved game loaded';changed();}};
 }

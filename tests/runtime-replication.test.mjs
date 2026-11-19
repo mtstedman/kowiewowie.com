@@ -76,6 +76,55 @@ test('SNES follower renders without audio permission, never advances autonomousl
  }finally{for(const[k,v]of Object.entries(before))if(v===undefined)delete globalThis[k];else globalThis[k]=v;}
 });
 
+test('SNES replica presentation cannot retain network bursts as permanent input delay',async()=>{
+ const {createSnesRuntime}=await import('../htdocs/games/arcade/snes-runtime.mjs');
+ const keys=['Worker','AudioContext','performance','requestAnimationFrame','cancelAnimationFrame'],before=Object.fromEntries(keys.map(k=>[k,globalThis[k]]));
+ try{for(const audible of [true,false]){
+  let now=1000,raf,audio,worker,drawn=0;const sounds=[],replayed=[];
+  class W{
+   constructor(){worker=this;this.sent=[];}
+   postMessage(r){this.sent.push(r.op);queueMicrotask(()=>{
+    let result;
+    if(r.op==='init')result={fps:60};
+    else if(r.op==='network-follow')result={frame:r.snapshot.frame,hash:r.snapshot.hash};
+    else if(r.op==='network-replay'){
+     for(const record of r.records){replayed.push(record.frame);this.onmessage({data:{type:'replica-frame',result:{frame:record.frame-1,width:1,height:1,rgba:new Uint8Array([record.frame%256,0,0,255]),audio:new Int16Array(1600)}}});}
+     result={frame:r.records.at(-1).frame,hash:null};
+    }else throw Error('Unexpected replica operation '+r.op);
+    this.onmessage({data:{id:r.id,result}});
+   });}
+   terminate(){}
+  }
+  class A{
+   constructor(){audio=this;this.state=audible?'running':'suspended';this.sampleRate=48000;this.currentTime=1;this.destination={};}
+   createGain(){return {connect(){},disconnect(){}};}
+   createBuffer(channels,length,rate){assert(audible);return {duration:length/rate,getChannelData:()=>new Float32Array(length)};}
+   createBufferSource(){const node={playbackRate:{value:1},connect(){},disconnect(){},start(at){this.at=at;sounds.push(this);},stop(){this.stopped=true;}};return node;}
+   async close(){}
+  }
+  Object.assign(globalThis,{Worker:W,AudioContext:A,performance:{now:()=>now},requestAnimationFrame:f=>{raf=f;return 1;},cancelAnimationFrame:()=>{raf=null;}});
+  const runtime=createSnesRuntime({replica:true,packageId:'latency-test',config:{},canvas:{getContext:()=>({createImageData:()=>({data:new Uint8ClampedArray(4)}),putImageData(image){drawn=image.data[0];}})}});
+  let frame=0;const push=async count=>runtime.network.push(Array.from({length:count},()=>({frame:++frame,pads:[0,128]})),{followHost:true});
+  const advance=ms=>{now+=ms;if(audible)audio.currentTime+=ms/1000;for(const node of sounds)if(!node.stopped&&node.at+node.buffer.duration<=audio.currentTime){node.stopped=true;node.onended?.();}raf(now);};
+  try{
+   await runtime.load();await runtime.network.follow({frame:0,hash:'a'.repeat(64)});
+   // Normal paced input must keep contiguous audio without repeated flushes.
+   for(let i=0;i<120;i++){advance(1000/60);await push(1);}
+   assert.equal(runtime.snapshot().presentationResets,0,'Steady arrivals repeatedly discarded audio');
+   const active=sounds.filter(n=>!n.stopped);assert(active.every(n=>n.playbackRate.value===1));
+   // A brief stall arrives as multiple small batches, below replica catch-up's
+   // queue threshold. Native replay finishes; presentation must catch up too.
+   advance(300);await push(6);await push(6);await push(6);
+   assert(runtime.snapshot().presentationResets>0,'Burst did not trim stale presentation');
+   assert(runtime.snapshot().presentationLeadMs<=100+1e-6);
+   if(audible){const lead=Math.max(...sounds.filter(n=>!n.stopped).map(n=>n.at+n.buffer.duration))-audio.currentTime;assert(lead<=.1+1e-9,`Audio kept ${(lead*1000).toFixed(1)} ms of stale presentation`);}
+   advance(105);assert.equal(drawn,frame%256,'Caught-up simulation still displayed stale frames');
+   assert.deepEqual(replayed,Array.from({length:frame},(_,i)=>i+1),'Presentation trimming skipped authoritative simulation');
+   assert.equal(worker.sent.includes('frame'),false,'Replica started autonomous simulation');
+  }finally{await runtime.dispose();}
+ }}finally{for(const[k,v]of Object.entries(before))if(v===undefined)delete globalThis[k];else globalThis[k]=v;}
+});
+
 test('NES battery facade handshakes empty state but never reads, writes, or flushes a replica save',async()=>{
  const {createPersistentRuntime}=await import('../htdocs/games/arcade/battery-client.mjs');let native;const sent=[];
  class Worker{constructor(){native=this;queueMicrotask(()=>this.onmessage({data:{type:'battery-await-init'}}));}postMessage(m){sent.push(m);if(m.type==='battery-init')queueMicrotask(()=>this.onmessage({data:{type:'battery-data',record:{untrusted:'private peer battery'}}}));}terminate(){this.terminated=true;}}

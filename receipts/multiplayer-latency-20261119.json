@@ -1,0 +1,93 @@
+{
+  "format": "multiplayer-latency-validation/1",
+  "baseCommit": "156737a175a97b5f0aa7e76225d931b6727b872a",
+  "deployed": false,
+  "sourceSha256": {
+    "htdocs/games/arcade/host.mjs": "99e1dcfa4e8980b36e0eab271dcf85b64702f9a6f7b535de8c21f175db4f1060",
+    "htdocs/games/arcade/session-bridge.mjs": "ed36d7116e373c158ac8100d233c6387626a321306d652c0e4abbadb5042bb84",
+    "htdocs/games/arcade/snes-runtime.mjs": "725714ca7488fb2b8408d73308f5cb2d2283c81735fa1dafdf8037b31c1016bb",
+    "htdocs/games/arcade/worker-stream-host.mjs": "e1e65fcdd04e6234a348fca4ee7e911e8d6e079a837fe6a4dcfc0d93feda7231",
+    "htdocs/games/netplay/replication-host.mjs": "277845590c3e48e8d0e296d2726f01806cb19d4ad4447dd995b62afdcdd91e0a"
+  },
+  "behavior": [
+    "Shared host focus/visibility loss releases only local controls, without pausing simulation or clearing remote held inputs.",
+    "Peer bootstrap and resync never acquire the host pause; explicit host pause remains authoritative.",
+    "SNES presentation discards stale audio/video above 100 ms of scheduled lead and primes replicas with two frames. Native frame replay remains consecutive.",
+    "SNES and shared NES timers continue simulation without display callbacks; presentation storage remains bounded."
+  ],
+  "reproduction": {
+    "oldBufferedAudioMs": 360,
+    "oldMutedDisplayFramesBehind": 15,
+    "newPresentationLimitMs": 100,
+    "scope": "Deterministic 300 ms delivery stall followed by three six-frame replay batches; not WAN input-to-display latency."
+  },
+  "checks": [
+    {
+      "command": "npm run typecheck",
+      "passed": true
+    },
+    {
+      "command": "php -l includes/api/classes/NetplayPolicy.php",
+      "passed": true
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    },
+    {
+      "command": "node --test tests/arcade-frame-pacing.test.mjs tests/arcade-replica-host.test.mjs",
+      "passed": true,
+      "tests": 15
+    },
+    {
+      "command": "node --test tests/snes-site-packages.test.mjs tests/arcade-replica-host.test.mjs tests/arcade-replication.test.mjs tests/netplay-sync-wire.test.mjs",
+      "passed": true,
+      "tests": 33
+    },
+    {
+      "command": "node --experimental-vm-modules --test tests/snes-site-packages.test.mjs tests/runtime-replication.test.mjs tests/snes-runtime.test.mjs tests/snes-runtime-timing.test.mjs tests/arcade-replication.test.mjs tests/netplay-sync-input-retry.test.mjs",
+      "passed": true,
+      "tests": 35,
+      "scope": "Buffering revision before subsequent focus and host-isolation changes; those are covered by later focused/browser checks."
+    },
+    {
+      "command": "node tests/runtime-replication.browser.mjs",
+      "passed": true,
+      "games": [
+        "contra",
+        "super-mario-world",
+        "zelda-a-link-to-the-past"
+      ],
+      "snesBurstLeadMs": [
+        66.7083333333327,
+        50.00000000000071
+      ],
+      "scope": "Native replay and hash equality after playback buffering change."
+    },
+    {
+      "command": "python3 tests/snes-sharing-lab.py browser --browser-mode=trusted-local --suite=rom-sync",
+      "nodeTestNamePattern": "^(super-mario-world|zelda-a-link-to-the-past):",
+      "selection": "Injected only the Node test-name-pattern argument into an in-memory copy of the existing lab launcher; unchanged production code copied into the disposable fixture.",
+      "passed": true,
+      "tests": 2,
+      "job": "/tmp/combined-lab-59yk6zfx",
+      "coverage": [
+        "both SNES ROMs",
+        "Player 2 inputs while host hidden and RAF withheld",
+        "explicit pause/resume",
+        "direct player and authenticated relay viewer",
+        "native hashes",
+        "forced divergence recovery",
+        "host save/load",
+        "private replica storage",
+        "cleanup"
+      ]
+    }
+  ],
+  "limitations": [
+    "No connected live user browser was available; deployed SNES runtime bytes matched the original checkout baseline. No live latency measurement or deployment was performed.",
+    "The broader Contra/WebKit loopback case timed out waiting for normal audio after player join in the candidate. The unchanged baseline also timed out at the same audio readiness check, for its viewer. These failures occurred at different stages and do not establish equivalence or exclude a regression for slower NES clients.",
+    "The first background-browser test attempt also suppressed Playwright RAF-based polling. Fixed its hidden-period waits to use timed polling; the corrected two-SNES run passed.",
+    "A browser/OS can still throttle or suspend a background page. The checks cover application-controlled pause, bounded display buffers, and timer-driven simulation, not suspended process execution."
+  ]
+}
