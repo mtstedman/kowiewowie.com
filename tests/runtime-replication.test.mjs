@@ -46,6 +46,7 @@ test('actual NES producer captures without releasing held inputs and replays bot
  await request('network-replay',{records,followHost:true});
  assert.equal(posts.filter(m=>m.type==='replica-frame').length,120);
  assert.equal(await hashReplicationState(follower.exportCheckpoint()),records.at(-1).hash);
+ await request('network-follow',{snapshot});const beforePreview=posts.length;await request('network-replay',{records,catchUp:true,presentCatchUp:true});const previews=posts.slice(beforePreview).filter(m=>m.type==='replica-frame');assert.equal(previews.length,120);assert(previews.every(m=>m.catchUp&&m.audio.length===0));assert.equal(await hashReplicationState(follower.exportCheckpoint()),records.at(-1).hash);
  producer.dispose();replica.dispose();
 });
 
@@ -89,4 +90,10 @@ test('fast checkpoint encoding retains canonical wire bytes for nested arrays, m
  assert.equal(new TextDecoder().decode(encodeReplicationState(record)),'{"array":[{"a":1,"z":2},[0,3]],"memory":{"$uint8":"AP+A"},"z":[1,null,"z",true,false]}');
  const reserved=JSON.parse('{"__proto__":{"polluted":true},"constructor":"data"}');
  assert.deepEqual(decodeReplicationState(encodeReplicationState(reserved)),reserved);assert.equal({}.polluted,undefined);
+});
+
+test('NES canonical frames survive an input pause but stale pre-load frames cannot enter the restored log',async()=>{
+ const {runtimeHarness}=await import('./arcade-runtime-harness.mjs');const {fileURLToPath}=await import('node:url');const h=await runtimeHarness(fileURLToPath(new URL('../htdocs/games/arcade/worker-stream-host.mjs',import.meta.url)));
+ const records=[];h.runtime.network.subscribeFrame(r=>records.push(r));h.runtime.reset();const w=h.workers[0];w.receive({type:'ready'});const oldEpoch=w.sent.find(m=>m.type==='sync').epoch;h.runtime.pause();w.receive({type:'network-frame',epoch:oldEpoch,record:{frame:120,pads:[0,0],hash:'a'.repeat(64)}});assert.equal(records.at(-1).frame,120);
+ const pending=h.runtime.importCheckpoint({});const rejected=assert.rejects(pending,/unloaded/i);const count=records.length;w.receive({type:'network-frame',epoch:oldEpoch,record:{frame:121,pads:[0,0]}});assert.equal(records.length,count);await h.runtime.dispose();await rejected;
 });

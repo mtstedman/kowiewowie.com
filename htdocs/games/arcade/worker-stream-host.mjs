@@ -3,7 +3,7 @@ import {createConsumer} from './worker-stream-consumer.mjs';
 import {createFramePacer} from './frame-pacing.mjs';
 // Authenticated UI lifecycle, transport, and audio/video scheduling.
 export function createRuntime({root,onState=()=>{},WorkerClass=Worker,workerURL,replica=false}){
-let syncPause=null;
+let syncPause=null,catchUpPresentation=false,networkEpochFloor=0;
 let closed=false,runtimeFrame=0,checkpointRequest=null,replicaMode=replica,networkFollowed=false,networkGeneration=0,networkFrame=0,networkHash=null,networkQueued=0;
 const networkRequests=new Map(),frameListeners=new Set();
 const emitNetwork=record=>{for(const listener of frameListeners)try{listener(record);}catch{}};
@@ -83,6 +83,7 @@ function syncAudioClock(){
   pump();
 }
 function rebase(){
+  catchUpPresentation=false;
   presentation.resetClock();silence();for(const frame of videoQueue)recycle(frame);videoQueue=[];primeMedia=true;mediaNext=clock()+.012;renderOffset=null;renderWall=null;
   measuredAt=performance.now();measuredCycles=lastCycles??0;measuredFrames=presented;
   clearTimeout(pumpTimer);pumpTimer=null;
@@ -95,6 +96,12 @@ function pump(){
    pumpTimer=setTimeout(pump,12);
  }
  function enqueue(d,replicated=false){
+  if(replicated&&d.catchUp===true){
+    if(!catchUpPresentation){rebase();catchUpPresentation=true;}
+    videoQueue=[{at:-Infinity,rgba:d.rgba,audio:d.audio,frames:d.frames,transport:null,catchUp:true}];
+    lastCycles=d.cycles;fps=presentation.snapshot(performance.now()).fps;return;
+  }
+  if(catchUpPresentation)rebase();
   if(lastCycles===null){measuredAt=performance.now();measuredCycles=d.cycles;measuredFrames=presented;}
   const now=clock(),duration=1/60;
   // All native PCM is played on the same 60 Hz timeline as simulation.
@@ -205,7 +212,7 @@ function receive(w,d){
   }
   if(d?.type==='network-result'){const request=networkRequests.get(d.seq);if(!request)return;networkRequests.delete(d.seq);clearTimeout(request.timer);d.error?request.reject(Error(d.error)):request.resolve(d.result);return;}
   if(d?.type==='replica-frame'){if(replicaMode&&running&&!closed)enqueue(d,true);networkFrame=d.frames;return;}
-  if(d?.type==='network-frame'){if(d.epoch===epoch&&!replicaMode)emitNetwork(d.record);return;}
+  if(d?.type==='network-frame'){if(d.epoch>=networkEpochFloor&&d.epoch<=epoch&&!replicaMode)emitNetwork(d.record);return;}
   if(!d||d.epoch!==epoch)return;
    if(d.type==='checkpoint'||d.type==='checkpoint-error'){
     const r=checkpointRequest;if(!r||r.epoch!==epoch||r.seq!==d.seq)return;
@@ -261,7 +268,7 @@ function tick(timestamp){
   if(frame){
     ctx.putImageData(new ImageData(frame.rgba,256,240),0,0);presented++;
     recycle(frame);
-    if(timestamp-statusAt>=250){statusAt=timestamp;status.textContent='Running · '+fps.toFixed(1)+' FPS · '+Math.round(speed*100)+'% speed · frame '+frame.frames+(notice?' · '+notice:'');}
+    if(timestamp-statusAt>=250){statusAt=timestamp;status.textContent=(frame.catchUp?'Catching up · '+fps.toFixed(1)+' FPS · frame ':'Running · '+fps.toFixed(1)+' FPS · '+Math.round(speed*100)+'% speed · frame ')+frame.frames+(notice?' · '+notice:'');}
   }
   pump();
 }
@@ -278,7 +285,7 @@ function dispose(){
 }
 function checkpoint(type,record){
  if(closed||!ready||checkpointRequest)return Promise.reject(Error('Game is not ready for a save operation'));
- pause('Saving / loading…');
+ pause('Saving / loading…');if(type==='checkpoint-import')networkEpochFloor=epoch;
  return new Promise((resolve,reject)=>{
   checkpointRequest={epoch,seq:seq+1,resolve,reject,timer:setTimeout(()=>cancelCheckpoint('Save operation timed out'),120000)};
   try{wire(type,{record});}catch(e){cancelCheckpoint(e.message);}
@@ -294,7 +301,7 @@ const network=Object.freeze({
  subscribeFrame(listener){if(typeof listener!=='function')throw Error('Invalid frame listener');frameListeners.add(listener);if(ready&&!replicaMode)networkRequest('network-enable',{enabled:true}).catch(e=>fail(e.message));return()=>{frameListeners.delete(listener);if(ready&&!closed&&!frameListeners.size)networkRequest('network-enable',{enabled:false}).catch(()=>{});};},
  capture:()=>networkRequest('network-capture'),
  async follow(snapshot){replicaMode=true;networkFollowed=false;pause('Following host…');const generation=networkGeneration;const result=await networkRequest('network-follow',{snapshot});if(closed||generation!==networkGeneration)throw Error('Replica synchronization superseded');networkFollowed=true;networkFrame=result.frame;networkHash=result.hash;running=true;rebase();if(result.picture){const p=validateReplicationPicture(result.picture);ctx.putImageData(new ImageData(new Uint8ClampedArray(p.rgba),p.width,p.height),0,0);}show('Following host');return result;},
- async push(records,{catchUp=false,followHost=false}={}){if(!replicaMode||!networkFollowed||!ready||closed)throw Error('Replica is not ready');if(!Array.isArray(records)||records.length>120||networkQueued+records.length>240)throw Error('Replica queue overflow');networkQueued+=records.length;try{const result=await networkRequest('network-replay',{records,catchUp,followHost});networkFrame=result.frame;networkHash=result.hash;return result;}finally{networkQueued-=records.length;}},
+ async push(records,{catchUp=false,followHost=false,presentCatchUp=false}={}){if(!replicaMode||!networkFollowed||!ready||closed)throw Error('Replica is not ready');if(!Array.isArray(records)||records.length>120||networkQueued+records.length>240)throw Error('Replica queue overflow');networkQueued+=records.length;try{const result=await networkRequest('network-replay',{records,catchUp,followHost,presentCatchUp});networkFrame=result.frame;networkHash=result.hash;return result;}finally{networkQueued-=records.length;}},
  async hash(){const result=await this.capture();networkHash=result.hash;return {frame:result.frame,hash:result.hash};},
  async enableAudio(){if(closed||!ready)return;audioUnlocked=true;const A=window.AudioContext||window.webkitAudioContext;if(A){if(!ac){ac=new A({sampleRate:48000});master=ac.createGain();master.connect(ac.destination);ac.onstatechange=syncAudioClock;}await ac.resume();if(!closed)syncAudioClock();}},
  setPaused(paused){if(!replicaMode)return;if(paused)networkGeneration++;running=!paused;if(paused)rebase();show(paused?'Host paused':'Following host');},

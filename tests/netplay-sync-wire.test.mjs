@@ -35,3 +35,8 @@ test('spectator relay tolerance never extends the player input freshness limit',
  const original=Object.getOwnPropertyDescriptor(globalThis,'performance');let now=0;Object.defineProperty(globalThis,'performance',{value:{now:()=>now},configurable:true});
  try{for(const role of ['play','watch']){const peer=new (createSyncTransport(binding).Peer)('guest',auth(role),{});peer.pc={connectionState:'connected'};peer.dc={readyState:'open'};peer.lastData=0;now=2001;assert.equal(peer.healthy(),role==='watch');now=15001;assert.equal(peer.healthy(),false);now=0;}}finally{Object.defineProperty(globalThis,'performance',original);}
 });
+
+test('compressed checkpoints shrink repetitive memory and enforce declared decompression bounds',async()=>{
+ const p=pair();await p.host.sendCheckpoint({epoch,frame:0,bytes:bytes(),metadata:{}});const header=JSON.parse(p.outbound[0]);assert.equal(header.encoding,'gzip');assert(header.bytes<header.decodedBytes/10);await p.deliver();assert.deepEqual(p.guestMessages[0].bytes,bytes());
+ const broken=pair();await broken.host.sendCheckpoint({epoch,frame:0,bytes:bytes(),metadata:{}});const bad=JSON.parse(broken.outbound[0]);bad.decodedBytes=16;broken.outbound[0]=JSON.stringify(bad);await assert.rejects(broken.deliver(),/decompression limit/);assert.equal(broken.guestMessages.length,0);
+});

@@ -44,7 +44,7 @@ export function createProducer({machine,post,schedule,cancel,now=()=>performance
    const rgba=machine.getRGBA(),audio=machine.takeAudio(),{frames,cycles}=result.state;
    if(frames!==record.frame)throw Error('Replica frame mismatch');
    if(record.hash&&await hashReplicationState(machine.exportCheckpoint())!==record.hash)throw Error('Replica state diverged at frame '+frames);
-   if(d.catchUp!==true)post({type:'replica-frame',epoch:d.epoch,rgba,audio,frames,cycles,executedAtMs},[rgba.buffer,audio.buffer]);
+   if(d.catchUp!==true||d.presentCatchUp===true){const pcm=d.catchUp===true?new Float32Array(0):audio;post({type:'replica-frame',epoch:d.epoch,rgba,audio:pcm,frames,cycles,executedAtMs,catchUp:d.catchUp===true},[rgba.buffer,pcm.buffer]);}
    afterFrame(frames);if(d.catchUp===true&&frames%8===0)await new Promise(resolve=>setTimeout(resolve,0));
   }
   if(d.catchUp===true)simulation.pause();return {frame:machine.getState().frames,hash:d.records.at(-1).hash??null};

@@ -1,0 +1,46 @@
+✔ presentation pacing bounds real draws on 60/120/144/240 Hz displays without reducing 30 Hz (13.943585ms)
+✔ missed display deadlines and lifecycle restarts do not accumulate catch-up draws (0.529696ms)
+✔ SNES actual canvas writes remain capped through high-refresh callbacks and a stall while all PCM is scheduled (123.511186ms)
+✔ NES actual canvas writes use the same ceiling while streaming audio and recycling bounded worker buffers (123.902772ms)
+✔ SNES presentation remains near sixty with quantized audio time at different vsync phases (292.400704ms)
+✔ rounded browser vsync timestamps do not turn sixty ready frames into a slower presentation rate (10.160713ms)
+✔ a player synchronization pause blocks early resume and preserves a later manual pause (1.01575ms)
+✔ incoming frames remain consecutive while a native replay batch is in flight (6.3028ms)
+✔ hash divergence stops input readiness until a fresh checkpoint restores the canonical state (5.621598ms)
+✔ closing a replica prevents a late native completion from restoring readiness (0.955266ms)
+✔ host retains frames produced during a snapshot and accepts an early checkpoint acknowledgment (4.228741ms)
+✔ a paused late join paints the final catch-up frames at live speed (0.756613ms)
+✔ host retries throttled resync and buffered pause controls without new frames (1802.219179ms)
+✔ player bootstrap pauses until verified acknowledgment; viewers never acquire the pause (2.509869ms)
+✔ viewers retain ordered visible frames through half-second lag while players catch up promptly (2.503166ms)
+✔ only sustained player lag requests a new handshake; spectator backlog stays independent (2.214844ms)
+✔ megabyte checkpoint chunks authenticate and replay ordered authoritative frames for play and watch (253.540846ms)
+✔ player inputs use authenticated seat, monotonic sequence and current epoch; watcher input rejected (111.75307ms)
+✔ checksum corruption, missing/duplicate chunks, oversized allocation and frame gaps fail closed (55.396347ms)
+✔ resync checkpoint replaces the epoch; old inputs and suspended inputs never apply (56.463874ms)
+✔ late acknowledgment from a previous epoch cannot tear down a newer snapshot (0.999159ms)
+✔ checkpoint sends honor bounded buffered output and stop on closure (21.550636ms)
+✔ sync Peer creates only one ordered DataChannel and no media capture, even for watchers (1.390354ms)
+✔ abrupt native channel closure leaves the authoritative send cursor unchanged (0.984851ms)
+✔ input heartbeat forwards the current full controls to repair a lost release (0.498488ms)
+✔ late failures from replaced channel callbacks cannot stop the current connection (2.30354ms)
+✔ validated checkpoint fragments keep a slow relayed viewer alive before hydration completes (2.049373ms)
+✔ spectator relay tolerance never extends the player input freshness limit (0.599086ms)
+✔ compressed checkpoints shrink repetitive memory and enforce declared decompression bounds (152.222444ms)
+✔ canonical checkpoint bytes preserve SNES memory and bind full state, frame, and identity (11.289825ms)
+✔ actual NES producer captures without releasing held inputs and replays both ports to identical full state (11570.522261ms)
+✔ actual SNES independent runners reproduce full native/APU state after two-port frame replay (593.841957ms)
+✔ SNES follower renders without audio permission, never advances autonomously, and never touches battery storage (3.871108ms)
+(node:3158146) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ NES battery facade handshakes empty state but never reads, writes, or flushes a replica save (1.714473ms)
+✔ fast checkpoint encoding retains canonical wire bytes for nested arrays, memory and reserved keys (0.259868ms)
+✔ NES canonical frames survive an input pause but stale pre-load frames cannot enter the restored log (11.229662ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12311.858462

@@ -1,0 +1,76 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createGuestReplication} from '../htdocs/games/netplay/replication-guest.mjs';
+import {createHostReplication} from '../htdocs/games/netplay/replication-host.mjs';
+import {encodeReplicationState} from '../htdocs/games/arcade/replication-state.mjs';
+const binding={packageId:'fixture',artifactDigest:'a'.repeat(64)},hash='b'.repeat(64),epoch='c'.repeat(32);
+const flush=async()=>{for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));};
+const snapshot=frame=>({frame,state:{frame,data:new Uint8Array([1,2,3])},hash,identity:{system:'fixture'}});
+const checkpoint=frame=>({type:'checkpoint',epoch,frame,bytes:encodeReplicationState(snapshot(frame)),metadata:{...binding,hash}});
+function follower(push=async records=>({frame:records.at(-1).frame,hash:records.at(-1).hash??null}),options={}){
+ let frame=0;const requests=[],pauses=[];
+ const network={follow:async s=>{frame=s.frame;},push:async(records,options)=>{const result=await push(records,options);frame=result.frame;return result;},status:()=>({frame}),setPaused:paused=>pauses.push(paused)};
+ const replica=createGuestReplication({...options,network,binding,requestResync:r=>requests.push(r)});
+ return {replica,network,requests,pauses};
+}
+test('incoming frames remain consecutive while a native replay batch is in flight',async()=>{
+ let finish;const calls=[];const f=follower(async (records,options)=>{assert.equal(options.followHost,true);calls.push(records.map(r=>r.frame));if(records[0].frame===11)await new Promise(resolve=>finish=resolve);return {frame:records.at(-1).frame,hash:records.at(-1).hash??null};});
+ await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:10,action:'resume'});
+ await f.replica.receive({type:'frames',epoch,frames:[{frame:11,pads:[0,1]}]});
+ await f.replica.receive({type:'frames',epoch,frames:[{frame:12,pads:[2,1]},{frame:13,pads:[2,0],hash}]});
+ assert.equal(f.requests.length,0);finish();await flush();assert.equal(f.replica.state().frame,13);assert.equal(f.replica.state().ready,true);assert.deepEqual(calls.flat(),[11,12,13]);f.replica.close();
+});
+test('hash divergence stops input readiness until a fresh checkpoint restores the canonical state',async()=>{
+ let fail=true;const f=follower(async records=>{if(fail)throw Error('Replica state diverged');return {frame:records.at(-1).frame,hash:records.at(-1).hash??null};});
+ await f.replica.receive(checkpoint(119));await f.replica.receive({type:'control',epoch,frame:119,action:'resume'});
+ await f.replica.receive({type:'frames',epoch,frames:[{frame:120,pads:[0,0],hash}]});await flush();
+ assert.equal(f.requests.length,1);assert.equal(f.replica.state().ready,false);assert.equal(f.replica.state().loaded,false);
+ fail=false;await f.replica.receive(checkpoint(180));await f.replica.receive({type:'control',epoch,frame:180,action:'pause'});
+ assert.equal(f.replica.state().ready,true);assert.equal(f.replica.state().paused,true);assert.equal(f.replica.state().frame,180);f.replica.close();
+});
+test('closing a replica prevents a late native completion from restoring readiness',async()=>{
+ let finish;const f=follower(async records=>{await new Promise(resolve=>finish=resolve);return {frame:records.at(-1).frame};});
+ await f.replica.receive(checkpoint(1));await f.replica.receive({type:'frames',epoch,frames:[{frame:2,pads:[0,0]}]});f.replica.close();finish();await flush();assert.equal(f.replica.state().ready,false);assert.equal(f.replica.state().frame,1);
+});
+test('host retains frames produced during a snapshot and accepts an early checkpoint acknowledgment',async()=>{
+ let record,frame=40,callbacks,peer,finishTransfer;const frames=[],controls=[];
+ const network={subscribeFrame:fn=>(record=fn,()=>{}),capture:async()=>snapshot(frame),status:()=>({frame})};
+ const adapter={enabled:()=>true,release(){},remote(){throw Error('No remote inputs expected');}};
+ const host=createHostReplication({network,adapter,binding});const assigned={participant:'one',participant_role:'watch'};callbacks=host.callbacks(assigned);
+ peer={closed:false,healthy:()=>true,cursor:0,syncState(){return {frame:this.cursor};},async sendCheckpoint(s){this.cursor=s.frame;await new Promise(resolve=>finishTransfer=resolve);const ack={type:'ack',epoch:s.epoch,frame:s.frame,sha256:hash};callbacks.syncMessage(ack,this);return ack;},sendFrames(s){assert.equal(s.frames[0].frame,this.cursor+1);this.cursor=s.frames.at(-1).frame;frames.push(...s.frames);return true;},sendControl:s=>(controls.push(s),true),suspend(){},retry(){}};
+ try{callbacks.syncOpen(peer);await flush();for(let i=0;i<4;i++){frame++;record({frame,pads:[i,0]});}assert.equal(frames.length,0);finishTransfer();await flush();assert.deepEqual(frames.map(r=>r.frame),[41,42,43,44]);assert.equal(controls.at(-1).frame,44);assert.equal(controls.at(-1).action,'resume');}
+ finally{host.dispose();}
+});
+
+test('a paused late join paints the final catch-up frames at live speed',async()=>{
+ const modes=[];const f=follower(async(records,options)=>{modes.push({frames:records.map(r=>r.frame),catchUp:options.catchUp});return {frame:records.at(-1).frame,hash};});
+ await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:20,action:'pause'});
+ await f.replica.receive({type:'frames',epoch,frames:Array.from({length:10},(_,i)=>({frame:11+i,pads:[0,0]}))});await flush();
+ assert.equal(f.replica.state().ready,true);assert.equal(modes[0].catchUp,true);assert.deepEqual(modes.slice(-2),[{frames:[19],catchUp:false},{frames:[20],catchUp:false}]);f.replica.close();
+});
+test('host retries throttled resync and buffered pause controls without new frames',async()=>{
+ let captures=0,allowControl=false;const controls=[];let callbacks;
+ const host=createHostReplication({binding,network:{subscribeFrame:()=>()=>{},capture:async()=>{captures++;return snapshot(40);}},adapter:{enabled:()=>false,release(){},remote(){}}});
+ const peer={closed:false,healthy:()=>true,syncState:()=>({frame:40}),async sendCheckpoint(s){const ack={type:'ack',epoch:s.epoch,frame:s.frame,sha256:hash};queueMicrotask(()=>callbacks.syncMessage(ack,this));return ack;},sendFrames:()=>true,sendControl:s=>{if(allowControl)controls.push(s);return allowControl;},suspend(){},retry(){}};
+ callbacks=host.callbacks({participant:'viewer',participant_role:'watch'});
+ try{callbacks.syncOpen(peer);await flush();assert.equal(captures,1);allowControl=true;await new Promise(r=>setTimeout(r,300));assert.equal(controls.at(-1).action,'pause');
+ callbacks.syncMessage({type:'resync'},peer);assert.equal(captures,1);await new Promise(r=>setTimeout(r,1500));assert.equal(captures,2);assert.equal(controls.at(-1).frame,40);}
+ finally{host.dispose();}
+});
+
+test('player bootstrap pauses until verified acknowledgment; viewers never acquire the pause',async()=>{
+ let running=true,holds=0,releases=0;const captures=[],controls=[];
+ const network={subscribeFrame:()=>()=>{},pauseForSync(){holds++;const resume=running;running=false;let released=false;return()=>{if(released)return;released=true;releases++;running=resume;};},capture:async()=>{captures.push(running);return snapshot(40);}};
+ const host=createHostReplication({network,binding,adapter:{enabled:()=>running,release(){},remote(){}}});
+ function participant(id,role){const callbacks=host.callbacks({participant:id,participant_role:role});let sent;const peer={closed:false,healthy:()=>true,syncState:()=>({frame:40}),async sendCheckpoint(s){sent={type:'ack',epoch:s.epoch,frame:s.frame,sha256:hash};return sent;},sendFrames:()=>true,sendControl:s=>(controls.push(s),true),suspend(){},retry(){}};return{callbacks,peer,ack:()=>callbacks.syncMessage(sent,peer),bad:()=>callbacks.syncMessage({...sent,sha256:'0'.repeat(64)},peer)};}
+ try{const play=participant('player','play');play.callbacks.syncOpen(play.peer);await flush();assert.equal(running,false);assert.deepEqual(captures,[false]);assert.equal(holds,1);play.bad();assert.equal(releases,0);play.ack();await flush();assert.equal(running,true);assert.equal(releases,1);assert.equal(controls.at(-1).action,'resume');
+ const watch=participant('viewer','watch');watch.callbacks.syncOpen(watch.peer);await flush();assert.equal(holds,1);assert.equal(captures.at(-1),true);watch.ack();
+ play.callbacks.syncClose(play.peer);play.callbacks.syncOpen(play.peer);await flush();assert.equal(holds,2);assert.equal(running,false);play.callbacks.syncClose(play.peer);await flush();assert.equal(running,true);assert.equal(releases,2);
+ }finally{host.dispose();}
+});
+
+test('viewers retain ordered visible frames through half-second lag while players catch up promptly',async()=>{
+ for(const viewer of [false,true]){const modes=[],frames=[];const f=follower(async(records,options)=>{modes.push(options.catchUp);frames.push(...records.map(r=>r.frame));return {frame:records.at(-1).frame};},{viewer});
+ await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:10,action:'resume'});await f.replica.receive({type:'frames',epoch,frames:Array.from({length:20},(_,i)=>({frame:11+i,pads:[0,0]}))});await flush();
+ assert.deepEqual(frames,Array.from({length:20},(_,i)=>11+i));assert.equal(modes.some(Boolean),!viewer);f.replica.close();}
+});

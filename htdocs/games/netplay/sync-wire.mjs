@@ -1,3 +1,4 @@
+import {packCheckpoint,unpackCheckpoint} from './sync-checkpoint.mjs';
 import {validateBinding,assignment,hex,insist,full} from './policy.mjs';
 export const SYNC_LIMITS=Object.freeze({checkpointBytes:16*1024*1024,chunkBytes:16*1024,frameBatch:120,historyFrames:1800,messageBytes:32768,bufferedBytes:256*1024});
 const number=v=>Number.isSafeInteger(v)&&v>=0;
@@ -16,10 +17,10 @@ export function createSyncWire(value,auth,{role,send,onMessage=()=>{},writable=(
  const state=()=>({epoch,frame,sending,receiving:Boolean(transfer),closed});
  async function sendCheckpoint(snapshot){
   insist(role==='host'&&!sending&&!closed&&snapshot&&hex(snapshot.epoch,32)&&number(snapshot.frame),'Checkpoint authority');
-  const bytes=snapshot.bytes;insist(bytes instanceof Uint8Array&&bytes.length>0&&bytes.length<=SYNC_LIMITS.checkpointBytes,'Checkpoint size');
+  let bytes=snapshot.bytes;insist(bytes instanceof Uint8Array&&bytes.length>0&&bytes.length<=SYNC_LIMITS.checkpointBytes,'Checkpoint size');
   const metadata=snapshot.metadata??{};insist(metadata&&typeof metadata==='object'&&!Array.isArray(metadata)&&JSON.stringify(metadata).length<=8192,'Checkpoint metadata');
-  sending=true;try{const checksum=await digest(bytes);insist(!closed,'Sync closed');epoch=snapshot.epoch;frame=snapshot.frame;lastSeq=0;
-   await drained();insist(post('checkpoint-begin',{epoch,frame,bytes:bytes.length,sha256:checksum,metadata}),'Checkpoint send');
+  sending=true;try{const packed=await packCheckpoint(bytes);bytes=packed.bytes;const checksum=await digest(bytes);insist(!closed,'Sync closed');epoch=snapshot.epoch;frame=snapshot.frame;lastSeq=0;
+   await drained();insist(post('checkpoint-begin',{epoch,frame,bytes:bytes.length,sha256:checksum,metadata,encoding:packed.encoding,decodedBytes:packed.decodedBytes}),'Checkpoint send');
    for(let offset=0,index=0;offset<bytes.length;offset+=SYNC_LIMITS.chunkBytes,index++){await drained();insist(post('checkpoint-chunk',{epoch,index,data:encode(bytes.subarray(offset,offset+SYNC_LIMITS.chunkBytes))}),'Checkpoint send');}
    await drained();insist(post('checkpoint-end',{epoch,frame,sha256:checksum}),'Checkpoint send');return{epoch,frame,sha256:checksum};
   }finally{sending=false;}
@@ -38,9 +39,9 @@ export function createSyncWire(value,auth,{role,send,onMessage=()=>{},writable=(
    throw Error('Guest message authority');
   }
   insist(hex(d.epoch,32),'Sync epoch');
-  if(d.type==='checkpoint-begin'){insist(!transfer&&number(d.frame)&&Number.isInteger(d.bytes)&&d.bytes>0&&d.bytes<=SYNC_LIMITS.checkpointBytes&&hex(d.sha256,64)&&d.metadata&&typeof d.metadata==='object'&&!Array.isArray(d.metadata)&&JSON.stringify(d.metadata).length<=8192,'Checkpoint header');transfer={epoch:d.epoch,frame:d.frame,sha256:d.sha256,metadata:d.metadata,bytes:new Uint8Array(d.bytes),offset:0,index:0};return;}
+  if(d.type==='checkpoint-begin'){insist(!transfer&&number(d.frame)&&Number.isInteger(d.bytes)&&d.bytes>0&&d.bytes<=SYNC_LIMITS.checkpointBytes&&hex(d.sha256,64)&&d.metadata&&typeof d.metadata==='object'&&!Array.isArray(d.metadata)&&JSON.stringify(d.metadata).length<=8192,'Checkpoint header');const encoding=d.encoding??'identity',decodedBytes=d.decodedBytes??d.bytes;insist(['identity','gzip'].includes(encoding)&&Number.isInteger(decodedBytes)&&decodedBytes>0&&decodedBytes<=SYNC_LIMITS.checkpointBytes&&(encoding!=='identity'||decodedBytes===d.bytes),'Checkpoint compression bounds');transfer={epoch:d.epoch,frame:d.frame,sha256:d.sha256,metadata:d.metadata,encoding,decodedBytes,bytes:new Uint8Array(d.bytes),offset:0,index:0};return;}
   if(d.type==='checkpoint-chunk'){insist(transfer&&d.epoch===transfer.epoch&&d.index===transfer.index,'Checkpoint order');const bytes=decode(d.data);insist(bytes.length>0&&bytes.length<=SYNC_LIMITS.chunkBytes&&transfer.offset+bytes.length<=transfer.bytes.length,'Checkpoint chunk size');transfer.bytes.set(bytes,transfer.offset);transfer.offset+=bytes.length;transfer.index++;return;}
-  if(d.type==='checkpoint-end'){const t=transfer;insist(t&&d.epoch===t.epoch&&d.frame===t.frame&&d.sha256===t.sha256&&t.offset===t.bytes.length,'Checkpoint completion');insist(await digest(t.bytes)===t.sha256,'Checkpoint checksum');insist(!closed,'Sync closed');transfer=null;epoch=t.epoch;frame=t.frame;await onMessage({type:'checkpoint',epoch,frame,bytes:t.bytes,metadata:t.metadata,sha256:t.sha256});post('ack',{epoch,frame,sha256:t.sha256});return;}
+  if(d.type==='checkpoint-end'){const t=transfer;insist(t&&d.epoch===t.epoch&&d.frame===t.frame&&d.sha256===t.sha256&&t.offset===t.bytes.length,'Checkpoint completion');insist(await digest(t.bytes)===t.sha256,'Checkpoint checksum');insist(!closed,'Sync closed');const bytes=await unpackCheckpoint(t.bytes,t.encoding,t.decodedBytes);insist(!closed,'Sync closed');transfer=null;epoch=t.epoch;frame=t.frame;await onMessage({type:'checkpoint',epoch,frame,bytes,metadata:t.metadata,sha256:t.sha256});post('ack',{epoch,frame,sha256:t.sha256});return;}
   insist(!transfer&&d.epoch===epoch,'Frame epoch');
   if(d.type==='frames'){insist(Array.isArray(d.frames)&&d.frames.length>0&&d.frames.length<=SYNC_LIMITS.frameBatch&&d.frames.every(validFrame)&&d.frames.every((f,i)=>f.frame===(i?d.frames[i-1].frame:frame)+1),'Frame continuity');frame=d.frames.at(-1).frame;await onMessage({type:'frames',epoch,frames:d.frames});return;}
   if(d.type==='control'){insist(number(d.frame)&&['pause','resume','end'].includes(d.action),'Control message');await onMessage({type:'control',epoch,frame:d.frame,action:d.action});return;}

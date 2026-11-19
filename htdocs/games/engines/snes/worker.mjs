@@ -23,7 +23,7 @@ self.onmessage=({data:request})=>{chain=chain.then(async()=>{
      else frame=await executor.frame(record.pads);
      if(runner.frame!==record.frame)throw Error('Replica frame mismatch');
      if(record.hash&&await hashReplicationState(await runner.save())!==record.hash)throw Error('Replica state diverged at frame '+record.frame);
-     if(request.catchUp!==true)self.postMessage({type:'replica-frame',result:frame},[frame.rgba.buffer,frame.audio.buffer]);
+     if(request.catchUp!==true||request.presentCatchUp===true){if(request.catchUp===true){frame.audio=new Int16Array(0);frame.catchUp=true;}self.postMessage({type:'replica-frame',result:frame},[frame.rgba.buffer,frame.audio.buffer]);}
      if(request.catchUp===true&&record.frame%8===0)await new Promise(resolve=>setTimeout(resolve,0));
     }
     if(request.catchUp===true)executor.pause();result={frame:runner.frame,hash:request.records.at(-1).hash??null};

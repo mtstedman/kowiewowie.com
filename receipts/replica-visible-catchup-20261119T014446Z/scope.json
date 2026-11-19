@@ -1,0 +1,49 @@
+{
+  "format": "replica-visible-catchup/1",
+  "sources": {
+    "htdocs/games/arcade/snes-runtime.mjs": {
+      "bytes": 13303,
+      "sha256": "aedee957786d2566f879f369803a6b189ef89722aeed4d6f8f5be2b517a13aaa"
+    },
+    "htdocs/games/arcade/worker-stream-host.mjs": {
+      "bytes": 21619,
+      "sha256": "883ba179e766616eeeeadaff4203b11b8ddeb54733aed1ec2a877892ce9469f3"
+    },
+    "htdocs/games/arcade/worker-stream-producer.mjs": {
+      "bytes": 11688,
+      "sha256": "d90feb0962bb856e9027acc4a535019d4add95d4ed52cc54920f7a049dc5119d"
+    },
+    "htdocs/games/engines/snes/worker.mjs": {
+      "bytes": 3911,
+      "sha256": "8e3429195c24f754721fb265f9940e64b4d812bd754e121e2f40c699b7c37aca"
+    },
+    "htdocs/games/netplay/replication-guest.mjs": {
+      "bytes": 4250,
+      "sha256": "5b795b827cf2294cdcf37cec4a601156c804b0002789c4771b54dee1ac64fa5d"
+    },
+    "htdocs/games/netplay/sync-wire.mjs": {
+      "bytes": 9179,
+      "sha256": "3a3e9b88b73a32985e1c1cb07cd32445baf961a318daf5d4b57647ed7732bc2f"
+    },
+    "htdocs/games/netplay/sync-checkpoint.mjs": {
+      "bytes": 1398,
+      "sha256": "d7b901c895e1aee5254d00d944a4924f7c35ac312d2c6c6def5c71f3ee0d2cdd"
+    }
+  },
+  "focusedTestsPassed": 36,
+  "typecheck": "passed",
+  "nesCapabilityAudit": "passed",
+  "sampleCheckpointCompression": {
+    "nativeBytes": 1524170,
+    "gzipBytes": 130836,
+    "encodeMs": 13.401294
+  },
+  "behavior": [
+    "Display established catch-up progress through the existing 60 Hz presentation cap without speeding audio",
+    "Batch at most six normal queued frames per native call",
+    "Pause and resynchronize Player 2 only after more than 30 queued frames persist for one second",
+    "Keep spectator replay independent",
+    "Preserve canonical NES records across input pauses while excluding pre-load records",
+    "Compress checkpoint envelopes with authenticated bytes and bounded decompression"
+  ]
+}

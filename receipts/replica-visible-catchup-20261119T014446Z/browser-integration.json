@@ -1,0 +1,150 @@
+{
+  "format": "arcade-native-replication-browser/1",
+  "scope": "Actual NES/SNES ROMs in independent browser engines; checkpoint bytes and periodic full native state hashes, local rendering/audio, authenticated direct-player and relay-viewer data channels. Loopback fixture, not WAN quality qualification.",
+  "suitePassed": false,
+  "reports": [
+    {
+      "id": "contra",
+      "passed": true,
+      "guestRouting": {
+        "candidates": [
+          {
+            "local": "srflx",
+            "remote": "srflx"
+          }
+        ],
+        "policies": [
+          "all"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "watcherRouting": {
+        "candidates": [
+          {
+            "local": "relay",
+            "remote": "relay"
+          }
+        ],
+        "policies": [
+          "relay"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "remoteSeat": 2,
+      "watchers": 2,
+      "lateJoin": true,
+      "normalFullStateHashes": true,
+      "forcedHashRecovery": true,
+      "disconnectRecovery": true,
+      "hostSaveLoadBootstrap": true,
+      "privateStorageUntouched": true,
+      "localWorkers": 1,
+      "rtpStreams": 0
+    },
+    {
+      "id": "super-mario-world",
+      "passed": true,
+      "guestRouting": {
+        "candidates": [
+          {
+            "local": "host",
+            "remote": "host"
+          }
+        ],
+        "policies": [
+          "all"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "watcherRouting": {
+        "candidates": [
+          {
+            "local": "relay",
+            "remote": "relay"
+          }
+        ],
+        "policies": [
+          "relay"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "remoteSeat": 2,
+      "watchers": 1,
+      "lateJoin": true,
+      "normalFullStateHashes": true,
+      "forcedHashRecovery": true,
+      "disconnectRecovery": false,
+      "hostSaveLoadBootstrap": true,
+      "privateStorageUntouched": true,
+      "localWorkers": 1,
+      "rtpStreams": 0
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "passed": true,
+      "guestRouting": {
+        "candidates": [
+          {
+            "local": "srflx",
+            "remote": "srflx"
+          },
+          {
+            "local": "host",
+            "remote": "host"
+          }
+        ],
+        "policies": [
+          "all"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "watcherRouting": {
+        "candidates": [
+          {
+            "local": "relay",
+            "remote": "relay"
+          }
+        ],
+        "policies": [
+          "relay"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "remoteSeat": 1,
+      "watchers": 1,
+      "lateJoin": true,
+      "normalFullStateHashes": true,
+      "forcedHashRecovery": true,
+      "disconnectRecovery": false,
+      "hostSaveLoadBootstrap": true,
+      "privateStorageUntouched": true,
+      "localWorkers": 1,
+      "rtpStreams": 0
+    }
+  ],
+  "browserErrors": [
+    {
+      "label": "contra-watch",
+      "message": "Error sending string through RTCDataChannel."
+    }
+  ],
+  "limitation": "All three cartridge flows completed native hash, input, pause, divergence recovery, save/load, private-storage and cleanup checks. The zero-browser-errors assertion failed on a WebKit RTCDataChannel send error during teardown. It remains recorded as a failed full browser suite."
+}

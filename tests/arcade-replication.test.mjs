@@ -14,7 +14,7 @@ function follower(push=async records=>({frame:records.at(-1).frame,hash:records.
  return {replica,network,requests,pauses};
 }
 test('incoming frames remain consecutive while a native replay batch is in flight',async()=>{
- let finish;const calls=[];const f=follower(async (records,options)=>{assert.equal(options.followHost,true);calls.push(records.map(r=>r.frame));if(records[0].frame===11)await new Promise(resolve=>finish=resolve);return {frame:records.at(-1).frame,hash:records.at(-1).hash??null};});
+ let finish;const calls=[];const f=follower(async (records,options)=>{assert.equal(options.followHost,true);assert.equal(options.presentCatchUp,true);calls.push(records.map(r=>r.frame));if(records[0].frame===11)await new Promise(resolve=>finish=resolve);return {frame:records.at(-1).frame,hash:records.at(-1).hash??null};});
  await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:10,action:'resume'});
  await f.replica.receive({type:'frames',epoch,frames:[{frame:11,pads:[0,1]}]});
  await f.replica.receive({type:'frames',epoch,frames:[{frame:12,pads:[2,1]},{frame:13,pads:[2,0],hash}]});
@@ -46,7 +46,7 @@ test('a paused late join paints the final catch-up frames at live speed',async()
  const modes=[];const f=follower(async(records,options)=>{modes.push({frames:records.map(r=>r.frame),catchUp:options.catchUp});return {frame:records.at(-1).frame,hash};});
  await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:20,action:'pause'});
  await f.replica.receive({type:'frames',epoch,frames:Array.from({length:10},(_,i)=>({frame:11+i,pads:[0,0]}))});await flush();
- assert.equal(f.replica.state().ready,true);assert.equal(modes[0].catchUp,true);assert.deepEqual(modes.slice(-2),[{frames:[19],catchUp:false},{frames:[20],catchUp:false}]);f.replica.close();
+ assert.equal(f.replica.state().ready,true);assert.equal(modes[0].catchUp,true);assert.deepEqual(modes.filter(m=>!m.catchUp).flatMap(m=>m.frames),[19,20]);f.replica.close();
 });
 test('host retries throttled resync and buffered pause controls without new frames',async()=>{
  let captures=0,allowControl=false;const controls=[];let callbacks;
@@ -73,4 +73,11 @@ test('viewers retain ordered visible frames through half-second lag while player
  for(const viewer of [false,true]){const modes=[],frames=[];const f=follower(async(records,options)=>{modes.push(options.catchUp);frames.push(...records.map(r=>r.frame));return {frame:records.at(-1).frame};},{viewer});
  await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:10,action:'resume'});await f.replica.receive({type:'frames',epoch,frames:Array.from({length:20},(_,i)=>({frame:11+i,pads:[0,0]}))});await flush();
  assert.deepEqual(frames,Array.from({length:20},(_,i)=>11+i));assert.equal(modes.some(Boolean),!viewer);f.replica.close();}
+});
+
+test('only sustained player lag requests a new handshake; spectator backlog stays independent',async()=>{
+ const original=Object.getOwnPropertyDescriptor(globalThis,'performance');let now=0;Object.defineProperty(globalThis,'performance',{value:{now:()=>now},configurable:true});
+ try{for(const viewer of [false,true]){let finish;now=0;const f=follower(async records=>{await new Promise(r=>finish=r);return{frame:records.at(-1).frame};},{viewer});await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:10,action:'resume'});
+ await f.replica.receive({type:'frames',epoch,frames:[{frame:11,pads:[0,0]}]});await f.replica.receive({type:'frames',epoch,frames:Array.from({length:31},(_,i)=>({frame:12+i,pads:[0,0]}))});assert.equal(f.requests.length,0,'A short arrival burst is not sustained lag');now=1001;await f.replica.receive({type:'frames',epoch,frames:[{frame:43,pads:[0,0]}]});assert.equal(f.requests.length,viewer?0:1);f.replica.close();finish();await flush();}
+ }finally{Object.defineProperty(globalThis,'performance',original);}
 });
