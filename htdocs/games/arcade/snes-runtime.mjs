@@ -4,6 +4,7 @@ import {createFramePacer} from './frame-pacing.mjs';
 import {createSimulationClock} from './simulation-clock.mjs';
 // Bounded worker transport; one complete frame is in flight, at most 100 ms ahead.
 export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal,replica=false}) {
+ let syncPause=null;
  let worker=null,workerBootstrap=null,context=null,master=null,ready=false,running=false,closed=false,loading=false,message='Loading SNES…';
  let nextId=0,pending=new Map(),frameBusy=false,epoch=0,raf=0,audioCursor=0,video=[],sources=new Map(),nodes=new Set(),lastBattery=0,batteryBusy=false,batteryPending=null,disposal=null;
  let generated=0,presented=0,audioSamples=0,underruns=0,lastMeter=0,fps=0;const presentation=createFramePacer();let simulation=null,simulationFrames=0,pumpTimer=null,renderOffset=null,renderWall=null;
@@ -70,16 +71,21 @@ export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal
   worker.onerror=event=>{const error=Error(event.message||'SNES worker failed');for(const wait of pending.values()){clearTimeout(wait.timer);wait.reject(error);}pending.clear();fail(error);};
   const info=await rpc('init',{config,sampleRate:context.sampleRate,battery,replica:replicaMode});releaseBootstrap();if(closed)return;fps=info.fps;simulation=createSimulationClock({hz:Math.min(60,fps)});ready=true;if(frameListeners.size)await rpc('network-enable',{enabled:true});message='Ready';
  }catch(error){message=error.message;throw error;}finally{loading=false;changed();}}
- async function start(){if(replicaMode)return network.enableAudio();if(!ready||closed||running)return;const generation=epoch;await context.resume();if(closed||generation!==epoch)return;running=true;epoch++;simulation.resume(performance.now());presentation.resetClock();lastMeter=context.currentTime;message='Running';tick();changed();}
+ async function start(){if(syncPause){syncPause.resumeEpoch=epoch;await context.resume();return;}if(replicaMode)return network.enableAudio();if(!ready||closed||running)return;const generation=epoch;await context.resume();if(closed||generation!==epoch)return;running=true;epoch++;simulation.resume(performance.now());presentation.resetClock();lastMeter=context.currentTime;message='Running';tick();changed();}
  async function reset(){if(!ready||closed)return;pause();await flushBattery();await rpc('reset');generated=presented=audioSamples=0;networkFollowed=false;networkFrame=0;emit({type:'reset'});message='Ready';changed();}
  function input(source,button,pressed,seat=1){if(replicaMode||closed||!ready||![1,2].includes(seat)||!Number.isInteger(button)||button<0||button>11||typeof source!=='string')return false;const key=seat+':'+source+':'+button;if(!pressed){sources.delete(key);return true;}if(!running)return false;sources.set(key,{source,seat,button});return true;}
  function releaseAll(){sources.clear();}
  async function dispose(){if(disposal)return disposal;closed=true;pause();disposal=(async()=>{try{await flushBattery();}finally{worker?.terminate();worker=null;releaseBootstrap();for(const wait of pending.values()){clearTimeout(wait.timer);wait.reject(Error('SNES runtime disposed'));}pending.clear();master?.disconnect();await context?.close();ready=false;changed();}})();return disposal;}
  const network=Object.freeze({
+  pauseForSync(){
+   if(replicaMode||closed||!ready)throw Error('Host is not ready to synchronize');
+   if(syncPause)return syncPause.release;const wasRunning=running,hold={};syncPause=hold;pause();const token=epoch;message='Synchronizing player…';changed();
+   hold.release=()=>{if(syncPause!==hold)return;syncPause=null;if(!closed&&ready&&!running&&((wasRunning&&epoch===token)||hold.resumeEpoch===epoch))return start();};return hold.release;
+  },
   subscribeFrame(listener){if(typeof listener!=='function')throw Error('Invalid frame listener');frameListeners.add(listener);if(ready&&!replicaMode)rpc('network-enable',{enabled:true}).catch(fail);return()=>{frameListeners.delete(listener);if(ready&&!closed&&!frameListeners.size)rpc('network-enable',{enabled:false}).catch(()=>{});};},
   async capture(){if(!ready||closed)throw Error('Game is not ready');return rpc('network-capture');},
   async follow(snapshot){if(!ready||closed)throw Error('Game is not ready');replicaMode=true;networkFollowed=false;pause();const generation=networkGeneration;const result=await rpc('network-follow',{snapshot});if(closed||generation!==networkGeneration)throw Error('Replica synchronization superseded');networkFollowed=true;networkFrame=result.frame;networkHash=result.hash;if(result.picture){const p=validateReplicationPicture(result.picture);canvas.width=p.width;canvas.height=p.height;image=draw.createImageData(p.width,p.height);image.data.set(p.rgba);draw.putImageData(image,0,0);}running=true;message='Following host';tick();changed();return result;},
-  async push(records,{catchUp=false}={}){if(!replicaMode||!networkFollowed||!ready||closed)throw Error('Replica is not ready');if(!Array.isArray(records)||records.length>120||networkQueued+records.length>240)throw Error('Replica queue overflow');networkQueued+=records.length;try{const result=await rpc('network-replay',{records,catchUp});networkFrame=result.frame;networkHash=result.hash;return result;}finally{networkQueued-=records.length;}},
+  async push(records,{catchUp=false,followHost=false}={}){if(!replicaMode||!networkFollowed||!ready||closed)throw Error('Replica is not ready');if(!Array.isArray(records)||records.length>120||networkQueued+records.length>240)throw Error('Replica queue overflow');networkQueued+=records.length;try{const result=await rpc('network-replay',{records,catchUp,followHost});networkFrame=result.frame;networkHash=result.hash;return result;}finally{networkQueued-=records.length;}},
   async hash(){const result=await this.capture();networkHash=result.hash;return {frame:result.frame,hash:result.hash};},
   async enableAudio(){if(!context||closed)return;await context.resume();if(closed)return;stopAudio();changed();},
   setPaused(paused){if(!replicaMode)return;if(paused){networkGeneration++;running=false;cancelAnimationFrame(raf);stopAudio();}else if(!running){running=true;tick();}changed();},

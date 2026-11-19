@@ -3,6 +3,7 @@ import {createConsumer} from './worker-stream-consumer.mjs';
 import {createFramePacer} from './frame-pacing.mjs';
 // Authenticated UI lifecycle, transport, and audio/video scheduling.
 export function createRuntime({root,onState=()=>{},WorkerClass=Worker,workerURL,replica=false}){
+let syncPause=null;
 let closed=false,runtimeFrame=0,checkpointRequest=null,replicaMode=replica,networkFollowed=false,networkGeneration=0,networkFrame=0,networkHash=null,networkQueued=0;
 const networkRequests=new Map(),frameListeners=new Set();
 const emitNetwork=record=>{for(const listener of frameListeners)try{listener(record);}catch{}};
@@ -180,6 +181,7 @@ function sound(samples,at){
   source.start(at);audioNext=at+1/60;
 }
 function start(withAudio=true){
+  if(syncPause){syncPause.resumeEpoch=epoch;if(withAudio)void network.enableAudio();return;}
   if(replicaMode){if(withAudio)void network.enableAudio();return;}
   if(closed)return;
   if(!ready||document.hidden||checkpointRequest)return;
@@ -283,10 +285,16 @@ function checkpoint(type,record){
  });
 }
 const network=Object.freeze({
+ pauseForSync(){
+  if(replicaMode||closed||!ready)throw Error('Host is not ready to synchronize');
+  if(syncPause)return syncPause.release;const wasRunning=running,hold={};syncPause=hold;
+  pause('Synchronizing player…');const token=epoch;
+  hold.release=()=>{if(syncPause!==hold)return;syncPause=null;if(!closed&&ready&&!running&&((wasRunning&&epoch===token)||hold.resumeEpoch===epoch))start(false);};return hold.release;
+ },
  subscribeFrame(listener){if(typeof listener!=='function')throw Error('Invalid frame listener');frameListeners.add(listener);if(ready&&!replicaMode)networkRequest('network-enable',{enabled:true}).catch(e=>fail(e.message));return()=>{frameListeners.delete(listener);if(ready&&!closed&&!frameListeners.size)networkRequest('network-enable',{enabled:false}).catch(()=>{});};},
  capture:()=>networkRequest('network-capture'),
  async follow(snapshot){replicaMode=true;networkFollowed=false;pause('Following host…');const generation=networkGeneration;const result=await networkRequest('network-follow',{snapshot});if(closed||generation!==networkGeneration)throw Error('Replica synchronization superseded');networkFollowed=true;networkFrame=result.frame;networkHash=result.hash;running=true;rebase();if(result.picture){const p=validateReplicationPicture(result.picture);ctx.putImageData(new ImageData(new Uint8ClampedArray(p.rgba),p.width,p.height),0,0);}show('Following host');return result;},
- async push(records,{catchUp=false}={}){if(!replicaMode||!networkFollowed||!ready||closed)throw Error('Replica is not ready');if(!Array.isArray(records)||records.length>120||networkQueued+records.length>240)throw Error('Replica queue overflow');networkQueued+=records.length;try{const result=await networkRequest('network-replay',{records,catchUp});networkFrame=result.frame;networkHash=result.hash;return result;}finally{networkQueued-=records.length;}},
+ async push(records,{catchUp=false,followHost=false}={}){if(!replicaMode||!networkFollowed||!ready||closed)throw Error('Replica is not ready');if(!Array.isArray(records)||records.length>120||networkQueued+records.length>240)throw Error('Replica queue overflow');networkQueued+=records.length;try{const result=await networkRequest('network-replay',{records,catchUp,followHost});networkFrame=result.frame;networkHash=result.hash;return result;}finally{networkQueued-=records.length;}},
  async hash(){const result=await this.capture();networkHash=result.hash;return {frame:result.frame,hash:result.hash};},
  async enableAudio(){if(closed||!ready)return;audioUnlocked=true;const A=window.AudioContext||window.webkitAudioContext;if(A){if(!ac){ac=new A({sampleRate:48000});master=ac.createGain();master.connect(ac.destination);ac.onstatechange=syncAudioClock;}await ac.resume();if(!closed)syncAudioClock();}},
  setPaused(paused){if(!replicaMode)return;if(paused)networkGeneration++;running=!paused;if(paused)rebase();show(paused?'Host paused':'Following host');},

@@ -35,12 +35,17 @@ test('actual NES producer captures without releasing held inputs and replays bot
   host.frame({maxSteps:20000,maxCycles:40000,maxMs:60000});host.getRGBA();host.takeAudio();records.push({frame:host.getState().frames,pads});
  }
  records.at(-1).hash=await hashReplicationState(host.exportCheckpoint());
- const posts=[],replica=createProducer({machine:follower,post:m=>posts.push(m)});let rseq=0;const request=(type,fields={})=>{const id=++rseq;replica.receive({type,epoch:1,seq:id,...fields});return new Promise((resolve,reject)=>{const until=Date.now()+10000;const poll=()=>{const m=posts.find(m=>m.type==='network-result'&&m.seq===id);if(m)return m.error?reject(Error(m.error)):resolve(m.result);if(Date.now()>until)return reject(Error('Replica test timeout'));setTimeout(poll,5);};poll();});};
+ const posts=[],replica=createProducer({machine:follower,post:m=>posts.push(m),now:()=>0});let rseq=0;const request=(type,fields={})=>{const id=++rseq;replica.receive({type,epoch:1,seq:id,...fields});return new Promise((resolve,reject)=>{const until=Date.now()+10000;const poll=()=>{const m=posts.find(m=>m.type==='network-result'&&m.seq===id);if(m)return m.error?reject(Error(m.error)):resolve(m.result);if(Date.now()>until)return reject(Error('Replica test timeout'));setTimeout(poll,5);};poll();});};
  replica.receive({type:'sync',epoch:1,seq:++rseq});await request('network-follow',{snapshot});await request('network-replay',{records,catchUp:true});
  assert.equal(posts.filter(m=>m.type==='replica-frame').length,0,'Catch-up rendered intermediate frames');
  assert.equal(await hashReplicationState(follower.exportCheckpoint()),records.at(-1).hash);
  await assert.rejects(request('network-replay',{records:[{frame:122,pads:[0,0],hash:'0'.repeat(64)}],catchUp:true}),/diverged/);
  const recovered=await request('network-follow',{snapshot});assert.equal(recovered.frame,1);
+ // These frames already exist in the capped host log. A frozen local clock
+ // cannot delay their replay or suppress their normal picture/audio output.
+ await request('network-replay',{records,followHost:true});
+ assert.equal(posts.filter(m=>m.type==='replica-frame').length,120);
+ assert.equal(await hashReplicationState(follower.exportCheckpoint()),records.at(-1).hash);
  producer.dispose();replica.dispose();
 });
 
@@ -58,14 +63,14 @@ test('actual SNES independent runners reproduce full native/APU state after two-
 test('SNES follower renders without audio permission, never advances autonomously, and never touches battery storage',async()=>{
  const {createSnesRuntime}=await import('../htdocs/games/arcade/snes-runtime.mjs');
  const keys=['Worker','AudioContext','indexedDB','performance','requestAnimationFrame','cancelAnimationFrame'],before=Object.fromEntries(keys.map(k=>[k,globalThis[k]]));let now=1000,raf,worker,audio,draws=0;
- class W{constructor(){worker=this;this.sent=[];}postMessage(r){this.sent.push(r.op);queueMicrotask(()=>{let result;if(r.op==='init')result={fps:60};else if(r.op==='network-follow')result={frame:r.snapshot.frame,hash:r.snapshot.hash,picture:r.snapshot.picture};else if(r.op==='network-replay'){for(const record of r.records)this.onmessage({data:{type:'replica-frame',result:{frame:record.frame-1,width:1,height:1,rgba:new Uint8Array([1,2,3,255]),audio:new Int16Array(1600)}}});result={frame:r.records.at(-1).frame,hash:null};}else throw Error('Unexpected replica request '+r.op);this.onmessage({data:{id:r.id,result}});});}terminate(){}}
+ class W{constructor(){worker=this;this.sent=[];}postMessage(r){this.sent.push(r.op);queueMicrotask(()=>{let result;if(r.op==='init')result={fps:60};else if(r.op==='network-follow')result={frame:r.snapshot.frame,hash:r.snapshot.hash,picture:r.snapshot.picture};else if(r.op==='network-replay'){this.followHost=r.followHost;for(const record of r.records)this.onmessage({data:{type:'replica-frame',result:{frame:record.frame-1,width:1,height:1,rgba:new Uint8Array([1,2,3,255]),audio:new Int16Array(1600)}}});result={frame:r.records.at(-1).frame,hash:null};}else throw Error('Unexpected replica request '+r.op);this.onmessage({data:{id:r.id,result}});});}terminate(){}}
  class A{constructor(){audio=this;this.state='suspended';this.sampleRate=48000;this.currentTime=0;this.destination={};this.resumes=0;}createGain(){return {connect(){},disconnect(){}};}async resume(){this.resumes++;this.state='running';}async close(){}createBuffer(){throw Error('Audio was scheduled without permission');}}
  Object.assign(globalThis,{Worker:W,AudioContext:A,indexedDB:{open(){throw Error('Replica accessed local save data');}},performance:{now:()=>now},requestAnimationFrame:f=>{raf=f;return 1;},cancelAnimationFrame:()=>{raf=null;}});
  const runtime=createSnesRuntime({replica:true,packageId:'replica-test',config:{},canvas:{getContext:()=>({createImageData:()=>({data:new Uint8ClampedArray(4)}),putImageData(){draws++;}})}});
  try{
   await runtime.load();assert.equal(runtime.network.status().ready,false);await assert.rejects(runtime.network.push([{frame:1,pads:[0,0]}]),/not ready/);
   await runtime.network.follow({frame:20,hash:'a'.repeat(64),picture:{width:1,height:1,rgba:new Uint8Array([4,5,6,255])}});assert.equal(draws,1,'Paused host checkpoint should show without advancing');assert.equal(audio.resumes,0);
-  assert.equal(runtime.input('local',0,true),false);await runtime.network.push([{frame:21,pads:[0,0]}]);now+=100;raf(now);assert.equal(draws,2,'Suspended audio clock blocked follower video');assert.equal(runtime.network.status().frame,21);assert.equal(worker.sent.includes('frame'),false);
+  assert.equal(runtime.input('local',0,true),false);await runtime.network.push([{frame:21,pads:[0,0]}],{followHost:true});assert.equal(worker.followHost,true);now+=100;raf(now);assert.equal(draws,2,'Suspended audio clock blocked follower video');assert.equal(runtime.network.status().frame,21);assert.equal(worker.sent.includes('frame'),false);
   await runtime.network.enableAudio();assert.equal(audio.resumes,1);const stale=runtime.network.follow({frame:30,hash:'b'.repeat(64)});runtime.network.setPaused(true);await assert.rejects(stale,/superseded/);assert.equal(runtime.network.status().running,false,'Late import revived a disconnected follower');await runtime.dispose();assert.equal(worker.sent.includes('battery'),false);
  }finally{for(const[k,v]of Object.entries(before))if(v===undefined)delete globalThis[k];else globalThis[k]=v;}
 });

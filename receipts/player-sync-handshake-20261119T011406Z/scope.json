@@ -1,0 +1,35 @@
+{
+  "format": "player-sync-handshake/1",
+  "scope": "Paired native Contra runtimes compare redundant replica pacing with host-paced playback, using the same ordered authoritative frames. Actual NES/SNES browser replay verifies full state hashes. No WAN latency guarantee.",
+  "player_sync": "Player snapshots hold host execution until restore and acknowledgment; spectator snapshots never hold execution. Manual host pause is preserved.",
+  "sources": {
+    "htdocs/games/arcade/snes-runtime.mjs": {
+      "bytes": 12894,
+      "sha256": "3a49add89858beaf22e735053847cdbb210568d108a911d2d123721d2fce58c2"
+    },
+    "htdocs/games/arcade/worker-stream-host.mjs": {
+      "bytes": 20937,
+      "sha256": "23f5d0daef9be9039fbbb1d2c931da673652de5e3abbd0e8052f08fd2b3c8499"
+    },
+    "htdocs/games/arcade/worker-stream-producer.mjs": {
+      "bytes": 11581,
+      "sha256": "779dfe79010e04be20bb86903e9e6bf70b6d4b5d3f6a28d14efb65a8b12999ee"
+    },
+    "htdocs/games/engines/snes/worker.mjs": {
+      "bytes": 3801,
+      "sha256": "e900913e6c3e1a016ab03db5c4e6efde97d137c083698c3823b6b6bc983ea08e"
+    },
+    "htdocs/games/netplay/replication-guest.mjs": {
+      "bytes": 3955,
+      "sha256": "42c555d6e20c2fc13aaf3eff6c692e45776039a9137ba895c4caf4e7cd7d6921"
+    },
+    "htdocs/games/netplay/replication-host.mjs": {
+      "bytes": 6471,
+      "sha256": "fc7dfc2533b40c4dfdeeda18141535a3464e9f146d772fe7b8a7a7479728c19e"
+    },
+    "htdocs/games/netplay/sync-session.mjs": {
+      "bytes": 6043,
+      "sha256": "eaa232ad2f9f2d19f7c6fae5b523e346b706643128143893433438ffe9a3b1a4"
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "format": "arcade-native-replication-browser/1",
+  "scope": "Actual NES/SNES ROMs in independent browser engines; checkpoint bytes and periodic full native state hashes, local rendering/audio, authenticated direct-player and relay-viewer data channels. Loopback fixture, not WAN quality qualification.",
+  "passed": false,
+  "reports": [
+    {
+      "id": "super-mario-world",
+      "passed": true,
+      "guestRouting": {
+        "candidates": [
+          {
+            "local": "host",
+            "remote": "host"
+          }
+        ],
+        "policies": [
+          "all"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "watcherRouting": {
+        "candidates": [
+          {
+            "local": "relay",
+            "remote": "relay"
+          }
+        ],
+        "policies": [
+          "relay"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "remoteSeat": 2,
+      "watchers": 1,
+      "lateJoin": true,
+      "normalFullStateHashes": true,
+      "forcedHashRecovery": true,
+      "disconnectRecovery": false,
+      "hostSaveLoadBootstrap": true,
+      "privateStorageUntouched": true,
+      "localWorkers": 1,
+      "rtpStreams": 0,
+      "verifiedNativeHashes": [
+        10,
+        6
+      ]
+    },
+    {
+      "id": "zelda-a-link-to-the-past",
+      "passed": true,
+      "guestRouting": {
+        "candidates": [
+          {
+            "local": "host",
+            "remote": "host"
+          }
+        ],
+        "policies": [
+          "all"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "watcherRouting": {
+        "candidates": [
+          {
+            "local": "relay",
+            "remote": "relay"
+          }
+        ],
+        "policies": [
+          "relay"
+        ],
+        "transceivers": [
+          0
+        ],
+        "rtp": []
+      },
+      "remoteSeat": 1,
+      "watchers": 1,
+      "lateJoin": true,
+      "normalFullStateHashes": true,
+      "forcedHashRecovery": true,
+      "disconnectRecovery": false,
+      "hostSaveLoadBootstrap": true,
+      "privateStorageUntouched": true,
+      "localWorkers": 1,
+      "rtpStreams": 0,
+      "verifiedNativeHashes": [
+        10,
+        6
+      ]
+    }
+  ],
+  "errors": [],
+  "limitation": "Contra Player 2 completed native state hash checks in WebKit. Adding a second WebKit emulator on this host did not complete the visible-frame/audio threshold; host kept running and native hashes remained valid. Multi-WebKit rendering performance is not qualified. This is a failed stress case, not a passing suite."
+}

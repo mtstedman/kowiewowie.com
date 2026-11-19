@@ -36,11 +36,11 @@ export function createProducer({machine,post,schedule,cancel,now=()=>performance
   const g=generation;
   for(const record of d.records){
    if(closed||g!==generation)throw Error('Replica replay interrupted');
-   if(d.catchUp!==true){simulation.resume(now());while(simulation.delay(now())>0)await new Promise(resolve=>setTimeout(resolve,Math.max(.1,simulation.delay(now()))));}
+   if(d.catchUp!==true&&d.followHost!==true){simulation.resume(now());while(simulation.delay(now())>0)await new Promise(resolve=>setTimeout(resolve,Math.max(.1,simulation.delay(now()))));}
    if(closed||g!==generation)throw Error('Replica replay interrupted');
    for(let p=1;p<=2;p++)for(let b=0;b<8;b++)machine.setButton(p,b,Boolean(record.pads[p-1]&(1<<b)));
-   const executedAtMs=now();if(d.catchUp!==true&&!simulation.take(executedAtMs))throw Error('Replica simulation clock changed during input sampling');
-   const result=machine.frame({maxSteps:20000,maxCycles:40000,maxMs:60000});if(d.catchUp!==true)simulation.complete(now());
+   const executedAtMs=now();if(d.catchUp!==true&&d.followHost!==true&&!simulation.take(executedAtMs))throw Error('Replica simulation clock changed during input sampling');
+   const result=machine.frame({maxSteps:20000,maxCycles:40000,maxMs:60000});if(d.catchUp!==true&&d.followHost!==true)simulation.complete(now());
    const rgba=machine.getRGBA(),audio=machine.takeAudio(),{frames,cycles}=result.state;
    if(frames!==record.frame)throw Error('Replica frame mismatch');
    if(record.hash&&await hashReplicationState(machine.exportCheckpoint())!==record.hash)throw Error('Replica state diverged at frame '+frames);
@@ -86,7 +86,7 @@ export function createProducer({machine,post,schedule,cancel,now=()=>performance
    if(d.type==='network-capture'){capture().then(result=>reply(d,result),e=>reply(d,null,e.message));return;}
    if(d.type==='network-follow'){
     replica=true;stop();clear();leases.clear();pool.length=audioPool.length=0;
-    replayTasks=replayTasks.then(async()=>{const record=await validateReplicationSnapshot(d.snapshot);machine.importCheckpoint(record);const frame=machine.getState().frames;if(frame!==d.snapshot.frame)throw Error('Checkpoint frame mismatch');return {frame,hash:d.snapshot.hash,picture:d.snapshot.picture};});
+    replayTasks=replayTasks.then(async()=>{const record=await validateReplicationSnapshot(d.snapshot);machine.importCheckpoint(record);const frame=machine.getState().frames;if(frame!==d.snapshot.frame)throw Error('Checkpoint frame mismatch');const hash=await hashReplicationState(machine.exportCheckpoint());if(hash!==d.snapshot.hash)throw Error('Restored checkpoint state mismatch');return {frame,hash,picture:d.snapshot.picture};});
     replayTasks=replayTasks.then(result=>reply(d,result),e=>reply(d,null,e.message));return;
    }
    if(d.type==='network-replay'){replayTasks=replayTasks.then(()=>replay(d)).then(result=>reply(d,result),e=>reply(d,null,e.message));return;}

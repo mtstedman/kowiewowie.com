@@ -2,7 +2,7 @@ import {decodeReplicationState as decodeSnapshot} from '../arcade/replication-st
 import {SYNC_LIMITS} from './sync-wire.mjs';
 // The receive callback only queues frames. Rendering and native replay must not
 // block receipt of heartbeats, pause controls, or the next checkpoint.
-export function createGuestReplication({network,binding,onChange=()=>{},requestResync=()=>{}}){
+export function createGuestReplication({network,binding,onChange=()=>{},requestResync=()=>{},viewer=false}){
  let epoch='',frame=0,receivedFrame=0,target=Infinity,queue=[],generation=0,draining=false,ready=false,loaded=false,closed=false,paused=true,error='',resyncs=0;
  const notify=()=>{try{onChange();}catch{}};
  const state=()=>({epoch,frame,ready,loaded,paused,queued:queue.length,error,resyncs});
@@ -13,13 +13,13 @@ export function createGuestReplication({network,binding,onChange=()=>{},requestR
   try{
    while(queue.length&&!closed&&ticket===generation){
     // A delayed join or tab is caught up offscreen. The final visible frames
-    // still follow the runtime's 60 Hz clock; audio is never fast-forwarded.
-    const catchUp=queue.length>2&&(!ready||queue.length>6);
+    // follow the already capped host log; audio is never fast-forwarded.
+    const catchUp=queue.length>2&&(!ready||queue.length>(viewer?30:6));
     let count=catchUp?Math.min(120,Math.max(1,queue.length-2)):1;
     const hashIndex=queue.slice(0,count).findIndex(r=>r.hash);if(hashIndex>=0)count=hashIndex+1;
     const batch=queue.splice(0,count);
     if(batch[0].frame!==frame+1)throw Error('Missing synchronized frame');
-    const result=await network.push(batch,{catchUp});
+    const result=await network.push(batch,{catchUp,followHost:true});
     if(ticket!==generation||closed)return;
     if(result?.frame!==batch.at(-1).frame)throw Error('Replica frame counter mismatch');
     frame=batch.at(-1).frame;

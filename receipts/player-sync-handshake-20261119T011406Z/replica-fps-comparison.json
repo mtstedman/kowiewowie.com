@@ -1,0 +1,24 @@
+{
+  "rows": [
+    {
+      "followHost": false,
+      "hostFPS": 56.28030189433698,
+      "replicaSimulationFPS": 55.78047683310841,
+      "replicaPresentationFPS": 12.895486579697105,
+      "hostPresentationFPS": 56.18033688209126,
+      "lag": 9,
+      "queued": 3,
+      "resyncs": []
+    },
+    {
+      "followHost": true,
+      "hostFPS": 57.68788554389824,
+      "replicaSimulationFPS": 57.987822557124744,
+      "replicaPresentationFPS": 56.68809549980988,
+      "hostPresentationFPS": 57.38794853067173,
+      "lag": 0,
+      "queued": 0,
+      "resyncs": []
+    }
+  ]
+}

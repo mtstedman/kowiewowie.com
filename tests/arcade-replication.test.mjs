@@ -7,14 +7,14 @@ const binding={packageId:'fixture',artifactDigest:'a'.repeat(64)},hash='b'.repea
 const flush=async()=>{for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));};
 const snapshot=frame=>({frame,state:{frame,data:new Uint8Array([1,2,3])},hash,identity:{system:'fixture'}});
 const checkpoint=frame=>({type:'checkpoint',epoch,frame,bytes:encodeReplicationState(snapshot(frame)),metadata:{...binding,hash}});
-function follower(push=async records=>({frame:records.at(-1).frame,hash:records.at(-1).hash??null})){
+function follower(push=async records=>({frame:records.at(-1).frame,hash:records.at(-1).hash??null}),options={}){
  let frame=0;const requests=[],pauses=[];
  const network={follow:async s=>{frame=s.frame;},push:async(records,options)=>{const result=await push(records,options);frame=result.frame;return result;},status:()=>({frame}),setPaused:paused=>pauses.push(paused)};
- const replica=createGuestReplication({network,binding,requestResync:r=>requests.push(r)});
+ const replica=createGuestReplication({...options,network,binding,requestResync:r=>requests.push(r)});
  return {replica,network,requests,pauses};
 }
 test('incoming frames remain consecutive while a native replay batch is in flight',async()=>{
- let finish;const calls=[];const f=follower(async records=>{calls.push(records.map(r=>r.frame));if(records[0].frame===11)await new Promise(resolve=>finish=resolve);return {frame:records.at(-1).frame,hash:records.at(-1).hash??null};});
+ let finish;const calls=[];const f=follower(async (records,options)=>{assert.equal(options.followHost,true);calls.push(records.map(r=>r.frame));if(records[0].frame===11)await new Promise(resolve=>finish=resolve);return {frame:records.at(-1).frame,hash:records.at(-1).hash??null};});
  await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:10,action:'resume'});
  await f.replica.receive({type:'frames',epoch,frames:[{frame:11,pads:[0,1]}]});
  await f.replica.receive({type:'frames',epoch,frames:[{frame:12,pads:[2,1]},{frame:13,pads:[2,0],hash}]});
@@ -56,4 +56,21 @@ test('host retries throttled resync and buffered pause controls without new fram
  try{callbacks.syncOpen(peer);await flush();assert.equal(captures,1);allowControl=true;await new Promise(r=>setTimeout(r,300));assert.equal(controls.at(-1).action,'pause');
  callbacks.syncMessage({type:'resync'},peer);assert.equal(captures,1);await new Promise(r=>setTimeout(r,1500));assert.equal(captures,2);assert.equal(controls.at(-1).frame,40);}
  finally{host.dispose();}
+});
+
+test('player bootstrap pauses until verified acknowledgment; viewers never acquire the pause',async()=>{
+ let running=true,holds=0,releases=0;const captures=[],controls=[];
+ const network={subscribeFrame:()=>()=>{},pauseForSync(){holds++;const resume=running;running=false;let released=false;return()=>{if(released)return;released=true;releases++;running=resume;};},capture:async()=>{captures.push(running);return snapshot(40);}};
+ const host=createHostReplication({network,binding,adapter:{enabled:()=>running,release(){},remote(){}}});
+ function participant(id,role){const callbacks=host.callbacks({participant:id,participant_role:role});let sent;const peer={closed:false,healthy:()=>true,syncState:()=>({frame:40}),async sendCheckpoint(s){sent={type:'ack',epoch:s.epoch,frame:s.frame,sha256:hash};return sent;},sendFrames:()=>true,sendControl:s=>(controls.push(s),true),suspend(){},retry(){}};return{callbacks,peer,ack:()=>callbacks.syncMessage(sent,peer),bad:()=>callbacks.syncMessage({...sent,sha256:'0'.repeat(64)},peer)};}
+ try{const play=participant('player','play');play.callbacks.syncOpen(play.peer);await flush();assert.equal(running,false);assert.deepEqual(captures,[false]);assert.equal(holds,1);play.bad();assert.equal(releases,0);play.ack();await flush();assert.equal(running,true);assert.equal(releases,1);assert.equal(controls.at(-1).action,'resume');
+ const watch=participant('viewer','watch');watch.callbacks.syncOpen(watch.peer);await flush();assert.equal(holds,1);assert.equal(captures.at(-1),true);watch.ack();
+ play.callbacks.syncClose(play.peer);play.callbacks.syncOpen(play.peer);await flush();assert.equal(holds,2);assert.equal(running,false);play.callbacks.syncClose(play.peer);await flush();assert.equal(running,true);assert.equal(releases,2);
+ }finally{host.dispose();}
+});
+
+test('viewers retain ordered visible frames through half-second lag while players catch up promptly',async()=>{
+ for(const viewer of [false,true]){const modes=[],frames=[];const f=follower(async(records,options)=>{modes.push(options.catchUp);frames.push(...records.map(r=>r.frame));return {frame:records.at(-1).frame};},{viewer});
+ await f.replica.receive(checkpoint(10));await f.replica.receive({type:'control',epoch,frame:10,action:'resume'});await f.replica.receive({type:'frames',epoch,frames:Array.from({length:20},(_,i)=>({frame:11+i,pads:[0,0]}))});await flush();
+ assert.deepEqual(frames,Array.from({length:20},(_,i)=>11+i));assert.equal(modes.some(Boolean),!viewer);f.replica.close();}
 });

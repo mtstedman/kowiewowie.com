@@ -14,12 +14,12 @@ self.onmessage=({data:request})=>{chain=chain.then(async()=>{
    }
    else if(op==='network-enable'){network=request.enabled===true;result={enabled:network};}
    else if(op==='network-capture')result=await capture();
-   else if(op==='network-follow'){const state=await validateReplicationSnapshot(request.snapshot);await runner.load(state);if(runner.frame!==request.snapshot.frame)throw Error('Checkpoint frame mismatch');replica=true;replicaReady=true;result={frame:runner.frame,hash:request.snapshot.hash,picture:request.snapshot.picture};}
+   else if(op==='network-follow'){const state=await validateReplicationSnapshot(request.snapshot);await runner.load(state);if(runner.frame!==request.snapshot.frame)throw Error('Checkpoint frame mismatch');const hash=await hashReplicationState(await runner.save());if(hash!==request.snapshot.hash)throw Error('Restored checkpoint state mismatch');replica=true;replicaReady=true;result={frame:runner.frame,hash,picture:request.snapshot.picture};}
    else if(op==='network-replay'){
     if(!replica||!replicaReady)throw Error('Replica is not initialized');validateFrameRecords(request.records,runner.frame,4095);
     for(const record of request.records){
      let frame;
-     if(request.catchUp===true){for(let p=0;p<2;p++)runner.input(p+1,record.pads[p]);frame=runner.step();}
+     if(request.catchUp===true||request.followHost===true){for(let p=0;p<2;p++)runner.input(p+1,record.pads[p]);frame=runner.step();}
      else frame=await executor.frame(record.pads);
      if(runner.frame!==record.frame)throw Error('Replica frame mismatch');
      if(record.hash&&await hashReplicationState(await runner.save())!==record.hash)throw Error('Replica state diverged at frame '+record.frame);

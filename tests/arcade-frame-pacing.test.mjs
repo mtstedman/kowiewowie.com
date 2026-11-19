@@ -76,3 +76,11 @@ test('rounded browser vsync timestamps do not turn sixty ready frames into a slo
   let left=0;for(let right=0;right<draws.length;right++){while(draws[left]<=draws[right]-1000+1e-7)left++;assert(right-left+1<=60);}
  }
 });
+
+test('a player synchronization pause blocks early resume and preserves a later manual pause',async()=>{
+ const env=environment(),runtime=createSnesRuntime({canvas:env.canvas,config:{},packageId:'sync-pause-test'});
+ try{await runtime.load();await runtime.start();const finish=runtime.network.pauseForSync();assert.equal(runtime.snapshot().running,false);await runtime.start();assert.equal(runtime.snapshot().running,false);await finish();assert.equal(runtime.snapshot().running,true);
+ const manual=runtime.network.pauseForSync();await runtime.start();runtime.pause();await manual();assert.equal(runtime.snapshot().running,false);
+ const loaded=runtime.network.pauseForSync();await runtime.start();assert.equal(runtime.snapshot().running,false);await loaded();assert.equal(runtime.snapshot().running,true);await runtime.dispose();
+ }finally{env.restore();}
+});

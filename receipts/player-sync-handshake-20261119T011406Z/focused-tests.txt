@@ -1,0 +1,29 @@
+✔ presentation pacing bounds real draws on 60/120/144/240 Hz displays without reducing 30 Hz (19.86084ms)
+✔ missed display deadlines and lifecycle restarts do not accumulate catch-up draws (0.694484ms)
+✔ SNES actual canvas writes remain capped through high-refresh callbacks and a stall while all PCM is scheduled (201.727254ms)
+✔ NES actual canvas writes use the same ceiling while streaming audio and recycling bounded worker buffers (153.839684ms)
+✔ SNES presentation remains near sixty with quantized audio time at different vsync phases (391.452982ms)
+✔ rounded browser vsync timestamps do not turn sixty ready frames into a slower presentation rate (12.722169ms)
+✔ a player synchronization pause blocks early resume and preserves a later manual pause (0.835059ms)
+✔ incoming frames remain consecutive while a native replay batch is in flight (7.060544ms)
+✔ hash divergence stops input readiness until a fresh checkpoint restores the canonical state (4.071508ms)
+✔ closing a replica prevents a late native completion from restoring readiness (2.221683ms)
+✔ host retains frames produced during a snapshot and accepts an early checkpoint acknowledgment (7.00033ms)
+✔ a paused late join paints the final catch-up frames at live speed (2.371215ms)
+✔ host retries throttled resync and buffered pause controls without new frames (1802.599136ms)
+✔ player bootstrap pauses until verified acknowledgment; viewers never acquire the pause (2.139008ms)
+✔ viewers retain ordered visible frames through half-second lag while players catch up promptly (1.559259ms)
+✔ canonical checkpoint bytes preserve SNES memory and bind full state, frame, and identity (12.284827ms)
+✔ actual NES producer captures without releasing held inputs and replays both ports to identical full state (10935.995984ms)
+✔ actual SNES independent runners reproduce full native/APU state after two-port frame replay (621.638407ms)
+✔ SNES follower renders without audio permission, never advances autonomously, and never touches battery storage (4.375159ms)
+✔ NES battery facade handshakes empty state but never reads, writes, or flushes a replica save (1.925538ms)
+✔ fast checkpoint encoding retains canonical wire bytes for nested arrays, memory and reserved keys (0.269706ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11697.376284

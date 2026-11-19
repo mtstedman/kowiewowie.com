@@ -31,7 +31,7 @@ export async function joinSyncParticipant(value,record,{network,onEvent=()=>{},s
  let previous='';
  const emit=()=>{const s=getState(),key=[s.phase,s.inputEnabled,s.hostPaused,s.replication?.epoch].join('|');if(key!==previous){previous=key;clear();s.epoch=epoch;}notify(onEvent,{type:'state',state:s});};
  const send=values=>{const local=replication.state();if(!local.epoch||!assigned.capabilities.input)return false;return peer.sendInput({epoch:local.epoch,frame:local.frame,seq:++seq,controls:values});};
- replication=createGuestReplication({network,binding,onChange:emit,requestResync:message=>peer?.requestResync(message)});
+ replication=createGuestReplication({network,binding,viewer:assigned.participant_role==='watch',onChange:emit,requestResync:message=>peer?.requestResync(message)});
  peer=new transport.Peer('guest',{room:record.room,credential:record.credential,...assigned},{
   clear(){clear();},state:controls,enabled(value){if(enabled!==value){enabled=value;if(!value)clear();emit();}},
   syncInput(values){if(connected()&&replication.state().ready)send(values);},
