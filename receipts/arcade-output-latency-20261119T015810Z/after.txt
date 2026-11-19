@@ -1,0 +1,16 @@
+✔ presentation pacing bounds real draws on 60/120/144/240 Hz displays without reducing 30 Hz (13.503163ms)
+✔ missed display deadlines and lifecycle restarts do not accumulate catch-up draws (0.630165ms)
+✔ SNES actual canvas writes remain capped through high-refresh callbacks and a stall while all PCM is scheduled (119.284503ms)
+✔ NES actual canvas writes use the same ceiling while streaming audio and recycling bounded worker buffers (113.354722ms)
+✔ SNES presentation remains near sixty with quantized audio time at different vsync phases (288.46776ms)
+✔ rounded browser vsync timestamps do not turn sixty ready frames into a slower presentation rate (8.82708ms)
+✔ a player synchronization pause blocks early resume and preserves a later manual pause (0.772973ms)
+✔ SNES replica retains frames through audio device latency instead of dropping every picture before its deadline (27.820857ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 641.061727

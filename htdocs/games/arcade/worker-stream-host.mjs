@@ -110,7 +110,8 @@ function pump(){
   if(primeMedia){mediaNext=Math.max(mediaNext,now+bufferTarget);primeMedia=false;}
   if(mediaNext<now){bufferTarget=Math.min(.2,bufferTarget+.02);mediaNext=now+.012;fadeIn=true;}
   sound(d.audio,mediaNext);
-  if(replicated)while(videoQueue.length>=16)videoQueue.shift();
+  // Replica pictures must survive audio output latency before their display deadline.
+  if(replicated)while(videoQueue.length>=64)videoQueue.shift();
   videoQueue.push({at:mediaNext,rgba:d.rgba,audio:d.audio,frames:d.frames,transport:replicated?null:d});networkFrame=d.frames;
   mediaNext+=duration;lastCycles=d.cycles;
   const elapsed=(performance.now()-measuredAt)/1000;

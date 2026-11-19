@@ -1,0 +1,26 @@
+✔ canonical checkpoint bytes preserve SNES memory and bind full state, frame, and identity (8.901559ms)
+✔ actual NES producer captures without releasing held inputs and replays both ports to identical full state (12101.614763ms)
+✔ actual SNES independent runners reproduce full native/APU state after two-port frame replay (632.649674ms)
+✔ SNES follower renders without audio permission, never advances autonomously, and never touches battery storage (4.360009ms)
+(node:3502920) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ NES battery facade handshakes empty state but never reads, writes, or flushes a replica save (2.051628ms)
+✔ fast checkpoint encoding retains canonical wire bytes for nested arrays, memory and reserved keys (0.26076ms)
+✔ NES canonical frames survive an input pause but stale pre-load frames cannot enter the restored log (12.549739ms)
+✔ native SNES steps retain near sixty FPS for two minutes with timer jitter and frame cost (39.865677ms)
+✔ high-refresh scheduling and repeated pause/resume never mint simulation credits (22.019918ms)
+✔ worker request stalls and native overruns discard missed execution debt (1.973662ms)
+✔ pause history survives rapid restart and a lower native frequency remains lower (0.279145ms)
+✔ native frames slightly above one period do not pay a second full-frame delay (3.548884ms)
+✔ browser runner two physical ports, owned outputs, native checkpoints and independent instances (126.929108ms)
+✔ browser core fetch rejects changed and oversized bytes before evaluation (35.221002ms)
+✔ standard gamepads route separate seats and release on disconnect/disable (1.098856ms)
+✔ dispose waits for an in-flight battery write and pause wins over delayed audio resume (7.63116ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12873.933923

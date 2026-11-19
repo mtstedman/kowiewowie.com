@@ -2,7 +2,9 @@ import {validateReplicationPicture} from './replication-state.mjs';
 import {snesSlot} from './snes-storage.mjs';
 import {createFramePacer} from './frame-pacing.mjs';
 import {createSimulationClock} from './simulation-clock.mjs';
-// Bounded worker transport; one complete frame is in flight, at most 100 ms ahead.
+// Host execution keeps one native frame in flight and under 100 ms of audio lead.
+// Retain up to one second of video for device output latency and viewer jitter.
+const VIDEO_QUEUE_LIMIT=64;
 export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal,replica=false}) {
  let syncPause=null,catchUpPresentation=false;
  let worker=null,workerBootstrap=null,context=null,master=null,ready=false,running=false,closed=false,loading=false,message='Loading SNES…';
@@ -29,12 +31,12 @@ export function createSnesRuntime({canvas,config,packageId,onState=()=>{},signal
   const start=audioCursor>now?audioCursor:now+.06,length=frame.audio.length/2,duration=Math.max(1/simulation.snapshot().hz,length/context.sampleRate);
   if(length&&(!replicaMode||context.state==='running')){const buffer=context.createBuffer(2,length,context.sampleRate);for(let channel=0;channel<2;channel++){const data=buffer.getChannelData(channel);for(let i=0;i<length;i++)data[i]=frame.audio[i*2+channel]/32768;}const node=context.createBufferSource();node.buffer=buffer;node.playbackRate.value=(length/context.sampleRate)/duration;node.connect(master);node.onended=()=>{nodes.delete(node);node.disconnect();};nodes.add(node);node.start(start);audioCursor=start+duration;}
   else audioCursor=start+duration;
-  audioSamples+=frame.audio.length;if(replicaMode)while(video.length>=8)video.shift();video.push({showAt:start,frame});generated++;
+  audioSamples+=frame.audio.length;if(replicaMode)while(video.length>=VIDEO_QUEUE_LIMIT)video.shift();video.push({showAt:start,frame});generated++;
  }
  function armPump(delay){clearTimeout(pumpTimer);pumpTimer=setTimeout(()=>{pumpTimer=null;pump();},Math.max(.1,delay));}
  function pump(){
   clearTimeout(pumpTimer);pumpTimer=null;if(!running||closed||frameBusy||replicaMode)return;
-  if(video.length>=8||audioCursor-context.currentTime>=.085){armPump(5);return;}
+  if(video.length>=VIDEO_QUEUE_LIMIT||audioCursor-context.currentTime>=.085){armPump(5);return;}
   if(!simulation.take(performance.now())){armPump(simulation.delay(performance.now()));return;}
   frameBusy=true;const generation=epoch;
   rpc('frame',{pads:masks()}).then(frame=>{simulationFrames=frame.simulation?.executed??simulationFrames+1;networkFrame=frame.frame+1;if(frame.replication)emit(frame.replication);if(running&&!closed&&generation===epoch)accept(frame);},fail).finally(()=>{frameBusy=false;if(running&&!closed)pump();});

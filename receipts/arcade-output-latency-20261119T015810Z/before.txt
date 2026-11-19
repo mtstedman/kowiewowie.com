@@ -1,0 +1,32 @@
+✔ presentation pacing bounds real draws on 60/120/144/240 Hz displays without reducing 30 Hz (18.668256ms)
+✔ missed display deadlines and lifecycle restarts do not accumulate catch-up draws (0.748538ms)
+✔ SNES actual canvas writes remain capped through high-refresh callbacks and a stall while all PCM is scheduled (160.840452ms)
+✔ NES actual canvas writes use the same ceiling while streaming audio and recycling bounded worker buffers (139.357032ms)
+✔ SNES presentation remains near sixty with quantized audio time at different vsync phases (327.536935ms)
+✔ rounded browser vsync timestamps do not turn sixty ready frames into a slower presentation rate (11.174854ms)
+✔ a player synchronization pause blocks early resume and preserves a later manual pause (0.751844ms)
+✖ SNES replica retains frames through audio device latency instead of dropping every picture before its deadline (30.175596ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 7
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 762.19951
+
+✖ failing tests:
+
+test at tests/arcade-frame-pacing.test.mjs:88:1
+✖ SNES replica retains frames through audio device latency instead of dropping every picture before its deadline (30.175596ms)
+  AssertionError [ERR_ASSERTION]: Audio output latency starved the display: 0 actual pictures
+      at TestContext.<anonymous> (file:///home/mason/repos/wowiekowie.com/tests/arcade-frame-pacing.test.mjs:91:21)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

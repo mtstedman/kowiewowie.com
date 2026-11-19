@@ -1,0 +1,12 @@
+{
+  "format": "arcade-output-latency/1",
+  "reproduction": "Actual SNES runtime receives 300 consecutive authoritative frames over five seconds with a 200 ms audio-device output delay. An eight-frame queue drops every image before its display deadline.",
+  "beforeVisibleFrames": 0,
+  "afterVisibleFramesGreaterThan": 270,
+  "presentationLimitHz": 60,
+  "audioFramesScheduled": 300,
+  "queueLimitFrames": 64,
+  "nativeRuntimeTestsPassed": 16,
+  "pacingTestsPassed": 8,
+  "scope": "Bounded frame retention for output-device latency and replica arrival jitter; host simulation and PCM pacing remain independently capped. Native NES/SNES browser replay retains exact state hashes."
+}
