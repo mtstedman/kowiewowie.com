@@ -19,7 +19,7 @@ function environment(t){
  for(const [key,value] of Object.entries(replacements)){const old=Object.getOwnPropertyDescriptor(globalThis,key);Object.defineProperty(globalThis,key,{value,configurable:true});t.after(()=>{if(old)Object.defineProperty(globalThis,key,old);else delete globalThis[key];});}
  return replacements.document;
 }
-const packageValue={id:'fixture',artifactDigest:'a'.repeat(64)};
+const packageValue={id:'fixture',artifactDigest:'a'.repeat(64),capabilities:{play:'shared-hero',watch:true}};
 const owner={getPackage:()=>packageValue};
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 test('sharing UI hides solo controls, copies accessibly and cleans on abort without stale resurrection',async t=>{

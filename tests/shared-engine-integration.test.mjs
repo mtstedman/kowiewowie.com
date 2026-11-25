@@ -17,7 +17,8 @@ test('current shared-engine packages authenticate complete cartridge, engine and
  for(const row of rows){
   const p=json('htdocs'+row.manifest),m=p.manifest;validateManifest(m);
   assert.equal(pin(Buffer.from(canonical(m))).sha256,row.artifactDigest);assert.equal(p.artifactDigest,row.artifactDigest);
-  assert.equal(net.packages[row.id].artifactDigest,row.artifactDigest);
+  if(m.capabilities.play!=='none'||m.capabilities.watch)assert.equal(net.packages[row.id].artifactDigest,row.artifactDigest);
+  else assert.equal(net.packages[row.id],undefined,'Local-only packages must not advertise a network binding');
   for(const [path,expected]of Object.entries(m.files))assert.deepEqual(pin(read('htdocs'+path)),expected,path);
   if(m.platform!=='NES')continue;
   const base='htdocs/games/'+row.id+'/',composition=json(base+'composition.json'),cart=json(base+'cartridge/cartridge-manifest.json');

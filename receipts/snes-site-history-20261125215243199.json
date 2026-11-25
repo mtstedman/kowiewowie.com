@@ -1,0 +1,45 @@
+{
+  "format": "nes-engine-maintenance-history/1",
+  "reason": "Update arcade contract fixtures for explicit local-only packages; retain network identity checks for sharing-capable packages and reject bindings for local-only packages.",
+  "previous": {
+    "path": "receipts/snes-site-history-20261125215000952.json",
+    "bytes": 16846,
+    "sha256": "b4dc8776b2eea07138572559bafb5e85bc51a7d915605880060dfac9ae56f971"
+  },
+  "changes": {
+    "tests/combined-followup.test.mjs": {
+      "before": {
+        "bytes": 4891,
+        "sha256": "2f6bc76ab5ceba5ff99cf29c93e4c2bc8d6bedfc121887cdace7b84ffe2dec10"
+      },
+      "after": {
+        "bytes": 4936,
+        "sha256": "5de8688d89821275b0231192aa8bff545fbeec91e6a399521a371458ab0b3ee0"
+      },
+      "original": "maintenance/snes-site-originals/20261125215243199/tests/combined-followup.test.mjs"
+    },
+    "tests/combined-integration.test.mjs": {
+      "before": {
+        "bytes": 22651,
+        "sha256": "d2354a5cea9e9f96d7c872aa84d77ca5e74d237e6cec27490a22b04171beabc7"
+      },
+      "after": {
+        "bytes": 22816,
+        "sha256": "1b5647dc6551287281c592a9e1e7ac6cb183dbeb355ae46763bb9bd79e47acc0"
+      },
+      "original": "maintenance/snes-site-originals/20261125215243199/tests/combined-integration.test.mjs"
+    },
+    "tests/shared-engine-integration.test.mjs": {
+      "before": {
+        "bytes": 3473,
+        "sha256": "b9447b13d5a208122d7d611e674a272f31298b3d8f96256c684f906e4afd39c7"
+      },
+      "after": {
+        "bytes": 3639,
+        "sha256": "dd17086ce07568ab06be99a65b0fc171016ec8aada34d34247b3c3635781e351"
+      },
+      "original": "maintenance/snes-site-originals/20261125215243199/tests/shared-engine-integration.test.mjs"
+    }
+  },
+  "added": {}
+}
