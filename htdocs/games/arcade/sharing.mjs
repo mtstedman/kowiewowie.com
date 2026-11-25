@@ -69,6 +69,10 @@ export function createSharing({loadBinding:readBinding=loadBinding,createBridge:
   async load(p,signal,route={},importAdapter){
    if(current)await cleanup(current,'package-change');
    if(signal.aborted)throw Error('Selection superseded');
+   if(p.capabilities.play==='none'&&!p.capabilities.watch){
+    if(!route.solo&&new URL(route.href||location.href,location.origin).hash.startsWith('#netplay'))throw Error('Sharing is unavailable for this package');
+    return importAdapter(p,signal);
+   }
    const record=receiveIntent(p,route.href,route.solo);
    const plan={p,signal,record,bridge:null,ui:null,closed:false,cleanup:null,attaching:null,ending:false,state:null,events:new AbortController(),rosterKey:'',invited:null};
    plan.abort=()=>{void cleanup(plan,typeof signal.reason==='string'?signal.reason:'selection-aborted');};

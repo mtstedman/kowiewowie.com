@@ -194,3 +194,6 @@ body[data-expanded=true] #session-surface video{width:100%;max-height:80svh}
 }
 @media(max-width:340px){.shelf{gap:.8rem .5rem}.cartridge-body{padding-inline:.45rem}.load-cartridge{margin-inline:.45rem}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}.cartridge-choice:hover{transform:none}}
+
+/* DOS video dimensions follow the machine instead of a console aspect ratio. */
+.dos-view canvas{aspect-ratio:auto}

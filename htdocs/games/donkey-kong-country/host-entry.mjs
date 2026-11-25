@@ -1,0 +1,4 @@
+import {createSNESAdapter} from '/games/arcade/snes-adapter.mjs';
+const config={"rom":{"path":"/games/donkey-kong-country/source.sfc","bytes":4194304,"sha256":"628147468c3539283197f58f03b94df49758a332831857481ea9cc31645f0527"},"metadata":{"mapping":"hirom","romBytes":4194304,"ramBytes":2048,"nvramBytes":2048,"region":"ntsc","romSha256":"628147468c3539283197f58f03b94df49758a332831857481ea9cc31645f0527"},"core":{"loader":{"path":"/games/engines/snes/posse-snes.cjs","bytes":64682,"sha256":"0970d8ce46aeeafbead9696b545ab5c9da2da9a44f9c1acd502cc8b143e21a56"},"wasm":{"path":"/games/engines/snes/posse-snes.wasm","bytes":2185357,"sha256":"0e694cf9d404408ca45b817dcf4fc6478480802bc1b1f84cfc633152d656470c"}}};
+export const version=1;
+export function createAdapter(ctx){return createSNESAdapter(ctx,config);}

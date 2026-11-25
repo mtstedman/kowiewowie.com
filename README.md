@@ -415,3 +415,31 @@ checks. Run it manually after pushing with:
 ```bash
 ./deploy/deploy.sh
 ```
+
+## DOS and additional SNES arcade packages
+
+Commander Keen and Donkey Kong Country use the shared arcade at
+`/games/arcade/?package=commander-keen` and
+`/games/arcade/?package=donkey-kong-country`. The former uses the source-built
+DOSBox runtime in `htdocs/games/engines/dos`; its corresponding source archive,
+license and build manifest are served alongside it. DKC uses the existing SNES
+core. Both additions currently expose local play only; DKC retains the SNES save
+slots, while Keen's drive is transient. No full-game qualification is claimed.
+
+DOS requires the scoped COOP/COEP headers in the checked-in nginx configuration.
+Do not remove the existing CSP or enable isolation globally. For a local preview
+with these policies, run `node tests/arcade-local-server.mjs 8643`.
+
+After reviewed DOS host edits, regenerate its pins with
+`node maintenance/dos-site-packages.mjs commander-keen`. To refresh only DKC, use
+`node maintenance/snes-site-packages.mjs --id donkey-kong-country "EVIDENCE"`;
+its cartridge descriptor disables unqualified network invitations. Then refresh
+the explicit changed shell paths through `maintenance/arcade-refresh-packages.mjs`
+and record successor history through `maintenance/snes-site-history.mjs`, following
+the existing release process. Do not refresh unrelated package capabilities.
+
+Focused checks: `node --test tests/arcade-additions.test.mjs tests/snes-site-packages.test.mjs`.
+Real browser lifecycle/gameplay/save checks: `node tests/arcade-additions.browser.mjs`
+(optional existing `ARCADE_ADDITIONS_EVIDENCE` directory receives screenshots/report).
+The normal `npm run test:arcade` release gate also includes the addition's integrity
+and isolation-policy tests. Reviewed browser results: `receipts/arcade-additions-20261125.json`.

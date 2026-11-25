@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "reports": [
+    {
+      "id": "commander-keen",
+      "gameplayInput": true,
+      "pauseClock": true,
+      "resumeFocus": true,
+      "inputConsumed": true,
+      "freshReset": true,
+      "cleanup": true
+    },
+    {
+      "id": "donkey-kong-country",
+      "runs": true,
+      "saveLoad": true,
+      "resume": true,
+      "mobile": true,
+      "cleanup": true
+    },
+    {
+      "id": "super-mario-world",
+      "existingGameUnderIsolation": true
+    }
+  ],
+  "errors": [],
+  "visualReview": {
+    "commander-keen": "Actual side-scrolling level, movement and resumed gameplay visually confirmed.",
+    "donkey-kong-country": "Donkey Kong in the jungle side-scrolling level visually confirmed."
+  },
+  "policy": "Browser server used production CSP and scoped COOP/COEP maps.",
+  "limits": [
+    "No full-game playthrough qualification",
+    "Keen has no persistent saves or checkpoints",
+    "Network invitations disabled for both additions"
+  ],
+  "inputs": {
+    "keenExecutableSha256": "8b3f829f7eeab18a7fbf9d539967e9ae9c856258aa78efc0531fa922df71c4a2",
+    "dkcRomSha256": "628147468c3539283197f58f03b94df49758a332831857481ea9cc31645f0527"
+  }
+}

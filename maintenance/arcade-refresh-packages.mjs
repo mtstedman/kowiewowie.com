@@ -65,7 +65,8 @@ const pending=new Map(),reports=[],allGraph=new Set();
 const schedule=(name,value)=>pending.set(name,typeof value==='string'?value:canonical(value)+'\n');
 for(const row of catalog){
  const name='htdocs'+row.manifest,envelope=json(name),manifest=envelope.manifest;
- if(hash(canonical(manifest))!==envelope.artifactDigest||row.artifactDigest!==envelope.artifactDigest||network.packages[row.id]?.artifactDigest!==envelope.artifactDigest)throw Error('Existing identity mismatch: '+row.id);
+ const sharing=manifest.capabilities.play!=='none'||manifest.capabilities.watch;
+ if(hash(canonical(manifest))!==envelope.artifactDigest||row.artifactDigest!==envelope.artifactDigest||(sharing?network.packages[row.id]?.artifactDigest!==envelope.artifactDigest:Boolean(network.packages[row.id])))throw Error('Existing identity mismatch: '+row.id);
  const seeds=['/games/arcade/index.html','/games/arcade/ui.mjs','/games/arcade/host.mjs',...Object.keys(manifest.files).filter(p=>p.startsWith('/games/arcade/')&&p.endsWith('.mjs'))];
  const discovered=graph(seeds);for(const p of discovered)allGraph.add(p);
  const updated=[],added=[],removed=[],derived=new Set(),timingChanged=simulationHz===60&&['NES','SNES'].includes(manifest.platform)&&manifest.timing.nominalHz!==60;
@@ -86,7 +87,7 @@ for(const row of catalog){
  for(const url of discovered)if(!presentation(url)&&!Object.hasOwn(manifest.files,url)){manifest.files[url]=pin(url);added.push(url);}
  if(!updated.length&&!added.length&&!removed.length&&!timingChanged)continue;
  validateManifest(manifest);const artifactDigest=hash(canonical(manifest));envelope.artifactDigest=artifactDigest;row.artifactDigest=artifactDigest;
- network.packages[row.id]=validateBinding({...network.packages[row.id],artifactDigest});schedule(name,envelope);
+ if(sharing)network.packages[row.id]=validateBinding({...network.packages[row.id],artifactDigest});schedule(name,envelope);
  const legacy='htdocs'+manifest.route+'network-package.json';
  if(fs.existsSync(path.join(root,legacy))){const old=json(legacy);old.artifactDigest=artifactDigest;old.binding=network.packages[row.id];schedule(legacy,old);}
  reports.push({id:row.id,artifactDigest,updated,added,removed,timingChanged});

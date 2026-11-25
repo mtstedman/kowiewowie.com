@@ -1,0 +1,2 @@
+Donkey Kong Country (1994), Rare / Nintendo. Supplied USA revision 1.2 cartridge bytes are unchanged.
+Posse SNES runtime attribution and license: /games/engines/snes/NOTICE and /games/engines/snes/LICENSE.

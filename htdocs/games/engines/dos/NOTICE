@@ -1,0 +1,5 @@
+DOSBox 0.74-3 and Posse port: GPL-2.0-or-later. See LICENSE.
+Corresponding source and build scripts: source.tar.gz (toolchain commit ec615a3).
+Build: extract, cd authoring/keen-dos-20261125, run bash core/web/build-web.sh with emscripten/emsdk:4.0.22 installed.
+Build provenance: build-manifest.json. Arcade host source: /games/arcade/dos-adapter.mjs and dos-worker.js (GPL-2.0-or-later).
+Game content is separate from emulator source.

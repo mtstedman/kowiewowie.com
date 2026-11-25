@@ -1,0 +1,2 @@
+Commander Keen: Marooned on Mars (1990), id Software / Apogee. Original supplied executable and game data are unchanged.
+DOSBox runtime license, corresponding source and provenance: /games/engines/dos/NOTICE and /games/engines/dos/LICENSE.

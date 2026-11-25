@@ -1,0 +1,121 @@
+{
+  "format": "dos-cartridge/1",
+  "id": "commander-keen",
+  "title": "Commander Keen: Marooned on Mars",
+  "publisher": "id Software / Apogee",
+  "year": "1990",
+  "evidence": "Original-input native/Wasm parity and local browser level-entry, movement, audio and lifecycle checks; no full-game qualification, persistent saves or networking.",
+  "data": {
+    "path": "/games/commander-keen/drive.json",
+    "sha256": "923738a0a1d7244259661124072058059a8a679b029eb900fcc2c0815243e5fe"
+  },
+  "js": {
+    "path": "/games/engines/dos/posse-dosbox.js",
+    "sha256": "8673dc4bb5be8a14672f59c6fa06b9cab414a459166a3e6e2640b0dc4ee7dda9"
+  },
+  "wasm": {
+    "path": "/games/engines/dos/posse-dosbox.wasm",
+    "sha256": "5b6b2168141a96a790095b79b5830f9a4aadae03578f9ea2ef2a99c9b9fe04b6"
+  },
+  "controls": {
+    "up": {
+      "key": "up",
+      "codes": [
+        "ArrowUp"
+      ],
+      "label": "Up",
+      "hint": "Up arrow"
+    },
+    "down": {
+      "key": "down",
+      "codes": [
+        "ArrowDown"
+      ],
+      "label": "Down",
+      "hint": "Down arrow"
+    },
+    "left": {
+      "key": "left",
+      "codes": [
+        "ArrowLeft"
+      ],
+      "label": "Left",
+      "hint": "Left arrow"
+    },
+    "right": {
+      "key": "right",
+      "codes": [
+        "ArrowRight"
+      ],
+      "label": "Right",
+      "hint": "Right arrow"
+    },
+    "jump": {
+      "key": "leftctrl",
+      "codes": [
+        "ControlLeft",
+        "ControlRight"
+      ],
+      "label": "Jump",
+      "hint": "Ctrl; enter a level or jump"
+    },
+    "pogo": {
+      "key": "leftalt",
+      "codes": [
+        "AltLeft",
+        "AltRight"
+      ],
+      "label": "Pogo",
+      "hint": "Alt; Ctrl + Alt fires"
+    },
+    "enter": {
+      "key": "enter",
+      "codes": [
+        "Enter",
+        "NumpadEnter"
+      ],
+      "label": "Enter",
+      "hint": "Enter; confirm selection"
+    },
+    "space": {
+      "key": "space",
+      "codes": [
+        "Space"
+      ],
+      "label": "Space",
+      "hint": "Space; dismiss title"
+    },
+    "select": {
+      "key": "esc",
+      "codes": [
+        "Escape"
+      ],
+      "label": "Menu",
+      "hint": "Escape; menu or back"
+    },
+    "yes": {
+      "key": "y",
+      "codes": [
+        "KeyY"
+      ],
+      "label": "Yes",
+      "hint": "Y; confirm"
+    },
+    "no": {
+      "key": "n",
+      "codes": [
+        "KeyN"
+      ],
+      "label": "No",
+      "hint": "N; cancel"
+    },
+    "help": {
+      "key": "f1",
+      "codes": [
+        "F1"
+      ],
+      "label": "Help",
+      "hint": "F1; help"
+    }
+  }
+}

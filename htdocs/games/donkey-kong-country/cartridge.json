@@ -1,0 +1,30 @@
+{
+  "format": "snes-cartridge/1",
+  "id": "donkey-kong-country",
+  "title": "Donkey Kong Country",
+  "year": "1994",
+  "publisher": "Nintendo / Rare",
+  "nativePlayers": 2,
+  "sharing": false,
+  "metadata": {
+    "system": "snes",
+    "abi": "snes-runner/1",
+    "romSha256": "628147468c3539283197f58f03b94df49758a332831857481ea9cc31645f0527",
+    "sourceSha256": "628147468c3539283197f58f03b94df49758a332831857481ea9cc31645f0527",
+    "title": "DONKEY KONG COUNTRY",
+    "mapping": "hirom",
+    "mapMode": 49,
+    "fastRom": true,
+    "cartridgeType": 2,
+    "enhancement": "none",
+    "region": "ntsc",
+    "regionCode": 1,
+    "romBytes": 4194304,
+    "ramBytes": 2048,
+    "battery": true,
+    "nvramBytes": 2048,
+    "copierHeaderBytes": 0,
+    "checksum": 11212,
+    "resetVector": 32768
+  }
+}
